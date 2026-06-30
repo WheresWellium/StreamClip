@@ -133,7 +133,8 @@ services:
       STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
       STREAMCLIP_WHISPER__MODEL_SIZE: medium
       STREAMCLIP_EXPORT__CODEC: libx264
-      STREAMCLIP_CORS__ALLOW_ORIGINS: '["http://localhost:3000"]'
+      STREAMCLIP_LOG_JSON: "true"
+      STREAMCLIP_OBSERVABILITY__ENABLE_METRICS: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,6 +174,10 @@ services:
       STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
       STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+      STREAMCLIP_WHISPER__DEVICE: cpu
+      STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
+      STREAMCLIP_WHISPER__MODEL_SIZE: medium
+      STREAMCLIP_EXPORT__CODEC: libx264
     depends_on:
       api:
         condition: service_started
@@ -207,6 +212,9 @@ services:
       STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
       STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+      STREAMCLIP_WHISPER__DEVICE: cuda
+      STREAMCLIP_WHISPER__COMPUTE_TYPE: float16
+      STREAMCLIP_EXPORT__CODEC: h264_nvenc
     depends_on:
       api:
         condition: service_started
@@ -234,6 +242,28 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ── Flower (Celery monitoring) ─────────────────────────────────────
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A core.celery_app.celery_app flower
+        --port=5555
+        --broker=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    environment:
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
     restart: unless-stopped
 
   # ── Next.js 15 frontend ────────────────────────────────────────────

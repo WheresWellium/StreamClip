@@ -11,9 +11,9 @@ log_level: INFO
 log_json: false
 
 whisper:
-  model_size: large-v3          # large-v3 for best accuracy; "medium" for speed
-  device: auto                  # auto → CUDA if available, else CPU
-  compute_type: float16         # use int8 on CPU for speed
+  model_size: medium              # medium for CPU; large-v3 when GPU available
+  device: cpu                     # override with auto/cuda in GPU deployments
+  compute_type: int8              # int8 on CPU; float16 on CUDA
   language: null                # null = auto-detect
   word_timestamps: true
   beam_size: 5
@@ -22,7 +22,7 @@ whisper:
 llm:
   provider: ollama              # "ollama" | "openai" | "anthropic"
   model: llama3.2               # or "mistral", "gpt-4o-mini"
-  base_url: http://localhost:11434
+  base_url: http://ollama:11434
   api_key: ""
   temperature: 0.2
   max_retries: 3

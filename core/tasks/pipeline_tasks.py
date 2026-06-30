@@ -79,6 +79,8 @@ def _apply_job_config(job: Any) -> None:
         cfg.caption.style = snap["caption_style"]
     if "reframe_preset" in snap:
         cfg.reframe.preset = snap["reframe_preset"]
+    if "whisper_model" in snap:
+        cfg.whisper.model_size = snap["whisper_model"]
 
 
 def _local_workspace(job_id: str) -> Path:
@@ -463,7 +465,7 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
             jobs_repo = JobRepository(db)
             done_count = sum(1 for r in results if r.get("status") == "done")
             err_count = sum(1 for r in results if r.get("status") == "error")
-            final_status = JobStatus.DONE if done_count > 0 else JobStatus.ERROR
+            final_status = JobStatus.DONE if err_count == 0 else JobStatus.ERROR
             await jobs_repo.update_status(
                 job_id, final_status,
                 stage="completed", progress=1.0,

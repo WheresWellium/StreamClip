@@ -86,8 +86,8 @@ class _LLMScorer:
 
     def _build_client(self) -> Any:
         if self.cfg.provider == "ollama":
-            import ollama
-            return ollama
+            from ollama import Client
+            return Client(host=self.cfg.base_url)
         if self.cfg.provider == "openai":
             from openai import OpenAI
             return OpenAI(api_key=self.cfg.api_key, base_url=self.cfg.base_url)
@@ -100,7 +100,7 @@ class _LLMScorer:
                 messages=[{"role": "user", "content": prompt}],
                 options={"temperature": self.cfg.temperature},
             )
-            return resp["message"]["content"].strip()
+            return resp.message.content.strip()
         # OpenAI-compatible
         resp = self._client.chat.completions.create(
             model=self.cfg.model,

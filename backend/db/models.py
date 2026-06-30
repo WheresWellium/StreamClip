@@ -78,6 +78,11 @@ class UserTier(str, Enum):
     ADMIN  = "admin"
 
 
+def _enum_values(enum_cls: type[Enum]) -> list[str]:
+    """Map Python enums to DB string values (not member names)."""
+    return [member.value for member in enum_cls]
+
+
 # ─── Mixins ─────────────────────────────────────────────────────────────────
 
 class TimestampMixin:
@@ -102,7 +107,9 @@ class User(Base, IDMixin, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str | None] = mapped_column(String(255))
     display_name: Mapped[str | None] = mapped_column(String(120))
-    tier: Mapped[UserTier] = mapped_column(SAEnum(UserTier), default=UserTier.FREE)
+    tier: Mapped[UserTier] = mapped_column(
+        SAEnum(UserTier, name="user_tier", values_callable=_enum_values), default=UserTier.FREE,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # API integrations
@@ -136,7 +143,9 @@ class Job(Base, IDMixin, TimestampMixin):
 
     # Status / progress
     status: Mapped[JobStatus] = mapped_column(
-        SAEnum(JobStatus), default=JobStatus.QUEUED, index=True,
+        SAEnum(JobStatus, name="job_status", values_callable=_enum_values),
+        default=JobStatus.QUEUED,
+        index=True,
     )
     progress: Mapped[float] = mapped_column(Float, default=0.0)
     current_stage: Mapped[str] = mapped_column(String(64), default="queued")
@@ -197,7 +206,10 @@ class Clip(Base, IDMixin, TimestampMixin):
     file_size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
 
     # Status
-    status: Mapped[ClipStatus] = mapped_column(SAEnum(ClipStatus), default=ClipStatus.PENDING)
+    status: Mapped[ClipStatus] = mapped_column(
+        SAEnum(ClipStatus, name="clip_status", values_callable=_enum_values),
+        default=ClipStatus.PENDING,
+    )
     error_message: Mapped[str | None] = mapped_column(Text)
     render_time_secs: Mapped[float] = mapped_column(Float, default=0.0)
 

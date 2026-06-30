@@ -237,12 +237,20 @@ _settings: Settings | None = None
 
 
 def get_settings(yaml_path: str | Path | None = None, *, reload: bool = False) -> Settings:
+    """Load settings from YAML; STREAMCLIP_* env vars override file values."""
     global _settings
     if _settings is None or reload:
+        env_cfg = Settings()
         cfg_file = yaml_path or os.environ.get("STREAMCLIP_CONFIG", "config.yaml")
         if Path(str(cfg_file)).exists():
-            _settings = Settings.from_yaml(cfg_file)
+            with open(cfg_file) as fh:
+                data = yaml.safe_load(fh) or {}
+            file_cfg = Settings.model_validate(data)
+            _settings = Settings.model_validate({
+                **file_cfg.model_dump(),
+                **env_cfg.model_dump(exclude_unset=True),
+            })
         else:
-            _settings = Settings()
+            _settings = env_cfg
         _settings.ensure_dirs()
     return _settings

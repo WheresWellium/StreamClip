@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api import health, jobs, uploads
+from backend.api import health, jobs, metrics, uploads
 from core.config import get_settings
 from core.errors import StreamClipError
 
@@ -139,13 +139,26 @@ def create_app() -> FastAPI:
     async def add_timing_header(request: Request, call_next) -> Any:
         t0 = time.perf_counter()
         response = await call_next(request)
-        response.headers["X-Process-Time"] = f"{(time.perf_counter() - t0):.4f}"
+        elapsed = time.perf_counter() - t0
+        response.headers["X-Process-Time"] = f"{elapsed:.4f}"
+        if cfg.observability.enable_metrics and request.url.path != "/metrics":
+            metrics.REQUEST_DURATION.labels(
+                method=request.method,
+                path=request.url.path,
+            ).observe(elapsed)
+            metrics.REQUESTS_TOTAL.labels(
+                method=request.method,
+                path=request.url.path,
+                status=str(response.status_code),
+            ).inc()
         return response
 
     # ── Routers ───────────────────────────────────────────────────────────
     app.include_router(health.router)
     app.include_router(jobs.router)
     app.include_router(uploads.router)
+    if cfg.observability.enable_metrics:
+        app.include_router(metrics.router)
 
     # ── Exception handlers ────────────────────────────────────────────────
     @app.exception_handler(StreamClipError)

@@ -20,6 +20,25 @@ RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://
 # ── Application code ─────────────────────────────────────
 COPY . .
 
+# ── Asset vault placeholders ─────────────────────────────
+RUN python scripts/generate_assets.py || true
+
+# ── Pre-warm ML models (CPU-safe) ────────────────────────
+ENV HF_HOME=/app/.cache/huggingface
+ENV TORCH_HOME=/app/.cache/torch
+RUN python -c "\
+from faster_whisper import WhisperModel; \
+WhisperModel('medium', device='cpu', compute_type='int8'); \
+print('whisper medium cached')" \
+    && python -c "\
+from sentence_transformers import SentenceTransformer; \
+SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2'); \
+print('embedder cached')" \
+    && python -c "\
+from ultralytics import YOLO; \
+YOLO('yolo11n.pt'); \
+print('yolo cached')"
+
 # ── Create persistent dirs ───────────────────────────────
 RUN mkdir -p workspace output .cache assets/gifs assets/stickers assets/sfx
 

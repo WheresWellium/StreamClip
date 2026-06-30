@@ -1,0 +1,98 @@
+[
+  {
+    "path": "gifs/hype.gif",
+    "type": "gif",
+    "description": "absolute hype, let's go, incredible win, amazing play, fire moment, clutch victory",
+    "sfx": "sfx/airhorn.mp3",
+    "duration": 2.5,
+    "tags": [
+      "hype",
+      "win",
+      "clutch",
+      "fire"
+    ]
+  },
+  {
+    "path": "gifs/holy_shit.gif",
+    "type": "gif",
+    "description": "disbelief, unbelievable, cannot believe, shocked, mind blown, what just happened",
+    "sfx": "sfx/vine_boom.mp3",
+    "duration": 2.0,
+    "tags": [
+      "holy",
+      "shocked",
+      "disbelief"
+    ]
+  },
+  {
+    "path": "gifs/fail.gif",
+    "type": "gif",
+    "description": "epic fail, I died, we lost, terrible mistake, that was awful, RIP",
+    "sfx": "sfx/sad_trombone.mp3",
+    "duration": 2.0,
+    "tags": [
+      "fail",
+      "dead",
+      "rip",
+      "loss"
+    ]
+  },
+  {
+    "path": "gifs/rage.gif",
+    "type": "gif",
+    "description": "rage, anger, furious, tilted, malding, so frustrated, this game is broken",
+    "sfx": null,
+    "duration": 2.5,
+    "tags": [
+      "rage",
+      "angry",
+      "tilted"
+    ]
+  },
+  {
+    "path": "gifs/lul.gif",
+    "type": "gif",
+    "description": "laughing, that's hilarious, so funny, comedy, unexpected, absurd",
+    "sfx": "sfx/laugh.mp3",
+    "duration": 2.0,
+    "tags": [
+      "funny",
+      "laugh",
+      "lul"
+    ]
+  },
+  {
+    "path": "stickers/skull.png",
+    "type": "png",
+    "description": "died, eliminated, got killed, took damage, lost a life",
+    "sfx": "sfx/vine_boom.mp3",
+    "duration": 1.5,
+    "tags": [
+      "death",
+      "eliminated"
+    ]
+  },
+  {
+    "path": "stickers/fire.png",
+    "type": "png",
+    "description": "on fire, insane streak, hot, dominating, unstoppable",
+    "sfx": null,
+    "duration": 2.0,
+    "tags": [
+      "fire",
+      "streak",
+      "insane"
+    ]
+  },
+  {
+    "path": "stickers/gg.png",
+    "type": "png",
+    "description": "good game, respect, sportsmanship, handshake, well played",
+    "sfx": "sfx/applause.mp3",
+    "duration": 1.5,
+    "tags": [
+      "gg",
+      "respect"
+    ]
+  }
+]

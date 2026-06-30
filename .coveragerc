@@ -1,0 +1,14 @@
+[run]
+source = backend,core
+omit =
+    core/tasks/pipeline_tasks.py
+    core/highlights.py
+    core/reframe.py
+    core/overlay.py
+    core/captions.py
+    core/ingest.py
+    core/transcribe.py
+
+[report]
+fail_under = 60
+show_missing = true

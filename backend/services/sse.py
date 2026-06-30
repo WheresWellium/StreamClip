@@ -53,9 +53,17 @@ async def get_redis(cfg: Settings) -> aioredis.Redis:
 
 # ─── SSE event formatter ─────────────────────────────────────────────────────
 
-def _format_sse(data: str, *, event: str | None = None, retry: int | None = None) -> str:
+def _format_sse(
+    data: str,
+    *,
+    event: str | None = None,
+    event_id: str | int | None = None,
+    retry: int | None = None,
+) -> str:
     """Format a payload as an SSE wire-format frame."""
     lines: list[str] = []
+    if event_id is not None:
+        lines.append(f"id: {event_id}")
     if event:
         lines.append(f"event: {event}")
     if retry:
@@ -72,6 +80,7 @@ async def stream_job_progress(
     job_id: str,
     cfg: Settings,
     *,
+    last_event_id: int | None = None,
     heartbeat_secs: float = 15.0,
 ) -> AsyncGenerator[str, None]:
     """
@@ -83,20 +92,29 @@ async def stream_job_progress(
     channel = f"{cfg.redis.pubsub_channel_prefix}{job_id}"
     snapshot_key = f"{channel}:latest"
 
+    def _after_cursor(event_id: int | None) -> bool:
+        if last_event_id is None or event_id is None:
+            return True
+        return int(event_id) > last_event_id
+
+    def _emit(payload: str, *, event: str, event_id: int | None = None) -> str:
+        return _format_sse(payload, event=event, event_id=event_id)
+
     # ── 1. Send retry hint and the cached snapshot ─────────────────────────
     yield _format_sse("", retry=3000)
 
     snapshot = await r.get(snapshot_key)
     if snapshot:
-        yield _format_sse(snapshot, event="progress")
         try:
             data = json.loads(snapshot)
+            eid = data.get("event_id")
+            if _after_cursor(eid):
+                yield _emit(snapshot, event="progress", event_id=eid)
             if data.get("status") in ("done", "error"):
-                # Job already finished — close the stream
-                yield _format_sse(snapshot, event=data["status"])
+                yield _emit(snapshot, event=data["status"], event_id=eid)
                 return
         except json.JSONDecodeError:
-            pass
+            yield _emit(snapshot, event="progress")
 
     # ── 2. Subscribe to the live channel ──────────────────────────────────
     pubsub = r.pubsub()
@@ -118,14 +136,18 @@ async def stream_job_progress(
                 try:
                     data = json.loads(payload)
                     status = data.get("status", "processing")
+                    eid = data.get("event_id")
                 except json.JSONDecodeError:
                     status = "processing"
+                    eid = None
 
-                yield _format_sse(payload, event="progress")
+                if _after_cursor(eid):
+                    yield _emit(payload, event="progress", event_id=eid)
 
                 # Terminal event — emit final event and close
                 if status in ("done", "error"):
-                    yield _format_sse(payload, event=status)
+                    if _after_cursor(eid):
+                        yield _emit(payload, event=status, event_id=eid)
                     log.info("sse_terminated", channel=channel, status=status)
                     return
                 last_heartbeat = now

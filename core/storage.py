@@ -149,6 +149,7 @@ class S3Storage(Storage):
         access_key: str | None = None,
         secret_key: str | None = None,
         region: str = "us-east-1",
+        public_base_url: str = "",
     ) -> None:
         try:
             import boto3
@@ -158,14 +159,25 @@ class S3Storage(Storage):
 
         self.bucket = bucket
         self.endpoint_url = endpoint_url
-        self._client = boto3.client(
-            "s3",
+        client_kwargs = dict(
             endpoint_url=endpoint_url,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name=region,
             config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
         )
+        self._client = boto3.client("s3", **client_kwargs)
+
+        # Presigned URLs must use a host reachable from the browser (e.g. localhost:9000),
+        # not the internal Docker hostname (minio:9000).
+        presign_endpoint = public_base_url.rstrip("/") or endpoint_url
+        if presign_endpoint and presign_endpoint != endpoint_url:
+            self._presign_client = boto3.client(
+                "s3",
+                **{**client_kwargs, "endpoint_url": presign_endpoint},
+            )
+        else:
+            self._presign_client = self._client
 
         # Ensure bucket exists (idempotent)
         try:
@@ -219,7 +231,7 @@ class S3Storage(Storage):
             return False
 
     def presigned_get_url(self, key: str, expires_in: int = 3600) -> str:
-        return self._client.generate_presigned_url(
+        return self._presign_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": self.bucket, "Key": key},
             ExpiresIn=expires_in,
@@ -227,7 +239,7 @@ class S3Storage(Storage):
 
     def presigned_put_url(self, key: str, expires_in: int = 3600,
                           content_type: str = "video/mp4") -> str:
-        return self._client.generate_presigned_url(
+        return self._presign_client.generate_presigned_url(
             "put_object",
             Params={
                 "Bucket": self.bucket,
@@ -266,6 +278,7 @@ def make_storage(cfg: Settings) -> Storage:
             access_key=cfg.storage.access_key,
             secret_key=cfg.storage.secret_key,
             region=cfg.storage.region,
+            public_base_url=cfg.storage.public_base_url,
         )
     raise StorageError(f"Unknown storage backend: {backend!r}")
 

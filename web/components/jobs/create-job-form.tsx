@@ -14,9 +14,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/form";
+import { HelpTip, LabelWithTip } from "@/components/ui/help-tip";
+import { SectionLegend } from "@/components/ui/section-legend";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DirectUpload } from "@/components/upload/direct-upload";
+import { FORM_SECTION_LEGEND } from "@/lib/help/legends";
 
 const INITIAL_STATE: CreateJobActionState = { status: "idle" };
+
+const REFRAME_PRESET_TIPS: Record<string, string> = {
+  fps_game:
+    "Fast-action shooters — tracks the player with HUD protection for health and ammo bars.",
+  moba: "MOBA / strategy — slower, wider framing with minimap area reserved at the bottom.",
+  battle_royale:
+    "Battle royale — follows the player aggressively; suited to fast repositioning.",
+  irl: "IRL / talking head — tight face crop with very stable, minimal camera movement.",
+  podcast:
+    "Podcast / interview — stable speaker framing with no gameplay HUD reserves.",
+  auto: "Automatically picks FPS or IRL framing based on each clip's detected emotion.",
+};
+
+const CAPTION_STYLE_TIPS: Record<string, string> = {
+  gaming_impact:
+    "Bold animated captions with per-word karaoke sync and keyword highlights.",
+  tiktok_pop:
+    "Punchy pop-in text styled for TikTok, Reels, and Shorts.",
+  minimal_white: "Clean white subtitles with minimal visual noise.",
+  podcast_clean: "Readable lower-third captions suited to dialogue-heavy content.",
+};
 
 export function CreateJobForm() {
   const [state, formAction] = React.useActionState(
@@ -26,6 +55,10 @@ export function CreateJobForm() {
 
   const [mode, setMode] = React.useState<"url" | "upload">("url");
   const [uploadKey, setUploadKey] = React.useState<string | null>(null);
+  const [reframePreset, setReframePreset] =
+    React.useState<keyof typeof REFRAME_PRESET_TIPS>("fps_game");
+  const [captionStyle, setCaptionStyle] =
+    React.useState<keyof typeof CAPTION_STYLE_TIPS>("gaming_impact");
 
   return (
     <Card>
@@ -35,42 +68,73 @@ export function CreateJobForm() {
           New clip job
         </CardTitle>
         <CardDescription>
-          Paste a Twitch/YouTube URL or upload a video file. We'll handle the
+          Paste a Twitch/YouTube URL or upload a video file. We&apos;ll handle the
           rest.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-5">
           {/* Source mode toggle */}
-          <div className="flex gap-1 p-1 rounded-md bg-secondary/60 w-fit">
-            <button
-              type="button"
-              onClick={() => setMode("url")}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                mode === "url"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              URL
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("upload")}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                mode === "upload"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Upload
-            </button>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Source</span>
+              <HelpTip
+                label="Source mode help"
+                content="Choose whether to paste a public video URL or upload a file from your device."
+              />
+            </div>
+            <div className="flex gap-1 p-1 rounded-md bg-secondary/60 w-fit">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setMode("url")}
+                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                      mode === "url"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    URL
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Paste a Twitch VOD, clip, YouTube, Kick, or direct MP4 link.
+                  We download and process it automatically.
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setMode("upload")}
+                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                      mode === "upload"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Upload
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Upload MP4, MOV, or MKV from your device. Files go straight to
+                  storage — the API never handles the video bytes.
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           {/* Source input */}
           {mode === "url" ? (
             <div className="space-y-1.5">
-              <Label htmlFor="source_url">Video URL</Label>
+              <LabelWithTip
+                htmlFor="source_url"
+                tip="Public link to a VOD, clip, or hosted MP4. Twitch, YouTube, Kick, and direct URLs are supported."
+                tipLabel="Video URL help"
+              >
+                Video URL
+              </LabelWithTip>
               <Input
                 id="source_url"
                 name="source_url"
@@ -78,13 +142,15 @@ export function CreateJobForm() {
                 placeholder="https://www.twitch.tv/videos/..."
                 required={mode === "url"}
               />
-              <p className="text-xs text-muted-foreground">
-                Twitch VOD, YouTube, Kick, or direct .mp4 URL
-              </p>
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label>Upload</Label>
+              <LabelWithTip
+                tip="Drag and drop or browse for a local video. Upload must finish before you can start the job."
+                tipLabel="Upload help"
+              >
+                Upload
+              </LabelWithTip>
               <DirectUpload
                 currentKey={uploadKey}
                 onUploaded={(key) => setUploadKey(key)}
@@ -99,9 +165,33 @@ export function CreateJobForm() {
           )}
 
           {/* Settings row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <SectionLegend title="Settings" tip={FORM_SECTION_LEGEND.settings} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <LabelWithTip
+                htmlFor="content_profile"
+                tip="Tunes highlight detection for your content type — gaming favors motion and chat; podcast favors dialogue peaks."
+                tipLabel="Content type help"
+              >
+                Content type
+              </LabelWithTip>
+              <Select id="content_profile" name="content_profile" defaultValue="gaming">
+                <option value="gaming">Gaming / Twitch</option>
+                <option value="irl">IRL / Just Chatting</option>
+                <option value="podcast">Podcast / Interview</option>
+                <option value="esports">Esports / Casted</option>
+                <option value="general">General / Mixed</option>
+              </Select>
+            </div>
             <div className="space-y-1.5">
-              <Label htmlFor="target_clips">Clips</Label>
+              <LabelWithTip
+                htmlFor="target_clips"
+                tip="How many highlight clips to extract from this source (1–20). More clips take longer to render."
+                tipLabel="Clip count help"
+              >
+                Clips
+              </LabelWithTip>
               <Input
                 id="target_clips"
                 name="target_clips"
@@ -112,11 +202,22 @@ export function CreateJobForm() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="reframe_preset">Game preset</Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="reframe_preset">Game preset</Label>
+                <HelpTip
+                  content={REFRAME_PRESET_TIPS[reframePreset]}
+                  label="Game preset help"
+                />
+              </div>
               <Select
                 id="reframe_preset"
                 name="reframe_preset"
-                defaultValue="fps_game"
+                value={reframePreset}
+                onChange={(e) =>
+                  setReframePreset(
+                    e.target.value as keyof typeof REFRAME_PRESET_TIPS,
+                  )
+                }
               >
                 <option value="fps_game">FPS</option>
                 <option value="moba">MOBA</option>
@@ -127,11 +228,22 @@ export function CreateJobForm() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="caption_style">Caption style</Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="caption_style">Caption style</Label>
+                <HelpTip
+                  content={CAPTION_STYLE_TIPS[captionStyle]}
+                  label="Caption style help"
+                />
+              </div>
               <Select
                 id="caption_style"
                 name="caption_style"
-                defaultValue="gaming_impact"
+                value={captionStyle}
+                onChange={(e) =>
+                  setCaptionStyle(
+                    e.target.value as keyof typeof CAPTION_STYLE_TIPS,
+                  )
+                }
               >
                 <option value="gaming_impact">Gaming impact</option>
                 <option value="tiktok_pop">TikTok pop</option>
@@ -139,26 +251,7 @@ export function CreateJobForm() {
                 <option value="podcast_clean">Podcast clean</option>
               </Select>
             </div>
-          </div>
-
-          {/* Virality slider */}
-          <div className="space-y-1.5">
-            <div className="flex items-baseline justify-between">
-              <Label htmlFor="min_virality_score">Minimum virality score</Label>
-              <ViralityValue />
             </div>
-            <input
-              id="min_virality_score"
-              name="min_virality_score"
-              type="range"
-              min={0}
-              max={100}
-              defaultValue={55}
-              className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-            <p className="text-xs text-muted-foreground">
-              Higher = fewer, sharper clips. Lower = more candidates considered.
-            </p>
           </div>
 
           {/* Error */}
@@ -175,22 +268,6 @@ export function CreateJobForm() {
   );
 }
 
-function ViralityValue() {
-  const [value, setValue] = React.useState(55);
-  React.useEffect(() => {
-    const input = document.getElementById(
-      "min_virality_score",
-    ) as HTMLInputElement | null;
-    if (!input) return;
-    const handler = () => setValue(Number(input.value));
-    input.addEventListener("input", handler);
-    return () => input.removeEventListener("input", handler);
-  }, []);
-  return (
-    <span className="text-xs font-mono text-muted-foreground">{value}</span>
-  );
-}
-
 function SubmitButton({
   mode,
   uploadReady,
@@ -202,7 +279,12 @@ function SubmitButton({
   const disabled = pending || (mode === "upload" && !uploadReady);
 
   return (
-    <Button type="submit" disabled={disabled} className="w-full">
+    <Button
+      type="submit"
+      disabled={disabled}
+      className="w-full"
+      tooltip="Start the pipeline: ingest → transcribe → discover clips → render vertical output."
+    >
       {pending ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />

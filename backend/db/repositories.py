@@ -49,11 +49,15 @@ class JobRepository:
         return result.scalar_one_or_none()
 
     async def get_for_owner(self, job_id: str, owner_id: str | None) -> Job | None:
-        stmt = select(Job).where(Job.id == job_id)
+        job = await self.get(job_id)
+        if job is None:
+            return None
         if owner_id is not None:
-            stmt = stmt.where(Job.owner_id == owner_id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+            if job.owner_id != owner_id:
+                return None
+        elif job.owner_id is not None:
+            return None
+        return job
 
     async def list_for_owner(
         self,
@@ -70,6 +74,8 @@ class JobRepository:
         )
         if owner_id is not None:
             stmt = stmt.where(Job.owner_id == owner_id)
+        else:
+            stmt = stmt.where(Job.owner_id.is_(None))
         if status is not None:
             stmt = stmt.where(Job.status == status)
         stmt = stmt.limit(limit).offset(offset)
@@ -117,6 +123,41 @@ class JobRepository:
         job = await self.get(job_id)
         if job:
             await self.db.delete(job)
+
+    async def list_expired(
+        self,
+        before: datetime,
+        *,
+        limit: int = 100,
+    ) -> list[Job]:
+        terminal = (
+            JobStatus.DONE,
+            JobStatus.ERROR,
+            JobStatus.CANCELLED,
+        )
+        stmt = (
+            select(Job)
+            .where(Job.created_at < before)
+            .where(Job.status.in_(terminal))
+            .order_by(Job.created_at.asc())
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_active(self) -> int:
+        from sqlalchemy import func as sa_func
+
+        active = (
+            JobStatus.QUEUED,
+            JobStatus.INGESTING,
+            JobStatus.TRANSCRIBING,
+            JobStatus.DETECTING,
+            JobStatus.PROCESSING,
+        )
+        stmt = select(sa_func.count()).select_from(Job).where(Job.status.in_(active))
+        result = await self.db.execute(stmt)
+        return int(result.scalar_one())
 
 
 # ─── Clip repository ─────────────────────────────────────────────────────────
@@ -178,11 +219,62 @@ class ClipRepository:
             clip.error_message = error
         await self.db.flush()
 
+    async def update_virality(
+        self,
+        clip_id: str,
+        *,
+        llm_score: float,
+        llm_reason: str,
+        emotion: str,
+        ensemble_score: float,
+        meme_keywords: list[str] | None = None,
+    ) -> None:
+        clip = await self.get(clip_id, with_overlays=False)
+        if clip is None:
+            return
+        clip.llm_score = llm_score
+        clip.llm_reason = llm_reason
+        clip.emotion = emotion
+        clip.ensemble_score = ensemble_score
+        if meme_keywords is not None:
+            clip.meme_keywords = meme_keywords
+        await self.db.flush()
+
+    async def rerank_by_ensemble(self, job_id: str) -> None:
+        """Re-assign rank 0..N-1 after virality updates."""
+        clips = await self.list_for_job(job_id)
+        ordered = sorted(clips, key=lambda c: c.ensemble_score, reverse=True)
+        for rank, clip in enumerate(ordered):
+            clip.rank = rank
+        await self.db.flush()
+
     async def add_overlay(self, clip_id: str, **fields: Any) -> ClipOverlay:
         overlay = ClipOverlay(clip_id=clip_id, **fields)
         self.db.add(overlay)
         await self.db.flush()
         return overlay
+
+    async def clear_overlays(self, clip_id: str) -> None:
+        clip = await self.get(clip_id, with_overlays=True)
+        if clip is None:
+            return
+        for ov in list(clip.overlays):
+            await self.db.delete(ov)
+        await self.db.flush()
+
+    async def reset_for_regenerate(self, clip_id: str) -> None:
+        """Mark clip pending and clear final artifact pointers for a forced re-render."""
+        clip = await self.get(clip_id, with_overlays=False)
+        if clip is None:
+            return
+        clip.status = ClipStatus.PENDING
+        clip.error_message = None
+        clip.final_storage_key = None
+        clip.thumbnail_storage_key = None
+        clip.render_time_secs = 0.0
+        clip.file_size_bytes = 0
+        await self.clear_overlays(clip_id)
+        await self.db.flush()
 
 
 # ─── Asset repository ────────────────────────────────────────────────────────
@@ -231,3 +323,15 @@ class UserRepository:
         self.db.add(user)
         await self.db.flush()
         return user
+
+    async def increment_jobs_used(self, user_id: str) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.jobs_used_this_month += 1
+            await self.db.flush()
+
+    async def increment_minutes_processed(self, user_id: str, minutes: float) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.minutes_processed_this_month += max(0.0, minutes)
+            await self.db.flush()

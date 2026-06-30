@@ -4,8 +4,11 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { Badge, Progress } from "@/components/ui/form";
+import { Progress } from "@/components/ui/form";
+import { HelpTip } from "@/components/ui/help-tip";
+import { LegendBadge } from "@/components/ui/legend-badge";
 import { useJobProgress } from "@/lib/api/use-job-progress";
+import { PROGRESS_LEGEND, legendForStage, legendForStatus } from "@/lib/help/legends";
 import { statusColors } from "@/lib/utils/format";
 
 interface LiveProgressProps {
@@ -41,6 +44,20 @@ export function LiveProgress({
     }
   }, [state.status, router]);
 
+  if (state.status === "error") {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <XCircle className="h-4 w-4 text-destructive shrink-0" />
+          <span className="text-sm font-medium text-destructive">
+            Progress stream disconnected
+          </span>
+        </div>
+        <p className="text-xs text-destructive/80">{state.message}</p>
+      </div>
+    );
+  }
+
   // Decide what to render: SSE live > initial server state
   const liveEvent =
     state.status === "open" || state.status === "done"
@@ -74,14 +91,28 @@ export function LiveProgress({
         <div className="flex items-center gap-2 min-w-0">
           {icon}
           <span className="text-sm font-medium truncate">{message}</span>
+          <HelpTip content={PROGRESS_LEGEND.message} label="Progress message help" />
         </div>
-        <Badge className={statusColors[status] ?? statusColors.queued}>
+        <LegendBadge
+          className={statusColors[status] ?? statusColors.queued}
+          tip={legendForStatus(status)}
+          tipLabel="Job status help"
+        >
           {status}
-        </Badge>
+        </LegendBadge>
       </div>
-      <Progress value={progress} />
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Progress</span>
+          <HelpTip content={PROGRESS_LEGEND.bar} label="Progress bar help" />
+        </div>
+        <Progress value={progress} />
+      </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="font-mono">{stage}</span>
+        <span className="inline-flex items-center gap-1 font-mono">
+          {stage}
+          <HelpTip content={legendForStage(stage)} label="Pipeline stage help" />
+        </span>
         <span>{(progress * 100).toFixed(0)}%</span>
       </div>
     </div>

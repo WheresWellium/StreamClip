@@ -51,7 +51,6 @@ async def _create_and_dispatch(
     clips: int,
     style: str,
     preset: str,
-    min_score: int,
 ) -> str:
     """Create a Job row, push to Celery, return the job_id."""
     cfg = get_settings()
@@ -80,7 +79,6 @@ async def _create_and_dispatch(
             target_clips=clips,
             caption_style=style,
             reframe_preset=preset,
-            min_virality_score=min_score,
         )
         job = await svc.create_job(request, owner_id=None)
         # Commit the job row so the worker sees it
@@ -175,16 +173,14 @@ async def _print_summary(job_id: str) -> None:
 @click.option("--preset", default="fps_game", show_default=True,
               type=click.Choice(["fps_game", "moba", "battle_royale", "irl", "podcast", "auto"]),
               help="Reframe preset")
-@click.option("--min-score", default=55, show_default=True, type=click.IntRange(0, 100),
-              help="Minimum virality score (0–100)")
 @click.option("--watch/--no-watch", default=True,
               help="Tail the progress stream until done")
-def main(source: str, clips: int, style: str, preset: str, min_score: int, watch: bool) -> None:
+def main(source: str, clips: int, style: str, preset: str, watch: bool) -> None:
     """StreamClip — AI video clip pipeline CLI."""
 
     async def _run() -> None:
         job_id = await _create_and_dispatch(
-            source, clips=clips, style=style, preset=preset, min_score=min_score,
+            source, clips=clips, style=style, preset=preset,
         )
         console.print(f"\n[bold green]Job created:[/bold green] {job_id}\n")
 

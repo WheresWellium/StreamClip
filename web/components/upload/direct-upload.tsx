@@ -81,6 +81,7 @@ export function DirectUpload({
           size="icon"
           onClick={handleClear}
           aria-label="Remove file"
+          tooltip="Remove the uploaded file and choose a different video."
         >
           <X className="h-4 w-4" />
         </Button>

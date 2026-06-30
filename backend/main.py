@@ -24,7 +24,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api import health, jobs, metrics, uploads
+from backend.api import auth, health, jobs, metrics, uploads
+from backend.observability import init_opentelemetry
 from core.config import get_settings
 from core.errors import StreamClipError
 
@@ -92,6 +93,7 @@ async def lifespan(app: FastAPI):
         log_level=cfg.log_level,
     )
     _init_sentry()
+    init_opentelemetry(cfg)
 
     # Warm DB connection pool
     from backend.db.session import get_engine
@@ -155,6 +157,7 @@ def create_app() -> FastAPI:
 
     # ── Routers ───────────────────────────────────────────────────────────
     app.include_router(health.router)
+    app.include_router(auth.router)
     app.include_router(jobs.router)
     app.include_router(uploads.router)
     if cfg.observability.enable_metrics:

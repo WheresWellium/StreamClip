@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ApiClientError, jobsApi } from "@/lib/api/client";
+import { getAccessToken } from "@/lib/auth/session";
 import type {
   CaptionStyle,
   ReframePreset,
@@ -39,7 +40,13 @@ const CreateJobSchema = z.object({
     "podcast",
     "auto",
   ]),
-  min_virality_score: z.coerce.number().int().min(0).max(100).default(55),
+  content_profile: z.enum([
+    "gaming",
+    "irl",
+    "podcast",
+    "esports",
+    "general",
+  ]),
 });
 
 export type CreateJobActionState = {
@@ -66,7 +73,8 @@ export async function createJobAction(
     reframe_preset:
       (formData.get("reframe_preset")?.toString() as ReframePreset) ??
       "fps_game",
-    min_virality_score: formData.get("min_virality_score") ?? 55,
+    content_profile:
+      formData.get("content_profile")?.toString() ?? "gaming",
   };
 
   const parsed = CreateJobSchema.safeParse(raw);
@@ -86,7 +94,8 @@ export async function createJobAction(
   }
 
   try {
-    const job = await jobsApi.create(parsed.data);
+    const token = await getAccessToken();
+    const job = await jobsApi.create(parsed.data, token);
     revalidateTag(`job:${job.id}`);
     revalidatePath("/");
     redirect(`/jobs/${job.id}`);
@@ -112,7 +121,25 @@ export async function createJobAction(
 // ─── Server Action: cancel job ───────────────────────────────────────────────
 
 export async function cancelJobAction(jobId: string): Promise<void> {
-  await jobsApi.cancel(jobId);
+  const token = await getAccessToken();
+  await jobsApi.cancel(jobId, token);
   revalidateTag(`job:${jobId}`);
   revalidatePath("/");
+}
+
+export async function regenerateClipAction(
+  jobId: string,
+  clipId: string,
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const token = await getAccessToken();
+    await jobsApi.regenerateClip(jobId, clipId, token);
+    revalidatePath(`/jobs/${jobId}`);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ApiClientError) {
+      return { ok: false, message: err.message };
+    }
+    return { ok: false, message: "Could not queue re-render" };
+  }
 }

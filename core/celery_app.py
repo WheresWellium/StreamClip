@@ -59,8 +59,7 @@ celery_app.conf.update(
     # by a slow LLM call.
     task_routes={
         "core.tasks.pipeline_tasks.run_transcribe":  {"queue": "gpu"},
-        "core.tasks.pipeline_tasks.run_reframe":     {"queue": "gpu"},
-        "core.tasks.pipeline_tasks.run_overlay":     {"queue": "gpu"},
+        "core.tasks.pipeline_tasks.process_clip":    {"queue": "gpu"},
         "core.tasks.pipeline_tasks.*":               {"queue": "default"},
     },
 
@@ -120,6 +119,10 @@ def publish_progress(
         "ts": time.time(),
         **(extra or {}),
     }
+    seq_key = f"{channel}:seq"
+    event_id = r.incr(seq_key)
+    r.expire(seq_key, cfg.redis.progress_ttl_secs)
+    payload["event_id"] = event_id
     blob = json.dumps(payload)
     # Set snapshot first (so subscribers that read post-publish see fresh state)
     r.set(snapshot_key, blob, ex=cfg.redis.progress_ttl_secs)

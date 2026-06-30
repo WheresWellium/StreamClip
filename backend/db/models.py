@@ -185,6 +185,7 @@ class Clip(Base, IDMixin, TimestampMixin):
     emotion: Mapped[str] = mapped_column(String(32), default="neutral")
     transcript_text: Mapped[str] = mapped_column(Text, default="")
     llm_reason: Mapped[str] = mapped_column(Text, default="")
+    meme_keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     # Scoring breakdown
     ensemble_score: Mapped[float] = mapped_column(Float, default=0.0)

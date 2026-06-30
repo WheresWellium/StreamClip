@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
+import { AppTooltipProvider } from "@/components/providers/tooltip-provider";
+import { HeaderNav } from "@/components/layout/header-nav";
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500"] });
 
 export const metadata: Metadata = {
@@ -21,7 +24,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <div className="min-h-screen bg-background">
+        <AppTooltipProvider>
+          <div className="min-h-screen bg-background">
           <header className="border-b border-border/40 bg-background/60 backdrop-blur sticky top-0 z-40">
             <div className="container flex h-14 items-center justify-between">
               <a
@@ -44,25 +48,13 @@ export default function RootLayout({
                 StreamClip
               </a>
               <nav className="flex items-center gap-4 text-sm">
-                <a
-                  href="/"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Jobs
-                </a>
-                <a
-                  href="/docs"
-                  className="text-muted-foreground hover:text-foreground"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  API
-                </a>
+                <HeaderNav />
               </nav>
             </div>
           </header>
           <main className="container py-8">{children}</main>
-        </div>
+          </div>
+        </AppTooltipProvider>
       </body>
     </html>
   );

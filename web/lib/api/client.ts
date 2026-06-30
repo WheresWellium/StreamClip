@@ -114,6 +114,14 @@ export const jobsApi = {
       authToken,
     }),
 
+  regenerateClip: (jobId: string, clipId: string, authToken?: string) =>
+    request<{ clip_id: string; status: string }>(
+      `/api/jobs/${jobId}/clips/${clipId}/regenerate`,
+      { method: "POST", authToken },
+    ),
+
+  clipsZipUrl: (jobId: string): string => `/api/jobs/${jobId}/clips.zip`,
+
   // SSE URL for client-side EventSource (browser only)
   progressUrl: (jobId: string): string => `/api/jobs/${jobId}/progress`,
 };

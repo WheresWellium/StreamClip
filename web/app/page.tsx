@@ -1,9 +1,13 @@
 import { Suspense } from "react";
 
+import { AuthPanel } from "@/components/auth/auth-panel";
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { JobsList, JobsListSkeleton } from "@/components/jobs/jobs-list";
+import { getAccessToken } from "@/lib/auth/session";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const token = await getAccessToken();
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
@@ -13,6 +17,8 @@ export default function HomePage() {
           captions, and meme overlays.
         </p>
       </div>
+
+      <AuthPanel isAuthenticated={!!token} />
 
       <CreateJobForm />
 

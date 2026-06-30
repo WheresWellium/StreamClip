@@ -25,6 +25,8 @@ class WhisperConfig(BaseModel):
     word_timestamps: bool = True
     beam_size: int = Field(5, ge=1, le=10)
     vad_filter: bool = True
+    clip_vad_filter: bool = False
+    min_word_probability: float = Field(0.25, ge=0.0, le=1.0)
 
 
 class LLMConfig(BaseModel):
@@ -42,7 +44,10 @@ class HighlightConfig(BaseModel):
     min_clip_duration: float = Field(15.0, ge=5.0)
     max_clip_duration: float = Field(90.0, le=300.0)
     clip_padding_secs: float = 2.5
-    min_virality_score: int = Field(55, ge=0, le=100)
+    candidate_mode: Literal["segments", "peaks", "hybrid"] = "hybrid"
+    peak_merge_gap_secs: float = Field(90.0, ge=10.0, le=600.0)
+    peak_min_height: float = Field(0.55, ge=0.1, le=1.0)
+    score_smoothing_window_secs: int = Field(3, ge=1, le=30)
     weight_llm_virality: float = 0.40
     weight_audio_energy: float = 0.25
     weight_spectral_novelty: float = 0.15
@@ -67,7 +72,7 @@ class ReframeConfig(BaseModel):
     preset: Literal["fps_game", "moba", "battle_royale", "irl", "podcast", "auto"] = "fps_game"
     target_width: int = 1080
     target_height: int = 1920
-    smooth_window_frames: int = 45
+    smooth_window_frames: int = Field(60, ge=60)
     max_pan_velocity: float = 0.04
     hud_bottom_reserve: float = 0.15
     hud_top_reserve: float = 0.08
@@ -84,6 +89,10 @@ class CaptionConfig(BaseModel):
     position_y_fraction: float = 0.72
     outline_width: int = 4
     shadow_depth: int = 3
+    word_level_sync: bool = True
+    refine_clip_transcript: bool = True
+    min_word_probability: float = Field(0.25, ge=0.0, le=1.0)
+    word_hold_secs: float = Field(0.06, ge=0.0, le=0.5)
 
 
 class OverlayConfig(BaseModel):
@@ -100,10 +109,21 @@ class ExportConfig(BaseModel):
     codec: Literal["libx264", "libx265", "h264_nvenc", "hevc_nvenc"] = "h264_nvenc"
     crf: int = Field(17, ge=0, le=51)
     preset: Literal["ultrafast", "fast", "medium", "slow"] = "fast"
-    fps: int = 60
+    fps: int = Field(60, ge=60, le=120)
     audio_bitrate: str = "256k"
     pixel_format: str = "yuv420p"
     two_pass: bool = False
+
+
+class IngestConfig(BaseModel):
+    """Tier-aware download and pipeline routing for ingest."""
+    short_max_height: int = Field(720, ge=360, le=1080)
+    medium_max_height: int = Field(1080, ge=480, le=1440)
+    long_max_height: int = Field(1080, ge=720, le=2160)
+    fetch_subs_on_long: bool = True
+    short_skip_optical_flow: bool = True
+    medium_skip_optical_flow: bool = False
+    short_min_clip_duration: float = Field(5.0, ge=3.0)
 
 
 # ─── Infrastructure sub-configs ──────────────────────────────────────────────
@@ -160,6 +180,12 @@ class AuthConfig(BaseModel):
     allow_anonymous: bool = True
 
 
+class JobRetentionConfig(BaseModel):
+    enabled: bool = True
+    retention_days: int = Field(7, ge=1, le=365)
+    batch_size: int = Field(100, ge=1, le=500)
+
+
 class CORSConfig(BaseModel):
     allow_origins: list[str] = [
         "http://localhost:3000",
@@ -184,6 +210,14 @@ class ObservabilityConfig(BaseModel):
     metrics_port: int = 9090
 
 
+class WebhookConfig(BaseModel):
+    enabled: bool = False
+    url: str = ""
+    secret: str = ""
+    timeout_secs: int = Field(10, ge=1, le=120)
+    max_retries: int = Field(3, ge=1, le=10)
+
+
 # ─── Root settings ────────────────────────────────────────────────────────────
 
 class Settings(BaseSettings):
@@ -206,15 +240,18 @@ class Settings(BaseSettings):
     caption: CaptionConfig = CaptionConfig()
     overlay: OverlayConfig = OverlayConfig()
     export: ExportConfig = ExportConfig()
+    ingest: IngestConfig = IngestConfig()
 
     storage: StorageConfig = StorageConfig()
     redis: RedisConfig = RedisConfig()
     database: DatabaseConfig = DatabaseConfig()
     celery: CeleryConfig = CeleryConfig()
     auth: AuthConfig = AuthConfig()
+    job_retention: JobRetentionConfig = JobRetentionConfig()
     cors: CORSConfig = CORSConfig()
     rate_limit: RateLimitConfig = RateLimitConfig()
     observability: ObservabilityConfig = ObservabilityConfig()
+    webhooks: WebhookConfig = WebhookConfig()
 
     twitch_client_id: str = ""
     twitch_client_secret: str = ""
@@ -224,7 +261,7 @@ class Settings(BaseSettings):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "Settings":
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
         return cls(**data)
 
@@ -243,7 +280,7 @@ def get_settings(yaml_path: str | Path | None = None, *, reload: bool = False) -
         env_cfg = Settings()
         cfg_file = yaml_path or os.environ.get("STREAMCLIP_CONFIG", "config.yaml")
         if Path(str(cfg_file)).exists():
-            with open(cfg_file) as fh:
+            with open(cfg_file, encoding="utf-8") as fh:
                 data = yaml.safe_load(fh) or {}
             file_cfg = Settings.model_validate(data)
             _settings = Settings.model_validate({

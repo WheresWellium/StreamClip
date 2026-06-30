@@ -198,6 +198,8 @@ export interface components {
             spectral_score: number;
             /** Flow Score */
             flow_score: number;
+            /** Chat Score */
+            chat_score?: number;
             /** Status */
             status: string;
             /** Error Message */
@@ -206,6 +208,12 @@ export interface components {
             render_time_secs: number;
             /** File Size Bytes */
             file_size_bytes: number;
+            /** Transcript Text */
+            transcript_text?: string;
+            /** Llm Reason */
+            llm_reason?: string;
+            /** Meme Keywords */
+            meme_keywords?: string[];
             /**
              * Overlays
              * @default []
@@ -264,10 +272,11 @@ export interface components {
              */
             reframe_preset: "fps_game" | "moba" | "battle_royale" | "irl" | "podcast" | "auto";
             /**
-             * Min Virality Score
-             * @default 55
+             * Content Profile
+             * @default gaming
+             * @enum {string}
              */
-            min_virality_score: number;
+            content_profile: "gaming" | "irl" | "podcast" | "esports" | "general";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -291,6 +300,8 @@ export interface components {
             database: boolean;
             /** Storage */
             storage: boolean;
+            /** Ollama */
+            ollama?: boolean | null;
         };
         /** JobListItem */
         JobListItem: {
@@ -355,6 +366,8 @@ export interface components {
             started_at?: string | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Content Profile */
+            content_profile?: string | null;
             /**
              * Clips
              * @default []

@@ -17,11 +17,16 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
 
 import structlog
 
+from core.caption_timing import (
+    build_karaoke_text,
+    collect_words_for_window,
+    group_words_for_display,
+)
 from core.config import Settings, CaptionConfig
+from core.export_video import audio_encode_args, output_fps_args, video_encode_args
 from core.models import Transcript, Word
 
 log = structlog.get_logger(__name__)
@@ -163,6 +168,34 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         s = secs % 60
         return f"{h}:{m:02d}:{s:05.2f}"
 
+    def add_karaoke_line(
+        self,
+        start: float,
+        end: float,
+        karaoke_text: str,
+        emotion: str = "neutral",
+        is_gaming_term: bool = False,
+        emit_emoji: str = "",
+    ) -> None:
+        """Add a caption line with per-word \\k karaoke timing."""
+        accent = _EMOTION_ACCENTS.get(emotion, "&H00FFFFFF")
+        pop_in = r"{\an5\t(0,60,\fscx80\fscy80)\t(60,120,\fscx105\fscy105)\t(120,180,\fscx100\fscy100)}"
+
+        if is_gaming_term:
+            styled_text = (
+                f"{{\\c{accent}\\t(0,200,\\c{self.style.primary_colour})}}{karaoke_text}{{\\r}}"
+            )
+        else:
+            styled_text = karaoke_text
+
+        if emit_emoji:
+            styled_text += f"  {emit_emoji}"
+
+        line_text = f"{pop_in}{styled_text}"
+        self._events.append(
+            f"Dialogue: 0,{self._ts(start)},{self._ts(end)},{self.style.name},,0,0,0,,{line_text}"
+        )
+
     def add_line(
         self,
         start: float,
@@ -199,50 +232,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return self._header(video_w, video_h) + "\n".join(self._events)
 
 
-# ─── Word grouper ─────────────────────────────────────────────────────────────
-
-class _WordGroup(NamedTuple):
-    words: list[Word]
-    text: str
-    start: float
-    end: float
-
-
-def _group_words(
-    words: list[Word],
-    group_size: int,
-    max_chars: int,
-) -> list[_WordGroup]:
-    """
-    Chunk a flat word list into display groups.
-    A new group is started when either group_size words are accumulated
-    or a natural pause (>0.35s) is detected — whichever comes first.
-    """
-    groups: list[_WordGroup] = []
-    buf: list[Word] = []
-
-    for i, word in enumerate(words):
-        buf.append(word)
-        at_count = len(buf) >= group_size
-        at_pause = (
-            i + 1 < len(words)
-            and words[i + 1].start - word.end > 0.35
-        )
-        at_max_chars = sum(len(w.text) for w in buf) > max_chars
-        at_end = i == len(words) - 1
-
-        if buf and (at_count or at_pause or at_max_chars or at_end):
-            text = " ".join(w.text.upper() for w in buf).strip()
-            groups.append(_WordGroup(
-                words=list(buf),
-                text=text,
-                start=buf[0].start,
-                end=buf[-1].end,
-            ))
-            buf = []
-
-    return groups
-
+# ─── Emoji helpers ────────────────────────────────────────────────────────────
 
 def _detect_emoji(text: str) -> str:
     low = text.lower()
@@ -266,6 +256,8 @@ def generate_captions(
     clip_end: float,
     cfg: Settings,
     emotion: str = "neutral",
+    *,
+    clip_transcript: Transcript | None = None,
 ) -> Path:
     """
     Burn animated captions into a video clip.
@@ -296,41 +288,71 @@ def generate_captions(
     video_w = int(vstream.get("width", cfg.reframe.target_width))
     video_h = int(vstream.get("height", cfg.reframe.target_height))
 
-    # ── Collect words in the clip window ──────────────────────────────────
-    all_words: list[Word] = []
-    for seg in transcript.segments_in_range(clip_start, clip_end):
-        for w in seg.words:
-            if clip_start <= w.start <= clip_end:
-                # Re-base timestamps relative to clip start
-                all_words.append(Word(
-                    text=w.text,
-                    start=w.start - clip_start,
-                    end=w.end - clip_start,
-                    probability=w.probability,
-                ))
+    # ── Collect words (clip-local transcript preferred for sync) ─────────
+    min_prob = max(ccfg.min_word_probability, cfg.whisper.min_word_probability)
+    if clip_transcript is not None:
+        all_words = collect_words_for_window(
+            clip_transcript,
+            0.0,
+            clip_transcript.duration,
+            rebase_to=0.0,
+            min_probability=min_prob,
+        )
+    else:
+        all_words = collect_words_for_window(
+            transcript,
+            clip_start,
+            clip_end,
+            rebase_to=0.0,
+            min_probability=min_prob,
+        )
 
     if not all_words:
         log.warning("no_words_in_clip_window", clip=str(clip_path))
-        return clip_path  # no captions — return original
+        return clip_path
 
-    # ── Group into display chunks ─────────────────────────────────────────
-    groups = _group_words(all_words, ccfg.words_per_group, ccfg.max_chars_per_line)
+    groups = group_words_for_display(
+        all_words, ccfg.words_per_group, ccfg.max_chars_per_line,
+    )
 
-    # ── Build ASS file ────────────────────────────────────────────────────
     style_def = _STYLES.get(ccfg.style, _STYLES["gaming_impact"])
     builder = _ASSBuilder(style_def)
+    hold = ccfg.word_hold_secs
 
     for group in groups:
         is_gaming = _is_gaming_term(group.text)
         emoji = _detect_emoji(group.text) if ccfg.add_emoji else ""
-        builder.add_line(
-            start=group.start,
-            end=group.end + 0.05,   # tiny hold to prevent flicker
-            text=group.text,
-            emotion=emotion,
-            is_gaming_term=is_gaming and ccfg.highlight_keywords,
-            emit_emoji=emoji,
-        )
+        end = group.end + hold
+
+        if ccfg.word_level_sync and len(group.words) > 1:
+            karaoke = build_karaoke_text(group.words)
+            builder.add_karaoke_line(
+                start=group.start,
+                end=end,
+                karaoke_text=karaoke,
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
+        elif ccfg.word_level_sync:
+            word = group.words[0]
+            builder.add_line(
+                start=word.start,
+                end=word.end + hold,
+                text=word.text.upper(),
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
+        else:
+            builder.add_line(
+                start=group.start,
+                end=end,
+                text=group.text,
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
 
     ass_content = builder.render(video_w, video_h)
     ass_path = clip_path.with_suffix(".ass")
@@ -344,9 +366,9 @@ def generate_captions(
     cmd = [
         "ffmpeg", "-y", "-i", str(clip_path),
         "-vf", ass_filter,
-        "-c:v", "libx264", "-crf", "16", "-preset", "fast",
+        *video_encode_args(cfg.export, crf=16),
         "-c:a", "copy",
-        "-pix_fmt", "yuv420p",
+        *output_fps_args(cfg.export),
         str(output_path),
     ]
     log.debug("burning_captions", cmd=" ".join(cmd))

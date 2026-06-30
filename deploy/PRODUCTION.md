@@ -9,7 +9,7 @@ Self-hosted AI clip pipeline: Next.js → FastAPI → Celery → Redis → Postg
 1. Install Docker Engine and Docker Compose v2.
 2. Clone the repo and copy `.env.example` values into `docker-compose.yml` environment blocks (or use an `.env` file).
 3. Set production secrets:
-   - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH__JWT_SECRET`
+   - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH__SECRET_KEY`
    - `STREAMCLIP_RATE_LIMIT__ENABLED=true`
    - `STREAMCLIP_LOG_JSON=true`
 4. **Caddy** reverse proxy (`/etc/caddy/Caddyfile`):
@@ -88,3 +88,29 @@ docker compose --profile gpu up -d
 ```
 
 GPU worker uses `h264_nvenc` and Whisper `float16` on CUDA.
+
+## 6. Webhooks
+
+Enable job-completion notifications for external automation (Discord bot, n8n, custom splice queue):
+
+```yaml
+# config.yaml
+webhooks:
+  enabled: true
+  url: https://your-app.com/hooks/streamclip
+  secret: your-hmac-secret
+```
+
+Payload: `job.completed` with `job_id`, `status`, `clips_done`, `clips_failed`.  
+Verify `X-StreamClip-Signature: sha256=<hmac>` over the raw JSON body.
+
+Prometheus: `streamclip_webhook_deliveries_total{result="success|failure"}`.
+
+## 7. SLO monitoring
+
+Scrape `GET /metrics` and alert on:
+
+- `streamclip_active_jobs` stuck high > 2h
+- `streamclip_jobs_completed_total{status="error"}` rate spike
+- `streamclip_clip_render_seconds` p95 > 600s on GPU deployments
+- `/api/health` `status != ok` for > 5 min

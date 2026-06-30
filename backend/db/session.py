@@ -98,3 +98,12 @@ def get_sync_engine_url() -> str:
     """Alembic uses sync drivers — return the psycopg URL."""
     cfg = get_settings()
     return cfg.database.sync_url
+
+
+async def dispose_engine() -> None:
+    """Close pooled connections — use in tests and graceful shutdown."""
+    global _engine, _sessionmaker
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+        _sessionmaker = None

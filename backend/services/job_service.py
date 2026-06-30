@@ -63,7 +63,7 @@ class JobService:
             "target_clips": request.target_clips,
             "caption_style": request.caption_style,
             "reframe_preset": request.reframe_preset,
-            "min_virality_score": request.min_virality_score,
+            "content_profile": request.content_profile,
             "whisper_model": self.cfg.whisper.model_size,
             "llm_provider": self.cfg.llm.provider,
             "llm_model": self.cfg.llm.model,
@@ -78,6 +78,8 @@ class JobService:
             current_stage="queued",
             progress=0.0,
         )
+        if owner_id:
+            await self.users.increment_jobs_used(owner_id)
         log.info("job_created", job_id=job.id, owner=owner_id)
         return job
 
@@ -130,10 +132,42 @@ class JobService:
         return JobOut(
             **{
                 k: getattr(job, k)
-                for k in JobOut.model_fields if k != "clips" and hasattr(job, k)
+                for k in JobOut.model_fields if k != "clips" and k != "content_profile" and hasattr(job, k)
             },
+            content_profile=(job.config_snapshot or {}).get("content_profile"),
             clips=clip_dtos,
         )
+
+    async def regenerate_clip(
+        self,
+        job_id: str,
+        clip_id: str,
+        *,
+        owner_id: str | None,
+    ) -> str:
+        from backend.db.models import ClipStatus
+        from core.errors import StreamClipError
+
+        job = await self.get_job(job_id, owner_id=owner_id)
+        clip = next((c for c in job.clips if c.id == clip_id), None)
+        if clip is None:
+            raise StreamClipError(
+                f"Clip {clip_id} not found",
+                code="clip_not_found",
+                http_status=404,
+            )
+        if clip.status != ClipStatus.DONE:
+            raise StreamClipError(
+                "Clip is not finished rendering",
+                code="clip_not_ready",
+                user_message="Wait until this clip finishes before re-rendering.",
+            )
+        await self.clips.reset_for_regenerate(clip_id)
+        return clip_id
+
+    def build_clips_zip(self, job: Job) -> bytes:
+        from core.export_bundle import build_job_clips_zip
+        return build_job_clips_zip(job, self.storage)
 
 
 # ─── Upload service ──────────────────────────────────────────────────────────

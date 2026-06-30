@@ -62,21 +62,40 @@ async def health(
     except Exception as exc:
         log.warning("health_storage_fail", error=str(exc))
 
+    ollama_ok: bool | None = None
+    if cfg.llm.provider == "ollama":
+        try:
+            import httpx
+            with httpx.Client(timeout=3.0) as client:
+                resp = client.get(f"{cfg.llm.base_url.rstrip('/')}/api/tags")
+            ollama_ok = resp.is_success
+        except Exception as exc:
+            log.warning("health_ollama_fail", error=str(exc))
+            ollama_ok = False
+
+    checks = [db_ok, redis_ok, storage_ok]
+    if ollama_ok is not None:
+        checks.append(ollama_ok)
+
     return HealthResponse(
-        status="ok" if all([db_ok, redis_ok, storage_ok]) else "degraded",
+        status="ok" if all(checks) else "degraded",
         version=VERSION,
         environment=cfg.environment,
         redis=redis_ok,
         database=db_ok,
         storage=storage_ok,
+        ollama=ollama_ok,
     )
 
 
 @router.get("/meta")
 async def meta() -> dict:
     """Public configuration that the frontend may use to populate selects."""
+    from core.content_profiles import list_profiles
+
     return {
         "version": VERSION,
+        "content_profiles": list_profiles(),
         "caption_styles": [
             "gaming_impact", "tiktok_pop", "minimal_white", "podcast_clean",
         ],

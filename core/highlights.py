@@ -1,31 +1,35 @@
 """
 StreamClip — Highlight Detection Engine
-Multi-signal ensemble that fuses:
-  1. LLM virality scoring  (transcript-based, 0–100)
-  2. Audio energy          (librosa RMS + onset strength)
-  3. Spectral novelty      (spectral flux — sudden audio transitions)
-  4. Optical flow          (OpenCV dense flow — visual excitement)
-  5. Chat spike density    (Twitch chat message bursts, optional)
+Multi-signal discovery that fuses:
+  1. Audio energy          (librosa RMS + onset strength)
+  2. Spectral novelty      (spectral flux — sudden audio transitions)
+  3. Optical flow          (OpenCV dense flow — visual excitement)
+  4. Chat spike density    (Twitch chat message bursts, optional)
 
-Each signal is normalised to [0, 1] independently before the
-weighted ensemble is computed. Overlapping candidates are
-deduplicated by a greedy IoU suppressor, then boundaries are
-snapped to the nearest natural sentence break.
+LLM virality scoring runs post-hoc via ``core.virality`` after clips exist.
+Each signal is normalised to [0, 1] before the weighted ensemble is computed.
 """
 
 from __future__ import annotations
 
-import json
-import re
-import time
 from pathlib import Path
-from typing import Any
 
 import cv2
 import numpy as np
 import structlog
 
-from core.config import Settings, HighlightConfig, LLMConfig
+from core.config import Settings, HighlightConfig
+from core.caption_timing import snap_time_to_words
+from core.clip_metadata import derive_clip_metadata
+from core.chat_spikes import ChatSpikeAnalyser
+from core.content_profiles import ProfileWeights, get_profile
+from core.peak_detection import (
+    dedupe_windows,
+    find_peak_indices,
+    merge_peak_times,
+    smooth_series,
+    windows_from_peaks,
+)
 from core.models import (
     ClipCandidate,
     Emotion,
@@ -35,107 +39,6 @@ from core.models import (
 )
 
 log = structlog.get_logger(__name__)
-
-# ─── LLM prompt ───────────────────────────────────────────────────────────────
-
-_VIRALITY_PROMPT = """\
-You are an expert gaming content strategist who has studied 100,000+ viral clips
-across Twitch, TikTok, YouTube Shorts, and Instagram Reels.
-
-Analyse this transcript segment from a gaming stream and score its clip potential.
-
-── VIRAL SIGNALS (score high) ────────────────────────────────────────────────
-• Kill streaks, clutch 1vX plays, last-second rounds won or lost
-• Genuine emotional outbursts: rage, disbelief, pure joy, panic
-• "This should have worked" fails and funny moments
-• Quotable one-liners that land without context
-• Unexpected plot twists in the gameplay narrative
-• The moment everything changes — the exact frame someone wins or loses it
-
-── ANTI-VIRAL SIGNALS (score low) ────────────────────────────────────────────
-• Dead air, loading screens, menu navigation, setup chatter
-• Repeated or filler content ("um", "uh", long pauses)
-• Mid-explanation without visible payoff
-• Spectator commentary with no gameplay action
-
-── TRANSCRIPT ─────────────────────────────────────────────────────────────────
-Segment {idx} | {start:.1f}s – {end:.1f}s | Duration: {duration:.1f}s
-
-"{text}"
-
-── OUTPUT FORMAT ──────────────────────────────────────────────────────────────
-Return ONLY valid JSON (no markdown fences, no extra text):
-{{
-  "score": <integer 0–100>,
-  "hook": "<TikTok-ready caption hook — 1 punchy sentence, present-tense verb>",
-  "clip_title": "<4–6 word punchy title, title-case>",
-  "emotion": "<one of: hype|rage|funny|clutch|fail|weird|neutral>",
-  "meme_keywords": ["<keyword1>", "<keyword2>"],
-  "reason": "<1–2 sentences explaining the score>"
-}}"""
-
-
-# ─── Signal 1: LLM Virality Scorer ────────────────────────────────────────────
-
-class _LLMScorer:
-    """Calls a local Ollama or remote LLM API to score transcript segments."""
-
-    def __init__(self, cfg: LLMConfig) -> None:
-        self.cfg = cfg
-        self._client = self._build_client()
-
-    def _build_client(self) -> Any:
-        if self.cfg.provider == "ollama":
-            from ollama import Client
-            return Client(host=self.cfg.base_url)
-        if self.cfg.provider == "openai":
-            from openai import OpenAI
-            return OpenAI(api_key=self.cfg.api_key, base_url=self.cfg.base_url)
-        raise ValueError(f"Unknown LLM provider: {self.cfg.provider!r}")
-
-    def _call(self, prompt: str) -> str:
-        if self.cfg.provider == "ollama":
-            resp = self._client.chat(
-                model=self.cfg.model,
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": self.cfg.temperature},
-            )
-            return resp.message.content.strip()
-        # OpenAI-compatible
-        resp = self._client.chat.completions.create(
-            model=self.cfg.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=self.cfg.temperature,
-            timeout=self.cfg.timeout_secs,
-        )
-        return resp.choices[0].message.content.strip()
-
-    def score(self, seg: TranscriptSegment, idx: int) -> dict[str, Any]:
-        prompt = _VIRALITY_PROMPT.format(
-            idx=idx,
-            start=seg.start,
-            end=seg.end,
-            duration=seg.duration,
-            text=seg.text,
-        )
-        for attempt in range(self.cfg.max_retries):
-            try:
-                raw = self._call(prompt)
-                # Strip any accidental markdown fences
-                raw = re.sub(r"```[a-z]*\n?", "", raw).strip()
-                return json.loads(raw)
-            except (json.JSONDecodeError, Exception) as exc:
-                log.warning(
-                    "llm_score_retry",
-                    attempt=attempt + 1,
-                    error=str(exc),
-                    seg_id=seg.id,
-                )
-                time.sleep(1.5 ** attempt)
-        # Fallback neutral score on total failure
-        return {"score": 0, "hook": "", "clip_title": "", "emotion": "neutral",
-                "meme_keywords": [], "reason": "LLM call failed"}
-
 
 # ─── Signal 2 + 3: Audio Analyser ─────────────────────────────────────────────
 
@@ -183,6 +86,15 @@ class _AudioAnalyser:
 
     def novelty(self, start: float, end: float) -> float:
         return self._window_mean(self._onset_norm, self._onset_times, start, end)
+
+    def energy_curve(self) -> tuple[np.ndarray, np.ndarray]:
+        """Per-sample times and normalised RMS energy (for peak detection)."""
+        smoothed = self._rms_norm
+        return self._rms_times.copy(), smoothed.copy()
+
+    def onset_curve(self) -> tuple[np.ndarray, np.ndarray]:
+        """Per-sample times and normalised onset strength."""
+        return self._onset_times.copy(), self._onset_norm.copy()
 
 
 # ─── Signal 4: Optical Flow Analyser ─────────────────────────────────────────
@@ -262,6 +174,8 @@ def _snap_boundaries(
     padding: float = 2.5,
     min_dur: float = 15.0,
     max_dur: float = 90.0,
+    *,
+    source_duration: float | None = None,
 ) -> tuple[float, float]:
     """
     Snap a clip's start/end to the nearest sentence boundary
@@ -285,15 +199,17 @@ def _snap_boundaries(
 
     # Enforce duration constraints
     duration = best_end - best_start
+    if source_duration is not None and source_duration <= min_dur:
+        return 0.0, source_duration
+
     if duration < min_dur:
         mid = (best_start + best_end) / 2
         best_start = max(0.0, mid - min_dur / 2)
         best_end = best_start + min_dur
     elif duration > max_dur:
-        # Keep the end fixed, trim the tail
         best_end = min(best_end, best_start + max_dur)
 
-    return best_start, best_end
+    return snap_time_to_words(best_start, best_end, transcript)
 
 
 # ─── Non-maximum suppression ──────────────────────────────────────────────────
@@ -323,77 +239,85 @@ def _nms(candidates: list[ClipCandidate], iou_threshold: float = 0.3) -> list[Cl
 
 # ─── Ensemble Scorer ──────────────────────────────────────────────────────────
 
+class _NullFlowAnalyser:
+    """No-op stand-in when optical flow is skipped for short-tier ingest."""
+
+    def score(self, start: float, end: float) -> float:
+        return 0.0
+
+
 class EnsembleScorer:
     """
-    Combines all signal scorers into a single normalised rank score
-    for each transcript segment.
+    Discovery scorer — audio, spectral novelty, optical flow, and chat spikes.
+
+    LLM virality runs later via ``core.virality.score_clip_virality``.
     """
 
     def __init__(
         self,
         video_path: Path,
         cfg: Settings,
+        *,
+        skip_optical_flow: bool = False,
+        chat_analyser: ChatSpikeAnalyser | None = None,
+        profile: ProfileWeights | None = None,
     ) -> None:
         self.hcfg: HighlightConfig = cfg.highlight
-        self._llm = _LLMScorer(cfg.llm)
+        self._profile = profile
+        self._skip_flow = skip_optical_flow
+        self._chat = chat_analyser
         self._audio = _AudioAnalyser(video_path)
-        self._flow = _OpticalFlowAnalyser(video_path)
+        self._flow: _NullFlowAnalyser | _OpticalFlowAnalyser
+        if skip_optical_flow:
+            self._flow = _NullFlowAnalyser()
+            log.info("optical_flow_skipped", reason="processing_tier_hint")
+        else:
+            self._flow = _OpticalFlowAnalyser(video_path)
+
+    def _weights(self) -> tuple[float, float, float, float]:
+        if self._profile:
+            return (
+                self._profile.weight_audio_energy,
+                self._profile.weight_spectral_novelty,
+                0.0 if self._skip_flow else self._profile.weight_optical_flow,
+                self._profile.weight_chat_spikes if self._chat else 0.0,
+            )
+        h = self.hcfg
+        w_flow = 0.0 if self._skip_flow else h.weight_optical_flow
+        w_chat = h.weight_chat_spikes if self._chat else 0.0
+        return h.weight_audio_energy, h.weight_spectral_novelty, w_flow, w_chat
 
     def score_segment(
         self,
         seg: TranscriptSegment,
         idx: int,
-    ) -> ClipCandidate | None:
-        """Score a single segment across all signals. Returns None if below threshold."""
-        h = self.hcfg
+    ) -> ClipCandidate:
+        """Score a segment for discovery (no LLM)."""
+        w_audio, w_spectral, w_flow, w_chat = self._weights()
+        w_total = w_audio + w_spectral + w_flow + w_chat
+        if w_total <= 0:
+            w_total = 1.0
 
-        # ── Signal 1: LLM ──────────────────────────────────────────────────
-        llm_result = self._llm.score(seg, idx)
-        llm_score_raw = float(llm_result.get("score", 0))
-
-        if llm_score_raw < h.min_virality_score:
-            log.debug(
-                "segment_below_threshold",
-                seg_id=seg.id,
-                score=llm_score_raw,
-                text=seg.text[:60],
-            )
-            return None
-
-        # ── Signal 2: Audio energy ─────────────────────────────────────────
         audio_e = self._audio.energy(seg.start, seg.end)
-
-        # ── Signal 3: Spectral novelty ─────────────────────────────────────
         spectral_n = self._audio.novelty(seg.start, seg.end)
-
-        # ── Signal 4: Optical flow ─────────────────────────────────────────
         flow_s = self._flow.score(seg.start, seg.end)
+        chat_s = self._chat.score(seg.start, seg.end) if self._chat else 0.0
 
-        # ── Normalise LLM score to [0, 1] ─────────────────────────────────
-        llm_norm = llm_score_raw / 100.0
-
-        # ── Weighted ensemble ──────────────────────────────────────────────
-        ensemble = (
-            h.weight_llm_virality     * llm_norm
-            + h.weight_audio_energy   * audio_e
-            + h.weight_spectral_novelty * spectral_n
-            + h.weight_optical_flow   * flow_s
-            # chat_spikes is 0 unless a chat log is provided
-        )
+        discovery = (
+            w_audio * audio_e
+            + w_spectral * spectral_n
+            + w_flow * flow_s
+            + w_chat * chat_s
+        ) / w_total
 
         scores = SignalScores(
-            llm_virality=llm_score_raw,
+            llm_virality=0.0,
             audio_energy=audio_e,
             spectral_novelty=spectral_n,
             optical_flow=flow_s,
+            chat_spikes=chat_s,
         )
-        scores.set_ensemble(ensemble)
-
-        emotion_str = llm_result.get("emotion", "neutral")
-        try:
-            emotion = Emotion(emotion_str)
-        except ValueError:
-            emotion = Emotion.NEUTRAL
+        scores.set_ensemble(discovery)
 
         return ClipCandidate(
             segment_id=seg.id,
@@ -401,12 +325,144 @@ class EnsembleScorer:
             end=seg.end,
             text=seg.text,
             scores=scores,
-            llm_hook=llm_result.get("hook", ""),
-            llm_title=llm_result.get("clip_title", ""),
-            emotion=emotion,
-            meme_keywords=llm_result.get("meme_keywords", []),
-            llm_reason=llm_result.get("reason", ""),
+            llm_hook="",
+            llm_title="",
+            emotion=Emotion.NEUTRAL,
+            meme_keywords=[],
+            llm_reason="",
         )
+
+
+def _guaranteed_clips(
+    transcript: Transcript,
+    hcfg: HighlightConfig,
+) -> list[ClipCandidate]:
+    """
+    Always produce at least one clip when scoring filters everything out.
+
+    Splits the source into up to ``target_clips`` contiguous chunks so short
+    or quiet videos still render.
+    """
+    duration = transcript.duration
+    if duration <= 0:
+        return []
+
+    target = hcfg.target_clips
+    min_dur = min(hcfg.min_clip_duration, duration)
+    max_dur = min(hcfg.max_clip_duration, duration)
+
+    # Short sources (Twitch clips, etc.) → one clip spanning the full video
+    if duration <= 120:
+        n = 1
+    else:
+        n = min(target, max(1, int(duration // min_dur))) if min_dur > 0 else 1
+        if duration < hcfg.min_clip_duration:
+            n = 1
+
+    chunk_len = min(max_dur, duration / n)
+    chunk_len = max(chunk_len, min_dur) if n == 1 else chunk_len
+
+    candidates: list[ClipCandidate] = []
+    start = 0.0
+    for i in range(n):
+        end = duration if i == n - 1 else min(duration, start + chunk_len)
+        if end - start < 1.0:
+            break
+
+        text = transcript.text_in_range(start, end)
+        title, hook = derive_clip_metadata(text)
+        scores = SignalScores()
+        scores.set_ensemble(0.0)
+
+        candidates.append(
+            ClipCandidate(
+                segment_id=-(i + 1),
+                start=start,
+                end=end,
+                text=text,
+                scores=scores,
+                llm_hook=hook,
+                llm_title=title,
+                emotion=Emotion.NEUTRAL,
+                meme_keywords=[],
+                llm_reason=(
+                    "Guaranteed clip — source did not yield scored segments "
+                    "but was exported anyway."
+                ),
+            )
+        )
+        start = end
+        if start >= duration - 0.5:
+            break
+
+    log.info("highlight_guaranteed_clips", count=len(candidates), duration_secs=duration)
+    return candidates
+
+
+def _score_window(
+    scorer: EnsembleScorer,
+    start: float,
+    end: float,
+    transcript: Transcript,
+    *,
+    segment_id: int,
+) -> ClipCandidate:
+    """Score an arbitrary time window (peak-based or hybrid discovery)."""
+    from core.models import TranscriptSegment
+
+    text = transcript.text_in_range(start, end)
+    pseudo = TranscriptSegment(
+        id=segment_id,
+        start=start,
+        end=end,
+        text=text,
+        words=(),
+    )
+    cand = scorer.score_segment(pseudo, segment_id)
+    title, hook = derive_clip_metadata(text)
+    cand.llm_title = title
+    cand.llm_hook = hook
+    cand.text = text
+    return cand
+
+
+def _discover_peak_windows(
+    scorer: EnsembleScorer,
+    chat_analyser: ChatSpikeAnalyser | None,
+    *,
+    duration: float,
+    hcfg: HighlightConfig,
+    profile: ProfileWeights,
+) -> list[tuple[float, float]]:
+    """Find candidate windows from smoothed audio + chat peak curves."""
+    win = max(1, hcfg.score_smoothing_window_secs * 2)
+    min_height = profile.peak_min_height
+    merge_gap = profile.peak_merge_gap_secs
+
+    times, energy = scorer._audio.energy_curve()  # noqa: SLF001
+    if energy.size > 0:
+        energy = smooth_series(energy, win)
+        audio_peaks = [float(times[i]) for i in find_peak_indices(energy, min_height=min_height)]
+    else:
+        audio_peaks = []
+
+    chat_peaks: list[float] = []
+    if chat_analyser is not None:
+        chat_curve = chat_analyser.per_second_curve(video_duration=duration)
+        chat_smooth = smooth_series(chat_curve, win)
+        chat_peaks = [
+            float(i) for i in find_peak_indices(chat_smooth, min_height=min_height * 0.85)
+        ]
+
+    merged = merge_peak_times(audio_peaks + chat_peaks, merge_gap_secs=merge_gap)
+    windows = windows_from_peaks(
+        merged,
+        padding_secs=hcfg.clip_padding_secs * 3,
+        min_duration=hcfg.min_clip_duration,
+        max_duration=hcfg.max_clip_duration,
+        source_duration=duration,
+    )
+    return dedupe_windows(windows)
 
 
 # ─── Main entry point ──────────────────────────────────────────────────────────
@@ -415,6 +471,10 @@ def find_highlights(
     transcript: Transcript,
     video_path: Path,
     cfg: Settings,
+    *,
+    pipeline_hints: dict | None = None,
+    source_url: str | None = None,
+    chat_cache_path: Path | None = None,
 ) -> list[ClipCandidate]:
     """
     Run the full multi-signal highlight pipeline and return the top N
@@ -429,26 +489,92 @@ def find_highlights(
         Sorted list of ClipCandidate (best first).
     """
     hcfg = cfg.highlight
+    hints = pipeline_hints or {}
+    skip_flow = bool(hints.get("skip_optical_flow", False))
+    min_seg_dur = float(hints.get("min_clip_duration_override", 5.0))
+    content_profile = hints.get("content_profile", "gaming")
+    profile = get_profile(str(content_profile))
+    candidate_mode = hcfg.candidate_mode
+
     log.info(
         "highlight_detection_start",
         num_segments=len(transcript.segments),
         target_clips=hcfg.target_clips,
+        skip_optical_flow=skip_flow,
+        candidate_mode=candidate_mode,
+        content_profile=content_profile,
     )
 
-    scorer = EnsembleScorer(video_path=video_path, cfg=cfg)
+    chat_analyser: ChatSpikeAnalyser | None = None
+    if source_url or chat_cache_path:
+        from core.twitch_chat import fetch_vod_chat
+
+        chat_events = fetch_vod_chat(
+            source_url=source_url,
+            cfg=cfg,
+            cache_path=chat_cache_path,
+        )
+        if chat_events:
+            chat_analyser = ChatSpikeAnalyser(
+                chat_events, video_duration=transcript.duration,
+            )
+            log.info("chat_spike_analyser_ready", events=len(chat_events))
+
+    scorer = EnsembleScorer(
+        video_path=video_path,
+        cfg=cfg,
+        skip_optical_flow=skip_flow,
+        chat_analyser=chat_analyser,
+        profile=profile,
+    )
     raw_candidates: list[ClipCandidate] = []
+    segments = transcript.segments
 
-    for idx, seg in enumerate(transcript.segments):
-        # Skip very short segments — not enough context
-        if seg.duration < 5.0 or seg.word_count < 8:
-            continue
+    is_short_source = transcript.duration <= 120
+    min_words = 3 if is_short_source else 8
+    effective_min_seg = min(min_seg_dur, max(2.0, transcript.duration / 6))
 
-        log.debug("scoring_segment", idx=idx, text=seg.text[:60])
-        cand = scorer.score_segment(seg, idx)
-        if cand is not None:
-            raw_candidates.append(cand)
+    use_segments = candidate_mode in ("segments", "hybrid")
+    use_peaks = candidate_mode in ("peaks", "hybrid") and not is_short_source
+
+    if use_segments:
+        for idx, seg in enumerate(segments):
+            spoken_words = max(seg.word_count, len(seg.text.split()))
+            if len(segments) > 1:
+                if seg.duration < effective_min_seg or spoken_words < min_words:
+                    continue
+            log.debug("scoring_segment", idx=idx, text=seg.text[:60])
+            raw_candidates.append(scorer.score_segment(seg, idx))
+
+    if use_peaks:
+        peak_windows = _discover_peak_windows(
+            scorer,
+            chat_analyser,
+            duration=transcript.duration,
+            hcfg=hcfg,
+            profile=profile,
+        )
+        log.info("peak_windows", count=len(peak_windows))
+        base_id = len(raw_candidates)
+        for i, (start, end) in enumerate(peak_windows):
+            raw_candidates.append(
+                _score_window(
+                    scorer, start, end, transcript, segment_id=base_id + i,
+                ),
+            )
 
     log.info("raw_candidates", count=len(raw_candidates))
+
+    max_pool = hcfg.target_clips * 6
+    if len(raw_candidates) > max_pool:
+        raw_candidates = sorted(
+            raw_candidates, key=lambda c: c.rank_score, reverse=True,
+        )[:max_pool]
+        log.info("raw_candidates_capped", kept=len(raw_candidates), max_pool=max_pool)
+
+    if not raw_candidates:
+        log.info("highlight_fallback", reason="no_scored_segments")
+        return _guaranteed_clips(transcript, hcfg)[: hcfg.target_clips]
 
     # ── Snap boundaries to sentence breaks ────────────────────────────────
     snapped: list[ClipCandidate] = []
@@ -460,17 +586,20 @@ def find_highlights(
             padding=hcfg.clip_padding_secs,
             min_dur=hcfg.min_clip_duration,
             max_dur=hcfg.max_clip_duration,
+            source_duration=transcript.duration,
         )
-        # Rebuild with snapped times (dataclass is frozen so rebuild it)
+        # Rebuild with snapped times; title/hook come from the actual clip transcript
+        clip_text = transcript.text_in_range(s, e)
+        title, hook = derive_clip_metadata(clip_text)
         snapped.append(
             ClipCandidate(
                 segment_id=cand.segment_id,
                 start=s,
                 end=e,
-                text=transcript.text_in_range(s, e),
+                text=clip_text,
                 scores=cand.scores,
-                llm_hook=cand.llm_hook,
-                llm_title=cand.llm_title,
+                llm_hook=hook,
+                llm_title=title,
                 emotion=cand.emotion,
                 meme_keywords=cand.meme_keywords,
                 llm_reason=cand.llm_reason,
@@ -482,6 +611,10 @@ def find_highlights(
 
     # ── Return top N ──────────────────────────────────────────────────────
     final = sorted(kept, key=lambda c: c.rank_score, reverse=True)[: hcfg.target_clips]
+
+    if not final:
+        log.info("highlight_fallback", reason="nms_or_snap_removed_all")
+        final = _guaranteed_clips(transcript, hcfg)[: hcfg.target_clips]
 
     log.info(
         "highlight_detection_done",

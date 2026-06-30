@@ -32,7 +32,9 @@ class CreateJobRequest(BaseModel):
     reframe_preset: Literal[
         "fps_game", "moba", "battle_royale", "irl", "podcast", "auto"
     ] = "fps_game"
-    min_virality_score: int = Field(55, ge=0, le=100)
+    content_profile: Literal[
+        "gaming", "irl", "podcast", "esports", "general"
+    ] = "gaming"
 
     @field_validator("source_url")
     @classmethod
@@ -76,10 +78,14 @@ class ClipOut(BaseModel):
     audio_score: float
     spectral_score: float
     flow_score: float
+    chat_score: float = 0.0
     status: str
     error_message: str | None = None
     render_time_secs: float
     file_size_bytes: int
+    transcript_text: str = ""
+    llm_reason: str = ""
+    meme_keywords: list[str] = []
     overlays: list[ClipOverlayOut] = []
 
     # Presigned URLs filled in by service layer
@@ -102,6 +108,7 @@ class JobOut(BaseModel):
     created_at: datetime
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    content_profile: str | None = None
     clips: list[ClipOut] = []
 
 
@@ -124,6 +131,12 @@ class JobListResponse(BaseModel):
     offset: int
 
 
+class RegenerateClipResponse(BaseModel):
+    clip_id: str
+    job_id: str
+    status: str = "queued"
+
+
 # ─── Uploads ─────────────────────────────────────────────────────────────────
 
 class UploadInitRequest(BaseModel):
@@ -141,6 +154,39 @@ class UploadInitResponse(BaseModel):
 
 # ─── Health / Meta ───────────────────────────────────────────────────────────
 
+class RegisterRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str | None = Field(None, max_length=120)
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    email: str
+    display_name: str | None
+    tier: str
+    jobs_used_this_month: int
+    minutes_processed_this_month: float
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str
@@ -148,6 +194,7 @@ class HealthResponse(BaseModel):
     redis: bool
     database: bool
     storage: bool
+    ollama: bool | None = None
 
 
 # ─── Progress events (SSE payload) ───────────────────────────────────────────

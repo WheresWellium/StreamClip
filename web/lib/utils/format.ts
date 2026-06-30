@@ -54,6 +54,8 @@ export const statusColors: Record<string, string> = {
   ingesting: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   transcribing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   detecting: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  scoring_virality: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  virality_scored: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   done: "bg-green-500/10 text-green-400 border-green-500/20",
   error: "bg-red-500/10 text-red-400 border-red-500/20",

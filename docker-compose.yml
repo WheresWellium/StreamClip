@@ -16,6 +16,36 @@
 # GPU enabled:    docker compose --profile gpu up --build
 # ═══════════════════════════════════════════════════════════════════════
 
+x-api-volumes: &api-volumes
+  - ./workspace:/app/workspace
+  - ./output:/app/output
+  - ./.cache:/app/.cache
+  - ./assets:/app/assets
+  - ./backend:/app/backend
+  - ./core:/app/core
+  - ./alembic:/app/alembic
+  - ./scripts:/app/scripts
+  - ./tests:/app/tests
+  - ./config.yaml:/app/config.yaml:ro
+
+x-worker-volumes: &worker-volumes
+  - ./workspace:/app/workspace
+  - ./.cache:/app/.cache
+  - ./assets:/app/assets
+  - ./backend:/app/backend
+  - ./core:/app/core
+  - ./alembic:/app/alembic
+  - ./scripts:/app/scripts
+  - ./tests:/app/tests
+  - ./config.yaml:/app/config.yaml:ro
+
+x-python-volumes: &python-volumes
+  - ./backend:/app/backend
+  - ./core:/app/core
+  - ./alembic:/app/alembic
+  - ./scripts:/app/scripts
+  - ./config.yaml:/app/config.yaml:ro
+
 services:
 
   # ── Postgres ───────────────────────────────────────────────────────
@@ -108,12 +138,7 @@ services:
              uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2"
     ports:
       - "8000:8000"
-    volumes:
-      - ./workspace:/app/workspace
-      - ./output:/app/output
-      - ./.cache:/app/.cache
-      - ./assets:/app/assets
-      - ./config.yaml:/app/config.yaml:ro
+    volumes: *api-volumes
     environment:
       STREAMCLIP_ENVIRONMENT: development
       STREAMCLIP_LOG_LEVEL: INFO
@@ -157,11 +182,7 @@ services:
         --queues=default,gpu
         --concurrency=4
         --max-tasks-per-child=50
-    volumes:
-      - ./workspace:/app/workspace
-      - ./.cache:/app/.cache
-      - ./assets:/app/assets
-      - ./config.yaml:/app/config.yaml:ro
+    volumes: *worker-volumes
     environment:
       STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
       STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip
@@ -199,6 +220,10 @@ services:
       - ./workspace:/app/workspace
       - ./.cache:/app/.cache
       - ./assets:/app/assets
+      - ./backend:/app/backend
+      - ./core:/app/core
+      - ./alembic:/app/alembic
+      - ./scripts:/app/scripts
       - ./config.yaml:/app/config.yaml:ro
     environment:
       STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
@@ -233,8 +258,7 @@ services:
       context: .
       dockerfile: Dockerfile
     command: celery -A core.celery_app.celery_app beat --loglevel=info
-    volumes:
-      - ./config.yaml:/app/config.yaml:ro
+    volumes: *python-volumes
     environment:
       STREAMCLIP_REDIS__URL: redis://redis:6379/0
       STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
@@ -255,6 +279,7 @@ services:
         --broker=redis://redis:6379/1
     ports:
       - "5555:5555"
+    volumes: *python-volumes
     environment:
       STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
       STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2

@@ -55,7 +55,6 @@ def main() -> int:
         "target_clips": 2,
         "caption_style": "gaming_impact",
         "reframe_preset": "fps_game",
-        "min_virality_score": 40,
     })
     job_id = job["id"]
     print("job", job_id, job["status"])

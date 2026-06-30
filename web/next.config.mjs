@@ -22,6 +22,18 @@ const nextConfig = {
         source: "/api/:path*",
         destination: `${apiUrl}/api/:path*`,
       },
+      {
+        source: "/docs",
+        destination: `${apiUrl}/docs`,
+      },
+      {
+        source: "/docs/:path*",
+        destination: `${apiUrl}/docs/:path*`,
+      },
+      {
+        source: "/openapi.json",
+        destination: `${apiUrl}/openapi.json`,
+      },
     ];
   },
   // SSE responses must not be buffered by Next

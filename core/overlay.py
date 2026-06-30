@@ -25,6 +25,7 @@ import numpy as np
 import structlog
 
 from core.config import Settings, OverlayConfig
+from core.export_video import audio_encode_args, output_fps_args, video_encode_args
 from core.models import ClipCandidate, OverlayAsset
 
 log = structlog.get_logger(__name__)
@@ -409,9 +410,9 @@ def apply_overlays(
         "-filter_complex", filter_complex,
         "-map", f"[{last_label}]",
         "-map", "0:a?",
-        "-c:v", "libx264", "-crf", "16", "-preset", "fast",
-        "-c:a", "aac", "-b:a", "256k",
-        "-pix_fmt", "yuv420p",
+        *video_encode_args(cfg.export, crf=16),
+        *audio_encode_args(cfg.export),
+        *output_fps_args(cfg.export),
         str(intermediate),
     ]
     log.debug("overlay_ffmpeg", inputs=len(inputs))

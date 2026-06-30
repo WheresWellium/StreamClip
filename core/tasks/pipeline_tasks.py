@@ -17,8 +17,11 @@ Compared to the old asyncio.gather pipeline, this gives us:
 from __future__ import annotations
 
 import asyncio
+import shutil
+import subprocess
 import time
 import traceback
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -27,19 +30,30 @@ from celery import chain, group
 from celery.exceptions import SoftTimeLimitExceeded
 
 from backend.db.models import ClipStatus, JobStatus
-from backend.db.repositories import ClipRepository, JobRepository
+from backend.db.repositories import ClipRepository, JobRepository, UserRepository
 from backend.db.session import db_session
 from core.captions import generate_captions
 from core.celery_app import ProgressTask, celery_app, publish_progress
 from core.config import get_settings
 from core.errors import StreamClipError
 from core.highlights import find_highlights
-from core.ingest import ingest
+from core.ingest.service import IngestService, get_job_source_path
+from core.ingest.types import IngestRequest
 from core.models import ClipCandidate, Transcript
 from core.overlay import apply_overlays
 from core.reframe import reframe
+from core.ffmpeg_utils import extract_segment, validate_output_duration
+from core.pipeline_metrics import (
+    CLIP_RENDER_SECONDS,
+    CLIPS_PROCESSED,
+    JOBS_COMPLETED,
+    PIPELINE_STAGE_SECONDS,
+    WEBHOOK_DELIVERIES,
+)
 from core.storage import job_key, make_storage
-from core.transcribe import transcribe
+from core.transcribe import load_job_transcript, save_transcript_json, transcribe, transcribe_clip
+from core.webhooks import deliver_job_webhook
+from core.virality import ensemble_with_virality, score_clip_virality
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
@@ -73,8 +87,6 @@ def _apply_job_config(job: Any) -> None:
     snap = job.config_snapshot or {}
     if "target_clips" in snap:
         cfg.highlight.target_clips = int(snap["target_clips"])
-    if "min_virality_score" in snap:
-        cfg.highlight.min_virality_score = int(snap["min_virality_score"])
     if "caption_style" in snap:
         cfg.caption.style = snap["caption_style"]
     if "reframe_preset" in snap:
@@ -88,6 +100,45 @@ def _local_workspace(job_id: str) -> Path:
     d = cfg.workspace_dir / "jobs" / job_id
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+@contextmanager
+def _stage_timer(stage: str):
+    """Record wall time for a pipeline stage in Prometheus."""
+    started = time.perf_counter()
+    try:
+        yield
+    finally:
+        PIPELINE_STAGE_SECONDS.labels(stage=stage).observe(time.perf_counter() - started)
+
+
+def _pipeline_hints_from_job(job: Any) -> dict:
+    """Extract ingest-tier hints persisted on the job snapshot."""
+    snap = job.config_snapshot or {}
+    return {
+        k: snap[k]
+        for k in (
+            "skip_optical_flow",
+            "min_clip_duration_override",
+            "processing_tier",
+            "has_chat_data",
+            "content_profile",
+        )
+        if k in snap
+    }
+
+
+def _ensure_job_source(job_id: str, storage_key: str | None) -> Path:
+    """Return canonical local source path, downloading from storage if needed."""
+    local_source = get_job_source_path(cfg, job_id)
+    if local_source.exists():
+        return local_source
+    if not storage_key:
+        raise StreamClipError("No source storage key for job")
+    storage = make_storage(cfg)
+    local_source.parent.mkdir(parents=True, exist_ok=True)
+    storage.download(storage_key, local_source)
+    return local_source
 
 
 # ─── 1. Pipeline orchestrator ────────────────────────────────────────────────
@@ -104,6 +155,7 @@ def start_pipeline(self: ProgressTask, job_id: str) -> str:
         run_ingest.si(job_id),
         run_transcribe.si(job_id),
         run_highlights.si(job_id),
+        run_virality_scores.si(job_id),
         fan_out_clips.si(job_id),
     )
     result = workflow.apply_async()
@@ -127,47 +179,36 @@ def run_ingest(self: ProgressTask, job_id: str) -> str:
             await jobs.update_status(job_id, JobStatus.INGESTING,
                                      stage="ingesting", progress=0.02)
 
-            # Resolve source
-            source = job.source_url or job.source_storage_key
-            if source is None:
+            if not job.source_url and not job.source_storage_key:
                 raise StreamClipError("No source URL or upload key for job")
-
-            # If it's a storage key, download it locally first
-            workspace = _local_workspace(job_id)
-            storage = make_storage(cfg)
-
-            if job.source_storage_key:
-                local_source = workspace / f"source_{Path(job.source_storage_key).name}"
-                storage.download(job.source_storage_key, local_source)
-                source_path = local_source
-                source_arg: Any = local_source
-            else:
-                source_arg = job.source_url
 
             def _on_progress(pct: float) -> None:
                 self.report(job_id, stage="ingesting",
                            progress=0.02 + pct * 0.13,
                            message=f"Downloading {pct:.0%}")
 
-            meta = ingest(source_arg, cfg, on_progress=_on_progress)
+            if job.source_storage_key:
+                request = IngestRequest(job_id=job_id, storage_key=job.source_storage_key)
+            else:
+                request = IngestRequest(job_id=job_id, source_url=job.source_url)
 
-            # Update job with metadata
-            job.source_title = meta.title
-            job.source_duration_secs = meta.duration
-            job.source_width = meta.width
-            job.source_height = meta.height
+            result = IngestService(cfg).run(request, on_progress=_on_progress)
 
-            # If we downloaded from URL, push the file into storage too
-            if job.source_url and not job.source_storage_key:
-                key = job_key(job_id, "source", meta.path.name)
-                storage.upload(key, meta.path, content_type="video/mp4")
-                job.source_storage_key = key
+            job.source_title = result.meta.title
+            job.source_duration_secs = result.meta.duration
+            job.source_width = result.meta.width
+            job.source_height = result.meta.height
+            job.source_storage_key = result.storage_key
+
+            merged = {**(job.config_snapshot or {}), **result.to_snapshot()}
+            job.config_snapshot = merged
 
             await jobs.update_status(job_id, JobStatus.INGESTING,
                                      stage="ingested", progress=0.15)
 
     try:
-        _safe_async(_do())
+        with _stage_timer("ingest"):
+            _safe_async(_do())
     except SoftTimeLimitExceeded:
         publish_progress(job_id, stage="error", progress=0.15,
                         message="Ingest exceeded time limit", status="error")
@@ -197,26 +238,23 @@ def run_transcribe(self: ProgressTask, job_id: str) -> str:
                                      stage="transcribing", progress=0.16)
 
             workspace = _local_workspace(job_id)
-            local_source = workspace / f"source_{Path(job.source_storage_key).name}"
-            if not local_source.exists():
-                storage = make_storage(cfg)
-                storage.download(job.source_storage_key, local_source)
+            local_source = _ensure_job_source(job_id, job.source_storage_key)
 
             transcript = transcribe(local_source, cfg)
 
             # Persist transcript blob to storage for later stages
             storage = make_storage(cfg)
             t_key = job_key(job_id, "transcript", "transcript.json")
-            from core.transcribe import export_word_level_json
             tmp_json = workspace / "transcript.json"
-            export_word_level_json(transcript, tmp_json)
+            save_transcript_json(transcript, tmp_json)
             storage.upload(t_key, tmp_json, content_type="application/json")
 
             await jobs.update_status(job_id, JobStatus.TRANSCRIBING,
                                      stage="transcribed", progress=0.35)
 
     try:
-        _safe_async(_do())
+        with _stage_timer("transcribe"):
+            _safe_async(_do())
     except StreamClipError as exc:
         _mark_error(job_id, exc.code, exc.user_message)
         raise
@@ -230,7 +268,7 @@ def run_transcribe(self: ProgressTask, job_id: str) -> str:
 
 @celery_app.task(bind=True, base=ProgressTask, name="core.tasks.pipeline_tasks.run_highlights")
 def run_highlights(self: ProgressTask, job_id: str) -> str:
-    self.report(job_id, stage="detecting", progress=0.36, message="Scoring highlights")
+    self.report(job_id, stage="detecting", progress=0.36, message="Finding clip candidates")
 
     async def _do() -> list[str]:
         """Returns list of clip IDs created."""
@@ -247,12 +285,28 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
                                      stage="detecting", progress=0.36)
 
             workspace = _local_workspace(job_id)
-            local_source = workspace / f"source_{Path(job.source_storage_key).name}"
+            local_source = _ensure_job_source(job_id, job.source_storage_key)
+            storage = make_storage(cfg)
 
-            # Re-transcribe locally (cached) or load JSON
-            transcript_obj = transcribe(local_source, cfg)
+            transcript_obj = load_job_transcript(
+                job_id, cfg, storage=storage, source_path=local_source,
+            )
 
-            candidates = find_highlights(transcript_obj, local_source, cfg)
+            hints = _pipeline_hints_from_job(job)
+            chat_cache = workspace / "chat.json"
+            candidates = find_highlights(
+                transcript_obj,
+                local_source,
+                cfg,
+                pipeline_hints=hints,
+                source_url=job.source_url,
+                chat_cache_path=chat_cache,
+            )
+
+            snap = dict(job.config_snapshot or {})
+            snap["has_chat_data"] = chat_cache.exists()
+            job.config_snapshot = snap
+            await db.flush()
 
             clip_ids: list[str] = []
             for rank, cand in enumerate(candidates):
@@ -267,7 +321,7 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
                     transcript_text=cand.text,
                     llm_reason=cand.llm_reason,
                     ensemble_score=cand.rank_score,
-                    llm_score=cand.scores.llm_virality,
+                    llm_score=0.0,
                     audio_score=cand.scores.audio_energy,
                     spectral_score=cand.scores.spectral_novelty,
                     flow_score=cand.scores.optical_flow,
@@ -276,19 +330,102 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
                 )
                 clip_ids.append(clip.id)
 
-            await jobs.update_status(job_id, JobStatus.PROCESSING,
-                                     stage="rendering", progress=0.50)
+            await jobs.update_status(job_id, JobStatus.DETECTING,
+                                     stage="detected", progress=0.45)
 
             return clip_ids
 
     try:
-        _safe_async(_do())
+        with _stage_timer("highlights"):
+            _safe_async(_do())
     except StreamClipError as exc:
         _mark_error(job_id, exc.code, exc.user_message)
         raise
 
-    self.report(job_id, stage="detected", progress=0.50,
-                message="Highlights ranked")
+    self.report(job_id, stage="detected", progress=0.45,
+                message="Clip candidates ready")
+    return job_id
+
+
+# ─── 4b. Post-hoc virality scoring ───────────────────────────────────────────
+
+@celery_app.task(bind=True, base=ProgressTask, name="core.tasks.pipeline_tasks.run_virality_scores")
+def run_virality_scores(self: ProgressTask, job_id: str) -> str:
+    """Score viral potential for each clip after discovery — never gates creation."""
+    self.report(job_id, stage="scoring_virality", progress=0.46,
+                message="Scoring clip virality")
+
+    async def _do() -> None:
+        async with db_session() as db:
+            jobs = JobRepository(db)
+            clips_repo = ClipRepository(db)
+            job = await jobs.get(job_id)
+            if job is None:
+                raise StreamClipError(f"Job {job_id} not found")
+
+            _apply_job_config(job)
+            hints = _pipeline_hints_from_job(job)
+            skip_flow = bool(hints.get("skip_optical_flow", False))
+            has_chat = bool(hints.get("has_chat_data", False))
+            from core.content_profiles import get_profile
+
+            profile = get_profile(
+                str((job.config_snapshot or {}).get("content_profile", "gaming")),
+            )
+
+            clips = await clips_repo.list_for_job(job_id)
+            total = max(len(clips), 1)
+
+            for i, clip in enumerate(clips):
+                progress = 0.46 + (i / total) * 0.04
+                self.report(
+                    job_id,
+                    stage="scoring_virality",
+                    progress=progress,
+                    message=f"Virality {i + 1}/{len(clips)}",
+                )
+
+                result = score_clip_virality(
+                    text=clip.transcript_text,
+                    start_secs=clip.start_secs,
+                    end_secs=clip.end_secs,
+                    cfg=cfg,
+                )
+                ensemble = ensemble_with_virality(
+                    llm_score=result.score,
+                    audio_score=clip.audio_score,
+                    spectral_score=clip.spectral_score,
+                    flow_score=clip.flow_score,
+                    chat_score=clip.chat_score,
+                    hcfg=cfg.highlight,
+                    skip_optical_flow=skip_flow,
+                    has_chat=has_chat,
+                    profile=profile,
+                )
+                await clips_repo.update_virality(
+                    clip.id,
+                    llm_score=result.score,
+                    llm_reason=result.reason,
+                    emotion=result.emotion.value,
+                    ensemble_score=ensemble,
+                    meme_keywords=result.meme_keywords,
+                )
+
+            await clips_repo.rerank_by_ensemble(job_id)
+            await jobs.update_status(
+                job_id, JobStatus.PROCESSING,
+                stage="virality_scored", progress=0.50,
+            )
+
+    try:
+        with _stage_timer("virality"):
+            _safe_async(_do())
+    except StreamClipError as exc:
+        _mark_error(job_id, exc.code, exc.user_message)
+        raise
+
+    self.report(job_id, stage="virality_scored", progress=0.50,
+                message="Virality scores ready")
     return job_id
 
 
@@ -330,7 +467,7 @@ def fan_out_clips(self: ProgressTask, job_id: str) -> str:
     retry_backoff=True,
     max_retries=2,
 )
-def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any]:
+def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = False) -> dict[str, Any]:
     """Process a single clip: extract → reframe → caption → overlay → upload."""
 
     t0 = time.perf_counter()
@@ -344,15 +481,18 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
             if clip is None or job is None:
                 raise StreamClipError(f"Clip/Job not found: {clip_id}/{job_id}")
 
+            if not force and clip.status == ClipStatus.DONE and clip.final_storage_key:
+                log.info("clip_skip_already_done", clip_id=clip_id, job_id=job_id)
+                CLIPS_PROCESSED.labels(status="skipped").inc()
+                return {"clip_id": clip_id, "status": "done", "skipped": True}
+
             _apply_job_config(job)
 
             await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
 
             workspace = _local_workspace(job_id)
-            local_source = workspace / f"source_{Path(job.source_storage_key).name}"
+            local_source = _ensure_job_source(job_id, job.source_storage_key)
             storage = make_storage(cfg)
-            if not local_source.exists():
-                storage.download(job.source_storage_key, local_source)
 
             # Local paths for this clip's stages
             slug = f"clip_{clip.rank:02d}"
@@ -362,18 +502,14 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
             final_path     = workspace / f"{slug}_final.mp4"
 
             # ── Extract ──
-            import subprocess
             duration = clip.end_secs - clip.start_secs
-            subprocess.run([
-                "ffmpeg", "-y",
-                "-ss", str(clip.start_secs),
-                "-i", str(local_source),
-                "-t", str(duration),
-                "-c:v", "libx264", "-crf", "17", "-preset", "fast",
-                "-c:a", "aac", "-b:a", "256k",
-                "-pix_fmt", "yuv420p",
-                str(raw_path),
-            ], check=True, capture_output=True)
+            extract_segment(
+                local_source,
+                raw_path,
+                start_secs=clip.start_secs,
+                duration_secs=duration,
+                export_cfg=cfg.export,
+            )
 
             # ── Reframe ──
             self.report(job_id, stage=f"reframe/{slug}",
@@ -384,16 +520,36 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
             # ── Caption ──
             self.report(job_id, stage=f"caption/{slug}",
                        progress=0.70, message=f"Captioning clip {clip.rank + 1}")
-            transcript = transcribe(local_source, cfg)
+            transcript = load_job_transcript(
+                job_id, cfg, storage=storage, source_path=local_source,
+            )
+            clip_transcript = None
+            if cfg.caption.refine_clip_transcript:
+                try:
+                    clip_transcript = transcribe_clip(raw_path, cfg)
+                except Exception as exc:
+                    log.warning("clip_transcribe_fallback", error=str(exc))
             generate_captions(
                 vertical_path, captioned_path, transcript,
                 clip.start_secs, clip.end_secs, cfg, emotion=clip.emotion,
+                clip_transcript=clip_transcript,
             )
+            if clip_transcript is not None:
+                clip_tx_path = workspace / f"{slug}_transcript.json"
+                save_transcript_json(clip_transcript, clip_tx_path)
+                tx_key = job_key(job_id, "clips", f"{slug}_transcript.json")
+                storage.upload(tx_key, clip_tx_path, content_type="application/json")
 
             # ── Overlay ──
             self.report(job_id, stage=f"overlay/{slug}",
                        progress=0.85, message=f"Adding overlays to clip {clip.rank + 1}")
             _, overlays = apply_overlays(captioned_path, final_path, cand, cfg)
+
+            if not validate_output_duration(final_path, duration):
+                raise StreamClipError(
+                    f"Rendered clip duration mismatch for {clip_id}",
+                    user_message="Clip render produced unexpected duration.",
+                )
 
             # ── Generate thumbnail ──
             thumb_path = workspace / f"{slug}_thumb.jpg"
@@ -442,6 +598,8 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
 
             await clips_repo.mark_status(clip_id, ClipStatus.DONE)
 
+            CLIP_RENDER_SECONDS.observe(render_secs)
+            CLIPS_PROCESSED.labels(status="done").inc()
             return {"clip_id": clip_id, "status": "done", "render_secs": render_secs}
 
     try:
@@ -449,6 +607,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
     except Exception as exc:
         log.error("clip_failed", clip_id=clip_id, error=str(exc),
                   trace=traceback.format_exc())
+        CLIPS_PROCESSED.labels(status="error").inc()
         # Don't propagate — let other clips finish
         _safe_async(_mark_clip_error(clip_id, str(exc)))
         return {"clip_id": clip_id, "status": "error", "error": str(exc)}
@@ -463,6 +622,8 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
     async def _do() -> dict[str, Any]:
         async with db_session() as db:
             jobs_repo = JobRepository(db)
+            users_repo = UserRepository(db)
+            job = await jobs_repo.get(job_id)
             done_count = sum(1 for r in results if r.get("status") == "done")
             err_count = sum(1 for r in results if r.get("status") == "error")
             final_status = JobStatus.DONE if err_count == 0 else JobStatus.ERROR
@@ -471,14 +632,30 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
                 stage="completed", progress=1.0,
                 error_message=f"{err_count} clips failed" if err_count else None,
             )
+            if job and job.owner_id and job.source_duration_secs:
+                await users_repo.increment_minutes_processed(
+                    job.owner_id,
+                    job.source_duration_secs / 60.0,
+                )
             return {"job_id": job_id, "done": done_count, "errors": err_count}
 
     summary = _safe_async(_do())
+    terminal = "done" if summary.get("errors", 0) == 0 else "error"
+    JOBS_COMPLETED.labels(status=terminal).inc()
     publish_progress(
         job_id, stage="completed", progress=1.0,
         message=f"Done — {summary['done']} clips ready",
         status="done", extra=summary,
     )
+    if cfg.webhooks.enabled:
+        ok = deliver_job_webhook(
+            job_id=job_id,
+            status=terminal,
+            done_count=summary.get("done", 0),
+            error_count=summary.get("errors", 0),
+            cfg=cfg.webhooks,
+        )
+        WEBHOOK_DELIVERIES.labels(result="success" if ok else "failure").inc()
     return summary
 
 
@@ -486,9 +663,42 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
 
 @celery_app.task(name="core.tasks.pipeline_tasks.cleanup_expired_jobs")
 def cleanup_expired_jobs() -> int:
-    """Delete jobs older than 7 days. Returns count of deleted jobs."""
-    # Implementation deferred — sketch only
-    return 0
+    """Delete terminal jobs older than retention_days and their storage objects."""
+    from datetime import datetime, timedelta, timezone
+
+    retention = cfg.job_retention
+    if not retention.enabled:
+        return 0
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention.retention_days)
+
+    async def _do() -> int:
+        count = 0
+        storage = make_storage(cfg)
+        async with db_session() as db:
+            jobs_repo = JobRepository(db)
+            expired = await jobs_repo.list_expired(
+                cutoff, limit=retention.batch_size,
+            )
+            for job in expired:
+                prefix = f"jobs/{job.id}/"
+                for key in storage.list_prefix(prefix):
+                    try:
+                        storage.delete(key)
+                    except Exception as exc:
+                        log.warning("cleanup_storage_delete_failed", key=key, error=str(exc))
+                ws = cfg.workspace_dir / "jobs" / job.id
+                if ws.exists():
+                    shutil.rmtree(ws, ignore_errors=True)
+                await jobs_repo.delete(job.id)
+                count += 1
+            await db.commit()
+        return count
+
+    deleted = _safe_async(_do())
+    if deleted:
+        log.info("cleanup_expired_jobs", deleted=deleted, cutoff=cutoff.isoformat())
+    return deleted
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -517,7 +727,7 @@ def _clip_to_candidate(clip: Any) -> ClipCandidate:
         llm_hook=clip.hook,
         llm_title=clip.title,
         emotion=emotion,
-        meme_keywords=[],
+        meme_keywords=list(clip.meme_keywords or []),
         llm_reason=clip.llm_reason,
     )
 

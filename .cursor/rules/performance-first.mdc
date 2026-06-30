@@ -1,0 +1,33 @@
+---
+description: Performance-first coding — measure hot paths, prefer speed over features in pipeline code
+alwaysApply: true
+---
+
+# Performance first
+
+StreamClip is a GPU-bound clip pipeline. **Wall-clock throughput is the primary product constraint.** Every change must answer: *does this make jobs finish faster, or cost less per clip?*
+
+## Decision order
+
+1. **Measure** — identify the hot path before optimizing (Prometheus histograms, stage timers, ffmpeg `-benchmark` when relevant).
+2. **Skip work** — tier skips (`short_skip_optical_flow`), idempotent tasks (`process_clip` skip if done), candidate caps (`target_clips × 6`), cache ingest by URL hash.
+3. **Queue correctly** — GPU tasks (`transcribe`, `process_clip`) on `gpu` queue only; CPU/IO on `default`. Never block GPU on LLM or network.
+4. **Batch & parallelize** — fan-out independent clip renders; prefer one full-source Whisper pass over N full passes; parallelize virality LLM calls when safe.
+5. **Degrade gracefully** — lower `whisper.model_size`, disable optical flow, shorten LLM timeout before adding retries or blocking stages.
+
+## Code rules
+
+- **No sync blocking in API handlers** — enqueue Celery; return job id immediately.
+- **No redundant I/O** — reuse `transcript.json`; download source once per job workspace.
+- **No O(n²) discovery** — cap candidates pre-NMS; vectorize with numpy/librosa where loops exist.
+- **ffmpeg** — output-side seek (`-i` then `-ss`); NVENC (`h264_nvenc`) on GPU workers; avoid two-pass unless quality requires it.
+- **DB** — batch clip updates in virality/highlights loops; avoid N+1 in list endpoints.
+
+## Before merging pipeline changes
+
+- [ ] Hot path identified and stage metric or log timing added if new work is introduced
+- [ ] GPU queue unchanged or justified
+- [ ] Config knob exists for expensive optional work (skip flags, weights → 0)
+- [ ] README / `docs/PERFORMANCE.md` budgets still accurate if behavior changed
+
+See `docs/PERFORMANCE.md` for SLIs, hot-path map, and profiling commands.

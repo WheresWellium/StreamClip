@@ -22,12 +22,12 @@ No watermarks. No tokens. No Eklipse.
 
 ## Pipeline modules
 
-- **Highlight detection** — multi-signal ensemble: LLM virality + audio energy + spectral novelty + optical flow, with greedy NMS deduplication and sentence-boundary snapping.
+- **Highlight detection** — hybrid peak + transcript discovery: audio energy, spectral novelty, optical flow, Twitch chat spikes; content profiles per vertical; greedy NMS and word-boundary snapping. Post-hoc LLM virality ranks clips after creation.
 - **Speech-to-text** — `faster-whisper` with gaming hot-word boosting and word-level timestamps.
 - **Vertical reframe (9:16)** — YOLOv11 + ByteTrack subject tracking, two-pass Gaussian-smoothed camera path with velocity clamping, HUD-protection zones per genre preset.
 - **Animated captions** — ASS format with pop-in animations, gaming-term emphasis flashes, pause-aware word grouping, emoji injection.
 - **Semantic meme overlays** — `sentence-transformers` (`all-MiniLM-L6-v2`, ~90MB local) matches asset descriptions to clip hooks by cosine similarity. SFX muxed at the audio peak frame via librosa.
-- **NVENC export** — H.264 at CRF 17, 60fps, 1080×1920.
+- **NVENC export** — H.264 via `export.codec` (`libx264` CPU default, `h264_nvenc` on GPU worker), CRF/CQ 17, min 60fps, 1080×1920.
 
 ---
 
@@ -243,8 +243,7 @@ curl -X POST http://localhost:8000/api/jobs \
     "source_upload_key": "uploads/...",
     "target_clips": 5,
     "caption_style": "gaming_impact",
-    "reframe_preset": "fps_game",
-    "min_virality_score": 55
+    "reframe_preset": "fps_game"
   }'
 
 # Stream progress
@@ -270,9 +269,9 @@ STREAMCLIP_RATE_LIMIT__ENABLED=false        # disable rate limits locally
 
 | Preset | YOLO confidence | Smoothing | Max pan speed | HUD reserve | Best for |
 |---|---|---|---|---|---|
-| `fps_game` | 0.45 | 30 frames | 6%/frame | top 10% + bottom 18% | Valorant, CS, Apex |
+| `fps_game` | 0.45 | 60 frames (min) | 6%/frame | top 10% + bottom 18% | Valorant, CS, Apex |
 | `moba` | 0.40 | 60 frames | 3%/frame | top 8% + bottom 22% | League, Dota |
-| `battle_royale` | 0.45 | 20 frames | 8%/frame | top 8% + bottom 15% | Fortnite, Warzone |
+| `battle_royale` | 0.45 | 60 frames | 8%/frame | top 8% + bottom 15% | Fortnite, Warzone |
 | `irl` / `podcast` | 0.50 | 90 frames | 1–2%/frame | 0 | Talking head |
 | `auto` | — | — | — | — | LLM picks preset from emotion |
 
@@ -300,7 +299,7 @@ The optical-flow signal is the heaviest CPU cost. Set `highlight.weight_optical_
 
 ## Roadmap
 
-- [ ] Twitch chat-spike signal (5th ensemble input, currently weighted 0.05 but stubbed)
+- [x] Twitch chat-spike signal (`core/chat_spikes.py`, `core/twitch_chat.py`; requires `twitch_client_id` for live fetch)
 - [ ] Speaker diarization for multi-streamer VODs (pyannote.audio integration)
 - [ ] User-uploaded asset vault with embedding indexing
 - [ ] Direct publish to YouTube Shorts / TikTok / Instagram Reels
@@ -309,7 +308,27 @@ The optical-flow signal is the heaviest CPU cost. Set `highlight.weight_optical_
 
 ---
 
-## Licence
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Implementer-focused architecture |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Performance doctrine, SLIs, hot-path map |
+| [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) | Doc vs code gap register |
+| [docs/design/FIGMA_LINKS.md](docs/design/FIGMA_LINKS.md) | FigJam diagrams |
+
+## Ship checklist
+
+Before treating a build as production-ready:
+
+1. `docker compose up -d --build` (rebuild bakes latest Python into images for prod)
+2. `docker compose exec api alembic upgrade head`
+3. `powershell -File scripts/verify_stack.ps1` — health + unit tests
+4. Set `STREAMCLIP_AUTH__SECRET_KEY`, disable `allow_anonymous` for multi-user hosts
+5. Optional GPU: `docker compose --profile gpu up -d`
+
+**Dev note:** `docker-compose.yml` bind-mounts `backend/`, `core/`, and `tests/` so local Python changes apply without rebuild. Production deploys must use `--build` without relying on mounts.
+
 
 MIT. Use it, fork it, sell your own subscription service on top — just don't pretend you invented the wheel.
 

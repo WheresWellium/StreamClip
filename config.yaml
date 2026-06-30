@@ -17,7 +17,9 @@ whisper:
   language: null                # null = auto-detect
   word_timestamps: true
   beam_size: 5
-  vad_filter: true              # strip silence (reduces hallucinations)
+  vad_filter: true              # strip silence on full-source pass
+  clip_vad_filter: false        # keep all words on short per-clip re-transcribe
+  min_word_probability: 0.25
 
 llm:
   provider: ollama              # "ollama" | "openai" | "anthropic"
@@ -33,8 +35,11 @@ highlight:
   min_clip_duration: 15.0
   max_clip_duration: 90.0
   clip_padding_secs: 2.5
-  min_virality_score: 55
-  # Signal weights — must sum to 1.0
+  candidate_mode: hybrid          # segments | peaks | hybrid
+  peak_merge_gap_secs: 90
+  peak_min_height: 0.55
+  score_smoothing_window_secs: 3
+  # Signal weights — must sum to 1.0 (overridden per content_profile at job time)
   weight_llm_virality: 0.40
   weight_audio_energy: 0.25
   weight_spectral_novelty: 0.15
@@ -45,7 +50,7 @@ reframe:
   preset: fps_game              # fps_game | moba | battle_royale | irl | podcast | auto
   target_width: 1080
   target_height: 1920
-  smooth_window_frames: 45
+  smooth_window_frames: 60    # min 60 — camera smoothing window (frames)
   max_pan_velocity: 0.04
   hud_bottom_reserve: 0.15
   hud_top_reserve: 0.08
@@ -56,6 +61,10 @@ caption:
   font_size: 80
   max_chars_per_line: 22
   words_per_group: 3
+  word_level_sync: true         # karaoke \k tags — each word at spoken time
+  refine_clip_transcript: true  # re-transcribe extracted clip for accurate sync
+  min_word_probability: 0.25
+  word_hold_secs: 0.06
   highlight_keywords: true
   add_emoji: true
   position_y_fraction: 0.72
@@ -80,13 +89,39 @@ export:
   pixel_format: yuv420p
   two_pass: false
 
+ingest:
+  short_max_height: 720         # Twitch clips / Shorts
+  medium_max_height: 1080
+  long_max_height: 1080
+  fetch_subs_on_long: true
+  short_skip_optical_flow: true # skip heavy CV on clips under 2 min
+  medium_skip_optical_flow: false
+  short_min_clip_duration: 5.0
+
+auth:
+  allow_anonymous: true
+
+job_retention:
+  enabled: true
+  retention_days: 7
+  batch_size: 100
+
 rate_limit:
   enabled: false
   requests_per_minute: 60
   jobs_per_hour: 20
 
-auth:
-  allow_anonymous: true
+webhooks:
+  enabled: false
+  url: ""                       # POST target on job.completed
+  secret: ""                    # HMAC-SHA256 → X-StreamClip-Signature
+  timeout_secs: 10
+  max_retries: 3
+
+observability:
+  sentry_dsn: ""
+  otel_endpoint: ""             # OTLP HTTP endpoint (optional)
+  enable_metrics: true
 
 # Optional: Twitch chat spike detection
 # twitch_client_id: ""

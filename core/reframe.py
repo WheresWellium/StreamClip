@@ -21,10 +21,19 @@ import cv2
 import numpy as np
 import structlog
 
-from core.config import Settings, ReframeConfig
+from core.config import Settings, ReframeConfig, ExportConfig
+from core.export_video import audio_encode_args, output_fps_args, video_encode_args
 from core.models import ClipCandidate
 
 log = structlog.get_logger(__name__)
+
+# Camera path smoothing never goes below this many frames (preset-independent floor).
+MIN_SMOOTH_WINDOW_FRAMES = 60
+
+
+def _resolve_smooth_window(preset: _Preset, cfg: ReframeConfig) -> int:
+    """Pick smoothing window — always at least MIN_SMOOTH_WINDOW_FRAMES."""
+    return max(MIN_SMOOTH_WINDOW_FRAMES, preset.smooth_window, cfg.smooth_window_frames)
 
 
 # ─── Preset definitions ────────────────────────────────────────────────────────
@@ -42,7 +51,7 @@ class _Preset:
 PRESETS: dict[str, _Preset] = {
     # FPS: facecam + crosshair focus, fast action, HUD protection critical
     "fps_game": _Preset(
-        yolo_conf=0.45, track_classes=[0], smooth_window=30,
+        yolo_conf=0.45, track_classes=[0], smooth_window=60,
         max_pan_velocity=0.06, hud_bottom=0.18, hud_top=0.10,
     ),
     # MOBA: slower camera, wider scene, protect minimap (usually bottom-right)
@@ -52,7 +61,7 @@ PRESETS: dict[str, _Preset] = {
     ),
     # Battle Royale: follows player aggressively, fast pans OK
     "battle_royale": _Preset(
-        yolo_conf=0.45, track_classes=[0], smooth_window=20,
+        yolo_conf=0.45, track_classes=[0], smooth_window=60,
         max_pan_velocity=0.08, hud_bottom=0.15, hud_top=0.08,
     ),
     # IRL/Podcast: talking head — tight face crop, minimal pan
@@ -197,8 +206,9 @@ def create_split_screen(
         "-filter_complex", filter_complex,
         "-map", "[out]",
         "-map", "0:a?",
-        "-c:v", "libx264", "-crf", "17",
-        "-c:a", "aac", "-b:a", "256k",
+        *video_encode_args(get_settings().export),
+        *audio_encode_args(get_settings().export),
+        *output_fps_args(get_settings().export),
         str(output_path),
     ]
     log.debug("split_screen_ffmpeg", cmd=" ".join(cmd))
@@ -213,6 +223,7 @@ def _reframe_with_tracking(
     output_path: Path,
     cfg: ReframeConfig,
     preset: _Preset,
+    export_cfg: ExportConfig,
 ) -> Path:
     """
     Core reframe: read every frame, track subject, compute smoothed crop
@@ -260,10 +271,11 @@ def _reframe_with_tracking(
     cap.release()
 
     # ── Smooth the path ───────────────────────────────────────────────────
+    smooth_window = _resolve_smooth_window(preset, cfg)
     smooth_cx = _smooth_path(
         raw_cx,
-        window=cfg.smooth_window_frames,
-        max_vel=cfg.max_pan_velocity,
+        window=smooth_window,
+        max_vel=preset.max_pan_velocity,
     )
 
     # ── Pass 2: render via FFmpeg pipe ────────────────────────────────────
@@ -281,9 +293,9 @@ def _reframe_with_tracking(
         # Passthrough audio
         "-i", str(input_path),
         "-map", "0:v", "-map", "1:a?",
-        "-c:v", "libx264", "-crf", "17", "-preset", "fast",
-        "-c:a", "aac", "-b:a", "256k",
-        "-pix_fmt", "yuv420p",
+        *video_encode_args(export_cfg),
+        *audio_encode_args(export_cfg),
+        *output_fps_args(export_cfg),
         str(output_path),
     ]
     proc = subprocess.Popen(ffmpeg_in_cmd, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -364,11 +376,11 @@ def reframe(
         if webcam_path:
             # Split-screen mode: both feeds
             tracking_path = output_path.with_stem(output_path.stem + "_tracked")
-            _reframe_with_tracking(input_path, tracking_path, rcfg, preset)
+            _reframe_with_tracking(input_path, tracking_path, rcfg, preset, cfg.export)
             return create_split_screen(tracking_path, webcam_path, output_path,
                                        rcfg.target_width, rcfg.target_height)
         else:
-            return _reframe_with_tracking(input_path, output_path, rcfg, preset)
+            return _reframe_with_tracking(input_path, output_path, rcfg, preset, cfg.export)
 
     except Exception as exc:
         log.warning("tracking_failed_fallback", error=str(exc))
@@ -380,8 +392,10 @@ def reframe(
         cmd = [
             "ffmpeg", "-y", "-i", str(input_path),
             "-vf", f"crop=ih*{tw}/{th}:ih:(iw-ih*{tw}/{th})/2:0,scale={tw}:{th}",
-            "-c:v", "libx264", "-crf", "17",
-            "-c:a", "aac", str(output_path),
+            *video_encode_args(cfg.export),
+            *audio_encode_args(cfg.export),
+            *output_fps_args(cfg.export),
+            str(output_path),
         ]
         subprocess.run(cmd, check=True, capture_output=True)
         log.info("fallback_centre_crop_done", output=str(output_path))

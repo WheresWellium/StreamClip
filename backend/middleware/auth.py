@@ -17,25 +17,23 @@ from typing import Annotated
 
 import jwt
 import structlog
+import bcrypt
 from fastapi import Depends, Header, HTTPException, status
-from passlib.context import CryptContext
 
 from core.config import Settings, get_settings
 from core.errors import AuthError
 
 log = structlog.get_logger(__name__)
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # ─── Password hashing ────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
 # ─── JWT issuing / verification ──────────────────────────────────────────────

@@ -1,1 +1,1098 @@
-{"openapi":"3.1.0","info":{"title":"StreamClip API","description":"AI-powered gaming clip pipeline","version":"1.0.0"},"paths":{"/api/health":{"get":{"tags":["meta"],"summary":"Health","operationId":"health_api_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HealthResponse"}}}}}}},"/api/meta":{"get":{"tags":["meta"],"summary":"Meta","description":"Public configuration that the frontend may use to populate selects.","operationId":"meta_api_meta_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"additionalProperties":true,"type":"object","title":"Response Meta Api Meta Get"}}}}}}},"/api/jobs":{"post":{"tags":["jobs"],"summary":"Create Job","description":"Create a new pipeline job and queue it for processing.","operationId":"create_job_api_jobs_post","parameters":[{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateJobRequest"}}}},"responses":{"202":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/JobOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"get":{"tags":["jobs"],"summary":"List Jobs","operationId":"list_jobs_api_jobs_get","parameters":[{"name":"limit","in":"query","required":false,"schema":{"type":"integer","maximum":100,"minimum":1,"default":50,"title":"Limit"}},{"name":"offset","in":"query","required":false,"schema":{"type":"integer","minimum":0,"default":0,"title":"Offset"}},{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/JobListResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/jobs/{job_id}":{"get":{"tags":["jobs"],"summary":"Get Job","operationId":"get_job_api_jobs__job_id__get","parameters":[{"name":"job_id","in":"path","required":true,"schema":{"type":"string","title":"Job Id"}},{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/JobOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["jobs"],"summary":"Cancel Job","operationId":"cancel_job_api_jobs__job_id__delete","parameters":[{"name":"job_id","in":"path","required":true,"schema":{"type":"string","title":"Job Id"}},{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/jobs/{job_id}/progress":{"get":{"tags":["jobs"],"summary":"Progress Stream","description":"Server-Sent Events stream of pipeline progress.\n\nEvent types emitted:\n  • `progress` — fired on every state change\n  • `done`     — final event when the job completes successfully\n  • `error`    — final event on pipeline failure\n\nEach event's data is a JSON object matching ProgressEvent schema.","operationId":"progress_stream_api_jobs__job_id__progress_get","parameters":[{"name":"job_id","in":"path","required":true,"schema":{"type":"string","title":"Job Id"}},{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"responses":{"200":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/uploads/init":{"post":{"tags":["uploads"],"summary":"Init Upload","description":"Initialise a direct upload. The client then PUTs the file bytes\nstraight to the returned `upload_url`, then references `storage_key`\nwhen creating a job.","operationId":"init_upload_api_uploads_init_post","parameters":[{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UploadInitRequest"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UploadInitResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/uploads/url":{"get":{"tags":["uploads"],"summary":"Get Download Url","description":"Get a fresh presigned download URL for a given storage key.","operationId":"get_download_url_api_uploads_url_get","parameters":[{"name":"key","in":"query","required":true,"schema":{"type":"string","description":"Storage key","title":"Key"},"description":"Storage key"},{"name":"authorization","in":"header","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Authorization"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"object","additionalProperties":{"type":"string"},"title":"Response Get Download Url Api Uploads Url Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/metrics":{"get":{"tags":["observability"],"summary":"Metrics","operationId":"metrics_metrics_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"ClipOut":{"properties":{"id":{"type":"string","title":"Id"},"rank":{"type":"integer","title":"Rank"},"title":{"type":"string","title":"Title"},"hook":{"type":"string","title":"Hook"},"emotion":{"type":"string","title":"Emotion"},"start_secs":{"type":"number","title":"Start Secs"},"end_secs":{"type":"number","title":"End Secs"},"duration_secs":{"type":"number","title":"Duration Secs"},"ensemble_score":{"type":"number","title":"Ensemble Score"},"llm_score":{"type":"number","title":"Llm Score"},"audio_score":{"type":"number","title":"Audio Score"},"spectral_score":{"type":"number","title":"Spectral Score"},"flow_score":{"type":"number","title":"Flow Score"},"status":{"type":"string","title":"Status"},"error_message":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Error Message"},"render_time_secs":{"type":"number","title":"Render Time Secs"},"file_size_bytes":{"type":"integer","title":"File Size Bytes"},"overlays":{"items":{"$ref":"#/components/schemas/ClipOverlayOut"},"type":"array","title":"Overlays","default":[]},"download_url":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Download Url"},"thumbnail_url":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Thumbnail Url"}},"type":"object","required":["id","rank","title","hook","emotion","start_secs","end_secs","duration_secs","ensemble_score","llm_score","audio_score","spectral_score","flow_score","status","render_time_secs","file_size_bytes"],"title":"ClipOut"},"ClipOverlayOut":{"properties":{"id":{"type":"string","title":"Id"},"trigger_time_secs":{"type":"number","title":"Trigger Time Secs"},"duration_secs":{"type":"number","title":"Duration Secs"},"position":{"type":"string","title":"Position"},"similarity_score":{"type":"number","title":"Similarity Score"},"matched_keyword":{"type":"string","title":"Matched Keyword"}},"type":"object","required":["id","trigger_time_secs","duration_secs","position","similarity_score","matched_keyword"],"title":"ClipOverlayOut"},"CreateJobRequest":{"properties":{"source_url":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Url","description":"A Twitch VOD, YouTube, Kick, or direct video URL."},"source_upload_key":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Upload Key","description":"Storage key from a prior upload (use /api/uploads/init first)."},"target_clips":{"type":"integer","maximum":20.0,"minimum":1.0,"title":"Target Clips","default":5},"caption_style":{"type":"string","enum":["gaming_impact","tiktok_pop","minimal_white","podcast_clean"],"title":"Caption Style","default":"gaming_impact"},"reframe_preset":{"type":"string","enum":["fps_game","moba","battle_royale","irl","podcast","auto"],"title":"Reframe Preset","default":"fps_game"},"min_virality_score":{"type":"integer","maximum":100.0,"minimum":0.0,"title":"Min Virality Score","default":55}},"type":"object","title":"CreateJobRequest","description":"Body for POST /api/jobs"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"HealthResponse":{"properties":{"status":{"type":"string","title":"Status","default":"ok"},"version":{"type":"string","title":"Version"},"environment":{"type":"string","title":"Environment"},"redis":{"type":"boolean","title":"Redis"},"database":{"type":"boolean","title":"Database"},"storage":{"type":"boolean","title":"Storage"}},"type":"object","required":["version","environment","redis","database","storage"],"title":"HealthResponse"},"JobListItem":{"properties":{"id":{"type":"string","title":"Id"},"source_title":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Title"},"source_duration_secs":{"anyOf":[{"type":"number"},{"type":"null"}],"title":"Source Duration Secs"},"status":{"type":"string","title":"Status"},"progress":{"type":"number","title":"Progress"},"created_at":{"type":"string","format":"date-time","title":"Created At"},"clip_count":{"type":"integer","title":"Clip Count","default":0}},"type":"object","required":["id","source_title","source_duration_secs","status","progress","created_at"],"title":"JobListItem"},"JobListResponse":{"properties":{"jobs":{"items":{"$ref":"#/components/schemas/JobListItem"},"type":"array","title":"Jobs"},"total":{"type":"integer","title":"Total"},"limit":{"type":"integer","title":"Limit"},"offset":{"type":"integer","title":"Offset"}},"type":"object","required":["jobs","total","limit","offset"],"title":"JobListResponse"},"JobOut":{"properties":{"id":{"type":"string","title":"Id"},"source_url":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Url"},"source_title":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Title"},"source_duration_secs":{"anyOf":[{"type":"number"},{"type":"null"}],"title":"Source Duration Secs"},"status":{"type":"string","title":"Status"},"progress":{"type":"number","title":"Progress"},"current_stage":{"type":"string","title":"Current Stage"},"error_code":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Error Code"},"error_message":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Error Message"},"created_at":{"type":"string","format":"date-time","title":"Created At"},"started_at":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Started At"},"finished_at":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Finished At"},"clips":{"items":{"$ref":"#/components/schemas/ClipOut"},"type":"array","title":"Clips","default":[]}},"type":"object","required":["id","source_url","source_title","source_duration_secs","status","progress","current_stage","created_at"],"title":"JobOut"},"UploadInitRequest":{"properties":{"filename":{"type":"string","maxLength":255,"minLength":1,"title":"Filename"},"content_type":{"type":"string","maxLength":64,"title":"Content Type","default":"video/mp4"},"size_bytes":{"anyOf":[{"type":"integer","minimum":1.0},{"type":"null"}],"title":"Size Bytes"}},"type":"object","required":["filename"],"title":"UploadInitRequest"},"UploadInitResponse":{"properties":{"upload_id":{"type":"string","title":"Upload Id"},"upload_url":{"type":"string","title":"Upload Url"},"storage_key":{"type":"string","title":"Storage Key"},"expires_in":{"type":"integer","title":"Expires In"}},"type":"object","required":["upload_id","upload_url","storage_key","expires_in"],"title":"UploadInitResponse"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"},"input":{"title":"Input"},"ctx":{"type":"object","title":"Context"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "StreamClip API",
+    "description": "AI-powered gaming clip pipeline",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Meta",
+        "description": "Public configuration that the frontend may use to populate selects.",
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Meta Api Meta Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Create Job",
+        "description": "Create a new pipeline job and queue it for processing.",
+        "operationId": "create_job_api_jobs_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "List Jobs",
+        "operationId": "list_jobs_api_jobs_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job",
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Cancel Job",
+        "operationId": "cancel_job_api_jobs__job_id__delete",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/progress": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Progress Stream",
+        "description": "Server-Sent Events stream of pipeline progress.\n\nEvent types emitted:\n  \u2022 `progress` \u2014 fired on every state change\n  \u2022 `done`     \u2014 final event when the job completes successfully\n  \u2022 `error`    \u2014 final event on pipeline failure\n\nEach event's data is a JSON object matching ProgressEvent schema.",
+        "operationId": "progress_stream_api_jobs__job_id__progress_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/init": {
+      "post": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Init Upload",
+        "description": "Initialise a direct upload. The client then PUTs the file bytes\nstraight to the returned `upload_url`, then references `storage_key`\nwhen creating a job.",
+        "operationId": "init_upload_api_uploads_init_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadInitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadInitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/url": {
+      "get": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Get Download Url",
+        "description": "Get a fresh presigned download URL for a given storage key.",
+        "operationId": "get_download_url_api_uploads_url_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Storage key",
+              "title": "Key"
+            },
+            "description": "Storage key"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Download Url Api Uploads Url Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClipOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "hook": {
+            "type": "string",
+            "title": "Hook"
+          },
+          "emotion": {
+            "type": "string",
+            "title": "Emotion"
+          },
+          "start_secs": {
+            "type": "number",
+            "title": "Start Secs"
+          },
+          "end_secs": {
+            "type": "number",
+            "title": "End Secs"
+          },
+          "duration_secs": {
+            "type": "number",
+            "title": "Duration Secs"
+          },
+          "ensemble_score": {
+            "type": "number",
+            "title": "Ensemble Score"
+          },
+          "llm_score": {
+            "type": "number",
+            "title": "Llm Score"
+          },
+          "audio_score": {
+            "type": "number",
+            "title": "Audio Score"
+          },
+          "spectral_score": {
+            "type": "number",
+            "title": "Spectral Score"
+          },
+          "flow_score": {
+            "type": "number",
+            "title": "Flow Score"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "render_time_secs": {
+            "type": "number",
+            "title": "Render Time Secs"
+          },
+          "file_size_bytes": {
+            "type": "integer",
+            "title": "File Size Bytes"
+          },
+          "overlays": {
+            "items": {
+              "$ref": "#/components/schemas/ClipOverlayOut"
+            },
+            "type": "array",
+            "title": "Overlays",
+            "default": []
+          },
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rank",
+          "title",
+          "hook",
+          "emotion",
+          "start_secs",
+          "end_secs",
+          "duration_secs",
+          "ensemble_score",
+          "llm_score",
+          "audio_score",
+          "spectral_score",
+          "flow_score",
+          "status",
+          "render_time_secs",
+          "file_size_bytes"
+        ],
+        "title": "ClipOut"
+      },
+      "ClipOverlayOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "trigger_time_secs": {
+            "type": "number",
+            "title": "Trigger Time Secs"
+          },
+          "duration_secs": {
+            "type": "number",
+            "title": "Duration Secs"
+          },
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "similarity_score": {
+            "type": "number",
+            "title": "Similarity Score"
+          },
+          "matched_keyword": {
+            "type": "string",
+            "title": "Matched Keyword"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "trigger_time_secs",
+          "duration_secs",
+          "position",
+          "similarity_score",
+          "matched_keyword"
+        ],
+        "title": "ClipOverlayOut"
+      },
+      "CreateJobRequest": {
+        "properties": {
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "A Twitch VOD, YouTube, Kick, or direct video URL."
+          },
+          "source_upload_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Upload Key",
+            "description": "Storage key from a prior upload (use /api/uploads/init first)."
+          },
+          "target_clips": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Target Clips",
+            "default": 5
+          },
+          "caption_style": {
+            "type": "string",
+            "enum": [
+              "gaming_impact",
+              "tiktok_pop",
+              "minimal_white",
+              "podcast_clean"
+            ],
+            "title": "Caption Style",
+            "default": "gaming_impact"
+          },
+          "reframe_preset": {
+            "type": "string",
+            "enum": [
+              "fps_game",
+              "moba",
+              "battle_royale",
+              "irl",
+              "podcast",
+              "auto"
+            ],
+            "title": "Reframe Preset",
+            "default": "fps_game"
+          },
+          "content_profile": {
+            "type": "string",
+            "enum": [
+              "gaming",
+              "irl",
+              "podcast",
+              "esports",
+              "general"
+            ],
+            "title": "Content Profile",
+            "default": "gaming"
+          }
+        },
+        "type": "object",
+        "title": "CreateJobRequest",
+        "description": "Body for POST /api/jobs"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "redis": {
+            "type": "boolean",
+            "title": "Redis"
+          },
+          "database": {
+            "type": "boolean",
+            "title": "Database"
+          },
+          "storage": {
+            "type": "boolean",
+            "title": "Storage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "environment",
+          "redis",
+          "database",
+          "storage"
+        ],
+        "title": "HealthResponse"
+      },
+      "JobListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Title"
+          },
+          "source_duration_secs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Duration Secs"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "clip_count": {
+            "type": "integer",
+            "title": "Clip Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_title",
+          "source_duration_secs",
+          "status",
+          "progress",
+          "created_at"
+        ],
+        "title": "JobListItem"
+      },
+      "JobListResponse": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobListItem"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobs",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "JobListResponse"
+      },
+      "JobOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "source_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Title"
+          },
+          "source_duration_secs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Duration Secs"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "current_stage": {
+            "type": "string",
+            "title": "Current Stage"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/ClipOut"
+            },
+            "type": "array",
+            "title": "Clips",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_url",
+          "source_title",
+          "source_duration_secs",
+          "status",
+          "progress",
+          "current_stage",
+          "created_at"
+        ],
+        "title": "JobOut"
+      },
+      "UploadInitRequest": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename"
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Content Type",
+            "default": "video/mp4"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename"
+        ],
+        "title": "UploadInitRequest"
+      },
+      "UploadInitResponse": {
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          },
+          "upload_url": {
+            "type": "string",
+            "title": "Upload Url"
+          },
+          "storage_key": {
+            "type": "string",
+            "title": "Storage Key"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_id",
+          "upload_url",
+          "storage_key",
+          "expires_in"
+        ],
+        "title": "UploadInitResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

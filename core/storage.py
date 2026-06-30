@@ -277,5 +277,6 @@ def job_key(job_id: str, stage: str, filename: str) -> str:
     return f"jobs/{job_id}/{stage}/{filename}"
 
 
-def upload_key(user_id: str, upload_id: str, filename: str) -> str:
-    return f"uploads/{user_id}/{upload_id}/{filename}"
+def upload_key(user_id: str | None, upload_id: str, filename: str) -> str:
+    owner = user_id or "anonymous"
+    return f"uploads/{owner}/{upload_id}/{filename}"

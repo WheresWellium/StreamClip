@@ -1,0 +1,264 @@
+# ═══════════════════════════════════════════════════════════════════════
+# StreamClip — docker-compose.yml
+#
+# Full production-grade local stack:
+#   • postgres   — Job + clip metadata
+#   • redis      — Celery broker + pub/sub for SSE progress
+#   • minio      — S3-compatible object storage (presigned uploads/downloads)
+#   • ollama     — Local LLM server
+#   • api        — FastAPI gateway
+#   • worker     — Celery default-queue worker
+#   • gpu-worker — Celery GPU-queue worker (transcribe, reframe, overlay)
+#   • beat       — Celery periodic task scheduler
+#   • web        — Next.js 15 frontend
+#
+# One command:    docker compose up --build
+# GPU enabled:    docker compose --profile gpu up --build
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Postgres ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: streamclip
+      POSTGRES_PASSWORD: streamclip
+      POSTGRES_DB: streamclip
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamclip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Redis (broker + pub/sub) ───────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ── MinIO (S3-compatible storage) ──────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: streamclip
+      MINIO_ROOT_PASSWORD: streamclip_secret
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Auto-create the bucket on startup
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 streamclip streamclip_secret &&
+        mc mb --ignore-existing local/streamclip &&
+        mc anonymous set download local/streamclip &&
+        echo 'MinIO bucket ready'
+      "
+
+  # ── Ollama local LLM ───────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 5 &&
+             ollama pull llama3.2 &&
+             wait"
+
+  # ── FastAPI gateway ────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workspace:/app/workspace
+      - ./output:/app/output
+      - ./.cache:/app/.cache
+      - ./assets:/app/assets
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      STREAMCLIP_ENVIRONMENT: development
+      STREAMCLIP_LOG_LEVEL: INFO
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__PUBLIC_BASE_URL: http://localhost:9000
+      STREAMCLIP_STORAGE__BUCKET: streamclip
+      STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
+      STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+      STREAMCLIP_WHISPER__DEVICE: cpu
+      STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
+      STREAMCLIP_WHISPER__MODEL_SIZE: medium
+      STREAMCLIP_EXPORT__CODEC: libx264
+      STREAMCLIP_CORS__ALLOW_ORIGINS: '["http://localhost:3000"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Celery default-queue worker ────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A core.celery_app.celery_app worker
+        --loglevel=info
+        --queues=default,gpu
+        --concurrency=4
+        --max-tasks-per-child=50
+    volumes:
+      - ./workspace:/app/workspace
+      - ./.cache:/app/.cache
+      - ./assets:/app/assets
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__BUCKET: streamclip
+      STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
+      STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Celery GPU-queue worker (optional — NVIDIA Container Toolkit) ──
+  gpu-worker:
+    profiles: [gpu]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A core.celery_app.celery_app worker
+        --loglevel=info
+        --queues=gpu
+        --concurrency=1
+        --max-tasks-per-child=20
+    volumes:
+      - ./workspace:/app/workspace
+      - ./.cache:/app/.cache
+      - ./assets:/app/assets
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__BUCKET: streamclip
+      STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
+      STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Celery Beat (periodic tasks) ───────────────────────────────────
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A core.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Next.js 15 frontend ────────────────────────────────────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      target: dev
+    command: ["npm", "run", "dev"]
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_INTERNAL_URL: http://api:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./web:/app
+      - /app/.next
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ollama_data:

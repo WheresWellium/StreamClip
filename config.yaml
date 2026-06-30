@@ -1,0 +1,93 @@
+# ═══════════════════════════════════════════════════════════════
+# StreamClip — config.yaml
+# All values can be overridden with env vars prefixed STREAMCLIP_
+# e.g. STREAMCLIP_WHISPER__MODEL_SIZE=large-v3
+# ═══════════════════════════════════════════════════════════════
+
+workspace_dir: workspace
+output_dir: output
+cache_dir: .cache
+log_level: INFO
+log_json: false
+
+whisper:
+  model_size: large-v3          # large-v3 for best accuracy; "medium" for speed
+  device: auto                  # auto → CUDA if available, else CPU
+  compute_type: float16         # use int8 on CPU for speed
+  language: null                # null = auto-detect
+  word_timestamps: true
+  beam_size: 5
+  vad_filter: true              # strip silence (reduces hallucinations)
+
+llm:
+  provider: ollama              # "ollama" | "openai" | "anthropic"
+  model: llama3.2               # or "mistral", "gpt-4o-mini"
+  base_url: http://localhost:11434
+  api_key: ""
+  temperature: 0.2
+  max_retries: 3
+  timeout_secs: 60
+
+highlight:
+  target_clips: 5
+  min_clip_duration: 15.0
+  max_clip_duration: 90.0
+  clip_padding_secs: 2.5
+  min_virality_score: 55
+  # Signal weights — must sum to 1.0
+  weight_llm_virality: 0.40
+  weight_audio_energy: 0.25
+  weight_spectral_novelty: 0.15
+  weight_optical_flow: 0.15
+  weight_chat_spikes: 0.05
+
+reframe:
+  preset: fps_game              # fps_game | moba | battle_royale | irl | podcast | auto
+  target_width: 1080
+  target_height: 1920
+  smooth_window_frames: 45
+  max_pan_velocity: 0.04
+  hud_bottom_reserve: 0.15
+  hud_top_reserve: 0.08
+  fallback_center_crop: true
+
+caption:
+  style: gaming_impact          # gaming_impact | tiktok_pop | minimal_white | podcast_clean
+  font_size: 80
+  max_chars_per_line: 22
+  words_per_group: 3
+  highlight_keywords: true
+  add_emoji: true
+  position_y_fraction: 0.72
+  outline_width: 5
+  shadow_depth: 3
+
+overlay:
+  assets_dir: assets
+  semantic_threshold: 0.55
+  max_overlays_per_clip: 2
+  sfx_volume_db: -8.0
+  gif_scale_fraction: 0.28
+  position: top_right
+  appear_at_peak: true
+
+export:
+  codec: libx264                # libx264 (CPU) | h264_nvenc (NVIDIA)
+  crf: 17
+  preset: fast
+  fps: 60
+  audio_bitrate: 256k
+  pixel_format: yuv420p
+  two_pass: false
+
+rate_limit:
+  enabled: false
+  requests_per_minute: 60
+  jobs_per_hour: 20
+
+auth:
+  allow_anonymous: true
+
+# Optional: Twitch chat spike detection
+# twitch_client_id: ""
+# twitch_client_secret: ""

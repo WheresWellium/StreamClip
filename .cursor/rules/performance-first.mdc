@@ -27,7 +27,7 @@ StreamClip is a GPU-bound clip pipeline. **Wall-clock throughput is the primary 
 
 - [ ] Hot path identified and stage metric or log timing added if new work is introduced
 - [ ] GPU queue unchanged or justified
-- [ ] Config knob exists for expensive optional work (skip flags, weights → 0)
+- [ ] Config knob exists for expensive optional work (skip flags, weights → 0, `llm.parallel_workers`)
 - [ ] README / `docs/PERFORMANCE.md` budgets still accurate if behavior changed
 
 See `docs/PERFORMANCE.md` for SLIs, hot-path map, and profiling commands.

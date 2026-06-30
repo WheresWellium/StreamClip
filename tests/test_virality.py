@@ -9,7 +9,11 @@ import pytest
 
 from core.config import HighlightConfig, Settings
 from core.models import Emotion
-from core.virality import ensemble_with_virality, score_clip_virality
+from core.virality import (
+    ensemble_with_virality,
+    score_clip_virality,
+    score_clips_virality_parallel,
+)
 
 
 def test_ensemble_with_virality_combines_discovery_and_llm():
@@ -100,3 +104,28 @@ def test_score_clip_virality_returns_neutral_on_failure():
 
     assert result.score == 0.0
     assert result.emotion == Emotion.NEUTRAL
+
+
+def test_score_clips_virality_parallel_preserves_order():
+    cfg = Settings()
+    payload = {
+        "score": 60,
+        "emotion": "hype",
+        "meme_keywords": ["wow"],
+        "reason": "Hype moment.",
+    }
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.message.content = json.dumps(payload)
+    mock_client.chat.return_value = mock_resp
+
+    with patch("core.virality._build_client", return_value=mock_client):
+        results = score_clips_virality_parallel(
+            [("clip a", 0.0, 10.0), ("clip b", 10.0, 20.0)],
+            cfg,
+            max_workers=2,
+        )
+
+    assert len(results) == 2
+    assert mock_client.chat.call_count == 2
+    assert all(r.score == 60.0 for r in results)

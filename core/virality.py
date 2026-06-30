@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -103,6 +104,7 @@ def score_clip_virality(
     start_secs: float,
     end_secs: float,
     cfg: Settings,
+    client: Any | None = None,
 ) -> ViralityResult:
     """Score a finished clip transcript for viral potential (0–100)."""
     duration = max(0.0, end_secs - start_secs)
@@ -112,11 +114,11 @@ def score_clip_virality(
         end=end_secs,
         duration=duration,
     )
-    client = _build_client(cfg.llm)
+    llm_client = client or _build_client(cfg.llm)
 
     for attempt in range(cfg.llm.max_retries):
         try:
-            raw = _call_llm(client, cfg.llm, prompt)
+            raw = _call_llm(llm_client, cfg.llm, prompt)
             raw = re.sub(r"```[a-z]*\n?", "", raw).strip()
             data = json.loads(raw)
             emotion_str = data.get("emotion", "neutral")
@@ -140,6 +142,35 @@ def score_clip_virality(
         reason="Virality scoring unavailable",
         meme_keywords=[],
     )
+
+
+def score_clips_virality_parallel(
+    clips: list[tuple[str, float, float]],
+    cfg: Settings,
+    *,
+    max_workers: int | None = None,
+) -> list[ViralityResult]:
+    """
+    Score multiple clips concurrently (I/O-bound LLM calls).
+    Each item is (transcript_text, start_secs, end_secs).
+    """
+    if not clips:
+        return []
+    workers = min(max_workers or cfg.llm.parallel_workers, len(clips))
+    client = _build_client(cfg.llm)
+
+    def _score_one(item: tuple[str, float, float]) -> ViralityResult:
+        text, start, end = item
+        return score_clip_virality(
+            text=text,
+            start_secs=start,
+            end_secs=end,
+            cfg=cfg,
+            client=client,
+        )
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(_score_one, clips))
 
 
 def ensemble_with_virality(

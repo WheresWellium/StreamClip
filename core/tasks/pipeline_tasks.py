@@ -53,7 +53,7 @@ from core.pipeline_metrics import (
 from core.storage import job_key, make_storage
 from core.transcribe import load_job_transcript, save_transcript_json, transcribe, transcribe_clip
 from core.webhooks import deliver_job_webhook
-from core.virality import ensemble_with_virality, score_clip_virality
+from core.virality import ensemble_with_virality, score_clips_virality_parallel
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
@@ -376,20 +376,19 @@ def run_virality_scores(self: ProgressTask, job_id: str) -> str:
             clips = await clips_repo.list_for_job(job_id)
             total = max(len(clips), 1)
 
-            for i, clip in enumerate(clips):
+            virality_inputs = [
+                (clip.transcript_text, clip.start_secs, clip.end_secs)
+                for clip in clips
+            ]
+            virality_results = score_clips_virality_parallel(virality_inputs, cfg)
+
+            for i, (clip, result) in enumerate(zip(clips, virality_results, strict=True)):
                 progress = 0.46 + (i / total) * 0.04
                 self.report(
                     job_id,
                     stage="scoring_virality",
                     progress=progress,
                     message=f"Virality {i + 1}/{len(clips)}",
-                )
-
-                result = score_clip_virality(
-                    text=clip.transcript_text,
-                    start_secs=clip.start_secs,
-                    end_secs=clip.end_secs,
-                    cfg=cfg,
                 )
                 ensemble = ensemble_with_virality(
                     llm_score=result.score,

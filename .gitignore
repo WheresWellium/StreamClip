@@ -8,6 +8,7 @@ workspace/jobs/
 output/
 web/node_modules/
 web/.next/
+web/tsconfig.tsbuildinfo
 *.egg-info/
 dist/
 build/

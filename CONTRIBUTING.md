@@ -13,6 +13,28 @@ Frontend (with bind-mounted `./web`):
 cd web && npm install && npm run dev
 ```
 
+## Debugging Next.js (server-side)
+
+Official guide: [Next.js — Debugging server-side code](https://nextjs.org/docs/app/guides/debugging#server-side-code)
+
+### VS Code / Cursor
+
+1. Stop the Docker `web` service if it owns port 3000: `docker compose stop web`
+2. Open **Run and Debug** (`Ctrl+Shift+D`) and start **StreamClip: debug server-side**
+3. Set breakpoints in Server Components, Server Actions (`web/app/actions/`), and route handlers
+
+Configs live in `.vscode/launch.json` at the repo root (`cwd` is `web/`).
+
+### Chrome DevTools (Node inspector)
+
+```bash
+cd web && npm run dev:inspect
+```
+
+Open `chrome://inspect` and attach to the Node process. Source paths appear as `webpack://streamclip-web/./…` per the Next.js docs.
+
+For `--inspect-brk` / `--inspect-wait`, use `NODE_OPTIONS` instead of `--inspect` (see the linked guide).
+
 ## Type generation (OpenAPI)
 
 Regenerate frontend types after API schema changes:

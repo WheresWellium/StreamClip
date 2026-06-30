@@ -37,6 +37,7 @@ StreamClip targets **all creator verticals** with content profiles and hybrid pe
 | T36 | Per-stage Prometheus histograms | **Fixed** | P2 | `streamclip_pipeline_stage_seconds` in `pipeline_tasks.py` |
 | T37 | Docker dev source mounts | **Fixed** | P0 | `docker-compose.yml` mounts `backend/`, `core/`, `tests/` |
 | T38 | bcrypt/passlib auth hashing | **Fixed** | P0 | Direct `bcrypt` in `backend/middleware/auth.py` |
+| T39 | Parallel virality LLM scoring | **Fixed** | P1 | `score_clips_virality_parallel` + `llm.parallel_workers` |
 
 ## UX gaps
 

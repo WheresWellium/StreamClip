@@ -29,6 +29,7 @@ llm:
   temperature: 0.2
   max_retries: 3
   timeout_secs: 60
+  parallel_workers: 4
 
 highlight:
   target_clips: 5

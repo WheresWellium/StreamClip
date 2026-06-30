@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "StreamClip: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web",
+      "command": "npm run dev"
+    },
+    {
+      "name": "StreamClip: debug server-side (inspect)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web",
+      "command": "npm run dev:inspect"
+    },
+    {
+      "name": "StreamClip: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/web"
+    },
+    {
+      "name": "StreamClip: debug full stack",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web",
+      "program": "${workspaceFolder}/web/node_modules/next/dist/bin/next",
+      "args": ["dev", "--hostname", "0.0.0.0", "--port", "3000"],
+      "runtimeArgs": ["--inspect"],
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "action": "debugWithEdge",
+        "killOnServerStop": true,
+        "pattern": "- Local:.+(https?://.+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}/web"
+      }
+    }
+  ]
+}

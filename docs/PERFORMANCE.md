@@ -89,7 +89,7 @@ export:
 | Item | Impact | Status |
 |------|--------|--------|
 | Stage histograms per pipeline task | Observability | Shipped |
-| Parallel virality LLM calls | −20–40 s / job | Open |
+| Parallel virality LLM calls | −20–40 s / job | Shipped (`score_clips_virality_parallel`) |
 | Reuse yt-dlp subs for discovery text | Skip partial Whisper | Research |
 | Clip render chord concurrency | N× GPU if multi-GPU | Open |
 | Web bundle code-splitting | Faster first paint | Open |

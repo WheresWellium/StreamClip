@@ -37,6 +37,7 @@ class LLMConfig(BaseModel):
     temperature: float = Field(0.2, ge=0.0, le=1.0)
     max_retries: int = 3
     timeout_secs: int = 60
+    parallel_workers: int = Field(4, ge=1, le=8)
 
 
 class HighlightConfig(BaseModel):

@@ -1,10 +1,19 @@
 "use client";
 
-import { Download, Link2, Play } from "lucide-react";
+import { Download, Link2, Loader2, Play, Share2 } from "lucide-react";
 import * as React from "react";
 
+import { useToastSafe } from "@/components/providers/toast-provider";
+
+import { updateClipApprovalAction } from "@/app/actions/approval";
+import { ApprovalToggle, type ApprovalValue } from "@/components/clips/approval-toggle";
+import { ClipDestinationsDrawer } from "@/components/clips/clip-destinations-drawer";
+import { PublishStatusBadge } from "@/components/clips/publish-status-badge";
+import { ClipEditor } from "@/components/clips/clip-editor";
+import { ClipFeedbackButtons } from "@/components/clips/clip-feedback";
 import { RegenerateClipButton } from "@/components/clips/job-clips-toolbar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/form";
 import { HelpTip } from "@/components/ui/help-tip";
 import { LegendBadge, LegendLabel } from "@/components/ui/legend-badge";
 import {
@@ -13,6 +22,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { ClipOut } from "@/lib/api/types";
+import type { MetaOption } from "@/lib/api/meta-types";
+import { CAPTION_STYLE_IDS, REFRAME_PRESET_IDS } from "@/lib/creator-option-ids";
 import { CLIP_SCORE_LEGEND, legendForEmotion } from "@/lib/help/legends";
 import {
   cn,
@@ -25,12 +36,52 @@ interface ClipCardProps {
   clip: ClipOut;
   jobId: string;
   jobDone?: boolean;
+  sourceDurationSecs?: number | null;
+  captionStyleOptions?: MetaOption[];
+  reframePresetOptions?: MetaOption[];
 }
 
-export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
+export function ClipCard({
+  clip,
+  jobId,
+  jobDone = false,
+  sourceDurationSecs,
+  captionStyleOptions,
+  reframePresetOptions,
+}: ClipCardProps) {
+  const captionOptions =
+    captionStyleOptions ??
+    CAPTION_STYLE_IDS.map((id) => ({ id, label: id.replace(/_/g, " ") }));
+  const reframeOptions =
+    reframePresetOptions ??
+    REFRAME_PRESET_IDS.map((id) => ({ id, label: id.replace(/_/g, " ") }));
+  const { push: toast } = useToastSafe();
   const [playing, setPlaying] = React.useState(false);
   const [showTranscript, setShowTranscript] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [destinationsOpen, setDestinationsOpen] = React.useState(false);
+  const approval = (clip.approval_status ?? "draft") as ApprovalValue;
+  const [approvalLocal, setApprovalLocal] = React.useState<ApprovalValue>(approval);
+
+  React.useEffect(() => {
+    setApprovalLocal((clip.approval_status ?? "draft") as ApprovalValue);
+  }, [clip.approval_status]);
+
+  const isProcessing = clip.status === "processing";
+  const canEdit = jobDone && (clip.status === "done" || clip.status === "processing");
+
+  async function onApprovalChange(value: ApprovalValue) {
+    setApprovalLocal(value);
+    const result = await updateClipApprovalAction(jobId, clip.id, value);
+    if (result.status === "ok") {
+      if (value === "approved") {
+        toast("Clip approved", "Ready to publish, schedule, or save to Vault.");
+      }
+    } else {
+      setApprovalLocal(approval);
+      toast("Approval failed", result.message ?? "Could not update approval");
+    }
+  }
 
   async function copyLink() {
     if (!clip.download_url) return;
@@ -40,7 +91,12 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
   }
 
   return (
-    <div className="group rounded-lg border border-border/60 bg-card overflow-hidden flex flex-col hover:border-border transition-colors">
+    <div
+      className={cn(
+        "group rounded-lg border border-border/60 bg-card overflow-hidden flex flex-col hover:border-border transition-colors",
+        isProcessing && "ring-1 ring-sky-500/30",
+      )}
+    >
       {/* Vertical 9:16 video preview */}
       <div className="relative bg-black" style={{ aspectRatio: "9/16" }}>
         {playing && clip.download_url ? (
@@ -65,7 +121,7 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
                 No preview
               </div>
             )}
-            {clip.download_url && (
+            {clip.download_url && !isProcessing && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -85,6 +141,15 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
               </Tooltip>
             )}
           </>
+        )}
+
+        {isProcessing && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/60 backdrop-blur-sm">
+            <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+            <Badge className="border-sky-500/40 bg-sky-500/20 text-sky-100">
+              Re-rendering
+            </Badge>
+          </div>
         )}
 
         {/* Score corner badge */}
@@ -145,6 +210,10 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
           </p>
           <HelpTip content={CLIP_SCORE_LEGEND.hook} label="Hook help" />
         </div>
+
+        {clip.publish_statuses && clip.publish_statuses.length > 0 && (
+          <PublishStatusBadge statuses={clip.publish_statuses} />
+        )}
 
         <div className="flex items-center gap-1 pt-0.5">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
@@ -211,6 +280,19 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
               </a>
             </Button>
           )}
+          {jobDone && clip.status === "done" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => setDestinationsOpen(true)}
+              tooltip="Publish, schedule, or save to Clip Vault"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Destinations
+            </Button>
+          )}
           {clip.download_url && (
             <Button
               type="button"
@@ -225,10 +307,46 @@ export function ClipCard({ clip, jobId, jobDone = false }: ClipCardProps) {
           )}
         </div>
 
-        {jobDone && clip.status === "done" && (
-          <RegenerateClipButton jobId={jobId} clipId={clip.id} />
+        {canEdit && clip.status === "done" && (
+          <ApprovalToggle
+            value={approvalLocal}
+            onChange={onApprovalChange}
+            disabled={isProcessing}
+          />
+        )}
+
+        {canEdit && (
+          <>
+            <ClipEditor
+              clip={clip}
+              jobId={jobId}
+              sourceDurationSecs={sourceDurationSecs}
+              captionStyleOptions={captionOptions}
+              reframePresetOptions={reframeOptions}
+              disabled={isProcessing}
+            />
+            {clip.status === "done" && (
+              <>
+                <ClipFeedbackButtons clipId={clip.id} />
+                <RegenerateClipButton jobId={jobId} clipId={clip.id} />
+              </>
+            )}
+          </>
+        )}
+
+        {jobDone && clip.status === "error" && (
+          <p className="text-[10px] text-destructive">
+            {clip.error_message ?? "Render failed"}
+          </p>
         )}
       </div>
+
+      <ClipDestinationsDrawer
+        clip={{ ...clip, approval_status: approvalLocal }}
+        jobId={jobId}
+        open={destinationsOpen}
+        onClose={() => setDestinationsOpen(false)}
+      />
     </div>
   );
 }

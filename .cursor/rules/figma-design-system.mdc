@@ -1,0 +1,238 @@
+---
+description: Design system rules for implementing Figma designs in StreamClip via MCP
+alwaysApply: false
+globs:
+  - web/**
+---
+
+# StreamClip — Figma Design System Rules
+
+Agent reference for translating Figma designs into StreamClip's Next.js frontend.
+Figma MCP: use `get_design_context` for UI mocks; existing FigJam links are architecture-only (see `docs/design/FIGMA_LINKS.md`).
+
+**No Figma Code Connect** is configured in this repo.
+
+---
+
+## 1. Token Definitions
+
+### Source files
+
+| Token type | Primary source |
+|------------|----------------|
+| CSS variables | `web/app/globals.css` (`:root` + `.dark`) |
+| Tailwind mapping | `web/tailwind.config.ts` |
+| Semantic color maps | `web/lib/utils/format.ts` (`emotionColors`, `statusColors`) |
+| Help copy | `web/lib/help/legends.ts` |
+
+### Color format
+
+All theme colors use **HSL components without `hsl()` wrapper** in CSS variables, consumed as `hsl(var(--token))` in Tailwind:
+
+```css
+/* web/app/globals.css */
+:root {
+  --primary: 199 89% 48%;        /* sky blue — brand accent */
+  --background: 0 0% 100%;
+  --foreground: 220 20% 6%;
+  --radius: 0.625rem;            /* 10px base radius */
+  --sky: 199 89% 48%;
+  --silver: 220 10% 72%;
+}
+.dark {
+  --background: 220 18% 4%;
+  --foreground: 0 0% 98%;
+  --card: 220 12% 11%;
+  --primary: 199 89% 48%;
+}
+```
+
+```ts
+// web/tailwind.config.ts — map to Tailwind utilities
+colors: {
+  primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+  sky: { DEFAULT: "hsl(var(--sky))", 400: "#38bdf8" },
+  silver: "hsl(var(--silver))",
+}
+```
+
+### Figma → code transforms
+
+| Figma intent | Implementation |
+|--------------|------------------|
+| Brand / CTA blue | `text-sky-400`, `bg-primary`, `border-sky-400/30`, `bg-sky-400/10` |
+| Muted text | `text-muted-foreground` |
+| Card surface | `bg-card` or `.glossy-surface` |
+| Borders on dark UI | `border-white/10`, `border-border/60` |
+| Success / error | `text-emerald-400`, `text-red-400` with `/10` bg tints |
+| Emotion badges | `emotionColors[emotion]` from `format.ts` |
+| Job status badges | `statusColors[status]` from `format.ts` |
+
+### Typography
+
+```tsx
+// web/app/layout.tsx
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500"] });
+// <body className={`${inter.variable} font-sans antialiased`}>
+```
+
+Hero pages: `text-3xl sm:text-4xl font-semibold tracking-tight` (`web/app/page.tsx`).
+
+Section labels: `text-xs font-medium uppercase tracking-wide text-muted-foreground` (`SectionLegend`).
+
+Mono corner tags (clip rank/score): `text-xs font-mono font-medium`.
+
+### Spacing & radius
+
+- Base radius: `--radius: 0.625rem` → Tailwind `rounded-lg` = `var(--radius)`.
+- Container: `center: true`, `padding: "2rem"`, `screens: { "2xl": "1400px" }`.
+- Card padding: `p-6`; form sections `space-y-4`; page sections `space-y-10`.
+
+### Motion
+
+- `.animate-fade-in` — 0.25s ease-out
+- `.skeleton` — shimmer loading
+- `.progress-bar` — respects `prefers-reduced-motion`
+
+---
+
+## 2. Component Library
+
+### Directory structure (`web/components/`)
+
+```
+ui/           — Primitives (Button, Card, form controls, Tooltip, HelpTip)
+auth/         — auth-form, auth-panel, claim-device-modal
+clips/        — clip-card, clip-editor, approval, destinations drawer
+jobs/         — create-job-form, jobs-list, live-progress, filters
+vault/        — vault-clip-grid, vault-destinations-drawer
+distribution/ — queue, connections, oauth toasts, pro-gate modal
+settings/     — oauth-setup-wizard, license-panel
+upload/       — direct-upload (MinIO presigned PUT)
+layout/       — header-nav, header-nav-wrapper
+onboarding/   — onboarding-wizard
+providers/    — client-providers, toast, tooltip, token-refresh
+```
+
+### Architecture
+
+- **shadcn-inspired, manually maintained** — Radix + CVA + `cn()`.
+- **No `components.json`**, no Storybook.
+
+### UI primitives (`web/components/ui/`)
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `Button` | `button.tsx` | CVA variants; optional `tooltip` prop |
+| `Card` | `card.tsx` | Uses `glossy-surface` by default |
+| `Input`, `Label`, `Select`, `Badge`, `Progress` | `form.tsx` | Native `<select>` |
+| `Tooltip` | `tooltip.tsx` | Radix tooltip |
+| `HelpTip`, `LabelWithTip` | `help-tip.tsx` | Domain help pattern |
+| `SectionLegend` | `section-legend.tsx` | Uppercase section headers |
+
+### Feature patterns
+
+```tsx
+// 9:16 clip preview
+<div style={{ aspectRatio: "9/16" }} className="relative bg-black">
+  <video src={clip.download_url} playsInline />
+</div>
+
+// Right drawer
+className="fixed right-0 top-0 z-50 h-full max-w-md glossy-surface border-l animate-fade-in"
+```
+
+### Client vs server
+
+- Pages: Server Components; fetch server-side.
+- Interactive: `"use client"` components.
+- Mutations: Server Actions in `web/app/actions/`.
+- Providers: `ClientProviders` in layout.
+
+---
+
+## 3. Frameworks & Libraries
+
+| Package | Version |
+|---------|---------|
+| next | 15.1.0 |
+| react | ^19.0.0 |
+| tailwindcss | ^3.4.13 |
+| lucide-react | ^0.453.0 |
+
+- Path alias: `@/*` → `web/*`
+- API proxy: `/api/*` → FastAPI via `next.config.mjs` rewrites
+- No Turbopack in dev script
+
+---
+
+## 4. Asset Management
+
+- **Static:** inline SVG logo in `layout.tsx`; no `web/public/` image bundle.
+- **Dynamic:** presigned MinIO URLs for clips/thumbnails/uploads.
+- Use native `<video>` / `<img>` for presigned URLs (not `next/image` for clip media).
+- No CDN for app assets.
+
+---
+
+## 5. Icon System
+
+- **Library:** `lucide-react` only.
+- **Spinner:** `Loader2` + `animate-spin`.
+- **Sizing:** `h-4 w-4` buttons, `h-6 w-6` hero, `h-3.5 w-3.5` help icons.
+
+---
+
+## 6. Styling Approach
+
+| Class | Use for |
+|-------|---------|
+| `glossy-surface` | Cards, drawers, panels |
+| `glossy-surface-light` | Nested form panels |
+| `hero-gradient` | Page background |
+| `sky-glow` | Primary CTAs, selected chips |
+
+`cn()` lives in `web/lib/utils/format.ts` — always merge conditional classes.
+
+**Dark mode only:** `<html className="dark">` in layout.
+
+Responsive: `sm:` alignment, `lg:` sidebar grids, `max-w-md` drawers.
+
+---
+
+## 7. Project Structure
+
+```
+streamclip/
+├── web/       # Next.js frontend (Figma target)
+├── backend/   # FastAPI
+├── core/      # Pipeline logic
+├── docs/      # FIGMA_LINKS.md (FigJam diagrams)
+└── .cursor/rules/
+```
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Jobs dashboard + create |
+| `/jobs/[id]` | Clips grid + progress |
+| `/vault` | Saved clips |
+| `/distribution` | OAuth + publish queue |
+| `/settings` | Account, license |
+
+---
+
+## Figma MCP checklist
+
+1. `get_design_context` with fileKey + nodeId.
+2. Map colors to CSS variables / `sky-400` / `muted-foreground`.
+3. Reuse `Button`, `Card`, `Input`, `HelpTip`, `SectionLegend`.
+4. Apply `glossy-surface` on panels.
+5. `container py-8` content width.
+6. 9:16 previews: `aspectRatio: "9/16"` + `object-cover`.
+7. Wire via Server Actions + `lib/api/client.ts`.
+8. Help copy in `lib/help/legends.ts`.
+9. No Storybook or Code Connect unless requested.
+
+## Related rules
+
+- `.cursor/rules/performance-first.mdc` — pipeline performance; UI stays non-blocking (SSE, direct uploads).

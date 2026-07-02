@@ -8,7 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function HeaderNav() {
+type Props = {
+  isAuthenticated?: boolean;
+};
+
+export function HeaderNav({ isAuthenticated = false }: Props) {
   return (
     <nav className="flex items-center gap-4 text-sm">
       <Tooltip>
@@ -20,23 +24,63 @@ export function HeaderNav() {
             Jobs
           </Link>
         </TooltipTrigger>
-        <TooltipContent>
-          View all clip jobs and create a new one from the home page.
-        </TooltipContent>
+        <TooltipContent>View all clip jobs on the dashboard.</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <a
-            href="/docs"
+          <Link
+            href="/#create"
             className="text-muted-foreground hover:text-foreground transition-colors"
-            target="_blank"
-            rel="noreferrer"
           >
-            API
-          </a>
+            New clip
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Create a new clip job from URL or upload.</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href="/vault"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Vault
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Saved clips library — publish or schedule later.</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href="/distribution"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Distribution
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Connect platforms and manage publish queue.</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href="/settings"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Settings
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Profile, webhooks, retention, and license.</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href={isAuthenticated ? "/settings" : "/login"}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Account
+          </Link>
         </TooltipTrigger>
         <TooltipContent>
-          Open the REST API reference (OpenAPI) in a new tab.
+          {isAuthenticated ? "Manage your account" : "Sign in or register"}
         </TooltipContent>
       </Tooltip>
     </nav>

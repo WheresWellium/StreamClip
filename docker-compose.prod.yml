@@ -1,0 +1,166 @@
+# ═══════════════════════════════════════════════════════════════════════
+# StreamClip — Production docker-compose (pinned GHCR images, no bind-mounts)
+# Usage: docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-streamclip}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-streamclip}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-streamclip}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-11-17T19-35-30Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+        mc mb --ignore-existing local/$${MINIO_BUCKET:-streamclip} &&
+        echo 'MinIO bucket ready'
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-streamclip}
+
+  ollama:
+    image: ollama/ollama:0.5.4
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/streamclip/api:${STREAMCLIP_VERSION:-latest}
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      STREAMCLIP_ENVIRONMENT: production
+      STREAMCLIP_AUTH__SECRET_KEY: ${STREAMCLIP_AUTH_SECRET_KEY:?set STREAMCLIP_AUTH_SECRET_KEY}
+      STREAMCLIP_AUTH__ALLOW_ANONYMOUS: ${STREAMCLIP_AUTH_ALLOW_ANONYMOUS:-true}
+      STREAMCLIP_AUTH__DEVICE_SCOPED_ANONYMOUS: "true"
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
+      STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
+      STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+      STREAMCLIP_COMMERCE__LEMON_SQUEEZY_WEBHOOK_SECRET: ${LEMON_SQUEEZY_WEBHOOK_SECRET:-}
+      STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY: ${LEMON_SQUEEZY_API_KEY:-}
+      STREAMCLIP_LOG_JSON: "true"
+    volumes:
+      - workspace_data:/app/workspace
+      - cache_data:/app/.cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    command: >
+      celery -A core.celery_app.celery_app worker
+        --loglevel=info
+        --queues=default,gpu
+        --concurrency=4
+    environment:
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+      STREAMCLIP_REDIS__URL: redis://redis:6379/0
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
+      STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
+      STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+    volumes:
+      - workspace_data:/app/workspace
+      - cache_data:/app/.cache
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  beat:
+    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    command: celery -A core.celery_app.celery_app beat --loglevel=info
+    environment:
+      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/streamclip/web:${STREAMCLIP_VERSION:-latest}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ollama_data:
+  workspace_data:
+  cache_data:

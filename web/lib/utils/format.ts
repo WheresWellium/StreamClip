@@ -50,15 +50,15 @@ export const emotionColors: Record<string, string> = {
 };
 
 export const statusColors: Record<string, string> = {
-  queued: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  ingesting: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  transcribing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  detecting: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  scoring_virality: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  virality_scored: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  done: "bg-green-500/10 text-green-400 border-green-500/20",
-  error: "bg-red-500/10 text-red-400 border-red-500/20",
-  cancelled: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  pending: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  queued: "bg-white/5 text-silver border-white/10",
+  ingesting: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+  transcribing: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+  detecting: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+  scoring_virality: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  virality_scored: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  processing: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+  done: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+  error: "bg-red-500/10 text-red-400 border-red-500/25",
+  cancelled: "bg-white/5 text-silver border-white/10",
+  pending: "bg-white/5 text-silver border-white/10",
 };

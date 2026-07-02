@@ -5,16 +5,43 @@
 export type { components, paths } from "./openapi";
 
 import type { components } from "./openapi";
+import type {
+  CAPTION_STYLE_IDS,
+  CONTENT_PROFILE_IDS,
+  REFRAME_PRESET_IDS,
+} from "@/lib/creator-option-ids";
+
+type OpenApiCreateJob = components["schemas"]["CreateJobRequest"];
+
+export type CreateJobRequest = Omit<
+  OpenApiCreateJob,
+  "caption_style" | "reframe_preset" | "content_profile"
+> & {
+  caption_style?: (typeof CAPTION_STYLE_IDS)[number];
+  reframe_preset?: (typeof REFRAME_PRESET_IDS)[number];
+  content_profile?: (typeof CONTENT_PROFILE_IDS)[number];
+};
 
 export type JobOut = components["schemas"]["JobOut"];
 export type Job = JobOut;
 export type JobListItem = components["schemas"]["JobListItem"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
-export type ClipOut = components["schemas"]["ClipOut"];
-export type CreateJobRequest = components["schemas"]["CreateJobRequest"];
+export type ClipOut = components["schemas"]["ClipOut"] & {
+  approval_status?: "draft" | "approved" | "rejected";
+  publish_statuses?: Array<{
+    platform: string;
+    status: string;
+    publish_job_id: string;
+    external_url?: string | null;
+  }>;
+};
+
 export type UploadInitRequest = components["schemas"]["UploadInitRequest"];
 export type UploadInitResponse = components["schemas"]["UploadInitResponse"];
 export type HealthResponse = components["schemas"]["HealthResponse"];
+
+/** Completed stage → seconds (canonical keys: ingest, transcribe, highlights, virality, process_clip). */
+export type StageDurations = Record<string, number>;
 
 /** SSE payload from GET /api/jobs/{id}/progress */
 export type ProgressEvent = {
@@ -25,6 +52,10 @@ export type ProgressEvent = {
   status: "processing" | "done" | "error";
   ts: number;
   event_id?: string;
+  stage_elapsed_secs?: number | null;
+  total_elapsed_secs?: number | null;
+  eta_secs?: number | null;
+  stage_durations?: StageDurations | null;
 };
 
 /** FastAPI StreamClipError JSON body */
@@ -34,6 +65,6 @@ export type ApiError = {
   errors?: unknown;
 };
 
-export type CaptionStyle = CreateJobRequest["caption_style"];
-export type ReframePreset = CreateJobRequest["reframe_preset"];
+export type CaptionStyle = (typeof CAPTION_STYLE_IDS)[number];
+export type ReframePreset = (typeof REFRAME_PRESET_IDS)[number];
 export type JobStatus = JobOut["status"];

@@ -11,13 +11,11 @@ type SSEState =
   | { status: "done"; lastEvent: ProgressEvent }
   | { status: "error"; message: string };
 
+const POLL_INTERVAL_MS = 4000;
+
 /**
- * Subscribe to a job's SSE progress stream. Returns the latest event and
- * connection status. Closes automatically when the job emits `done` or
- * `error`, or when the component unmounts.
- *
- * EventSource auto-reconnects with exponential backoff via `Last-Event-Id`,
- * so a brief network blip doesn't lose the stream.
+ * Subscribe to job progress via same-origin BFF SSE route (auth cookies forwarded).
+ * Falls back to polling GET /api/jobs/:id when SSE is unavailable.
  */
 export function useJobProgress(
   jobId: string | null,
@@ -31,13 +29,43 @@ export function useJobProgress(
   React.useEffect(() => {
     if (!jobId || !enabled) return;
 
-    const source = new EventSource(jobsApi.progressUrl(jobId));
+    let closed = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      pollTimer = setInterval(async () => {
+        try {
+          const job = await jobsApi.get(jobId);
+          const terminal = job.status === "done" || job.status === "error" || job.status === "cancelled";
+          const event: ProgressEvent = {
+            job_id: jobId,
+            stage: job.current_stage,
+            progress: job.progress,
+            message: job.error_message ?? "",
+            status: job.status === "done" ? "done" : job.status === "error" ? "error" : "processing",
+            ts: Date.now() / 1000,
+          };
+          setState({
+            status: terminal && job.status === "done" ? "done" : terminal ? "error" : "open",
+            lastEvent: event,
+          } as SSEState);
+          if (terminal && pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+        } catch {
+          /* keep polling */
+        }
+      }, POLL_INTERVAL_MS);
+    };
+
+    const bffUrl = `/api/jobs/${jobId}/progress`;
+    const source = new EventSource(bffUrl);
 
     source.addEventListener("open", () => {
       setState((prev) =>
-        prev.status === "open"
-          ? prev
-          : { status: "open", lastEvent: null },
+        prev.status === "open" ? prev : { status: "open", lastEvent: null },
       );
     });
 
@@ -74,13 +102,18 @@ export function useJobProgress(
         } catch {
           setState({ status: "error", message: "Stream error" });
         }
+        source.close();
       } else if (source.readyState === EventSource.CLOSED) {
-        setState({ status: "error", message: "Connection closed" });
+        source.close();
+        if (!closed) startPolling();
       }
-      source.close();
     });
 
-    return () => source.close();
+    return () => {
+      closed = true;
+      source.close();
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, [jobId, enabled]);
 
   return state;

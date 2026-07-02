@@ -15,6 +15,7 @@ from core.errors import IngestError
 from core.ingest.probe import probe_video
 from core.ingest.types import ProcessingTier
 from core.models import VideoMeta
+from core.subtitle_import import find_subtitle_file
 
 log = structlog.get_logger(__name__)
 
@@ -36,28 +37,60 @@ def _build_ytdlp_cmd(
     output_path: Path,
     *,
     max_height: int,
-    fetch_subs: bool,
+    concurrent_fragments: int,
+    subs_only: bool = False,
 ) -> list[str]:
-    format_selector = (
-        f"bestvideo[height<={max_height}][ext=mp4][vcodec^=avc]"
-        f"+bestaudio[ext=m4a]/"
-        f"bestvideo[height<={max_height}][ext=mp4]"
-        f"+bestaudio/"
-        f"best[height<={max_height}][ext=mp4]/"
-        f"best[ext=mp4]"
-    )
-    cmd = [
-        "yt-dlp",
-        "--format", format_selector,
-        "--merge-output-format", "mp4",
-        "--no-playlist",
-        "--progress",
-        "--output", str(output_path),
-    ]
-    if fetch_subs:
-        cmd.extend(["--write-auto-subs", "--sub-langs", "en"])
+    cmd = ["yt-dlp", "--no-playlist"]
+    if subs_only:
+        cmd.extend([
+            "--skip-download",
+            "--write-auto-subs",
+            "--sub-langs", "en",
+            "--output", str(output_path.with_suffix("")),
+        ])
+    else:
+        format_selector = (
+            f"bestvideo[height<={max_height}][ext=mp4][vcodec^=avc]"
+            f"+bestaudio[ext=m4a]/"
+            f"bestvideo[height<={max_height}][ext=mp4]"
+            f"+bestaudio/"
+            f"best[height<={max_height}][ext=mp4]/"
+            f"best[ext=mp4]"
+        )
+        cmd.extend([
+            "--format", format_selector,
+            "--merge-output-format", "mp4",
+            "--progress",
+            "--concurrent-fragments", str(concurrent_fragments),
+            "--output", str(output_path),
+        ])
     cmd.append(url)
     return cmd
+
+
+def fetch_subtitles_for_url(url: str, cfg: Settings, *, tier: ProcessingTier) -> None:
+    """Fetch auto-subs in a separate yt-dlp pass (does not block video download)."""
+    ingest_cfg = cfg.ingest
+    if tier != ProcessingTier.LONG or not ingest_cfg.fetch_subs_on_long:
+        return
+    url_hash = _url_hash(url)
+    if find_subtitle_file(cfg.cache_dir, url_hash) is not None:
+        return
+    output_base = cfg.cache_dir / url_hash
+    cmd = _build_ytdlp_cmd(
+        url, output_base.with_suffix(".mp4"), max_height=720,
+        concurrent_fragments=ingest_cfg.ytdlp_concurrent_fragments,
+        subs_only=True,
+    )
+    log.info("ingest_subtitle_fetch_start", url=url)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        log.warning(
+            "ingest_subtitle_fetch_failed",
+            url=url,
+            code=result.returncode,
+            stderr=result.stderr[-500:] if result.stderr else "",
+        )
 
 
 def download_url(
@@ -66,8 +99,8 @@ def download_url(
     *,
     tier: ProcessingTier,
     on_progress: Callable[[float], None] | None = None,
-) -> VideoMeta:
-    """Download via yt-dlp with URL-hash cache."""
+) -> tuple[VideoMeta, bool]:
+    """Download via yt-dlp with URL-hash cache. Returns (meta, was_cache_hit)."""
     ingest_cfg = cfg.ingest
     url_hash = _url_hash(url)
     cached_path = cfg.cache_dir / f"{url_hash}.mp4"
@@ -75,17 +108,22 @@ def download_url(
 
     if cached_path.exists():
         log.info("ingest_cache_hit", url=url, path=str(cached_path))
+        if on_progress:
+            on_progress(1.0)
         meta = probe_video(cached_path, url=url)
         if meta_path.exists():
             with open(meta_path) as fh:
                 saved = json.load(fh)
             meta = VideoMeta(**{**vars(meta), "title": saved.get("title", meta.title)})
-        return meta
+        return meta, True
 
     max_h = _max_height(tier, ingest_cfg)
-    fetch_subs = tier == ProcessingTier.LONG and ingest_cfg.fetch_subs_on_long
     tmp_path = cfg.cache_dir / f"{url_hash}.tmp.mp4"
-    cmd = _build_ytdlp_cmd(url, tmp_path, max_height=max_h, fetch_subs=fetch_subs)
+    cmd = _build_ytdlp_cmd(
+        url, tmp_path,
+        max_height=max_h,
+        concurrent_fragments=ingest_cfg.ytdlp_concurrent_fragments,
+    )
 
     log.info("ingest_download_start", url=url, tier=tier.value, max_height=max_h)
     process = subprocess.Popen(
@@ -140,4 +178,4 @@ def download_url(
     )
     if on_progress:
         on_progress(1.0)
-    return meta
+    return meta, False

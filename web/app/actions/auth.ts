@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ApiClientError } from "@/lib/api/client";
-import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/session";
+import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/auth/session";
 
 const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
@@ -42,6 +42,13 @@ export async function loginAction(
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 24,
+    });
+    jar.set(REFRESH_TOKEN_COOKIE, data.refresh_token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
     });
     return { status: "ok" };
   } catch (err) {
@@ -83,6 +90,13 @@ export async function registerAction(
       path: "/",
       maxAge: 60 * 60 * 24,
     });
+    jar.set(REFRESH_TOKEN_COOKIE, data.refresh_token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
     return { status: "ok" };
   } catch (err) {
     return {
@@ -95,5 +109,6 @@ export async function registerAction(
 export async function logoutAction(): Promise<void> {
   const jar = await cookies();
   jar.delete(ACCESS_TOKEN_COOKIE);
+  jar.delete(REFRESH_TOKEN_COOKIE);
   redirect("/");
 }

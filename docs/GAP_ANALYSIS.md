@@ -1,60 +1,51 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-06-29 (revision 3b — creator UX + post-gen actions)
+**Last run:** 2026-07-01 (revision 4 — modularity + distribution audit)
 
 ## Executive summary
 
-StreamClip targets **all creator verticals** with content profiles and hybrid peak discovery. This pass adds **bulk ZIP download**, **single-clip re-render**, **richer clip cards** (transcript, virality reason, copy link), and **discovery efficiency** caps. Remaining mastery work: trim editor, splice, asset vault, social publish.
-
-**New this run:** T28–T32 (peak discovery, profiles, meme_keywords, meta/UI wiring). README corrected (virality is post-hoc, not discovery).
+The **clip pipeline and distribution plane are production-shaped**: modular `core/` services, registry-based platforms, and a clean web stack (actions → `distributionApi` → `DistributionService`). The largest gaps are **stale documentation** (prior register still listed social publish and asset vault as roadmap) and **minor API surface duplication** (job-scoped vs hub-scoped publish endpoints). **No Vercel AI SDK** — LLM uses native Ollama/OpenAI/Anthropic clients in Python; migration is not warranted.
 
 ## Technical gaps
 
-| ID | Claim | Status | Sev | Evidence |
-|----|-------|--------|-----|----------|
-| T1 | SSE `Last-Event-Id` | **Fixed** | — | `backend/services/sse.py` |
-| T2 | GPU queue separation | **Fixed** | — | `process_clip` → `gpu` |
-| T3 | NVENC / `export.codec` | **Fixed** | — | `core/export_video.py` |
-| T4 | YOLOv11 + ByteTrack | Implemented | — | `core/reframe.py` |
-| T5 | Twitch chat spike | **Fixed** | — | `core/chat_spikes.py` |
-| T6 | JWT auth routes | **Fixed** | — | `backend/api/auth.py` |
-| T7 | `STREAMCLIP_PIPELINE__MODE` | **Fixed** | — | Removed from `.env.example` |
-| T8 | `export.fps` min 60 | **Fixed** | — | `ExportConfig.fps` ge=60 |
-| T9 | Anonymous job listing | **Fixed** | P2 | Owner scoping |
-| T10 | Presigned public URLs | Implemented | — | `core/storage.py` |
-| T11 | Modular ingest | Implemented | — | `core/ingest/` |
-| T12 | Guaranteed clips | Implemented | — | `core/highlights.py` |
-| T13 | Post-hoc virality | **Fixed** | — | `run_virality_scores` |
-| T14–T27 | (prior pass) | **Fixed** | — | See revision 2 |
-| T28 | Peak-based discovery | **Fixed** | P1 | `core/peak_detection.py`, `candidate_mode: hybrid` |
-| T29 | Creator content profiles | **Fixed** | P1 | `core/content_profiles.py`, job snapshot |
-| T30 | `meme_keywords` → overlays | **Fixed** | P1 | DB column + `update_virality`, `_clip_to_candidate` |
-| T31 | README virality at discovery | **Fixed** | P2 | README updated — LLM is post-hoc |
-| T32 | Score curve smoothing | **Fixed** | P2 | `smooth_series` before peak pick |
-| T33 | Bulk clip ZIP export | **Fixed** | — | `GET /api/jobs/{id}/clips.zip` |
-| T34 | Single-clip regenerate | **Fixed** | P1 | `POST …/regenerate`, `process_clip(force=True)` |
-| T35 | Discovery candidate cap | **Fixed** | P2 | Top `target_clips × 6` pre-NMS |
-| T36 | Per-stage Prometheus histograms | **Fixed** | P2 | `streamclip_pipeline_stage_seconds` in `pipeline_tasks.py` |
-| T37 | Docker dev source mounts | **Fixed** | P0 | `docker-compose.yml` mounts `backend/`, `core/`, `tests/` |
-| T38 | bcrypt/passlib auth hashing | **Fixed** | P0 | Direct `bcrypt` in `backend/middleware/auth.py` |
-| T39 | Parallel virality LLM scoring | **Fixed** | P1 | `score_clips_virality_parallel` + `llm.parallel_workers` |
+| ID | Claim | Status | Sev | Fix | Evidence |
+|----|-------|--------|-----|-----|----------|
+| T1–T39 | (prior revisions) | **Fixed** | — | — | See revision 3b |
+| T40 | Social distribution shipped | **Fixed** | P1 | doc | `core/distribution/`, `backend/api/distribution.py`, `web/app/distribution/` |
+| T41 | Clip Vault shipped | **Fixed** | P1 | doc | `core/vault/service.py`, `backend/api/vault.py`, `/vault` |
+| T42 | Asset vault API | **Implemented** | P2 | doc | `backend/api/assets.py` — list/create/delete; embedding UI open |
+| T43 | `.env.example` distribution keys | **Fixed** | P1 | code | `STREAMCLIP_DISTRIBUTION__*` added to `.env.example` |
+| T44 | `schemas.py` publish stub label | **Fixed** | P2 | code | Comment updated — publish is live, TikTok upload stubbed by flag |
+| T45 | Celery `vault_tasks` routing | **Fixed** | P2 | code | Explicit `core.tasks.vault_tasks.*` → `default` in `celery_app.py` |
+| T46 | Dead `jobsApi.publishClip` client | **Fixed** | P2 | code | Removed from `web/lib/api/client.ts`; web uses `distributionApi.publish` |
+| T47 | `PRODUCTION.md` distribution env | Partial | P1 | doc | `deploy/PRODUCTION.md` omits `STREAMCLIP_DISTRIBUTION__*` — see `docs/distribution-runbook.md` |
+| T48 | README roadmap stale | **Fixed** | P1 | doc | README roadmap updated for vault, publish, webhooks |
+| T49 | Job-scoped publish API overlap | Partial | P2 | defer | `POST /api/jobs/{id}/clips/{id}/publish` duplicates hub `POST /api/distribution/publish`; batch-publish still job-scoped |
+| T50 | TikTok upload | Stub | P2 | flag | `core/distribution/tiktok.py`; off unless `TIKTOK_PUBLISH_ENABLED=true` |
+| T51 | Stripe billing | Stub | P2 | defer | `core/billing.py`, `backend/api/billing.py` |
+| T52 | OpenAPI type drift | Partial | P2 | defer | Hand types in `web/lib/api/types.ts`; regen per CONTRIBUTING |
 
 ## UX gaps
 
-| ID | Journey / control | Status | Sev | Evidence |
-|----|-------------------|--------|-----|----------|
-| U1 | Tooltips / legends | **Fixed** | — | `web/lib/help/legends.ts` |
-| U2 | Create job form | **Fixed** | — | Content type + all API fields |
-| U3 | SSE progress errors | **Fixed** | — | `live-progress.tsx` |
-| U4 | Job error states | **Fixed** | — | Error boundary + legends |
-| U5 | Playwright e2e | Partial | P2 | Health/meta; upload path open |
-| U6 | API docs `/docs` | **Fixed** | — | `next.config.mjs` |
-| U7 | Cancel job UI | **Fixed** | — | `CancelJobButton` |
-| U8 | Auth UI | **Fixed** | — | `AuthPanel` |
-| U9 | Clip overlay visibility | **Fixed** | P2 | Overlay chips on `ClipCard` |
-| U10 | `/api/meta` in UI | Partial | P2 | Profiles in form; presets still local |
-| U11 | Post-gen clip actions | **Partial** | P1 | Single-clip regenerate + ZIP export; trim editor open |
-| U12 | Transcript panel on clip | **Fixed** | — | Expandable transcript + virality reason on card |
+| ID | Journey / control | Status | Sev | Fix | Evidence |
+|----|-------------------|--------|-----|-----|----------|
+| U1–U12 | (prior revisions) | Mostly **Fixed** | — | — | See revision 3b |
+| U13 | Distribution journeys | **Implemented** | — | — | `clip-destinations-drawer.tsx`, `vault-destinations-drawer.tsx`, `/distribution` |
+| U14 | Pro gate messaging | **Fixed** | P2 | code | `requireDistributionSession()` in `web/lib/distribution/access.ts` |
+| U15 | Asset vault UI | Partial | P2 | defer | API exists; no dedicated `/assets` management page |
+| U16 | Playwright full upload e2e | Partial | P2 | defer | `web/package.json` `test:e2e`; smoke only |
+
+## Modularity & duplication register
+
+| Area | Finding | Severity | Recommendation |
+|------|---------|----------|----------------|
+| Publish routing | Two entry points: `jobs.py` (`publish_clip`, `batch_publish`) and `distribution.py` (`publish`, `schedule`) — both delegate to `DistributionService` | P2 | Keep batch on jobs router; consider deprecating single-clip jobs publish (unused by web) |
+| Schedule endpoint | `POST /schedule` is thin wrapper over `publish_now(..., scheduled_at=...)` | OK | Intentional REST surface for schedule UX |
+| Web auth pattern | Repeated `getAccessToken` + `hasDistributionAccess` in actions | **Fixed** | `requireDistributionSession()` helper |
+| Skills overlap | `streamclip` (comprehensive) vs `streamclip-development` (quick-start index) vs `streamclip-social-distribution` | OK | Hierarchy intentional; development skill points to siblings |
+| `core/` vs `backend/` | Pipeline + distribution in `core/`; HTTP + repos in `backend/` | OK | Matches skill conventions; Celery uses `backend.db.session` |
+| Platform extension | `core/distribution/registry.py` + adapter pattern (`youtube.py`, `tiktok.py`) | OK | Add Instagram via new adapter + `PLATFORMS_V1` entry |
+| Inline import | `core/vault/service.py` lazy-imports `copy_clip_to_vault` | P2 | Documented circular-dep avoidance; acceptable |
 
 ## Creator-platform gaps (mastery trajectory)
 
@@ -63,45 +54,51 @@ StreamClip targets **all creator verticals** with content profiles and hybrid pe
 | C1 | Multi-vertical profiles | **Shipped** | — |
 | C2 | Peak + chat discovery | **Shipped** | — |
 | C3 | Post-gen editor (trim, restyle) | Roadmap | P1 |
-| C4 | Splice / merge clips | Roadmap | P1 |
-| C5 | Asset vault API | Roadmap | P2 |
-| C6 | Social publish | Roadmap | P3 |
-| C7 | Batch ZIP export | Roadmap | P2 |
+| C4 | Splice / merge clips | Partial | P1 | `jobs.py` splice endpoint exists |
+| C5 | Asset vault API | **Shipped** | — | UI management open |
+| C6 | Social publish | **Shipped** | — | YouTube live; TikTok flag-gated |
+| C7 | Batch ZIP export | **Shipped** | — | T33 |
 | C8 | Per-clip webhooks | Roadmap | P2 |
-| C9 | Channel style learning | Research | P3 |
+| C9 | Channel style learning | Research | P3 | `core/style_learning.py` stub |
 
-## Resolved since revision 2
+## AI / LLM layer assessment
 
-- T28 — Hybrid peak discovery (`segments` \| `peaks` \| `hybrid`)
-- T29 — Content profiles: gaming, irl, podcast, esports, general
-- T30 — `meme_keywords` persisted (migration `0002_clip_meme_keywords`)
-- U9 — Overlay keywords shown on clip cards
-- U2 — Content type selector on create job
+| Item | Status |
+|------|--------|
+| Vercel AI SDK (`ai` package) | **Not used** — `web/package.json` has no `ai` dependency |
+| Python LLM | `core/virality.py` — native `ollama`, `openai`, `anthropic` clients via `_build_client()` |
+| Discovery vs post-hoc | Correct: `core/highlights.py` sets `llm_virality=0.0` at discovery; `run_virality_scores` + `ensemble_with_virality()` post-hoc |
+| AI SDK migration | **Not recommended** — Python pipeline owns LLM; no streaming chat UI; migration adds dep without clear win |
+
+## Resolved since revision 3b (2026-07-01)
+
+- T40–T48 — Documentation and modularity fixes from modularity audit
+- T45 — Explicit Celery route for `vault_tasks`
+- T46 — Removed dead `jobsApi.publishClip` client method
+- U14 — Consolidated distribution Pro gate via `requireDistributionSession()`
 
 ## Intentional deferrals (roadmap)
 
 - Speaker diarization
-- Direct social publish (YouTube Shorts / TikTok / Reels)
-- User-uploaded asset vault API
-- Stripe billing / tier enforcement
+- Instagram Reels platform adapter
+- TikTok live upload (Content Posting API + flag)
+- Stripe billing enforcement
 - Full Playwright upload → clips e2e
 - yt-dlp subtitle reuse for Whisper
-- Deep learning highlight models (autoencoder / DENAN) — CPU-practical signals preferred
-- Face-cam reaction signal (S5 from research proposal)
+- Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish` after API consumers migrate to hub
+- Asset vault management UI page
+- Deep learning highlight models (autoencoder / DENAN)
 
 ## Verification commands
 
 ```bash
-# Unit tests (no full conftest chain)
-python -c "..."  # see tests/test_peak_detection.py
-
-# Full stack
-docker compose build api worker && docker compose up -d
-docker compose exec api alembic upgrade head
+python -c "from backend.main import app"
+cd web && npm run build
+pytest tests/test_celery_publish.py tests/test_publish_notify.py -q
 ```
 
 ## How to re-run
 
 Invoke skill: **`streamclip-gap-analysis`** (`.cursor/skills/streamclip-gap-analysis/SKILL.md`)
 
-See also: `docs/CREATOR_PLATFORM.md`, `docs/TECHNICAL_DESIGN.md`
+See also: `docs/CREATOR_PLATFORM.md`, `docs/TECHNICAL_DESIGN.md`, `docs/distribution-runbook.md`

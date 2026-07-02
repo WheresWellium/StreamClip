@@ -45,7 +45,7 @@ def test_upload_ingest_keeps_storage_key_and_short_tier_hints(cfg, tmp_path, mon
 
     monkeypatch.setattr(
         "core.ingest.service.download_from_storage",
-        lambda key, dest, _cfg, _store: meta,
+        lambda key, dest, _cfg, _store, on_progress=None: meta,
     )
 
     svc = IngestService(cfg, storage=mock_storage)
@@ -62,7 +62,88 @@ def test_upload_ingest_keeps_storage_key_and_short_tier_hints(cfg, tmp_path, mon
     assert snap["skip_optical_flow"] is True
 
 
+def test_url_ingest_defers_storage_upload(cfg, tmp_path, monkeypatch):
+    cfg.ingest.defer_source_upload = True
+    mock_storage = MagicMock()
+    mock_storage.exists.return_value = False
+
+    cached = tmp_path / "cached.mp4"
+    cached.write_bytes(b"\x00" * 64)
+    meta = VideoMeta(
+        path=cached,
+        title="vod",
+        duration=3600.0,
+        width=1920,
+        height=1080,
+        fps=60.0,
+        url="https://youtube.com/watch?v=abc",
+        size_bytes=1024,
+        has_audio=True,
+        video_codec="h264",
+        audio_codec="aac",
+    )
+
+    messages: list[str] = []
+
+    monkeypatch.setattr(
+        "core.ingest.service.download_url",
+        lambda url, _cfg, tier, on_progress=None: (meta, True),
+    )
+
+    svc = IngestService(cfg, storage=mock_storage)
+    result = svc.run(
+        IngestRequest(job_id="job-url", source_url="https://youtube.com/watch?v=abc"),
+        on_message=messages.append,
+    )
+
+    assert result.source_kind == SourceKind.URL
+    mock_storage.upload.assert_not_called()
+    assert "Using cached download" in messages
+
+
+def test_upload_ingest_reports_byte_progress(cfg, tmp_path, monkeypatch):
+    source = tmp_path / "upload.mp4"
+    source.write_bytes(b"\x00" * 64)
+
+    mock_storage = MagicMock()
+    mock_storage.exists.return_value = True
+    mock_storage.size.return_value = 100
+
+    meta = VideoMeta(
+        path=source,
+        title="upload",
+        duration=30.0,
+        width=1280,
+        height=720,
+        fps=30.0,
+        url=None,
+        size_bytes=64,
+        has_audio=True,
+        video_codec="h264",
+        audio_codec="aac",
+    )
+
+    progress: list[float] = []
+
+    def _download(key, dest, _cfg, store, on_progress=None):
+        if on_progress:
+            on_progress(0.5)
+            on_progress(1.0)
+        return meta
+
+    monkeypatch.setattr("core.ingest.service.download_from_storage", _download)
+
+    svc = IngestService(cfg, storage=mock_storage)
+    svc.run(
+        IngestRequest(job_id="job-up", storage_key="uploads/user/clip.mp4"),
+        on_progress=progress.append,
+    )
+
+    assert progress == [0.5, 1.0]
+
+
 def test_local_ingest_uploads_to_job_prefix(cfg, tmp_path, monkeypatch):
+    cfg.ingest.defer_source_upload = False
     source = tmp_path / "local.mp4"
     source.write_bytes(b"\x00" * 64)
 

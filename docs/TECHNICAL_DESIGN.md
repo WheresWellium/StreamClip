@@ -1,14 +1,14 @@
 # StreamClip — Technical Design
 
-**Revision:** 3 (2026-06-29)  
+**Revision:** 4 (2026-07-01)  
 **Status:** Active
 
 ## 1. Purpose & scope
 
-StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports), detects highlights, scores virality post-hoc, and renders vertical (9:16) clips with reframing, karaoke captions, and optional meme overlays.
+StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders vertical (9:16) clips with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
 
-**In scope:** ingest, transcription, highlight discovery, post-hoc virality, per-clip render, JWT auth API, web UI with contextual legends, REST API, Docker deployment, Prometheus metrics, optional webhooks.  
-**Out of scope (roadmap):** social publishing, Stripe billing, speaker diarization, user asset vault API.
+**In scope:** ingest, transcription, highlight discovery, post-hoc virality (profile-aware, context-enriched), per-clip render, JWT auth API, web UI with contextual legends, REST API, Docker deployment, Prometheus metrics, optional webhooks, **social distribution** (YouTube publish, TikTok OAuth, scheduling, Clip Vault), style learning from explicit + implicit feedback.  
+**Out of scope (roadmap):** Stripe billing enforcement, speaker diarization, TikTok video upload (OAuth shipped; upload behind `TIKTOK_PUBLISH_ENABLED`, default off), Instagram Reels, multi-aspect export (1:1 / 16:9).
 
 ## 2. Goals & non-goals
 
@@ -70,6 +70,11 @@ start_pipeline
   → fan_out_clips
       → chord(process_clip × N, finalise_job)
   → (beat) cleanup_expired_jobs hourly
+  → (beat) process_due_scheduled_jobs — scheduled publish poller
+
+Distribution (out-of-band, default queue):
+  publish_clip_to_platform   — upload from MinIO → YouTube; SSE progress via Redis
+  copy_clip_to_vault         — vault_tasks.py; quota + approval gated
 ```
 
 | Task | Queue | Input | Output | Failure behavior |
@@ -106,7 +111,7 @@ Discovery signals — **no LLM at discovery**:
 
 **Candidate modes** (`highlight.candidate_mode`): `segments` | `peaks` | `hybrid` (default).
 
-**Content profiles** (`core/content_profiles.py`): per-job `content_profile` tunes weights for gaming, IRL, podcast, esports, general.
+**Content profiles** (`core/content_profiles.py`): per-job `content_profile` tunes weights across 9 verticals — gaming, esports, irl, vlog, podcast, education, sports, music, general. Catalog with UI labels lives in `core/creator_options.py` (single source of truth for `/api/meta`).
 
 - NMS + boundary snap to word edges when transcript available
 - `_guaranteed_clips()` ensures clip rows always exist
@@ -116,11 +121,19 @@ Discovery signals — **no LLM at discovery**:
 Post-hoc LLM metric on finished clip transcripts — **never gates clip creation**.
 
 1. `run_virality_scores` runs after highlights, before render fan-out
-2. `score_clip_virality()` → JSON: score 0–100, emotion, meme_keywords
-3. `ensemble_with_virality()` recomputes rank using profile or `highlight.weight_*`; `meme_keywords` persisted on `Clip` for overlay matching
-4. Clips reranked by `ensemble_score` before `fan_out_clips`
+2. `build_virality_prompt()` assembles a **profile-aware prompt**: one persona + viral/anti-viral criteria per content profile (9 variants), plus optional `ClipScoringContext` evidence — measured signal telemetry (audio/spectral/flow/chat), sampled live-chat excerpts (`select_chat_excerpts`), and ±30s surrounding transcript
+3. `score_clip_virality()` → JSON: score 0–100, emotion, meme_keywords
+4. `ensemble_with_virality()` recomputes rank using profile or `highlight.weight_*`; `meme_keywords` persisted on `Clip` for overlay matching
+5. Clips reranked by `ensemble_score` before `fan_out_clips`
 
 **LLM providers:** `ollama` (default), `openai`, `anthropic` — `core/virality.py::_build_client`
+
+### 4.3c Style learning (`core/style_learning.py`)
+
+Per-user, per-profile signal-weight nudges (±0.02, 70/30 default blend):
+
+- **Explicit:** `POST /api/settings/clips/{id}/feedback` star ratings
+- **Implicit:** clip approve (→5) / reject (→1) via `backend/services/feedback_service.py`
 
 ### 4.4 Transcription & captions
 
@@ -161,10 +174,14 @@ YOLO11 + ByteTrack tracking, Gaussian-smoothed camera path, preset HUD zones.
 
 | Entity | Key fields |
 |--------|------------|
-| `User` | email, hashed password, `jobs_used_this_month`, `minutes_processed_this_month` |
+| `User` | email, hashed password, `jobs_used_this_month`, `minutes_processed_this_month`, `style_weights` |
 | `Job` | `owner_id`, status, stage, progress, `config_snapshot`, storage keys |
-| `Clip` | start/end, scores (`audio`, `spectral`, `flow`, `llm`, `ensemble`), emotion, storage keys |
-| `Asset` | schema present; vault API not implemented |
+| `Clip` | start/end, scores (`audio`, `spectral`, `flow`, `llm`, `ensemble`), emotion, `approval_status`, storage keys |
+| `ClipFeedback` | per-user clip ratings feeding style learning |
+| `VaultClip` | saved clips (quota + approval gated), migration `0006` |
+| `InstallOAuthApp` | BYO OAuth app credentials per platform (encrypted) |
+| `PublishJob` | platform, status, schedule time, idempotency key, result URL |
+| `Asset` | asset vault API (`backend/api/assets.py`); no management UI yet |
 
 ### 5.2 MinIO key layout
 
@@ -210,14 +227,21 @@ jobs/{job_id}/clips/clip_{NN}_transcript.json   # when refine_clip_transcript
 
 | Route | Purpose |
 |-------|---------|
-| `POST /api/jobs` | Create job (URL or upload key) |
+| `POST /api/jobs` (+`/batch`) | Create job(s) (URL or upload key) |
 | `GET /api/jobs`, `GET /api/jobs/{id}` | List/detail; owner-scoped when auth enabled |
-| `POST /api/jobs/{id}/cancel` | Cancel in-flight job |
+| `DELETE /api/jobs/{id}` | Cancel + delete job |
+| `PATCH /api/jobs/{id}/clips/{clip_id}/approval` | Approve/reject clip (feeds implicit style learning) |
+| `POST /api/jobs/{id}/clips/{clip_id}/publish` | Legacy publish — superseded by `/api/distribution/publish` |
 | `POST /api/uploads/init` | Presigned PUT URL |
 | `POST /api/auth/register\|login\|refresh` | JWT issuance |
 | `GET /api/auth/me` | Current user |
+| `GET /api/distribution/platforms\|connections\|publish-jobs` | Distribution hub reads |
+| `POST /api/distribution/publish\|schedule` | Publish now / schedule; SSE progress per publish job |
+| `GET /api/distribution/oauth/{platform}/start\|callback` | OAuth connect flow (BYO or env apps) |
+| `GET/POST/DELETE /api/vault/clips`, `GET /api/vault/quota` | Clip Vault |
+| `POST /api/settings/clips/{clip_id}/feedback` | Explicit clip rating |
 | `GET /api/health` | DB, Redis, storage, optional Ollama |
-| `GET /api/meta` | caption styles, reframe presets, emotions |
+| `GET /api/meta` | content types, caption styles, reframe presets, emotions |
 | `GET /metrics` | Prometheus (when enabled) |
 
 ### 7.2 SSE progress
@@ -294,13 +318,15 @@ docker compose up -d
 
 | Item | Notes |
 |------|-------|
-| Playwright full e2e | Config exists; happy path gated on `E2E_RUN=1` |
-| Asset vault API | `Asset` model only; overlays use filesystem manifest |
-| Stripe / tier enforcement | Quota counters exist; no payment integration |
-| Social publish | Manual download from UI |
+| Playwright full e2e | Config exists; happy path gated on `E2E_RUN=1`; no publish-flow e2e |
+| Asset vault UI | API exists (`/api/assets`); no management page; overlays use filesystem manifest |
+| Stripe / tier enforcement | Quota counters exist; webhook stub only (`core/billing.py`) |
+| TikTok publish | OAuth shipped; video upload stub behind `TIKTOK_PUBLISH_ENABLED` (default off) |
+| Publish analytics | No view/retention feedback loop from YouTube/TikTok yet |
+| Multi-aspect export | 9:16 (1080×1920) only; no 1:1 / 16:9 |
 | Speaker diarization | Not implemented |
 | yt-dlp subs reuse | Downloaded but Whisper always runs on audio |
-| `/api/meta` in UI | Presets also hardcoded in create-job form |
+| Distribution unit tests | `DistributionService`, vault + distribution API routes thin on coverage |
 
 Full gap register: `docs/GAP_ANALYSIS.md`
 
@@ -308,16 +334,11 @@ Full gap register: `docs/GAP_ANALYSIS.md`
 
 ### 12.1 Reframe presets (`core/reframe.py`)
 
-| Preset | smooth_window (≥60) | Best for |
-|--------|---------------------|----------|
-| fps_game | 60 | FPS titles |
-| moba | 60 | MOBA |
-| battle_royale | 60 | BR |
-| irl / podcast | 90 | Talking head |
+9 presets (`core/creator_options.py`): `fps_game`, `moba`, `battle_royale`, `sports_action`, `irl`, `podcast`, `presentation`, `cinematic_wide`, `auto`. All export 9:16 (1080×1920) — multi-aspect is roadmap. `MIN_SMOOTH_WINDOW_FRAMES = 60` floor regardless of preset.
 
-### 12.2 Caption styles
+### 12.2 Caption styles (`core/creator_options.py`)
 
-`gaming_impact`, `tiktok_pop`, `minimal_white`, `podcast_clean`
+`gaming_impact`, `shorts_bold`, `tiktok_pop`, `karaoke_highlight`, `minimal_white`, `podcast_clean`, `accessibility_clean`, `none` (skip burn-in)
 
 ### 12.3 Webhook payload
 
@@ -341,7 +362,12 @@ Verify: `HMAC-SHA256(secret, raw_body)` compared to `X-StreamClip-Signature: sha
 | Area | Path |
 |------|------|
 | Pipeline tasks | `core/tasks/pipeline_tasks.py` |
+| Publish / vault tasks | `core/tasks/publish_tasks.py`, `core/tasks/vault_tasks.py` |
+| Distribution | `core/distribution/` (service, oauth, youtube, tiktok, tokens, registry) |
+| Vault | `core/vault/service.py` |
 | Virality | `core/virality.py` |
+| Creator options catalog | `core/creator_options.py` |
+| Style learning | `core/style_learning.py`, `backend/services/feedback_service.py` |
 | Captions | `core/captions.py`, `core/caption_timing.py` |
 | FFmpeg helpers | `core/ffmpeg_utils.py` |
 | Webhooks | `core/webhooks.py` |

@@ -2,15 +2,19 @@ import { BackToJobsLink } from "@/components/jobs/back-link";
 import { CancelJobButton } from "@/components/jobs/cancel-job-button";
 import { ClipCard } from "@/components/clips/clip-card";
 import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
+import { SpliceClipsToolbar } from "@/components/clips/splice-clips-toolbar";
 import { LiveProgress } from "@/components/jobs/live-progress";
 import { HelpTip } from "@/components/ui/help-tip";
 import { LegendBadge } from "@/components/ui/legend-badge";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { legendForStatus } from "@/lib/help/legends";
-import { ApiClientError, jobsApi } from "@/lib/api/client";
+import { ApiClientError, jobsApi, metaApi } from "@/lib/api/client";
+import type { ClipOut } from "@/lib/api/types";
 import { getAccessToken } from "@/lib/auth/session";
+import { hasDistributionAccess } from "@/lib/distribution/access";
+import { normalizeStreamClipMeta } from "@/lib/normalize-meta";
 import {
   formatDuration,
-  formatRelativeTime,
   statusColors,
 } from "@/lib/utils/format";
 import { notFound } from "next/navigation";
@@ -23,15 +27,27 @@ export default async function JobPage({ params }: JobPageProps) {
   const { id } = await params;
 
   let job;
+  let captionStyleOptions = normalizeStreamClipMeta({}).caption_styles;
+  let reframePresetOptions = normalizeStreamClipMeta({}).reframe_presets;
+  let hasDistribution = false;
   try {
     const token = await getAccessToken();
+    hasDistribution = token ? await hasDistributionAccess(token) : false;
     job = await jobsApi.get(id, token);
+    const rawMeta = await metaApi.meta();
+    const meta = normalizeStreamClipMeta(rawMeta as Record<string, unknown>);
+    captionStyleOptions = meta.caption_styles;
+    reframePresetOptions = meta.reframe_presets;
   } catch (err) {
     if (err instanceof ApiClientError && err.status === 404) {
       notFound();
     }
     throw err;
   }
+
+  const approvedClipCount = (job.clips as ClipOut[]).filter(
+    (c) => c.approval_status === "approved" && c.status === "done",
+  ).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -55,7 +71,7 @@ export default async function JobPage({ params }: JobPageProps) {
           <span className="font-mono text-xs">{job.id}</span>
           <HelpTip content="Unique job identifier for this pipeline run." label="Job ID help" />
           <span>·</span>
-          <span>{formatRelativeTime(job.created_at)}</span>
+          <span><RelativeTime iso={job.created_at} /></span>
           {job.source_duration_secs && (
             <>
               <span>·</span>
@@ -97,8 +113,15 @@ export default async function JobPage({ params }: JobPageProps) {
           <JobClipsToolbar
             jobId={job.id}
             clipCount={job.clips.length}
+            approvedClipCount={approvedClipCount}
             jobStatus={job.status}
             contentProfile={job.content_profile}
+            hasDistribution={hasDistribution}
+          />
+          <SpliceClipsToolbar
+            jobId={job.id}
+            clips={job.clips}
+            jobDone={job.status === "done"}
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {job.clips.map((clip) => (
@@ -107,6 +130,9 @@ export default async function JobPage({ params }: JobPageProps) {
                 clip={clip}
                 jobId={job.id}
                 jobDone={job.status === "done"}
+                sourceDurationSecs={job.source_duration_secs}
+                captionStyleOptions={captionStyleOptions}
+                reframePresetOptions={reframePresetOptions}
               />
             ))}
           </div>

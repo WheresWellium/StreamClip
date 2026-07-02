@@ -1,0 +1,143 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { CreateJobForm } from "@/components/jobs/create-job-form";
+import { Button } from "@/components/ui/button";
+import { metaApi } from "@/lib/api/client";
+import type { StreamClipMeta } from "@/lib/api/meta-types";
+
+type Step = "welcome" | "health" | "storage" | "ready" | "account";
+
+const STEPS: Step[] = ["welcome", "health", "storage", "ready", "account"];
+
+function stepIndex(step: Step): number {
+  return STEPS.indexOf(step);
+}
+
+type Props = {
+  sampleUrl: string;
+  meta: StreamClipMeta;
+};
+
+export function OnboardingWizard({ sampleUrl, meta }: Props) {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>("welcome");
+  const [health, setHealth] = useState<Record<string, unknown> | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const runHealthCheck = useCallback(async () => {
+    setChecking(true);
+    try {
+      const data = await metaApi.health();
+      setHealth(data);
+    } catch {
+      setHealth({ status: "error" });
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  const finish = async () => {
+    document.cookie = "onboarding_complete=1; path=/; max-age=31536000; samesite=lax";
+    router.push("/");
+    router.refresh();
+  };
+
+  const next = () => {
+    const idx = stepIndex(step);
+    if (idx < STEPS.length - 1) {
+      const nextStep = STEPS[idx + 1];
+      if (nextStep === "health") void runHealthCheck();
+      setStep(nextStep);
+    } else {
+      void finish();
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto space-y-8 py-8">
+      <div className="flex gap-2">
+        {STEPS.map((s) => (
+          <div
+            key={s}
+            className={`h-1 flex-1 rounded ${stepIndex(s) <= stepIndex(step) ? "bg-sky-400" : "bg-white/10"}`}
+          />
+        ))}
+      </div>
+
+      {step === "welcome" && (
+        <section className="space-y-4">
+          <h1 className="text-2xl font-semibold">Welcome to StreamClip</h1>
+          <p className="text-muted-foreground">
+            Turn long-form streams into vertical clips with AI captions, reframe, and overlays.
+          </p>
+        </section>
+      )}
+
+      {step === "health" && (
+        <section className="space-y-4">
+          <h1 className="text-2xl font-semibold">Stack health</h1>
+          {checking && <p className="text-sm text-muted-foreground">Checking services…</p>}
+          {health && (
+            <pre className="text-xs bg-black/30 p-4 rounded overflow-auto">
+              {JSON.stringify(health, null, 2)}
+            </pre>
+          )}
+          <Button variant="outline" onClick={() => void runHealthCheck()}>
+            Re-check
+          </Button>
+        </section>
+      )}
+
+      {step === "storage" && (
+        <section className="space-y-4">
+          <h1 className="text-2xl font-semibold">Storage</h1>
+          <p className="text-muted-foreground">
+            Clips and uploads are stored locally (MinIO) or your configured S3 bucket.
+            Ensure Docker volumes have enough free space for your typical VOD length.
+          </p>
+        </section>
+      )}
+
+      {step === "ready" && (
+        <section className="space-y-4">
+          <h1 className="text-2xl font-semibold">Create your first clip</h1>
+          <p className="text-sm text-muted-foreground">
+            Try the sample URL below or drag a video file onto the upload zone.
+          </p>
+          <CreateJobForm
+            meta={meta}
+            templates={[]}
+            isAuthenticated={false}
+            defaultSourceUrl={sampleUrl}
+          />
+        </section>
+      )}
+
+      {step === "account" && (
+        <section className="space-y-4">
+          <h1 className="text-2xl font-semibold">Optional account</h1>
+          <p className="text-muted-foreground">
+            Sign in to sync jobs across devices, save templates, and configure webhooks.
+            You can skip and stay anonymous on this device.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => void finish()}>
+              Skip for now
+            </Button>
+            <Button onClick={() => router.push("/register")}>Create account</Button>
+          </div>
+        </section>
+      )}
+
+      {step !== "account" && step !== "ready" && (
+        <Button onClick={next}>Continue</Button>
+      )}
+      {step === "ready" && (
+        <Button onClick={next}>Finish setup</Button>
+      )}
+    </div>
+  );
+}

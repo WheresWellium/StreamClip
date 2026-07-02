@@ -48,7 +48,7 @@ export class ApiClientError extends Error {
 
 async function request<T>(
   path: string,
-  init?: RequestInit & { authToken?: string },
+  init?: RequestInit & { authToken?: string; deviceId?: string },
 ): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has("Content-Type") && init?.body) {
@@ -56,6 +56,9 @@ async function request<T>(
   }
   if (init?.authToken) {
     headers.set("Authorization", `Bearer ${init.authToken}`);
+  }
+  if (init?.deviceId) {
+    headers.set("X-Device-Id", init.deviceId);
   }
 
   const res = await fetch(`${apiBase()}${path}`, {
@@ -89,24 +92,94 @@ async function request<T>(
 // ─── Jobs ─────────────────────────────────────────────────────────────────────
 
 export const jobsApi = {
-  list: (limit = 50, offset = 0, authToken?: string) =>
-    request<JobListResponse>(
-      `/api/jobs?limit=${limit}&offset=${offset}`,
-      { authToken },
-    ),
+  list: (
+    limit = 50,
+    offset = 0,
+    authToken?: string,
+    filters?: { status?: string; search?: string },
+    deviceId?: string,
+  ) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.search) params.set("search", filters.search);
+    return request<JobListResponse>(`/api/jobs?${params}`, { authToken, deviceId });
+  },
 
-  get: (jobId: string, authToken?: string) =>
+  get: (jobId: string, authToken?: string, deviceId?: string) =>
     request<Job>(`/api/jobs/${jobId}`, {
       authToken,
+      deviceId,
       next: { tags: [`job:${jobId}`] },
     }),
 
-  create: (body: CreateJobRequest, authToken?: string) =>
+  create: (body: CreateJobRequest, authToken?: string, deviceId?: string) =>
     request<Job>("/api/jobs", {
       method: "POST",
       body: JSON.stringify(body),
       authToken,
+      deviceId,
     }),
+
+  createBatch: (jobs: CreateJobRequest[], authToken?: string) =>
+    request<{ jobs: Job[] }>("/api/jobs/batch", {
+      method: "POST",
+      body: JSON.stringify({ jobs }),
+      authToken,
+    }),
+
+  updateClip: (
+    jobId: string,
+    clipId: string,
+    body: Record<string, unknown>,
+    authToken?: string,
+  ) =>
+    request<Job>(`/api/jobs/${jobId}/clips/${clipId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
+  spliceClips: (
+    jobId: string,
+    clipIds: string[],
+    transition: "cut" | "crossfade",
+    authToken?: string,
+  ) =>
+    request<{ clip_id: string; job_id: string; status: string }>(
+      `/api/jobs/${jobId}/clips/splice`,
+      {
+        method: "POST",
+        body: JSON.stringify({ clip_ids: clipIds, transition }),
+        authToken,
+      },
+    ),
+
+  batchPublishClips: (
+    jobId: string,
+    body: { platform: string; clip_ids?: string[]; title?: string; description?: string },
+    authToken?: string,
+  ) =>
+    request<{ jobs: PublishJob[]; skipped: number }>(
+      `/api/jobs/${jobId}/clips/batch-publish`,
+      { method: "POST", body: JSON.stringify(body), authToken },
+    ),
+
+  updateClipApproval: (
+    jobId: string,
+    clipId: string,
+    approval_status: "draft" | "approved" | "rejected",
+    authToken?: string,
+    deviceId?: string,
+  ) =>
+    request<{ clip_id: string; approval_status: string }>(
+      `/api/jobs/${jobId}/clips/${clipId}/approval`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ approval_status }),
+        authToken,
+        deviceId,
+      },
+    ),
 
   cancel: (jobId: string, authToken?: string) =>
     request<void>(`/api/jobs/${jobId}`, {
@@ -122,7 +195,7 @@ export const jobsApi = {
 
   clipsZipUrl: (jobId: string): string => `/api/jobs/${jobId}/clips.zip`,
 
-  // SSE URL for client-side EventSource (browser only)
+  // SSE via same-origin BFF route (forwards auth cookies)
   progressUrl: (jobId: string): string => `/api/jobs/${jobId}/progress`,
 };
 
@@ -184,4 +257,201 @@ export const uploadsApi = {
 export const metaApi = {
   health: () => request<Record<string, unknown>>("/api/health"),
   meta: () => request<Record<string, unknown>>("/api/meta"),
+};
+
+export const templatesApi = {
+  list: (authToken?: string) =>
+    request<Array<{ id: string; name: string; config_json: Record<string, unknown> }>>(
+      "/api/templates",
+      { authToken },
+    ),
+  create: (
+    name: string,
+    config_json: Record<string, unknown>,
+    authToken?: string,
+  ) =>
+    request<{ id: string; name: string; config_json: Record<string, unknown> }>(
+      "/api/templates",
+      { method: "POST", body: JSON.stringify({ name, config_json }), authToken },
+    ),
+  delete: (id: string, authToken?: string) =>
+    request<void>(`/api/templates/${id}`, { method: "DELETE", authToken }),
+};
+
+export const settingsApi = {
+  submitClipFeedback: (clipId: string, rating: number, authToken?: string) =>
+    request<{ clip_id: string; rating: number }>(
+      `/api/settings/clips/${clipId}/feedback`,
+      { method: "POST", body: JSON.stringify({ rating }), authToken },
+    ),
+};
+
+export type VaultClip = {
+  id: string;
+  title: string;
+  hook: string;
+  duration_secs: number;
+  status: string;
+  source_clip_id: string | null;
+  source_job_id: string | null;
+  saved_at: string;
+  metadata_json: Record<string, unknown>;
+  video_url: string | null;
+  thumbnail_url: string | null;
+  publish_statuses?: ClipPublishStatus[];
+};
+
+export type ClipPublishStatus = {
+  platform: string;
+  status: string;
+  publish_job_id: string;
+  external_url?: string | null;
+};
+
+export type DistributionPlatform = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  connected: boolean;
+};
+
+export type PlatformConnection = {
+  id: string;
+  platform: string;
+  account_label: string;
+  is_active: boolean;
+};
+
+export type OAuthAppConfig = {
+  platform: string;
+  client_id: string;
+  redirect_uri: string;
+  configured: boolean;
+};
+
+export type PublishJob = {
+  id: string;
+  clip_id: string | null;
+  vault_clip_id: string | null;
+  platform: string;
+  status: string;
+  scheduled_at: string | null;
+  published_at: string | null;
+  external_id: string | null;
+  external_url: string | null;
+  title: string;
+  error_message: string | null;
+  last_error_code: string | null;
+  created_at: string | null;
+};
+
+export const distributionApi = {
+  platforms: (authToken?: string) =>
+    request<DistributionPlatform[]>("/api/distribution/platforms", { authToken }),
+
+  connections: (authToken?: string) =>
+    request<PlatformConnection[]>("/api/distribution/connections", { authToken }),
+
+  publishJobs: (authToken?: string) =>
+    request<PublishJob[]>("/api/distribution/publish-jobs", { authToken }),
+
+  publish: (
+    body: {
+      clip_id?: string;
+      vault_clip_id?: string;
+      platform: string;
+      title?: string;
+      description?: string;
+      scheduled_at?: string;
+      idempotency_key?: string;
+    },
+    authToken?: string,
+  ) =>
+    request<PublishJob>("/api/distribution/publish", {
+      method: "POST",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
+  schedule: (
+    body: {
+      clip_id?: string;
+      vault_clip_id?: string;
+      platform: string;
+      scheduled_at: string;
+      title?: string;
+      description?: string;
+    },
+    authToken?: string,
+  ) =>
+    request<PublishJob>("/api/distribution/schedule", {
+      method: "POST",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
+  getPublishJob: (publishJobId: string, authToken?: string) =>
+    request<PublishJob>(`/api/distribution/publish-jobs/${publishJobId}`, { authToken }),
+
+  retryPublishJob: (publishJobId: string, authToken?: string) =>
+    request<PublishJob>(`/api/distribution/publish-jobs/${publishJobId}/retry`, {
+      method: "POST",
+      authToken,
+    }),
+
+  cancelPublishJob: (publishJobId: string, authToken?: string) =>
+    request<PublishJob>(`/api/distribution/publish-jobs/${publishJobId}/cancel`, {
+      method: "POST",
+      authToken,
+    }),
+
+  publishProgressUrl: (publishJobId: string): string =>
+    `/api/distribution/publish-jobs/${publishJobId}/progress`,
+
+  oauthApps: (authToken?: string) =>
+    request<OAuthAppConfig[]>("/api/distribution/oauth-apps", { authToken }),
+
+  updateOAuthApp: (
+    platform: string,
+    body: { client_id: string; client_secret: string; redirect_uri?: string },
+    authToken?: string,
+  ) =>
+    request<OAuthAppConfig>(`/api/distribution/oauth-apps/${platform}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
+  oauthStart: (platform: string, authToken?: string) =>
+    request<{ auth_url: string; platform: string }>(
+      `/api/distribution/oauth/${platform}/start`,
+      { authToken },
+    ),
+
+  disconnect: (connectionId: string, authToken?: string) =>
+    request<void>(`/api/distribution/connections/${connectionId}`, {
+      method: "DELETE",
+      authToken,
+    }),
+};
+
+export const vaultApi = {
+  list: (authToken?: string) =>
+    request<VaultClip[]>("/api/vault/clips", { authToken }),
+
+  quota: (authToken?: string) =>
+    request<{ used: number; limit: number }>("/api/vault/quota", { authToken }),
+
+  save: (clipId: string, title?: string, authToken?: string) =>
+    request<VaultClip>("/api/vault/clips", {
+      method: "POST",
+      body: JSON.stringify({ clip_id: clipId, title }),
+      authToken,
+    }),
+
+  remove: (vaultClipId: string, authToken?: string) =>
+    request<void>(`/api/vault/clips/${vaultClipId}`, {
+      method: "DELETE",
+      authToken,
+    }),
 };

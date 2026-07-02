@@ -321,6 +321,11 @@ def apply_overlays(
         (path_to_output, list_of_applied_overlays)
     """
     ocfg: OverlayConfig = cfg.overlay
+    if not ocfg.enabled:
+        import shutil
+        shutil.copy2(clip_path, output_path)
+        return output_path, []
+
     assets_dir = ocfg.assets_dir
 
     # ── Load assets ───────────────────────────────────────────────────────

@@ -1,0 +1,44 @@
+{
+  "name": "streamclip-desktop",
+  "version": "1.0.0",
+  "description": "StreamClip desktop tray app — Docker lifecycle + browser launcher",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "io.streamclip.desktop",
+    "productName": "StreamClip",
+    "directories": {
+      "output": "release"
+    },
+    "files": ["dist/**/*", "assets/**/*"],
+    "publish": {
+      "provider": "github",
+      "owner": "streamclip",
+      "repo": "streamclip"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "mac": {
+      "target": ["dmg"]
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
+  }
+}

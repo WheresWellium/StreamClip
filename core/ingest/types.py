@@ -58,6 +58,7 @@ class IngestResult:
     processing_tier: ProcessingTier
     storage_key: str | None = None
     pipeline_hints: dict[str, Any] = field(default_factory=dict)
+    file_size_bytes: int | None = None
 
     def to_snapshot(self) -> dict[str, Any]:
         """Merge into job config_snapshot for downstream stages."""

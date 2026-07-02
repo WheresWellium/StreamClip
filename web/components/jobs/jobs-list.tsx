@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import {
   Card,
   CardContent,
@@ -7,20 +9,24 @@ import {
 } from "@/components/ui/card";
 import { SectionLegend } from "@/components/ui/section-legend";
 import { JobListRow } from "@/components/jobs/job-list-row";
+import { JobsListFilters } from "@/components/jobs/jobs-list-filters";
 import { jobsApi } from "@/lib/api/client";
 import type { JobListItem } from "@/lib/api/types";
-import { getAccessToken } from "@/lib/auth/session";
+import { getAccessToken, getDeviceId } from "@/lib/auth/session";
 
-/**
- * Server Component — fetches the job list on the server and renders the
- * static HTML. The user gets paint instantly; no client-side data fetch
- * waterfall. Cache is tagged so Server Actions can invalidate it.
- */
-export async function JobsList() {
+type Props = {
+  searchParams?: { search?: string; status?: string };
+};
+
+export async function JobsList({ searchParams }: Props) {
   let jobs: JobListItem[];
   try {
     const token = await getAccessToken();
-    const data = await jobsApi.list(50, 0, token);
+    const deviceId = await getDeviceId();
+    const data = await jobsApi.list(50, 0, token, {
+      search: searchParams?.search,
+      status: searchParams?.status,
+    }, deviceId);
     jobs = data.jobs;
   } catch (err) {
     return (
@@ -35,19 +41,6 @@ export async function JobsList() {
     );
   }
 
-  if (jobs.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent jobs</CardTitle>
-          <CardDescription>
-            No jobs yet — paste a URL above to create your first.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -55,7 +48,7 @@ export async function JobsList() {
           <CardTitle>Recent jobs</CardTitle>
           <SectionLegend
             title="List"
-            tip="Pipeline runs newest first. Hover any status badge or metric for what it means."
+            tip="Pipeline runs newest first. Filter by status or search."
             className="normal-case tracking-normal"
           />
         </div>
@@ -63,12 +56,24 @@ export async function JobsList() {
           {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
         </CardDescription>
       </CardHeader>
+      <Suspense fallback={null}>
+        <JobsListFilters />
+      </Suspense>
       <CardContent className="p-0">
-        <div className="divide-y divide-border/60">
-          {jobs.map((job) => (
-            <JobListRow key={job.id} job={job} />
-          ))}
-        </div>
+        {jobs.length === 0 ? (
+          <div className="px-6 py-8 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">No jobs yet.</p>
+            <p className="text-xs text-muted-foreground/80">
+              Paste a stream URL above or upload a video to create your first clip.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/5">
+            {jobs.map((job) => (
+              <JobListRow key={job.id} job={job} />
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-import { AppTooltipProvider } from "@/components/providers/tooltip-provider";
-import { HeaderNav } from "@/components/layout/header-nav";
+import { ClientProviders } from "@/components/providers/client-providers";
+import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
+import { AuthExtras } from "@/components/auth/auth-extras";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500"] });
 
@@ -24,19 +25,21 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AppTooltipProvider>
-          <div className="min-h-screen bg-background">
-          <header className="border-b border-border/40 bg-background/60 backdrop-blur sticky top-0 z-40">
+        <ClientProviders>
+          <AuthExtras />
+          <div className="min-h-screen hero-gradient">
+          <header className="border-b border-white/10 bg-background/40 backdrop-blur-xl sticky top-0 z-40">
             <div className="container flex h-14 items-center justify-between">
               <a
                 href="/"
-                className="flex items-center gap-2 text-sm font-medium"
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-sky-400 transition-colors"
               >
                 <svg
                   width="20"
                   height="20"
                   viewBox="0 0 24 24"
                   fill="none"
+                  className="text-sky-400"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -48,13 +51,13 @@ export default function RootLayout({
                 StreamClip
               </a>
               <nav className="flex items-center gap-4 text-sm">
-                <HeaderNav />
+                <HeaderNavWrapper />
               </nav>
             </div>
           </header>
           <main className="container py-8">{children}</main>
           </div>
-        </AppTooltipProvider>
+        </ClientProviders>
       </body>
     </html>
   );

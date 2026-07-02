@@ -9,10 +9,10 @@ const Input = React.forwardRef<
 >(({ className, type, ...props }, ref) => (
   <input
     type={type}
-    className={cn(
-      "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-      className,
-    )}
+      className={cn(
+        "flex h-9 w-full rounded-md border border-white/10 bg-black/20 px-3 py-1 text-sm shadow-inner transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400/60 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
     ref={ref}
     {...props}
   />
@@ -44,10 +44,10 @@ const Select = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <select
     ref={ref}
-    className={cn(
-      "flex h-9 w-full items-center rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-      className,
-    )}
+      className={cn(
+      "flex h-9 w-full items-center rounded-md border border-white/10 bg-black/20 px-3 py-1 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-sky-400/60 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
     {...props}
   >
     {children}
@@ -84,7 +84,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     <div
       ref={ref}
       className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full bg-secondary",
+        "relative h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5",
         className,
       )}
       role="progressbar"
@@ -94,7 +94,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       {...props}
     >
       <div
-        className="h-full bg-primary transition-all duration-500 ease-out"
+        className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-400 transition-all duration-500 ease-out progress-bar shadow-[0_0_8px_rgba(56,189,248,0.4)]"
         style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
       />
     </div>

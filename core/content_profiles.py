@@ -10,7 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-ContentProfile = Literal["gaming", "irl", "podcast", "esports", "general"]
+ContentProfile = Literal[
+    "gaming", "irl", "podcast", "esports", "general",
+    "vlog", "education", "sports", "music",
+]
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,42 @@ _PROFILES: dict[ContentProfile, ProfileWeights] = {
         peak_min_height=0.52,
         peak_merge_gap_secs=100.0,
     ),
+    "vlog": ProfileWeights(
+        weight_audio_energy=0.32,
+        weight_spectral_novelty=0.18,
+        weight_optical_flow=0.12,
+        weight_chat_spikes=0.03,
+        weight_llm_virality=0.35,
+        peak_min_height=0.50,
+        peak_merge_gap_secs=110.0,
+    ),
+    "education": ProfileWeights(
+        weight_audio_energy=0.38,
+        weight_spectral_novelty=0.22,
+        weight_optical_flow=0.05,
+        weight_chat_spikes=0.0,
+        weight_llm_virality=0.35,
+        peak_min_height=0.47,
+        peak_merge_gap_secs=140.0,
+    ),
+    "sports": ProfileWeights(
+        weight_audio_energy=0.32,
+        weight_spectral_novelty=0.12,
+        weight_optical_flow=0.28,
+        weight_chat_spikes=0.03,
+        weight_llm_virality=0.25,
+        peak_min_height=0.56,
+        peak_merge_gap_secs=70.0,
+    ),
+    "music": ProfileWeights(
+        weight_audio_energy=0.45,
+        weight_spectral_novelty=0.30,
+        weight_optical_flow=0.10,
+        weight_chat_spikes=0.0,
+        weight_llm_virality=0.15,
+        peak_min_height=0.54,
+        peak_merge_gap_secs=80.0,
+    ),
 }
 
 
@@ -79,30 +118,6 @@ def get_profile(name: str | None) -> ProfileWeights:
 
 
 def list_profiles() -> list[dict[str, str]]:
-    return [
-        {
-            "id": "gaming",
-            "label": "Gaming / Twitch",
-            "description": "Fast action, chat spikes, motion-heavy gameplay.",
-        },
-        {
-            "id": "irl",
-            "label": "IRL / Just Chatting",
-            "description": "Talking head, reactions, conversational peaks.",
-        },
-        {
-            "id": "podcast",
-            "label": "Podcast / Interview",
-            "description": "Dialogue-driven; minimal motion weighting.",
-        },
-        {
-            "id": "esports",
-            "label": "Esports / Casted",
-            "description": "Caster hype + on-screen action + chat.",
-        },
-        {
-            "id": "general",
-            "label": "General",
-            "description": "Balanced defaults for mixed content.",
-        },
-    ]
+    from core.creator_options import list_content_profiles
+
+    return list_content_profiles()

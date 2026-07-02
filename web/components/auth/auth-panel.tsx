@@ -1,8 +1,9 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { LogOut } from "lucide-react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
   loginAction,
@@ -27,10 +28,29 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
-export function AuthPanel({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+function AuthPanelSignedIn() {
+  return (
+    <div className="glossy-surface p-4 flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium">Signed in</p>
+        <p className="text-xs text-muted-foreground">
+          Templates and webhooks are available in settings.
+        </p>
+      </div>
+      <form action={logoutAction}>
+        <Button type="submit" variant="outline" size="sm">
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+function AuthPanelSignedOut() {
   const router = useRouter();
-  const [loginState, loginFormAction] = useFormState(loginAction, initial);
-  const [registerState, registerFormAction] = useFormState(registerAction, initial);
+  const [loginState, loginFormAction] = useActionState(loginAction, initial);
+  const [registerState, registerFormAction] = useActionState(registerAction, initial);
 
   useEffect(() => {
     if (loginState.status === "ok" || registerState.status === "ok") {
@@ -39,17 +59,8 @@ export function AuthPanel({ isAuthenticated = false }: { isAuthenticated?: boole
   }, [loginState.status, registerState.status, router]);
 
   return (
-    <div className="rounded-lg border border-border/60 bg-card p-4 space-y-4 max-w-md">
-      <div className="flex items-center justify-between gap-2">
-        <SectionLegend title="Account" tip={AUTH_LEGEND.privacy} className="normal-case tracking-normal" />
-        {isAuthenticated && (
-          <form action={logoutAction}>
-            <Button type="submit" variant="ghost" size="sm">
-              Sign out
-            </Button>
-          </form>
-        )}
-      </div>
+    <div className="glossy-surface p-4 space-y-4">
+      <SectionLegend title="Account" tip={AUTH_LEGEND.privacy} className="normal-case tracking-normal" />
       <div className="grid sm:grid-cols-2 gap-4">
         <form action={loginFormAction} className="space-y-2">
           <p className="text-sm font-medium">Sign in</p>
@@ -88,4 +99,11 @@ export function AuthPanel({ isAuthenticated = false }: { isAuthenticated?: boole
       </div>
     </div>
   );
+}
+
+export function AuthPanel({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+  if (isAuthenticated) {
+    return <AuthPanelSignedIn />;
+  }
+  return <AuthPanelSignedOut />;
 }

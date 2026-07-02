@@ -15,17 +15,27 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
+    BatchCreateJobRequest,
+    BatchCreateJobResponse,
     ClipOut,
     ClipOverlayOut,
+    ClipPublishStatusOut,
     CreateJobRequest,
     JobOut,
+    PublishClipRequest,
+    PublishClipResponse,
+    SpliceClipsRequest,
+    SpliceClipsResponse,
+    UpdateClipRequest,
     UploadInitRequest,
     UploadInitResponse,
 )
-from backend.db.models import Clip, Job, JobStatus
-from backend.db.repositories import ClipRepository, JobRepository, UserRepository
+from backend.db.models import Clip, ClipStatus, Job, JobStatus
+from backend.db.repositories import ClipRepository, DeviceRepository, JobRepository, PublishJobRepository, UserRepository
+from backend.middleware.scope import RequestScope
 from core.config import Settings
-from core.errors import InvalidSourceError, JobNotFoundError, QuotaExceededError
+from core.billing import get_tier_limits
+from core.errors import InvalidSourceError, JobNotFoundError, QuotaExceededError, StreamClipError
 from core.storage import Storage, upload_key
 
 log = structlog.get_logger(__name__)
@@ -40,22 +50,35 @@ class JobService:
         self.storage = storage
         self.jobs = JobRepository(db)
         self.clips = ClipRepository(db)
+        self.publish_jobs = PublishJobRepository(db)
         self.users = UserRepository(db)
+        self.devices = DeviceRepository(db)
 
     async def create_job(
         self,
         request: CreateJobRequest,
-        owner_id: str | None,
+        scope: RequestScope,
     ) -> Job:
         if not request.source_url and not request.source_upload_key:
             raise InvalidSourceError("Must provide source_url OR source_upload_key")
+
+        owner_id = scope.user_id
+        device_id: str | None = None
+        if owner_id is None and scope.device_id:
+            await self.devices.upsert(scope.device_id)
+            device_id = scope.device_id
 
         # Quota check
         if owner_id:
             user = await self.users.get(owner_id)
             if user and self.cfg.rate_limit.enabled:
-                if user.jobs_used_this_month >= self.cfg.rate_limit.jobs_per_hour * 24 * 30:
+                limits = get_tier_limits(user.tier)
+                if user.jobs_used_this_month >= limits.max_jobs_per_month:
                     raise QuotaExceededError("Monthly job quota exceeded")
+                if request.target_clips > limits.max_target_clips:
+                    raise QuotaExceededError(
+                        f"Your plan allows up to {limits.max_target_clips} clips per job",
+                    )
 
         # Snapshot the config the job will use. This freezes settings so
         # later config changes don't break repeatability.
@@ -71,9 +94,11 @@ class JobService:
 
         job = await self.jobs.create(
             owner_id=owner_id,
+            device_id=device_id,
             source_url=request.source_url,
             source_storage_key=request.source_upload_key,
             config_snapshot=config_snapshot,
+            asset_pack_id=request.asset_pack_id,
             status=JobStatus.QUEUED,
             current_stage="queued",
             progress=0.0,
@@ -83,8 +108,13 @@ class JobService:
         log.info("job_created", job_id=job.id, owner=owner_id)
         return job
 
-    async def get_job(self, job_id: str, *, owner_id: str | None) -> Job:
-        job = await self.jobs.get_for_owner(job_id, owner_id)
+    async def get_job(self, job_id: str, *, scope: RequestScope) -> Job:
+        job = await self.jobs.get_for_scope(
+            job_id,
+            owner_id=scope.user_id,
+            device_id=scope.device_id,
+            device_scoped=self.cfg.auth.device_scoped_anonymous,
+        )
         if job is None:
             raise JobNotFoundError(f"Job {job_id} not found")
         # Eager-load clips
@@ -92,15 +122,33 @@ class JobService:
 
     async def list_jobs(
         self,
-        owner_id: str | None,
+        scope: RequestScope,
         *,
         limit: int = 50,
         offset: int = 0,
+        status: str | None = None,
+        search: str | None = None,
     ) -> list[Job]:
-        return await self.jobs.list_for_owner(owner_id, limit=limit, offset=offset)
+        from backend.db.models import JobStatus
 
-    async def cancel_job(self, job_id: str, owner_id: str | None) -> None:
-        job = await self.jobs.get_for_owner(job_id, owner_id)
+        job_status = JobStatus(status) if status else None
+        return await self.jobs.list_for_scope(
+            owner_id=scope.user_id,
+            device_id=scope.device_id,
+            device_scoped=self.cfg.auth.device_scoped_anonymous,
+            limit=limit,
+            offset=offset,
+            status=job_status,
+            search=search,
+        )
+
+    async def cancel_job(self, job_id: str, scope: RequestScope) -> None:
+        job = await self.jobs.get_for_scope(
+            job_id,
+            owner_id=scope.user_id,
+            device_id=scope.device_id,
+            device_scoped=self.cfg.auth.device_scoped_anonymous,
+        )
         if job is None:
             raise JobNotFoundError(f"Job {job_id} not found")
         if job.celery_task_id:
@@ -127,6 +175,18 @@ class JobService:
             dto.overlays = [
                 ClipOverlayOut.model_validate(ov) for ov in clip.overlays
             ]
+            publish_rows = PublishJobRepository.latest_per_platform(
+                await self.publish_jobs.list_for_clip(clip.id),
+            )
+            dto.publish_statuses = [
+                ClipPublishStatusOut(
+                    platform=pj.platform,
+                    status=pj.status,
+                    publish_job_id=pj.id,
+                    external_url=pj.external_url,
+                )
+                for pj in publish_rows
+            ]
             clip_dtos.append(dto)
 
         return JobOut(
@@ -143,27 +203,124 @@ class JobService:
         job_id: str,
         clip_id: str,
         *,
-        owner_id: str | None,
+        scope: RequestScope,
     ) -> str:
-        from backend.db.models import ClipStatus
-        from core.errors import StreamClipError
-
-        job = await self.get_job(job_id, owner_id=owner_id)
+        job = await self.get_job(job_id, scope=scope)
         clip = next((c for c in job.clips if c.id == clip_id), None)
         if clip is None:
-            raise StreamClipError(
+            exc = StreamClipError(
                 f"Clip {clip_id} not found",
-                code="clip_not_found",
-                http_status=404,
+                user_message="Clip not found",
             )
+            exc.code = "clip_not_found"
+            exc.http_status = 404
+            raise exc
         if clip.status != ClipStatus.DONE:
-            raise StreamClipError(
+            exc = StreamClipError(
                 "Clip is not finished rendering",
-                code="clip_not_ready",
                 user_message="Wait until this clip finishes before re-rendering.",
             )
+            exc.code = "clip_not_ready"
+            exc.http_status = 409
+            raise exc
         await self.clips.reset_for_regenerate(clip_id)
         return clip_id
+
+    async def update_clip(
+        self,
+        job_id: str,
+        clip_id: str,
+        body: UpdateClipRequest,
+        *,
+        scope: RequestScope,
+    ) -> Clip:
+        job = await self.get_job(job_id, scope=scope)
+        clip = next((c for c in job.clips if c.id == clip_id), None)
+        if clip is None:
+            exc = StreamClipError("Clip not found", user_message="Clip not found")
+            exc.code = "clip_not_found"
+            exc.http_status = 404
+            raise exc
+
+        overrides: dict[str, object] = dict(clip.render_overrides or {})
+        if body.caption_style is not None:
+            overrides["caption_style"] = body.caption_style
+        if body.reframe_preset is not None:
+            overrides["reframe_preset"] = body.reframe_preset
+        if body.overlay_enabled is not None:
+            overrides["overlay_enabled"] = body.overlay_enabled
+
+        start = body.start_secs if body.start_secs is not None else clip.start_secs
+        end = body.end_secs if body.end_secs is not None else clip.end_secs
+        if end <= start:
+            raise StreamClipError(
+                "end_secs must be greater than start_secs",
+                user_message="Clip end must be after start.",
+            )
+        if clip.status == ClipStatus.PROCESSING:
+            raise StreamClipError(
+                "Clip is currently rendering",
+                user_message="Wait until this clip finishes before editing.",
+            )
+
+        title = body.title.strip() if body.title is not None else None
+        hook = body.hook if body.hook is not None else None
+
+        await self.clips.update_boundaries(
+            clip_id,
+            start_secs=start,
+            end_secs=end,
+            title=title,
+            hook=hook,
+            render_overrides=overrides,
+        )
+        if body.rerender and clip.status == ClipStatus.DONE:
+            await self.clips.reset_for_regenerate(clip_id)
+        await self.db.flush()
+        updated = await self.clips.get(clip_id)
+        if updated is None:
+            raise StreamClipError("Clip not found")
+        return updated
+
+    async def splice_clips(
+        self,
+        job_id: str,
+        clip_ids: list[str],
+        *,
+        scope: RequestScope,
+        transition: str = "cut",
+    ) -> Clip:
+        job = await self.get_job(job_id, scope=scope)
+        selected = [c for c in job.clips if c.id in clip_ids and c.kind != "splice"]
+        if len(selected) < 2:
+            raise StreamClipError(
+                "Need at least two finished clips to splice",
+                user_message="Select two or more rendered clips.",
+            )
+        for c in selected:
+            if c.status != ClipStatus.DONE or not c.final_storage_key:
+                raise StreamClipError(
+                    "All clips must be fully rendered before splicing",
+                    user_message="Wait for clips to finish rendering.",
+                )
+
+        rank = max((c.rank for c in job.clips), default=0) + 1
+        splice_clip = await self.clips.create(
+            job_id=job_id,
+            rank=rank,
+            start_secs=min(c.start_secs for c in selected),
+            end_secs=max(c.end_secs for c in selected),
+            title="Merged highlight",
+            hook=" ".join(c.hook for c in selected if c.hook)[:500],
+            emotion=selected[0].emotion,
+            transcript_text=" ".join(c.transcript_text for c in selected if c.transcript_text),
+            kind="splice",
+            parent_clip_ids=[c.id for c in selected],
+            status=ClipStatus.PENDING,
+        )
+        splice_clip.render_overrides = {"transition": transition}
+        await self.db.flush()
+        return splice_clip
 
     def build_clips_zip(self, job: Job) -> bytes:
         from core.export_bundle import build_job_clips_zip
@@ -180,10 +337,10 @@ class UploadService:
     async def init_upload(
         self,
         request: UploadInitRequest,
-        owner_id: str | None,
+        scope: RequestScope,
     ) -> UploadInitResponse:
         upload_id = uuid.uuid4().hex
-        owner = owner_id or "anonymous"
+        owner = scope.user_id or scope.device_id or "anonymous"
 
         # Sanitise filename
         safe_name = "".join(

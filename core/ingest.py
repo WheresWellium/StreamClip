@@ -29,7 +29,7 @@ def download(
     from core.ingest.types import ProcessingTier
 
     tier = classify_url(url)
-    return download_url(url, cfg, tier=tier, on_progress=on_progress)
+    return download_url(url, cfg, tier=tier, on_progress=on_progress)[0]
 
 
 def ingest_local(path: str | Path, cfg: Settings) -> VideoMeta:

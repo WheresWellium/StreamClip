@@ -36,6 +36,7 @@ from backend.db.session import db_session
 from backend.services.job_service import JobService
 from backend.services.sse import stream_job_progress
 from core.config import get_settings
+from core.creator_options import CAPTION_STYLE_IDS, REFRAME_PRESET_IDS
 from core.storage import make_storage, upload_key
 from core.tasks.pipeline_tasks import start_pipeline
 
@@ -168,10 +169,10 @@ async def _print_summary(job_id: str) -> None:
 @click.argument("source")
 @click.option("--clips", default=5, show_default=True, help="Number of clips to generate")
 @click.option("--style", default="gaming_impact", show_default=True,
-              type=click.Choice(["gaming_impact", "tiktok_pop", "minimal_white", "podcast_clean"]),
+              type=click.Choice(list(CAPTION_STYLE_IDS)),
               help="Caption style")
 @click.option("--preset", default="fps_game", show_default=True,
-              type=click.Choice(["fps_game", "moba", "battle_royale", "irl", "podcast", "auto"]),
+              type=click.Choice(list(REFRAME_PRESET_IDS)),
               help="Reframe preset")
 @click.option("--watch/--no-watch", default=True,
               help="Tail the progress stream until done")

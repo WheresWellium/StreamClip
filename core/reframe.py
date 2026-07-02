@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 import structlog
 
-from core.config import Settings, ReframeConfig, ExportConfig
+from core.config import Settings, ReframeConfig, ExportConfig, get_settings
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
 from core.models import ClipCandidate
 
@@ -73,6 +73,21 @@ PRESETS: dict[str, _Preset] = {
         yolo_conf=0.50, track_classes=[0], smooth_window=90,
         max_pan_velocity=0.01, hud_bottom=0.0, hud_top=0.0,
     ),
+    # Sports: follows athletes, moderate-fast pans, no HUD reserves
+    "sports_action": _Preset(
+        yolo_conf=0.48, track_classes=[0], smooth_window=70,
+        max_pan_velocity=0.07, hud_bottom=0.0, hud_top=0.0,
+    ),
+    # Webinars / slides: minimal movement, center-weighted
+    "presentation": _Preset(
+        yolo_conf=0.35, track_classes=[0], smooth_window=120,
+        max_pan_velocity=0.008, hud_bottom=0.0, hud_top=0.0,
+    ),
+    # Scenic B-roll: very slow, gentle pans
+    "cinematic_wide": _Preset(
+        yolo_conf=0.38, track_classes=[0], smooth_window=150,
+        max_pan_velocity=0.015, hud_bottom=0.0, hud_top=0.0,
+    ),
 }
 
 
@@ -96,7 +111,7 @@ def _smooth_path(
     # Gaussian smoothing
     kernel_size = max(3, window | 1)  # must be odd
     sigma = window / 6.0
-    smoothed = cv2.GaussianBlur(arr.reshape(1, -1, 1), (1, kernel_size, 1), sigma)
+    smoothed = cv2.GaussianBlur(arr.reshape(1, -1), (kernel_size, 1), sigma)
     smoothed = smoothed.reshape(-1)
 
     # Velocity clamp

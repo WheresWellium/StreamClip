@@ -44,16 +44,28 @@ class IngestService:
         self,
         request: IngestRequest,
         on_progress: Callable[[float], None] | None = None,
+        on_message: Callable[[str], None] | None = None,
     ) -> IngestResult:
         local_path = self._workspace_source(request.job_id)
         kind = request.kind
+        defer_upload = self.cfg.ingest.defer_source_upload
+        file_size_bytes: int | None = None
 
         if kind == SourceKind.UPLOAD:
             assert request.storage_key
+            if on_message:
+                on_message("Copying upload from storage")
+            try:
+                file_size_bytes = self.storage.size(request.storage_key)
+            except Exception:
+                file_size_bytes = None
             meta = download_from_storage(
                 request.storage_key, local_path, self.cfg, self.storage,
+                on_progress=on_progress,
             )
             storage_key = request.storage_key
+            if file_size_bytes is None and local_path.exists():
+                file_size_bytes = local_path.stat().st_size
 
         elif kind == SourceKind.URL:
             assert request.source_url
@@ -62,23 +74,37 @@ class IngestService:
                 url = f"https://{url.removeprefix('www.')}"
 
             pre_tier = resolve_tier(source_kind=kind, url=url)
-            cached_meta = download_url(
+            if on_message:
+                on_message("Downloading source")
+            cached_meta, was_cache_hit = download_url(
                 url, self.cfg, tier=pre_tier, on_progress=on_progress,
             )
+            if was_cache_hit and on_message:
+                on_message("Using cached download")
+            if on_message:
+                on_message("Saving to workspace")
             self._materialize_to_workspace(cached_meta.path, local_path)
             meta = VideoMeta(**{**vars(cached_meta), "path": local_path, "url": url})
 
-            # Durable copy in job prefix (async-safe; single upload)
             storage_key = job_key(request.job_id, "source", CANONICAL_SOURCE_NAME)
-            if not self.storage.exists(storage_key):
+            if (
+                not defer_upload
+                and not self.storage.exists(storage_key)
+                and local_path.exists()
+            ):
+                if on_message:
+                    on_message("Uploading archive")
                 self.storage.upload(storage_key, local_path, content_type="video/mp4")
 
         else:
             assert request.local_path
             meta = resolve_local(Path(request.local_path), local_path, self.cfg)
             storage_key = job_key(request.job_id, "source", CANONICAL_SOURCE_NAME)
-            if not self.storage.exists(storage_key):
+            if not defer_upload and not self.storage.exists(storage_key):
                 self.storage.upload(storage_key, local_path, content_type="video/mp4")
+
+        if on_message:
+            on_message("Probing video")
 
         tier = resolve_tier(
             source_kind=kind,
@@ -94,16 +120,19 @@ class IngestService:
             tier=tier.value,
             duration_secs=meta.duration,
             storage_key=storage_key,
+            defer_upload=defer_upload,
         )
 
-        return IngestResult(
+        result = IngestResult(
             meta=meta,
             local_path=local_path,
             source_kind=kind,
             processing_tier=tier,
             storage_key=storage_key,
             pipeline_hints=hints,
+            file_size_bytes=file_size_bytes,
         )
+        return result
 
     @staticmethod
     def _materialize_to_workspace(src: Path, dest: Path) -> None:
@@ -113,7 +142,7 @@ class IngestService:
             return
         try:
             src.link(dest)  # hardlink when possible
-        except OSError:
+        except (OSError, AttributeError):
             shutil.copy2(src, dest)
 
     def _pipeline_hints(self, tier) -> dict:

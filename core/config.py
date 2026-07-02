@@ -11,8 +11,13 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from core.creator_options import (
+    is_valid_caption_style,
+    is_valid_reframe_preset,
+)
 
 
 # ─── ML sub-configs ───────────────────────────────────────────────────────────
@@ -70,7 +75,7 @@ class HighlightConfig(BaseModel):
 
 
 class ReframeConfig(BaseModel):
-    preset: Literal["fps_game", "moba", "battle_royale", "irl", "podcast", "auto"] = "fps_game"
+    preset: str = "fps_game"
     target_width: int = 1080
     target_height: int = 1920
     smooth_window_frames: int = Field(60, ge=60)
@@ -79,9 +84,16 @@ class ReframeConfig(BaseModel):
     hud_top_reserve: float = 0.08
     fallback_center_crop: bool = True
 
+    @field_validator("preset")
+    @classmethod
+    def _validate_preset(cls, v: str) -> str:
+        if not is_valid_reframe_preset(v):
+            raise ValueError(f"Invalid reframe preset: {v}")
+        return v
+
 
 class CaptionConfig(BaseModel):
-    style: Literal["gaming_impact", "minimal_white", "tiktok_pop", "podcast_clean"] = "gaming_impact"
+    style: str = "gaming_impact"
     font_size: int = Field(72, ge=24, le=120)
     max_chars_per_line: int = 25
     words_per_group: int = 3
@@ -95,8 +107,16 @@ class CaptionConfig(BaseModel):
     min_word_probability: float = Field(0.25, ge=0.0, le=1.0)
     word_hold_secs: float = Field(0.06, ge=0.0, le=0.5)
 
+    @field_validator("style")
+    @classmethod
+    def _validate_style(cls, v: str) -> str:
+        if not is_valid_caption_style(v):
+            raise ValueError(f"Invalid caption style: {v}")
+        return v
+
 
 class OverlayConfig(BaseModel):
+    enabled: bool = True
     assets_dir: Path = Path("assets")
     semantic_threshold: float = Field(0.55, ge=0.0, le=1.0)
     max_overlays_per_clip: int = 2
@@ -121,7 +141,9 @@ class IngestConfig(BaseModel):
     short_max_height: int = Field(720, ge=360, le=1080)
     medium_max_height: int = Field(1080, ge=480, le=1440)
     long_max_height: int = Field(1080, ge=720, le=2160)
-    fetch_subs_on_long: bool = True
+    fetch_subs_on_long: bool = False
+    defer_source_upload: bool = True
+    ytdlp_concurrent_fragments: int = Field(4, ge=1, le=16)
     short_skip_optical_flow: bool = True
     medium_skip_optical_flow: bool = False
     short_min_clip_duration: float = Field(5.0, ge=3.0)
@@ -144,6 +166,7 @@ class StorageConfig(BaseModel):
 class RedisConfig(BaseModel):
     url: str = "redis://localhost:6379/0"
     pubsub_channel_prefix: str = "streamclip:job:"
+    publish_pubsub_channel_prefix: str = "streamclip:publish:"
     progress_ttl_secs: int = 3600
     max_connections: int = 50
 
@@ -179,6 +202,38 @@ class AuthConfig(BaseModel):
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_days: int = 30
     allow_anonymous: bool = True
+    device_scoped_anonymous: bool = True
+
+
+class OnboardingConfig(BaseModel):
+    sample_url: str = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+    enabled: bool = True
+
+
+class LicensingConfig(BaseModel):
+    enabled: bool = True
+    public_key_pem: str = ""
+    license_file: Path = Path("workspace/.streamclip-license.json")
+    offline_grace_days: int = Field(7, ge=1, le=30)
+    max_activations: int = Field(3, ge=1, le=10)
+
+
+class CommerceConfig(BaseModel):
+    lemon_squeezy_api_key: str = ""
+    lemon_squeezy_webhook_secret: str = ""
+    lemon_squeezy_store_id: str = ""
+
+
+class DistributionConfig(BaseModel):
+    mode: Literal["byo", "managed"] = "byo"
+    token_encryption_key: str = ""
+    web_origin: str = "http://localhost:3000"
+    youtube_publish_enabled: bool = True
+    tiktok_publish_enabled: bool = False
+    youtube_client_id: str = ""
+    youtube_client_secret: str = ""
+    tiktok_client_key: str = ""
+    tiktok_client_secret: str = ""
 
 
 class JobRetentionConfig(BaseModel):
@@ -248,6 +303,10 @@ class Settings(BaseSettings):
     database: DatabaseConfig = DatabaseConfig()
     celery: CeleryConfig = CeleryConfig()
     auth: AuthConfig = AuthConfig()
+    onboarding: OnboardingConfig = OnboardingConfig()
+    licensing: LicensingConfig = LicensingConfig()
+    commerce: CommerceConfig = CommerceConfig()
+    distribution: DistributionConfig = DistributionConfig()
     job_retention: JobRetentionConfig = JobRetentionConfig()
     cors: CORSConfig = CORSConfig()
     rate_limit: RateLimitConfig = RateLimitConfig()

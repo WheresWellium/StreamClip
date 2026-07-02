@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
     AuthResponse,
+    ClaimDeviceRequest,
+    ClaimDeviceResponse,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -27,12 +29,12 @@ from backend.middleware.auth import (
     create_refresh_token,
     decode_token,
     get_current_user_id,
-    hash_password,
+    get_device_id,
     require_user_id,
-    verify_password,
 )
-from backend.middleware.rate_limit import rate_limit_request
 from backend.services.auth_service import AuthService
+from backend.middleware.rate_limit import rate_limit_request
+from backend.db.repositories import DeviceRepository
 from core.config import get_settings
 from core.errors import AuthError
 
@@ -121,3 +123,24 @@ async def me(
     svc = _get_service(db)
     user = await svc.get_active_user(user_id)
     return UserOut.model_validate(user)
+
+
+@router.post(
+    "/claim-device",
+    response_model=ClaimDeviceResponse,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def claim_device(
+    body: ClaimDeviceRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    header_device: Annotated[str | None, Depends(get_device_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ClaimDeviceResponse:
+    device_id = body.device_id or header_device
+    if not device_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="device_id required")
+    repo = DeviceRepository(db)
+    count = await repo.claim_for_user(device_id, user_id)
+    await db.commit()
+    return ClaimDeviceResponse(jobs_claimed=count, device_id=device_id)

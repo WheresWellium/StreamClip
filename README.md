@@ -301,10 +301,11 @@ The optical-flow signal is the heaviest CPU cost. Set `highlight.weight_optical_
 
 - [x] Twitch chat-spike signal (`core/chat_spikes.py`, `core/twitch_chat.py`; requires `twitch_client_id` for live fetch)
 - [ ] Speaker diarization for multi-streamer VODs (pyannote.audio integration)
-- [ ] User-uploaded asset vault with embedding indexing
-- [ ] Direct publish to YouTube Shorts / TikTok / Instagram Reels
-- [ ] Multi-tenant billing tier (Stripe webhook hooked up; tier enum already in schema)
-- [ ] Webhook notifications when jobs complete
+- [x] User-uploaded asset vault API (`backend/api/assets.py`; UI polish open)
+- [x] Direct publish to YouTube Shorts / TikTok (`core/distribution/`, `/api/distribution`; TikTok stub until API flag enabled)
+- [ ] Instagram Reels platform adapter
+- [ ] Multi-tenant billing tier (Stripe webhook stub; tier enum in schema)
+- [ ] Webhook notifications when jobs complete (config + delivery wired; enable via `STREAMCLIP_WEBHOOKS__*`)
 
 ---
 

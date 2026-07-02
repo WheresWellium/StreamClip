@@ -78,6 +78,12 @@ class UserTier(str, Enum):
     ADMIN  = "admin"
 
 
+class ApprovalStatus(str, Enum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 def _enum_values(enum_cls: type[Enum]) -> list[str]:
     """Map Python enums to DB string values (not member names)."""
     return [member.value for member in enum_cls]
@@ -119,7 +125,53 @@ class User(Base, IDMixin, TimestampMixin):
     jobs_used_this_month: Mapped[int] = mapped_column(Integer, default=0)
     minutes_processed_this_month: Mapped[float] = mapped_column(Float, default=0.0)
 
+    # Per-user webhook overrides (SaaS / power users)
+    webhook_url: Mapped[str | None] = mapped_column(String(512))
+    webhook_secret: Mapped[str | None] = mapped_column(String(255))
+
+    # Channel style learning — optional weight nudges per profile
+    style_weights: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
     jobs: Mapped[list["Job"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    templates: Mapped[list["JobTemplate"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan",
+    )
+    platform_connections: Mapped[list["PlatformConnection"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan",
+    )
+    vault_clips: Mapped[list["VaultClip"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan",
+    )
+
+
+class LocalDevice(Base, IDMixin, TimestampMixin):
+    __tablename__ = "local_devices"
+
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    claimed_by_user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True,
+    )
+
+    jobs: Mapped[list["Job"]] = relationship(back_populates="device")
+
+
+class InstallLicense(Base, IDMixin, TimestampMixin):
+    __tablename__ = "install_licenses"
+
+    license_key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    machine_id: Mapped[str] = mapped_column(String(128), index=True)
+    tier: Mapped[UserTier] = mapped_column(
+        SAEnum(UserTier, name="user_tier", values_callable=_enum_values),
+        default=UserTier.PRO,
+    )
+    entitlement_jwt: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
 
 
 class Job(Base, IDMixin, TimestampMixin):
@@ -129,6 +181,10 @@ class Job(Base, IDMixin, TimestampMixin):
         String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True,
     )
     owner: Mapped["User | None"] = relationship(back_populates="jobs")
+    device_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("local_devices.id", ondelete="SET NULL"), index=True,
+    )
+    device: Mapped["LocalDevice | None"] = relationship(back_populates="jobs")
 
     # Source
     source_url: Mapped[str | None] = mapped_column(Text)
@@ -140,6 +196,9 @@ class Job(Base, IDMixin, TimestampMixin):
 
     # Config snapshot — the exact settings used for THIS job (frozen)
     config_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    # Optional user asset pack for overlays
+    asset_pack_id: Mapped[str | None] = mapped_column(String(32))
 
     # Status / progress
     status: Mapped[JobStatus] = mapped_column(
@@ -157,7 +216,9 @@ class Job(Base, IDMixin, TimestampMixin):
 
     # Timing
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pipeline_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stage_durations_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
     clips: Mapped[list["Clip"]] = relationship(
         back_populates="job", cascade="all, delete-orphan", order_by="Clip.rank",
@@ -214,7 +275,16 @@ class Clip(Base, IDMixin, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text)
     render_time_secs: Mapped[float] = mapped_column(Float, default=0.0)
 
+    # Post-gen editor overrides (caption style, reframe, overlay toggle)
+    render_overrides: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    kind: Mapped[str] = mapped_column(String(32), default="discovery")
+    parent_clip_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    approval_status: Mapped[str] = mapped_column(String(16), default=ApprovalStatus.DRAFT.value)
+
     overlays: Mapped[list["ClipOverlay"]] = relationship(
+        back_populates="clip", cascade="all, delete-orphan",
+    )
+    publish_jobs: Mapped[list["PublishJob"]] = relationship(
         back_populates="clip", cascade="all, delete-orphan",
     )
 
@@ -237,6 +307,29 @@ class ClipOverlay(Base, IDMixin, TimestampMixin):
     matched_keyword: Mapped[str] = mapped_column(String(255), default="")
 
 
+class JobTemplate(Base, IDMixin, TimestampMixin):
+    __tablename__ = "job_templates"
+
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    user: Mapped[User] = relationship(back_populates="templates")
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class ClipFeedback(Base, IDMixin, TimestampMixin):
+    __tablename__ = "clip_feedback"
+
+    clip_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("clips.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"),
+    )
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 1 = down, 5 = up
+
+
 class Asset(Base, IDMixin, TimestampMixin):
     __tablename__ = "assets"
 
@@ -256,3 +349,94 @@ class Asset(Base, IDMixin, TimestampMixin):
     )
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     use_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class VaultClipStatus(str, Enum):
+    COPYING = "copying"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class VaultClip(Base, IDMixin, TimestampMixin):
+    __tablename__ = "vault_clips"
+
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    user: Mapped[User] = relationship(back_populates="vault_clips")
+    source_clip_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("clips.id", ondelete="SET NULL"), index=True,
+    )
+    source_job_id: Mapped[str | None] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(255), default="")
+    hook: Mapped[str] = mapped_column(Text, default="")
+    duration_secs: Mapped[float] = mapped_column(Float, default=0.0)
+    storage_key: Mapped[str | None] = mapped_column(String(512))
+    thumb_storage_key: Mapped[str | None] = mapped_column(String(512))
+    status: Mapped[str] = mapped_column(String(16), default=VaultClipStatus.COPYING.value)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    saved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+    publish_jobs: Mapped[list["PublishJob"]] = relationship(back_populates="vault_clip")
+
+
+class InstallOAuthApp(Base, TimestampMixin):
+    __tablename__ = "install_oauth_apps"
+
+    platform: Mapped[str] = mapped_column(String(32), primary_key=True)
+    client_id: Mapped[str] = mapped_column(Text, default="")
+    client_secret_enc: Mapped[str | None] = mapped_column(Text)
+    redirect_uri: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(),
+        onupdate=func.now(), nullable=False,
+    )
+
+
+class PlatformConnection(Base, IDMixin, TimestampMixin):
+    __tablename__ = "platform_connections"
+
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    user: Mapped[User] = relationship(back_populates="platform_connections")
+    platform: Mapped[str] = mapped_column(String(32), nullable=False)
+    account_label: Mapped[str] = mapped_column(String(255), default="")
+    access_token_enc: Mapped[str | None] = mapped_column(Text)
+    refresh_token_enc: Mapped[str | None] = mapped_column(Text)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    publish_jobs: Mapped[list["PublishJob"]] = relationship(back_populates="connection")
+
+
+class PublishJob(Base, IDMixin, TimestampMixin):
+    __tablename__ = "publish_jobs"
+
+    clip_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("clips.id", ondelete="CASCADE"), index=True, nullable=True,
+    )
+    clip: Mapped[Clip | None] = relationship(back_populates="publish_jobs")
+    vault_clip_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("vault_clips.id", ondelete="CASCADE"), index=True, nullable=True,
+    )
+    vault_clip: Mapped[VaultClip | None] = relationship(back_populates="publish_jobs")
+    connection_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("platform_connections.id", ondelete="SET NULL"), index=True,
+    )
+    connection: Mapped[PlatformConnection | None] = relationship(back_populates="publish_jobs")
+    platform: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    external_id: Mapped[str | None] = mapped_column(String(255))
+    external_url: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(255), default="")
+    description: Mapped[str] = mapped_column(Text, default="")

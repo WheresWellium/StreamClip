@@ -3,7 +3,10 @@ __pycache__/
 *.py[cod]
 .env
 .workspace/
-workspace/jobs/
+workspace/
+.coverage
+cov*.txt
+coverage*.txt
 .cache/
 output/
 web/node_modules/

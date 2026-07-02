@@ -24,8 +24,21 @@ test.describe("StreamClip happy path", () => {
     const res = await request.get("http://localhost:8000/api/meta");
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
-    expect(body.caption_styles).toContain("gaming_impact");
-    expect(body.reframe_presets).toContain("fps_game");
+    const captionIds = body.caption_styles.map((s: { id: string } | string) =>
+      typeof s === "string" ? s : s.id,
+    );
+    expect(captionIds).toContain("gaming_impact");
+    const presetIds = body.reframe_presets.map((p: { id: string } | string) =>
+      typeof p === "string" ? p : p.id,
+    );
+    expect(presetIds).toContain("fps_game");
+  });
+
+  test("batch endpoint exists", async ({ request }) => {
+    const res = await request.post("http://localhost:8000/api/jobs/batch", {
+      data: { jobs: [] },
+    });
+    expect(res.status()).toBe(422);
   });
 
   test("create job form shows legend tooltips", async ({ page }) => {

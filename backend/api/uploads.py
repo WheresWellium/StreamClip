@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import UploadInitRequest, UploadInitResponse
 from backend.db.session import get_db
-from backend.middleware.auth import get_current_user_id
+from backend.middleware.scope import RequestScope, get_request_scope
 from backend.middleware.rate_limit import rate_limit_request
 from backend.services.job_service import UploadService
 from core.config import get_settings
@@ -36,7 +36,7 @@ router = APIRouter(prefix="/api/uploads", tags=["uploads"])
 )
 async def init_upload(
     body: UploadInitRequest,
-    user_id: Annotated[str | None, Depends(get_current_user_id)],
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UploadInitResponse:
     """
@@ -46,7 +46,7 @@ async def init_upload(
     """
     cfg = get_settings()
     svc = UploadService(cfg, make_storage(cfg))
-    return await svc.init_upload(body, owner_id=user_id)
+    return await svc.init_upload(body, scope)
 
 
 @router.get(

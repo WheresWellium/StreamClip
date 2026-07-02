@@ -74,6 +74,90 @@ def _format_sse(
     return "\n".join(lines) + "\n\n"
 
 
+async def stream_publish_progress(
+    publish_job_id: str,
+    cfg: Settings,
+    *,
+    last_event_id: int | None = None,
+    heartbeat_secs: float = 15.0,
+) -> AsyncGenerator[str, None]:
+    """SSE relay for distribution publish jobs."""
+    r = await get_redis(cfg)
+    prefix = cfg.redis.publish_pubsub_channel_prefix
+    channel = f"{prefix}{publish_job_id}"
+    snapshot_key = f"{channel}:latest"
+
+    def _after_cursor(event_id: int | None) -> bool:
+        if last_event_id is None or event_id is None:
+            return True
+        return int(event_id) > last_event_id
+
+    def _emit(payload: str, *, event: str, event_id: int | None = None) -> str:
+        return _format_sse(payload, event=event, event_id=event_id)
+
+    yield _format_sse("", retry=3000)
+
+    snapshot = await r.get(snapshot_key)
+    if snapshot:
+        try:
+            data = json.loads(snapshot)
+            eid = data.get("event_id")
+            if _after_cursor(eid):
+                yield _emit(snapshot, event="progress", event_id=eid)
+            if data.get("status") in ("done", "error"):
+                yield _emit(snapshot, event=data["status"], event_id=eid)
+                return
+        except json.JSONDecodeError:
+            yield _emit(snapshot, event="progress")
+
+    pubsub = r.pubsub()
+    await pubsub.subscribe(channel)
+    log.info("sse_publish_subscribed", channel=channel)
+
+    try:
+        last_heartbeat = asyncio.get_running_loop().time()
+        while True:
+            message = await pubsub.get_message(
+                ignore_subscribe_messages=True,
+                timeout=1.0,
+            )
+
+            now = asyncio.get_running_loop().time()
+            if message and message.get("type") == "message":
+                payload: str = message["data"]
+                try:
+                    data = json.loads(payload)
+                    status = data.get("status", "processing")
+                    eid = data.get("event_id")
+                except json.JSONDecodeError:
+                    status = "processing"
+                    eid = None
+
+                if _after_cursor(eid):
+                    yield _emit(payload, event="progress", event_id=eid)
+
+                if status in ("done", "error"):
+                    if _after_cursor(eid):
+                        yield _emit(payload, event=status, event_id=eid)
+                    log.info("sse_publish_terminated", channel=channel, status=status)
+                    return
+                last_heartbeat = now
+
+            elif now - last_heartbeat >= heartbeat_secs:
+                yield f": heartbeat {int(now)}\n\n"
+                last_heartbeat = now
+
+    except asyncio.CancelledError:
+        log.info("sse_publish_client_disconnected", channel=channel)
+        raise
+    finally:
+        try:
+            await pubsub.unsubscribe(channel)
+            await pubsub.close()
+        except Exception as exc:
+            log.warning("sse_publish_cleanup_error", error=str(exc))
+
+
 # ─── Main relay generator ────────────────────────────────────────────────────
 
 async def stream_job_progress(

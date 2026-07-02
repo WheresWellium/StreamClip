@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import structlog
@@ -20,6 +21,7 @@ def download_from_storage(
     local_dest: Path,
     cfg: Settings,
     storage: Storage | None = None,
+    on_progress: Callable[[float], None] | None = None,
 ) -> VideoMeta:
     """Pull an uploaded object into the job workspace."""
     store = storage or make_storage(cfg)
@@ -27,13 +29,26 @@ def download_from_storage(
 
     if not local_dest.exists():
         try:
-            store.download(storage_key, local_dest)
+            total_bytes = store.size(storage_key)
+
+            def _bytes_progress(done: int, total: int) -> None:
+                if on_progress and total > 0:
+                    on_progress(min(done / total, 1.0))
+
+            store.download(storage_key, local_dest, on_progress=_bytes_progress)
         except StorageError as exc:
             raise IngestError(
                 f"Failed to download upload {storage_key}",
                 user_message="Uploaded file not found in storage. Try uploading again.",
             ) from exc
+    elif on_progress:
+        on_progress(1.0)
 
     meta = probe_video(local_dest)
-    log.info("ingest_upload_resolved", storage_key=storage_key, duration_secs=meta.duration)
+    log.info(
+        "ingest_upload_resolved",
+        storage_key=storage_key,
+        duration_secs=meta.duration,
+        size_bytes=local_dest.stat().st_size if local_dest.exists() else 0,
+    )
     return VideoMeta(**{**vars(meta), "path": local_dest})

@@ -17,6 +17,7 @@ from __future__ import annotations
 import io
 import shutil
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
 from typing import BinaryIO
 
@@ -37,7 +38,12 @@ class Storage(ABC):
         """Upload bytes / file / Path. Returns the storage key."""
 
     @abstractmethod
-    def download(self, key: str, dest: Path) -> Path:
+    def download(
+        self,
+        key: str,
+        dest: Path,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> Path:
         """Download to a local path. Returns the destination."""
 
     @abstractmethod
@@ -99,10 +105,30 @@ class LocalStorage(Storage):
         log.debug("local_upload", key=key, size=dest.stat().st_size)
         return key
 
-    def download(self, key: str, dest: Path) -> Path:
+    def download(
+        self,
+        key: str,
+        dest: Path,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> Path:
         src = self._abs(key)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
+        total = src.stat().st_size
+        if on_progress is None or total <= 0:
+            shutil.copy2(src, dest)
+            if on_progress and total > 0:
+                on_progress(total, total)
+            return dest
+        copied = 0
+        chunk = 1024 * 1024
+        with open(src, "rb") as src_fh, open(dest, "wb") as dest_fh:
+            while True:
+                block = src_fh.read(chunk)
+                if not block:
+                    break
+                dest_fh.write(block)
+                copied += len(block)
+                on_progress(copied, total)
         return dest
 
     def delete(self, key: str) -> None:
@@ -212,10 +238,28 @@ class S3Storage(Storage):
         except Exception as exc:
             raise StorageError(f"Upload failed for {key}") from exc
 
-    def download(self, key: str, dest: Path) -> Path:
+    def download(
+        self,
+        key: str,
+        dest: Path,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> Path:
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            self._client.download_file(self.bucket, key, str(dest))
+            if on_progress is None:
+                self._client.download_file(self.bucket, key, str(dest))
+            else:
+                total = self.size(key)
+                transferred = 0
+
+                def _callback(bytes_amount: int) -> None:
+                    nonlocal transferred
+                    transferred += bytes_amount
+                    on_progress(transferred, total)
+
+                self._client.download_file(
+                    self.bucket, key, str(dest), Callback=_callback,
+                )
             return dest
         except Exception as exc:
             raise StorageError(f"Download failed for {key}") from exc
@@ -293,3 +337,7 @@ def job_key(job_id: str, stage: str, filename: str) -> str:
 def upload_key(user_id: str | None, upload_id: str, filename: str) -> str:
     owner = user_id or "anonymous"
     return f"uploads/{owner}/{upload_id}/{filename}"
+
+
+def vault_clip_key(user_id: str, vault_clip_id: str, filename: str) -> str:
+    return f"vault/{user_id}/{vault_clip_id}/{filename}"

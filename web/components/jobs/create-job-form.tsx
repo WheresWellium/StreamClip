@@ -1,10 +1,29 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import {
+  ChevronDown,
+  Dumbbell,
+  Gamepad2,
+  GraduationCap,
+  Loader2,
+  Mic2,
+  Music2,
+  Radio,
+  Save,
+  Sparkles,
+  Trophy,
+  Upload,
+  Link2,
+  Video,
+} from "lucide-react";
 import * as React from "react";
 import { useFormStatus } from "react-dom";
 
-import { createJobAction, type CreateJobActionState } from "@/app/actions/jobs";
+import {
+  createJobAction,
+  saveTemplateAction,
+  type CreateJobActionState,
+} from "@/app/actions/jobs";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,246 +41,297 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DirectUpload } from "@/components/upload/direct-upload";
+import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { FORM_SECTION_LEGEND } from "@/lib/help/legends";
+import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
+import { cn } from "@/lib/utils/format";
 
 const INITIAL_STATE: CreateJobActionState = { status: "idle" };
 
-const REFRAME_PRESET_TIPS: Record<string, string> = {
-  fps_game:
-    "Fast-action shooters — tracks the player with HUD protection for health and ammo bars.",
-  moba: "MOBA / strategy — slower, wider framing with minimap area reserved at the bottom.",
-  battle_royale:
-    "Battle royale — follows the player aggressively; suited to fast repositioning.",
-  irl: "IRL / talking head — tight face crop with very stable, minimal camera movement.",
-  podcast:
-    "Podcast / interview — stable speaker framing with no gameplay HUD reserves.",
-  auto: "Automatically picks FPS or IRL framing based on each clip's detected emotion.",
+const PROFILE_ICONS: Record<string, React.ElementType> = {
+  gaming: Gamepad2,
+  esports: Trophy,
+  irl: Radio,
+  vlog: Video,
+  podcast: Mic2,
+  education: GraduationCap,
+  sports: Dumbbell,
+  music: Music2,
+  general: Sparkles,
 };
 
-const CAPTION_STYLE_TIPS: Record<string, string> = {
-  gaming_impact:
-    "Bold animated captions with per-word karaoke sync and keyword highlights.",
-  tiktok_pop:
-    "Punchy pop-in text styled for TikTok, Reels, and Shorts.",
-  minimal_white: "Clean white subtitles with minimal visual noise.",
-  podcast_clean: "Readable lower-third captions suited to dialogue-heavy content.",
+const REFRAME_PLATFORM_NOTE =
+  "All presets export vertical 9:16 (1080×1920) — optimized for TikTok, YouTube Shorts, and Reels.";
+
+type Props = {
+  meta: StreamClipMeta;
+  templates: JobTemplate[];
+  isAuthenticated: boolean;
+  defaultSourceUrl?: string;
 };
 
-export function CreateJobForm() {
-  const [state, formAction] = React.useActionState(
-    createJobAction,
-    INITIAL_STATE,
-  );
-
+export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceUrl }: Props) {
+  const [state, formAction] = React.useActionState(createJobAction, INITIAL_STATE);
   const [mode, setMode] = React.useState<"url" | "upload">("url");
   const [uploadKey, setUploadKey] = React.useState<string | null>(null);
-  const [reframePreset, setReframePreset] =
-    React.useState<keyof typeof REFRAME_PRESET_TIPS>("fps_game");
-  const [captionStyle, setCaptionStyle] =
-    React.useState<keyof typeof CAPTION_STYLE_TIPS>("gaming_impact");
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [reframePreset, setReframePreset] = React.useState(
+    meta.reframe_presets[0]?.id ?? "fps_game",
+  );
+  const [captionStyle, setCaptionStyle] = React.useState(
+    meta.caption_styles[0]?.id ?? "gaming_impact",
+  );
+  const [contentProfile, setContentProfile] = React.useState(
+    meta.content_profiles[0]?.id ?? "gaming",
+  );
+  const [targetClips, setTargetClips] = React.useState(5);
+  const [templateMsg, setTemplateMsg] = React.useState<string | null>(null);
+
+  function applyTemplate(templateId: string) {
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    const c = tpl.config_json;
+    if (typeof c.content_profile === "string") setContentProfile(c.content_profile);
+    if (typeof c.reframe_preset === "string") setReframePreset(c.reframe_preset);
+    if (typeof c.caption_style === "string") setCaptionStyle(c.caption_style);
+    if (typeof c.target_clips === "number") setTargetClips(c.target_clips);
+  }
+
+  async function handleSaveTemplate() {
+    setTemplateMsg(null);
+    const result = await saveTemplateAction({
+      content_profile: contentProfile,
+      reframe_preset: reframePreset,
+      caption_style: captionStyle,
+      target_clips: targetClips,
+    });
+    setTemplateMsg(result.ok ? "Template saved" : result.message ?? "Could not save");
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
+    <Card className="sky-glow border-sky-500/20">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Sparkles className="h-5 w-5 text-sky-400" />
           New clip job
         </CardTitle>
         <CardDescription>
-          Paste a Twitch/YouTube URL or upload a video file. We&apos;ll handle the
-          rest.
+          Paste a URL or upload a video — we&apos;ll find the best moments and render vertical clips.
+          {meta.processing_profile === "cpu" && (
+            <span className="block mt-1 text-sky-400/80 text-xs">
+              CPU mode — transcribe and render may take longer. Enable GPU profile for faster jobs.
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-5">
-          {/* Source mode toggle */}
-          <div className="space-y-1.5">
+        {isAuthenticated && templates.length > 0 && (
+          <div className="mb-5 space-y-1.5 p-3 rounded-md glossy-surface-light">
+            <Label htmlFor="template_select" className="text-muted-foreground text-xs">
+              Quick start from template
+            </Label>
+            <Select
+              id="template_select"
+              defaultValue=""
+              onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+            >
+              <option value="">Choose a saved template…</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+
+        <form action={formAction} className="space-y-6">
+          {/* Source mode tabs */}
+          <div className="space-y-3">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-medium">Source</span>
-              <HelpTip
-                label="Source mode help"
-                content="Choose whether to paste a public video URL or upload a file from your device."
-              />
+              <HelpTip label="Source mode help" content={FORM_SECTION_LEGEND.source} />
             </div>
-            <div className="flex gap-1 p-1 rounded-md bg-secondary/60 w-fit">
-              <Tooltip>
-                <TooltipTrigger asChild>
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-black/30 border border-white/10">
+              {(["url", "upload"] as const).map((m) => {
+                const Icon = m === "url" ? Link2 : Upload;
+                const active = mode === m;
+                return (
                   <button
+                    key={m}
                     type="button"
-                    onClick={() => setMode("url")}
-                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                      mode === "url"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    onClick={() => setMode(m)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all",
+                      active
+                        ? "bg-sky-400/15 text-sky-400 border border-sky-400/30 shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                    )}
                   >
-                    URL
+                    <Icon className="h-4 w-4" />
+                    {m === "url" ? "Paste URL" : "Upload file"}
                   </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Paste a Twitch VOD, clip, YouTube, Kick, or direct MP4 link.
-                  We download and process it automatically.
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => setMode("upload")}
-                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                      mode === "upload"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Upload
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Upload MP4, MOV, or MKV from your device. Files go straight to
-                  storage — the API never handles the video bytes.
-                </TooltipContent>
-              </Tooltip>
+                );
+              })}
+            </div>
+
+            {mode === "url" ? (
+              <div className="space-y-1.5">
+                <LabelWithTip htmlFor="source_url" tip="Public VOD or clip URL" tipLabel="URL help">
+                  Video URL
+                </LabelWithTip>
+                <Input
+                  id="source_url"
+                  name="source_url"
+                  defaultValue={defaultSourceUrl ?? ""}
+                  type="url"
+                  placeholder="https://www.twitch.tv/videos/..."
+                  required={mode === "url"}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <LabelWithTip tip="Upload MP4/MOV/MKV" tipLabel="Upload help">
+                  Upload
+                </LabelWithTip>
+                <DirectUpload
+                  currentKey={uploadKey}
+                  onUploaded={(key) => setUploadKey(key)}
+                  onCleared={() => setUploadKey(null)}
+                />
+                <input type="hidden" name="source_upload_key" value={uploadKey ?? ""} />
+              </div>
+            )}
+          </div>
+
+          {/* Content profile cards */}
+          <div className="space-y-3">
+            <SectionLegend
+              title="Content type"
+              tip="Tunes highlight detection for your vertical. Pick the closest match."
+            />
+            <input type="hidden" name="content_profile" value={contentProfile} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {meta.content_profiles.map((profile) => {
+                const Icon = PROFILE_ICONS[profile.id] ?? Sparkles;
+                const selected = contentProfile === profile.id;
+                return (
+                  <Tooltip key={profile.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setContentProfile(profile.id)}
+                        className={cn(
+                          "flex flex-col items-start gap-1.5 p-3 rounded-lg text-left transition-all border",
+                          selected
+                            ? "border-sky-400/50 bg-sky-400/10 text-foreground sky-glow"
+                            : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <Icon
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              selected ? "text-sky-400" : "text-muted-foreground",
+                            )}
+                          />
+                          <span className="text-sm font-medium truncate">{profile.label}</span>
+                        </div>
+                        {profile.description && (
+                          <span className="text-xs text-muted-foreground line-clamp-2">
+                            {profile.description}
+                          </span>
+                        )}
+                        {profile.best_for && (
+                          <span className="text-[10px] text-muted-foreground line-clamp-1">
+                            Best for {profile.best_for}
+                          </span>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      {profile.description ?? profile.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </div>
           </div>
 
-          {/* Source input */}
-          {mode === "url" ? (
-            <div className="space-y-1.5">
-              <LabelWithTip
-                htmlFor="source_url"
-                tip="Public link to a VOD, clip, or hosted MP4. Twitch, YouTube, Kick, and direct URLs are supported."
-                tipLabel="Video URL help"
-              >
-                Video URL
-              </LabelWithTip>
-              <Input
-                id="source_url"
-                name="source_url"
-                type="url"
-                placeholder="https://www.twitch.tv/videos/..."
-                required={mode === "url"}
-              />
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <LabelWithTip
-                tip="Drag and drop or browse for a local video. Upload must finish before you can start the job."
-                tipLabel="Upload help"
-              >
-                Upload
-              </LabelWithTip>
-              <DirectUpload
-                currentKey={uploadKey}
-                onUploaded={(key) => setUploadKey(key)}
-                onCleared={() => setUploadKey(null)}
-              />
-              <input
-                type="hidden"
-                name="source_upload_key"
-                value={uploadKey ?? ""}
-              />
-            </div>
-          )}
+          <input type="hidden" name="reframe_preset" value={reframePreset} />
+          <input type="hidden" name="caption_style" value={captionStyle} />
 
-          {/* Settings row */}
-          <div className="space-y-2">
-            <SectionLegend title="Settings" tip={FORM_SECTION_LEGEND.settings} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 md:col-span-2">
-              <LabelWithTip
-                htmlFor="content_profile"
-                tip="Tunes highlight detection for your content type — gaming favors motion and chat; podcast favors dialogue peaks."
-                tipLabel="Content type help"
-              >
-                Content type
-              </LabelWithTip>
-              <Select id="content_profile" name="content_profile" defaultValue="gaming">
-                <option value="gaming">Gaming / Twitch</option>
-                <option value="irl">IRL / Just Chatting</option>
-                <option value="podcast">Podcast / Interview</option>
-                <option value="esports">Esports / Casted</option>
-                <option value="general">General / Mixed</option>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <LabelWithTip
-                htmlFor="target_clips"
-                tip="How many highlight clips to extract from this source (1–20). More clips take longer to render."
-                tipLabel="Clip count help"
-              >
-                Clips
-              </LabelWithTip>
-              <Input
-                id="target_clips"
-                name="target_clips"
-                type="number"
-                defaultValue={5}
-                min={1}
-                max={20}
+          <CreatorOptionCards
+            title="Reframe preset"
+            tip={`How we crop landscape source into vertical shorts. ${REFRAME_PLATFORM_NOTE}`}
+            options={meta.reframe_presets}
+            value={reframePreset}
+            onChange={setReframePreset}
+            columns={2}
+            showAspectBadge
+            showPlatformChips
+          />
+
+          <CreatorOptionCards
+            title="Caption style"
+            tip="Burned-in text style on every clip. Choose No Captions if you add subtitles elsewhere."
+            options={meta.caption_styles}
+            value={captionStyle}
+            onChange={setCaptionStyle}
+            columns={2}
+          />
+
+          {/* Clip count — collapsed by default */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronDown
+                className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")}
               />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="reframe_preset">Game preset</Label>
-                <HelpTip
-                  content={REFRAME_PRESET_TIPS[reframePreset]}
-                  label="Game preset help"
+              <span>More options</span>
+              <span className="text-xs text-silver">{targetClips} clips</span>
+            </button>
+
+            {showAdvanced && (
+              <div className="p-4 rounded-lg glossy-surface-light space-y-1.5">
+                <LabelWithTip htmlFor="target_clips" tip="1–20 clips" tipLabel="Clips help">
+                  Clips to generate
+                </LabelWithTip>
+                <Input
+                  id="target_clips"
+                  name="target_clips"
+                  type="number"
+                  value={targetClips}
+                  onChange={(e) => setTargetClips(Number(e.target.value))}
+                  min={1}
+                  max={20}
                 />
               </div>
-              <Select
-                id="reframe_preset"
-                name="reframe_preset"
-                value={reframePreset}
-                onChange={(e) =>
-                  setReframePreset(
-                    e.target.value as keyof typeof REFRAME_PRESET_TIPS,
-                  )
-                }
-              >
-                <option value="fps_game">FPS</option>
-                <option value="moba">MOBA</option>
-                <option value="battle_royale">Battle royale</option>
-                <option value="irl">IRL / talking head</option>
-                <option value="podcast">Podcast</option>
-                <option value="auto">Auto-detect</option>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="caption_style">Caption style</Label>
-                <HelpTip
-                  content={CAPTION_STYLE_TIPS[captionStyle]}
-                  label="Caption style help"
-                />
-              </div>
-              <Select
-                id="caption_style"
-                name="caption_style"
-                value={captionStyle}
-                onChange={(e) =>
-                  setCaptionStyle(
-                    e.target.value as keyof typeof CAPTION_STYLE_TIPS,
-                  )
-                }
-              >
-                <option value="gaming_impact">Gaming impact</option>
-                <option value="tiktok_pop">TikTok pop</option>
-                <option value="minimal_white">Minimal</option>
-                <option value="podcast_clean">Podcast clean</option>
-              </Select>
-            </div>
-            </div>
+            )}
           </div>
 
-          {/* Error */}
           {state.status === "error" && state.message && (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.message}
             </div>
           )}
 
-          <SubmitButton mode={mode} uploadReady={!!uploadKey} />
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <SubmitButton mode={mode} uploadReady={!!uploadKey} />
+            {isAuthenticated && (
+              <Button type="button" variant="outline" onClick={handleSaveTemplate}>
+                <Save className="h-4 w-4" />
+                Save template
+              </Button>
+            )}
+          </div>
+          {templateMsg && (
+            <p className="text-xs text-muted-foreground">{templateMsg}</p>
+          )}
         </form>
       </CardContent>
     </Card>
@@ -279,12 +349,7 @@ function SubmitButton({
   const disabled = pending || (mode === "upload" && !uploadReady);
 
   return (
-    <Button
-      type="submit"
-      disabled={disabled}
-      className="w-full"
-      tooltip="Start the pipeline: ingest → transcribe → discover clips → render vertical output."
-    >
+    <Button type="submit" disabled={disabled} size="lg" className="w-full sm:flex-1">
       {pending ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />

@@ -122,6 +122,45 @@ _STYLES: dict[str, _ASSStyle] = {
         alignment=2,
         margin_v=100,
     ),
+    "shorts_bold": _ASSStyle(
+        name="ShortsBold",
+        fontname="Impact",
+        fontsize=92,
+        primary_colour="&H0000FFFF",
+        outline_colour="&H00000000",
+        shadow_colour="&H80000000",
+        bold=True,
+        outline=6.0,
+        shadow=4.0,
+        alignment=2,
+        margin_v=150,
+    ),
+    "karaoke_highlight": _ASSStyle(
+        name="KaraokeHL",
+        fontname="Arial Black",
+        fontsize=76,
+        primary_colour="&H00FFFFFF",
+        outline_colour="&H00000000",
+        shadow_colour="&H60000000",
+        bold=True,
+        outline=4.5,
+        shadow=2.5,
+        alignment=2,
+        margin_v=140,
+    ),
+    "accessibility_clean": _ASSStyle(
+        name="A11yClean",
+        fontname="Arial",
+        fontsize=72,
+        primary_colour="&H00FFFFFF",
+        outline_colour="&H00000000",
+        shadow_colour="&HFF000000",
+        bold=True,
+        outline=5.0,
+        shadow=0.0,
+        alignment=2,
+        margin_v=180,
+    ),
 }
 
 # Per-emotion accent colours for highlighted words
@@ -276,6 +315,13 @@ def generate_captions(
     """
     ccfg: CaptionConfig = cfg.caption
 
+    if ccfg.style == "none":
+        import shutil
+
+        shutil.copy2(clip_path, output_path)
+        log.info("captions_skipped", style="none", output=str(output_path))
+        return output_path
+
     # ── Probe clip dimensions ─────────────────────────────────────────────
     import json as _json
     probe = subprocess.run(
@@ -309,7 +355,10 @@ def generate_captions(
 
     if not all_words:
         log.warning("no_words_in_clip_window", clip=str(clip_path))
-        return clip_path
+        import shutil
+
+        shutil.copy2(clip_path, output_path)
+        return output_path
 
     groups = group_words_for_display(
         all_words, ccfg.words_per_group, ccfg.max_chars_per_line,
@@ -318,13 +367,14 @@ def generate_captions(
     style_def = _STYLES.get(ccfg.style, _STYLES["gaming_impact"])
     builder = _ASSBuilder(style_def)
     hold = ccfg.word_hold_secs
+    use_karaoke = ccfg.word_level_sync or ccfg.style == "karaoke_highlight"
 
     for group in groups:
         is_gaming = _is_gaming_term(group.text)
         emoji = _detect_emoji(group.text) if ccfg.add_emoji else ""
         end = group.end + hold
 
-        if ccfg.word_level_sync and len(group.words) > 1:
+        if use_karaoke and len(group.words) > 1:
             karaoke = build_karaoke_text(group.words)
             builder.add_karaoke_line(
                 start=group.start,

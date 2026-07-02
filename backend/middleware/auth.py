@@ -22,6 +22,7 @@ from fastapi import Depends, Header, HTTPException, status
 
 from core.config import Settings, get_settings
 from core.errors import AuthError
+from backend.middleware.device_id import normalize_device_id
 
 log = structlog.get_logger(__name__)
 
@@ -74,8 +75,18 @@ def decode_token(token: str, cfg: Settings | None = None) -> dict:
 
 # ─── FastAPI dependencies ────────────────────────────────────────────────────
 
+async def get_device_id(
+    x_device_id: Annotated[str | None, Header(alias="X-Device-Id")] = None,
+) -> str | None:
+    """Anonymous device identity from the X-Device-Id header (browser cookie)."""
+    if x_device_id and 8 <= len(x_device_id) <= 64:
+        return normalize_device_id(x_device_id)
+    return None
+
+
 async def get_current_user_id(
     authorization: Annotated[str | None, Header()] = None,
+    device_id: Annotated[str | None, Depends(get_device_id)] = None,
 ) -> str | None:
     """
     Returns the user_id from the Authorization header, or None if anonymous

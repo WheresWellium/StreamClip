@@ -68,7 +68,7 @@ export const FORM_SECTION_LEGEND = {
 
 export const AUTH_LEGEND = {
   privacy:
-    "Signed-in jobs are private to your account. Without signing in, jobs are anonymous and visible only in your browser session.",
+    "Signed-in jobs are private to your account. Without signing in, jobs are tied to this browser via a device cookie and are not visible on other devices.",
   email: "Used to sign in and associate jobs with your account.",
   password: "Minimum 8 characters. Stored hashed — never sent in plain text.",
   displayName: "Shown in your profile; defaults to your email prefix.",
@@ -78,6 +78,19 @@ export const PROGRESS_LEGEND = {
   bar: "Overall pipeline completion from ingest through render (0–100%).",
   stage: "Current pipeline step. Hover the status badge for what each status means.",
   message: "Human-readable detail about what the worker is doing right now.",
+  elapsed: "Wall-clock time since the pipeline started ingesting the source.",
+  eta: "Estimated time left for remaining stages. Hidden until source duration is known.",
+  stepper: "Major pipeline phases in order. Checkmarks show completed stages with elapsed time.",
+  ingestSub: "Download or storage copy progress while the source is being ingested.",
+};
+
+/** Canonical pipeline phases shown in the job detail stepper (matches backend ETA stages). */
+export const PIPELINE_STEPPER_LEGEND: Record<string, string> = {
+  ingest: "Download or copy the source video and probe metadata.",
+  transcribe: "Speech-to-text with word-level timestamps.",
+  highlights: "Find highlight moments from audio, motion, and chat.",
+  virality: "Score each clip's viral potential.",
+  process_clip: "Reframe, caption, and render vertical clips.",
 };
 
 export const ERROR_LEGEND = {
@@ -97,6 +110,10 @@ export function legendForStatus(status: string): string {
 export function legendForStage(stage: string): string {
   const base = stage.split("/")[0];
   return PIPELINE_STAGE_LEGEND[stage] ?? PIPELINE_STAGE_LEGEND[base] ?? `Pipeline stage: ${stage}`;
+}
+
+export function legendForPipelineStep(stepKey: string): string {
+  return PIPELINE_STEPPER_LEGEND[stepKey] ?? `Pipeline phase: ${stepKey}`;
 }
 
 export function legendForEmotion(emotion: string): string {

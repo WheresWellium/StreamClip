@@ -1,0 +1,56 @@
+import { getAccessToken } from "@/lib/auth/session";
+
+const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
+
+const PRO_TIERS = new Set(["pro", "admin"]);
+
+export type DistributionSession =
+  | { ok: true; token: string }
+  | { ok: false; message: string };
+
+/** Auth + Pro gate for distribution server actions (matches backend `require_distribution_access`). */
+export async function requireDistributionSession(
+  proMessage = "Pro license required.",
+): Promise<DistributionSession> {
+  const token = await getAccessToken();
+  if (!token) {
+    return { ok: false, message: "Sign in required." };
+  }
+  const hasPro = await hasDistributionAccess(token);
+  if (!hasPro) {
+    return { ok: false, message: proMessage };
+  }
+  return { ok: true, token };
+}
+
+/** Matches backend `require_distribution_access` — user Pro tier or install license. */
+export async function hasDistributionAccess(token?: string): Promise<boolean> {  const authToken = token ?? (await getAccessToken());
+  if (!authToken) return false;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const user = (await res.json()) as { tier?: string };
+      if (user.tier && PRO_TIERS.has(user.tier)) return true;
+    }
+  } catch {
+    /* try install license */
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/license/status?machine_id=local`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const status = (await res.json()) as { active?: boolean; tier?: string };
+      if (status.active && status.tier && PRO_TIERS.has(status.tier)) return true;
+    }
+  } catch {
+    /* no pro access */
+  }
+
+  return false;
+}

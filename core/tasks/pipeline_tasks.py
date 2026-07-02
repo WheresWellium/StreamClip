@@ -33,9 +33,12 @@ from backend.db.models import ClipStatus, JobStatus
 from backend.db.repositories import ClipRepository, JobRepository, UserRepository
 from backend.db.session import db_session
 from core.captions import generate_captions
-from core.celery_app import ProgressTask, celery_app, publish_progress
+from core.celery_app import ProgressTask, celery_app, get_redis, publish_progress, set_eta_context
+from core.chat_spikes import ChatEvent
 from core.config import get_settings
+from core.content_profiles import get_profile
 from core.errors import StreamClipError
+from core.eta import build_eta_context
 from core.highlights import find_highlights
 from core.ingest.service import IngestService, get_job_source_path
 from core.ingest.types import IngestRequest
@@ -50,10 +53,17 @@ from core.pipeline_metrics import (
     PIPELINE_STAGE_SECONDS,
     WEBHOOK_DELIVERIES,
 )
+from core.progress_timing import ensure_pipeline_started, finalize_timing
 from core.storage import job_key, make_storage
 from core.transcribe import load_job_transcript, save_transcript_json, transcribe, transcribe_clip
+from core.twitch_chat import fetch_vod_chat
 from core.webhooks import deliver_job_webhook
-from core.virality import ensemble_with_virality, score_clips_virality_parallel
+from core.virality import (
+    ClipScoringContext,
+    ensemble_with_virality,
+    score_clips_virality_parallel,
+    select_chat_excerpts,
+)
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
@@ -80,6 +90,25 @@ def _safe_async(coro: Any) -> Any:
         return loop.run_until_complete(coro)
     except RuntimeError:
         return asyncio.run(coro)
+
+
+def _webhook_creds_from_owner(owner: Any) -> tuple[str | None, str | None]:
+    if owner is None:
+        return None, None
+    url = owner.webhook_url if isinstance(getattr(owner, "webhook_url", None), str) else None
+    secret = owner.webhook_secret if isinstance(getattr(owner, "webhook_secret", None), str) else None
+    return url, secret
+
+
+def _apply_clip_overrides(job: Any, clip: Any) -> None:
+    """Merge per-clip render overrides into global cfg for this render pass."""
+    overrides = getattr(clip, "render_overrides", None) or {}
+    if "caption_style" in overrides:
+        cfg.caption.style = overrides["caption_style"]
+    if "reframe_preset" in overrides:
+        cfg.reframe.preset = overrides["reframe_preset"]
+    if "overlay_enabled" in overrides:
+        cfg.overlay.enabled = bool(overrides["overlay_enabled"])
 
 
 def _apply_job_config(job: Any) -> None:
@@ -167,7 +196,10 @@ def start_pipeline(self: ProgressTask, job_id: str) -> str:
 
 @celery_app.task(bind=True, base=ProgressTask, name="core.tasks.pipeline_tasks.run_ingest")
 def run_ingest(self: ProgressTask, job_id: str) -> str:
-    self.report(job_id, stage="ingesting", progress=0.02, message="Downloading source")
+    ensure_pipeline_started(get_redis(), job_id)
+    self.report(job_id, stage="ingesting", progress=0.02, message="Preparing source")
+
+    ingest_result: dict[str, Any] = {}
 
     async def _do() -> None:
         async with db_session() as db:
@@ -182,17 +214,45 @@ def run_ingest(self: ProgressTask, job_id: str) -> str:
             if not job.source_url and not job.source_storage_key:
                 raise StreamClipError("No source URL or upload key for job")
 
+            is_upload = bool(job.source_storage_key)
+
             def _on_progress(pct: float) -> None:
-                self.report(job_id, stage="ingesting",
-                           progress=0.02 + pct * 0.13,
-                           message=f"Downloading {pct:.0%}")
+                if is_upload:
+                    self.report(
+                        job_id, stage="ingesting",
+                        progress=0.02 + pct * 0.13,
+                        message=f"Copying upload {pct:.0%}",
+                    )
+                else:
+                    self.report(
+                        job_id, stage="ingesting",
+                        progress=0.02 + pct * 0.13,
+                        message=f"Downloading {pct:.0%}",
+                    )
+
+            def _on_message(msg: str) -> None:
+                progress_by_msg = {
+                    "Copying upload from storage": 0.02,
+                    "Downloading source": 0.02,
+                    "Using cached download": 0.14,
+                    "Saving to workspace": 0.14,
+                    "Uploading archive": 0.14,
+                    "Probing video": 0.15,
+                }
+                self.report(
+                    job_id, stage="ingesting",
+                    progress=progress_by_msg.get(msg, 0.02),
+                    message=msg,
+                )
 
             if job.source_storage_key:
                 request = IngestRequest(job_id=job_id, storage_key=job.source_storage_key)
             else:
                 request = IngestRequest(job_id=job_id, source_url=job.source_url)
 
-            result = IngestService(cfg).run(request, on_progress=_on_progress)
+            result = IngestService(cfg).run(
+                request, on_progress=_on_progress, on_message=_on_message,
+            )
 
             job.source_title = result.meta.title
             job.source_duration_secs = result.meta.duration
@@ -202,6 +262,22 @@ def run_ingest(self: ProgressTask, job_id: str) -> str:
 
             merged = {**(job.config_snapshot or {}), **result.to_snapshot()}
             job.config_snapshot = merged
+
+            snap = job.config_snapshot or {}
+            target_clips = int(snap.get("target_clips", cfg.highlight.target_clips))
+            skip_optical = bool(result.pipeline_hints.get("skip_optical_flow", False))
+            eta_ctx = build_eta_context(
+                duration_secs=result.meta.duration,
+                source_kind=result.source_kind.value,
+                target_clips=target_clips,
+                skip_optical_flow=skip_optical,
+                file_size_bytes=result.file_size_bytes,
+            )
+            set_eta_context(get_redis(), job_id, eta_ctx)
+
+            ingest_result["storage_key"] = result.storage_key
+            ingest_result["source_url"] = job.source_url
+            ingest_result["defer_upload"] = cfg.ingest.defer_source_upload
 
             await jobs.update_status(job_id, JobStatus.INGESTING,
                                      stage="ingested", progress=0.15)
@@ -217,7 +293,40 @@ def run_ingest(self: ProgressTask, job_id: str) -> str:
         _mark_error(job_id, exc.code, exc.user_message)
         raise
 
+    storage_key = ingest_result.get("storage_key")
+    if (
+        ingest_result.get("defer_upload")
+        and ingest_result.get("source_url")
+        and storage_key
+    ):
+        archive_source_to_storage.delay(job_id, storage_key)
+
     self.report(job_id, stage="ingested", progress=0.15, message="Source ready")
+    return job_id
+
+
+@celery_app.task(
+    bind=True,
+    base=ProgressTask,
+    name="core.tasks.pipeline_tasks.archive_source_to_storage",
+)
+def archive_source_to_storage(self: ProgressTask, job_id: str, storage_key: str) -> str:
+    """Background archival of URL sources to durable storage (non-blocking)."""
+    local_source = get_job_source_path(cfg, job_id)
+    if not local_source.exists():
+        log.warning("archive_source_missing", job_id=job_id, storage_key=storage_key)
+        return job_id
+
+    storage = make_storage(cfg)
+    if storage.exists(storage_key):
+        log.info("archive_source_skip_exists", job_id=job_id, storage_key=storage_key)
+        return job_id
+
+    try:
+        storage.upload(storage_key, local_source, content_type="video/mp4")
+        log.info("archive_source_complete", job_id=job_id, storage_key=storage_key)
+    except Exception as exc:
+        log.warning("archive_source_failed", job_id=job_id, error=str(exc))
     return job_id
 
 
@@ -240,7 +349,21 @@ def run_transcribe(self: ProgressTask, job_id: str) -> str:
             workspace = _local_workspace(job_id)
             local_source = _ensure_job_source(job_id, job.source_storage_key)
 
-            transcript = transcribe(local_source, cfg)
+            subtitle_path = None
+            if job.source_url:
+                from core.ingest.resolvers.url import _url_hash, fetch_subtitles_for_url
+                from core.ingest.types import ProcessingTier
+                from core.subtitle_import import find_subtitle_file
+
+                tier_name = (job.config_snapshot or {}).get("processing_tier", "long")
+                try:
+                    tier = ProcessingTier(tier_name)
+                except ValueError:
+                    tier = ProcessingTier.LONG
+                fetch_subtitles_for_url(job.source_url, cfg, tier=tier)
+                subtitle_path = find_subtitle_file(cfg.cache_dir, _url_hash(job.source_url))
+
+            transcript = transcribe(local_source, cfg, subtitle_path=subtitle_path)
 
             # Persist transcript blob to storage for later stages
             storage = make_storage(cfg)
@@ -280,6 +403,15 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
                 raise StreamClipError(f"Job {job_id} not found")
 
             _apply_job_config(job)
+
+            if job.owner_id:
+                owner = await UserRepository(db).get(job.owner_id)
+                if owner and owner.style_weights:
+                    from core.style_learning import merge_user_style_weights
+                    profile = str((job.config_snapshot or {}).get("content_profile", "general"))
+                    merged = merge_user_style_weights(profile, owner.style_weights)
+                    for key, val in merged.items():
+                        setattr(cfg.highlight, key, val)
 
             await jobs.update_status(job_id, JobStatus.DETECTING,
                                      stage="detecting", progress=0.36)
@@ -367,20 +499,60 @@ def run_virality_scores(self: ProgressTask, job_id: str) -> str:
             hints = _pipeline_hints_from_job(job)
             skip_flow = bool(hints.get("skip_optical_flow", False))
             has_chat = bool(hints.get("has_chat_data", False))
-            from core.content_profiles import get_profile
-
-            profile = get_profile(
-                str((job.config_snapshot or {}).get("content_profile", "gaming")),
+            profile_name = str(
+                (job.config_snapshot or {}).get("content_profile", "gaming"),
             )
+            profile = get_profile(profile_name)
 
             clips = await clips_repo.list_for_job(job_id)
             total = max(len(clips), 1)
+
+            chat_events: list[ChatEvent] = []
+            if has_chat:
+                chat_events = fetch_vod_chat(
+                    source_url=job.source_url,
+                    cfg=cfg,
+                    cache_path=_local_workspace(job_id) / "chat.json",
+                )
+
+            transcript_obj: Transcript | None = None
+            try:
+                transcript_obj = load_job_transcript(
+                    job_id, cfg, fallback_transcribe=False,
+                )
+            except Exception as exc:
+                log.warning("virality_context_transcript_unavailable",
+                            job_id=job_id, error=str(exc))
 
             virality_inputs = [
                 (clip.transcript_text, clip.start_secs, clip.end_secs)
                 for clip in clips
             ]
-            virality_results = score_clips_virality_parallel(virality_inputs, cfg)
+            contexts: list[ClipScoringContext | None] = []
+            for clip in clips:
+                before = after = ""
+                if transcript_obj is not None:
+                    before = transcript_obj.text_in_range(
+                        max(0.0, clip.start_secs - 30.0), clip.start_secs,
+                    )[-400:]
+                    after = transcript_obj.text_in_range(
+                        clip.end_secs, clip.end_secs + 30.0,
+                    )[:400]
+                contexts.append(ClipScoringContext(
+                    content_profile=profile_name,
+                    audio_score=clip.audio_score,
+                    spectral_score=clip.spectral_score,
+                    flow_score=None if skip_flow else clip.flow_score,
+                    chat_score=clip.chat_score if has_chat else None,
+                    chat_excerpts=select_chat_excerpts(
+                        chat_events, clip.start_secs, clip.end_secs,
+                    ),
+                    text_before=before,
+                    text_after=after,
+                ))
+            virality_results = score_clips_virality_parallel(
+                virality_inputs, cfg, contexts=contexts,
+            )
 
             for i, (clip, result) in enumerate(zip(clips, virality_results, strict=True)):
                 progress = 0.46 + (i / total) * 0.04
@@ -486,6 +658,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 return {"clip_id": clip_id, "status": "done", "skipped": True}
 
             _apply_job_config(job)
+            _apply_clip_overrides(job, clip)
 
             await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
 
@@ -599,6 +772,23 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 
             CLIP_RENDER_SECONDS.observe(render_secs)
             CLIPS_PROCESSED.labels(status="done").inc()
+
+            from core.webhooks import deliver_clip_webhook
+            user_webhook_url, user_webhook_secret = None, None
+            if job.owner_id:
+                owner = await UserRepository(db).get(job.owner_id)
+                user_webhook_url, user_webhook_secret = _webhook_creds_from_owner(owner)
+            if cfg.webhooks.enabled or user_webhook_url:
+                deliver_clip_webhook(
+                    job_id=job_id,
+                    clip_id=clip_id,
+                    status="done",
+                    cfg=cfg.webhooks,
+                    extra={"render_secs": render_secs},
+                    user_webhook_url=user_webhook_url,
+                    user_webhook_secret=user_webhook_secret,
+                )
+
             return {"clip_id": clip_id, "status": "done", "render_secs": render_secs}
 
     try:
@@ -609,6 +799,29 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
         CLIPS_PROCESSED.labels(status="error").inc()
         # Don't propagate — let other clips finish
         _safe_async(_mark_clip_error(clip_id, str(exc)))
+
+        from core.webhooks import deliver_clip_webhook
+        async def _clip_fail_hook() -> None:
+            async with db_session() as db:
+                jobs_repo = JobRepository(db)
+                job = await jobs_repo.get(job_id)
+                user_webhook_url = None
+                user_webhook_secret = None
+                if job and job.owner_id:
+                    owner = await UserRepository(db).get(job.owner_id)
+                    user_webhook_url, user_webhook_secret = _webhook_creds_from_owner(owner)
+                if cfg.webhooks.enabled or user_webhook_url:
+                    deliver_clip_webhook(
+                        job_id=job_id,
+                        clip_id=clip_id,
+                        status="error",
+                        cfg=cfg.webhooks,
+                        extra={"error": str(exc)},
+                        user_webhook_url=user_webhook_url,
+                        user_webhook_secret=user_webhook_secret,
+                    )
+        _safe_async(_clip_fail_hook())
+
         return {"clip_id": clip_id, "status": "error", "error": str(exc)}
 
 
@@ -617,6 +830,8 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 @celery_app.task(bind=True, base=ProgressTask, name="core.tasks.pipeline_tasks.finalise_job")
 def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str) -> dict[str, Any]:
     """Mark the job done. Receives the list of per-clip results from the chord."""
+
+    stage_durations = finalize_timing(get_redis(), job_id)
 
     async def _do() -> dict[str, Any]:
         async with db_session() as db:
@@ -630,13 +845,25 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
                 job_id, final_status,
                 stage="completed", progress=1.0,
                 error_message=f"{err_count} clips failed" if err_count else None,
+                stage_durations_json=stage_durations or None,
             )
             if job and job.owner_id and job.source_duration_secs:
                 await users_repo.increment_minutes_processed(
                     job.owner_id,
                     job.source_duration_secs / 60.0,
                 )
-            return {"job_id": job_id, "done": done_count, "errors": err_count}
+            user_webhook_url = None
+            user_webhook_secret = None
+            if job and job.owner_id:
+                owner = await users_repo.get(job.owner_id)
+                user_webhook_url, user_webhook_secret = _webhook_creds_from_owner(owner)
+            return {
+                "job_id": job_id,
+                "done": done_count,
+                "errors": err_count,
+                "user_webhook_url": user_webhook_url,
+                "user_webhook_secret": user_webhook_secret,
+            }
 
     summary = _safe_async(_do())
     terminal = "done" if summary.get("errors", 0) == 0 else "error"
@@ -646,16 +873,91 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
         message=f"Done — {summary['done']} clips ready",
         status="done", extra=summary,
     )
-    if cfg.webhooks.enabled:
+    if cfg.webhooks.enabled or summary.get("user_webhook_url"):
         ok = deliver_job_webhook(
             job_id=job_id,
             status=terminal,
             done_count=summary.get("done", 0),
             error_count=summary.get("errors", 0),
             cfg=cfg.webhooks,
+            user_webhook_url=summary.get("user_webhook_url"),
+            user_webhook_secret=summary.get("user_webhook_secret"),
         )
         WEBHOOK_DELIVERIES.labels(result="success" if ok else "failure").inc()
     return summary
+
+
+# ─── 9. Splice merged clips ────────────────────────────────────────────────────
+
+@celery_app.task(bind=True, base=ProgressTask, name="core.tasks.pipeline_tasks.splice_clips")
+def splice_clips(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any]:
+    """Merge parent clips into a single vertical output."""
+
+    async def _do() -> dict[str, Any]:
+        async with db_session() as db:
+            clips_repo = ClipRepository(db)
+            jobs_repo = JobRepository(db)
+            clip = await clips_repo.get(clip_id, with_overlays=False)
+            job = await jobs_repo.get(job_id)
+            if clip is None or job is None or clip.kind != "splice":
+                raise StreamClipError(f"Splice clip not found: {clip_id}")
+
+            await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
+            workspace = _local_workspace(job_id)
+            storage = make_storage(cfg)
+
+            parent_ids = list(clip.parent_clip_ids or [])
+            parents = []
+            for pid in parent_ids:
+                p = await clips_repo.get(pid, with_overlays=False)
+                if p and p.final_storage_key:
+                    parents.append(p)
+
+            if len(parents) < 2:
+                raise StreamClipError("Not enough parent clips for splice")
+
+            from core.splice import download_clip_finals, splice_clip_files
+
+            keys = [p.final_storage_key for p in parents if p.final_storage_key]
+            local_inputs = download_clip_finals(storage, keys, workspace)
+            transition = (clip.render_overrides or {}).get("transition", "cut")
+            final_path = workspace / f"splice_{clip.rank:02d}_final.mp4"
+            splice_clip_files(
+                local_inputs,
+                final_path,
+                cfg,
+                transition=str(transition),
+            )
+
+            thumb_path = workspace / f"splice_{clip.rank:02d}_thumb.jpg"
+            subprocess.run([
+                "ffmpeg", "-y", "-i", str(final_path),
+                "-ss", "00:00:01", "-vframes", "1",
+                "-vf", "scale=540:-1",
+                str(thumb_path),
+            ], check=True, capture_output=True)
+
+            slug = f"splice_{clip.rank:02d}"
+            final_key = job_key(job_id, "clips", f"{slug}_final.mp4")
+            thumb_key = job_key(job_id, "clips", f"{slug}_thumb.jpg")
+            storage.upload(final_key, final_path, content_type="video/mp4")
+            storage.upload(thumb_key, thumb_path, content_type="image/jpeg")
+
+            await clips_repo.update_storage_keys(
+                clip_id,
+                final=final_key,
+                thumbnail=thumb_key,
+            )
+            clip.duration_secs = sum(p.duration_secs for p in parents)
+            clip.file_size_bytes = final_path.stat().st_size
+            await clips_repo.mark_status(clip_id, ClipStatus.DONE)
+            return {"clip_id": clip_id, "status": "done"}
+
+    try:
+        return _safe_async(_do())
+    except Exception as exc:
+        _safe_async(_mark_clip_error(clip_id, str(exc)))
+        return {"clip_id": clip_id, "status": "error", "error": str(exc)}
 
 
 # ─── 8. Periodic cleanup ─────────────────────────────────────────────────────

@@ -123,11 +123,13 @@ def load_job_transcript(
     *,
     storage: Storage | None = None,
     source_path: Path | None = None,
+    fallback_transcribe: bool = True,
 ) -> Transcript:
     """
     Load a persisted job transcript from workspace or object storage.
 
-    Falls back to transcribing ``source_path`` when no blob exists (CLI / recovery).
+    Falls back to transcribing ``source_path`` when no blob exists (CLI / recovery),
+    unless ``fallback_transcribe`` is False — then a missing blob raises.
     """
     from core.ingest.service import get_job_source_path
 
@@ -141,6 +143,9 @@ def load_job_transcript(
 
     if local_json.exists():
         return _load_transcript(local_json)
+
+    if not fallback_transcribe:
+        raise FileNotFoundError(f"No persisted transcript for job {job_id}")
 
     if source_path is None:
         source_path = get_job_source_path(cfg, job_id)
@@ -197,6 +202,7 @@ def transcribe(
     video_path: Path,
     cfg: Settings,
     force: bool = False,
+    subtitle_path: Path | None = None,
 ) -> Transcript:
     """
     Transcribe a video file with word-level timestamps.
@@ -217,6 +223,18 @@ def transcribe(
     if cache_file.exists() and not force:
         log.info("transcript_cache_hit", path=str(cache_file))
         return _load_transcript(cache_file)
+
+    # ── Subtitle seed from yt-dlp ──────────────────────────────────────────
+    if subtitle_path and subtitle_path.exists() and not force:
+        from core.subtitle_import import parse_srt
+
+        parsed = parse_srt(subtitle_path)
+        if parsed and len(parsed.segments) >= 3:
+            log.info("transcript_subtitle_seed", path=str(subtitle_path))
+            from dataclasses import replace
+            transcript = replace(parsed, source_path=video_path)
+            _save_transcript(transcript, cache_file)
+            return transcript
 
     # ── Transcribe ─────────────────────────────────────────────────────────
     model = _get_model(wcfg)

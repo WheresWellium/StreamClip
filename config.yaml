@@ -94,13 +94,16 @@ ingest:
   short_max_height: 720         # Twitch clips / Shorts
   medium_max_height: 1080
   long_max_height: 1080
-  fetch_subs_on_long: true
+  fetch_subs_on_long: false      # fetched separately before transcribe
+  defer_source_upload: true      # don't block pipeline on MinIO archival
+  ytdlp_concurrent_fragments: 4
   short_skip_optical_flow: true # skip heavy CV on clips under 2 min
   medium_skip_optical_flow: false
   short_min_clip_duration: 5.0
 
 auth:
   allow_anonymous: true
+  device_scoped_anonymous: true
 
 job_retention:
   enabled: true

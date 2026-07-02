@@ -25,9 +25,19 @@ from celery import Celery, Task
 from celery.signals import task_failure, task_prerun, task_postrun, task_retry
 
 from core.config import get_settings
+from core.progress_timing import record_stage_progress, set_eta_context
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
+
+__all__ = [
+    "celery_app",
+    "get_redis",
+    "publish_progress",
+    "publish_job_progress",
+    "ProgressTask",
+    "set_eta_context",
+]
 
 
 # ─── Celery app ──────────────────────────────────────────────────────────────
@@ -38,6 +48,8 @@ celery_app = Celery(
     backend=cfg.celery.result_backend,
     include=[
         "core.tasks.pipeline_tasks",
+        "core.tasks.vault_tasks",
+        "core.tasks.publish_tasks",
     ],
 )
 
@@ -61,6 +73,8 @@ celery_app.conf.update(
         "core.tasks.pipeline_tasks.run_transcribe":  {"queue": "gpu"},
         "core.tasks.pipeline_tasks.process_clip":    {"queue": "gpu"},
         "core.tasks.pipeline_tasks.*":               {"queue": "default"},
+        "core.tasks.publish_tasks.*":                {"queue": "default"},
+        "core.tasks.vault_tasks.*":                  {"queue": "default"},
     },
 
     # Default queue
@@ -71,6 +85,10 @@ celery_app.conf.update(
         "cleanup-expired-jobs": {
             "task": "core.tasks.pipeline_tasks.cleanup_expired_jobs",
             "schedule": 3600.0,  # every hour
+        },
+        "process-due-scheduled-publishes": {
+            "task": "core.tasks.publish_tasks.process_due_scheduled_jobs",
+            "schedule": 60.0,  # every minute
         },
     },
 )
@@ -100,6 +118,7 @@ def publish_progress(
     message: str = "",
     status: str = "processing",
     extra: dict[str, Any] | None = None,
+    skip_timing: bool = False,
 ) -> None:
     """
     Publish a progress event to the Redis channel watched by SSE clients.
@@ -110,8 +129,50 @@ def publish_progress(
     channel = f"{cfg.redis.pubsub_channel_prefix}{job_id}"
     snapshot_key = f"{channel}:latest"
 
+    timing_fields: dict[str, Any] = {}
+    if not skip_timing and status == "processing":
+        try:
+            timing_fields = record_stage_progress(r, job_id, stage=stage, cfg=cfg)
+        except Exception as exc:
+            log.warning("progress_timing_failed", job_id=job_id, error=str(exc))
+
     payload = {
         "job_id": job_id,
+        "stage": stage,
+        "progress": round(max(0.0, min(1.0, progress)), 4),
+        "message": message,
+        "status": status,
+        "ts": time.time(),
+        **timing_fields,
+        **(extra or {}),
+    }
+    seq_key = f"{channel}:seq"
+    event_id = r.incr(seq_key)
+    r.expire(seq_key, cfg.redis.progress_ttl_secs)
+    payload["event_id"] = event_id
+    blob = json.dumps(payload)
+    # Set snapshot first (so subscribers that read post-publish see fresh state)
+    r.set(snapshot_key, blob, ex=cfg.redis.progress_ttl_secs)
+    r.publish(channel, blob)
+
+
+def publish_job_progress(
+    publish_job_id: str,
+    *,
+    stage: str,
+    progress: float,
+    message: str = "",
+    status: str = "processing",
+    extra: dict[str, Any] | None = None,
+) -> None:
+    """Publish progress for a distribution publish job (SSE channel)."""
+    r = get_redis()
+    prefix = cfg.redis.publish_pubsub_channel_prefix
+    channel = f"{prefix}{publish_job_id}"
+    snapshot_key = f"{channel}:latest"
+
+    payload = {
+        "publish_job_id": publish_job_id,
         "stage": stage,
         "progress": round(max(0.0, min(1.0, progress)), 4),
         "message": message,
@@ -124,7 +185,6 @@ def publish_progress(
     r.expire(seq_key, cfg.redis.progress_ttl_secs)
     payload["event_id"] = event_id
     blob = json.dumps(payload)
-    # Set snapshot first (so subscribers that read post-publish see fresh state)
     r.set(snapshot_key, blob, ex=cfg.redis.progress_ttl_secs)
     r.publish(channel, blob)
 

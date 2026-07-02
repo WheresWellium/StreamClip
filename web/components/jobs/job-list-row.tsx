@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Progress } from "@/components/ui/form";
 import { HelpTip } from "@/components/ui/help-tip";
 import { LegendBadge } from "@/components/ui/legend-badge";
+import { RelativeTime } from "@/components/ui/relative-time";
 import type { JobListItem } from "@/lib/api/types";
 import { legendForStatus } from "@/lib/help/legends";
 import {
   formatDuration,
-  formatRelativeTime,
   statusColors,
 } from "@/lib/utils/format";
 
@@ -17,7 +17,7 @@ export function JobListRow({ job }: { job: JobListItem }) {
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className="group flex items-center gap-4 px-6 py-3 hover:bg-secondary/40 transition-colors"
+      className="group flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -34,7 +34,7 @@ export function JobListRow({ job }: { job: JobListItem }) {
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
           <span className="inline-flex items-center gap-0.5">
-            {formatRelativeTime(job.created_at)}
+            <RelativeTime iso={job.created_at} />
             <HelpTip
               content="When this job was submitted."
               label="Created time help"

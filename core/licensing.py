@@ -1,0 +1,126 @@
+"""Self-hosted license activation and entitlement verification."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+import jwt
+
+from backend.db.models import UserTier
+from core.config import Settings, get_settings
+
+
+@dataclass(frozen=True)
+class Entitlement:
+    tier: UserTier
+    machine_id: str
+    expires_at: datetime | None
+    license_key_hash: str
+
+
+def hash_license_key(license_key: str) -> str:
+    return hashlib.sha256(license_key.strip().encode("utf-8")).hexdigest()
+
+
+def create_entitlement_token(
+    *,
+    tier: UserTier,
+    machine_id: str,
+    license_key_hash: str,
+    expires_at: datetime | None,
+    cfg: Settings | None = None,
+) -> str:
+    cfg = cfg or get_settings()
+    now = datetime.now(timezone.utc)
+    exp = expires_at or (now + timedelta(days=365))
+    payload = {
+        "type": "entitlement",
+        "tier": tier.value,
+        "machine_id": machine_id,
+        "license_key_hash": license_key_hash,
+        "iat": now,
+        "exp": exp,
+    }
+    return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
+
+
+def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | None = None) -> Entitlement:
+    cfg = cfg or get_settings()
+    try:
+        payload = jwt.decode(token, cfg.auth.secret_key, algorithms=[cfg.auth.algorithm])
+    except jwt.InvalidTokenError as exc:
+        raise ValueError("Invalid or expired license") from exc
+    if payload.get("type") != "entitlement":
+        raise ValueError("Wrong token type")
+    if payload.get("machine_id") != machine_id:
+        raise ValueError("License bound to a different machine")
+    exp = payload.get("exp")
+    expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else None
+    return Entitlement(
+        tier=UserTier(payload["tier"]),
+        machine_id=machine_id,
+        expires_at=expires_at,
+        license_key_hash=payload["license_key_hash"],
+    )
+
+
+def activate_license_key(
+    license_key: str,
+    machine_id: str,
+    *,
+    cfg: Settings | None = None,
+) -> tuple[str, Entitlement]:
+    """Validate license key format and issue a signed entitlement JWT."""
+    cfg = cfg or get_settings()
+    key = license_key.strip()
+    if len(key) < 16:
+        raise ValueError("Invalid license key")
+    key_hash = hash_license_key(key)
+    tier = UserTier.PRO if key.startswith("SCPRO-") else UserTier.FREE
+    expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+    token = create_entitlement_token(
+        tier=tier,
+        machine_id=machine_id,
+        license_key_hash=key_hash,
+        expires_at=expires_at,
+        cfg=cfg,
+    )
+    entitlement = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
+    _persist_license_file(token, cfg)
+    return token, entitlement
+
+
+def _persist_license_file(token: str, cfg: Settings) -> None:
+    path = cfg.licensing.license_file
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"entitlement_jwt": token}, indent=2), encoding="utf-8")
+
+
+def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:
+    cfg = cfg or get_settings()
+    path = cfg.licensing.license_file
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    return data.get("entitlement_jwt")
+
+
+def get_install_tier(machine_id: str, cfg: Settings | None = None) -> UserTier:
+    cfg = cfg or get_settings()
+    if not cfg.licensing.enabled:
+        return UserTier.FREE
+    token = load_persisted_entitlement(cfg)
+    if not token:
+        return UserTier.FREE
+    try:
+        return verify_entitlement_token(token, machine_id=machine_id, cfg=cfg).tier
+    except ValueError:
+        return UserTier.FREE

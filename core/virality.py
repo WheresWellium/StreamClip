@@ -17,38 +17,197 @@ from typing import Any
 
 import structlog
 
+from core.chat_spikes import ChatEvent
 from core.config import HighlightConfig, LLMConfig, Settings
 from core.content_profiles import ProfileWeights
 from core.models import Emotion
 
 log = structlog.get_logger(__name__)
 
-_VIRALITY_PROMPT = """\
-You are an expert gaming content strategist who has studied 100,000+ viral clips
-across Twitch, TikTok, YouTube Shorts, and Instagram Reels.
 
-Analyse this finished clip transcript and score its viral potential for short-form.
+# ─── Per-profile prompt personas ──────────────────────────────────────────────
 
-── VIRAL SIGNALS (score high) ────────────────────────────────────────────────
-• Kill streaks, clutch plays, emotional outbursts, quotable one-liners
-• Unexpected twists, funny fails, hype moments
+@dataclass(frozen=True)
+class _ProfilePrompt:
+    persona: str
+    viral: str
+    anti_viral: str
 
-── ANTI-VIRAL SIGNALS (score low) ────────────────────────────────────────────
-• Dead air, filler, menu chatter, mid-explanation without payoff
 
-── CLIP ───────────────────────────────────────────────────────────────────────
-Duration: {duration:.1f}s | Window: {start:.1f}s – {end:.1f}s
+_PROFILE_PROMPTS: dict[str, _ProfilePrompt] = {
+    "gaming": _ProfilePrompt(
+        persona="an expert gaming content strategist who has studied 100,000+ viral "
+                "clips across Twitch, TikTok, YouTube Shorts, and Instagram Reels",
+        viral="• Kill streaks, clutch plays, emotional outbursts, quotable one-liners\n"
+              "• Unexpected twists, funny fails, hype moments, streamer rage or disbelief",
+        anti_viral="• Dead air, filler, menu chatter, mid-explanation without payoff",
+    ),
+    "esports": _ProfilePrompt(
+        persona="a veteran esports broadcast producer who clips tournament moments "
+                "that trend on X and TikTok within hours",
+        viral="• Match-point clutches, upsets, caster scream moments, crowd eruptions\n"
+              "• Player mechanics that make even non-fans say 'how?'",
+        anti_viral="• Standard trades, pause chatter, analysis without a payoff moment",
+    ),
+    "irl": _ProfilePrompt(
+        persona="an IRL/just-chatting clip curator who knows what makes strangers "
+                "stop scrolling on unscripted real-life content",
+        viral="• Unexpected encounters, genuine emotional reactions, awkward-but-funny "
+              "social moments\n• Quotable hot takes, wholesome surprises, chaos in public",
+        anti_viral="• Walking with no dialogue, logistics talk, waiting around",
+    ),
+    "podcast": _ProfilePrompt(
+        persona="a podcast growth editor who cuts long conversations into shorts that "
+                "consistently break 1M views",
+        viral="• Contrarian or surprising claims, vulnerable personal stories, heated "
+              "disagreements\n• Tight self-contained insights with a hook in the first "
+              "sentence, punchy comebacks",
+        anti_viral="• Mid-thought rambling, inside references without setup, "
+              "pleasantries and sponsor reads",
+    ),
+    "education": _ProfilePrompt(
+        persona="an educational shorts editor who turns lessons into 'today I learned' "
+                "clips people share",
+        viral="• Counterintuitive facts, myth-busting, 'nobody tells you this' framing\n"
+              "• A complete micro-lesson: question, answer, and why it matters",
+        anti_viral="• Prerequisite-heavy fragments, housekeeping, incomplete explanations",
+    ),
+    "vlog": _ProfilePrompt(
+        persona="a lifestyle content editor who clips vlogs into shorts with strong "
+                "narrative hooks",
+        viral="• Reveals and transformations, candid confessions, relatable struggles\n"
+              "• Moments with a clear beginning-middle-punchline arc",
+        anti_viral="• Routine narration without stakes, transitions, filler updates",
+    ),
+    "sports": _ProfilePrompt(
+        persona="a sports highlights producer who knows which plays go viral beyond "
+                "the fanbase",
+        viral="• Game-winning or impossible plays, records broken, huge hits or saves\n"
+              "• Raw emotion: celebrations, benches clearing, commentator losing it",
+        anti_viral="• Routine plays, stoppage time, tactical talk without a visual payoff",
+    ),
+    "music": _ProfilePrompt(
+        persona="a music content editor who clips performances and studio moments that "
+                "trend on TikTok and Reels",
+        viral="• The drop, the high note, the crowd singing back, improvised magic\n"
+              "• Artist reactions, first-take wow moments, unexpected covers",
+        anti_viral="• Tuning, soundcheck, talking over the music without a moment",
+    ),
+    "general": _ProfilePrompt(
+        persona="a short-form video strategist who has studied viral clips across "
+                "every content vertical on TikTok, YouTube Shorts, and Instagram Reels",
+        viral="• Strong hooks in the first 2 seconds, emotional peaks, quotable lines\n"
+              "• Surprises, payoffs, and moments that provoke comments or shares",
+        anti_viral="• Dead air, filler, context-dependent fragments without payoff",
+    ),
+}
 
-"{text}"
 
-── OUTPUT FORMAT ──────────────────────────────────────────────────────────────
-Return ONLY valid JSON (no markdown fences):
-{{
-  "score": <integer 0–100>,
-  "emotion": "<one of: hype|rage|funny|clutch|fail|weird|neutral>",
-  "meme_keywords": ["<keyword1>", "<keyword2>"],
-  "reason": "<1–2 sentences explaining the score>"
-}}"""
+@dataclass(frozen=True)
+class ClipScoringContext:
+    """Optional evidence given to the LLM alongside the clip transcript."""
+    content_profile: str = "general"
+    audio_score: float | None = None
+    spectral_score: float | None = None
+    flow_score: float | None = None
+    chat_score: float | None = None
+    chat_excerpts: tuple[str, ...] = ()
+    text_before: str = ""
+    text_after: str = ""
+
+
+def select_chat_excerpts(
+    events: list[ChatEvent],
+    start: float,
+    end: float,
+    *,
+    limit: int = 12,
+    max_chars: int = 80,
+) -> tuple[str, ...]:
+    """Pick up to ``limit`` chat messages inside the clip window for LLM context."""
+    window = [e for e in events if start <= e.offset_secs <= end and e.text.strip()]
+    if len(window) > limit:
+        # Even sampling across the window preserves the reaction arc
+        step = len(window) / limit
+        window = [window[int(i * step)] for i in range(limit)]
+    return tuple(e.text.strip()[:max_chars] for e in window)
+
+
+def build_virality_prompt(
+    *,
+    text: str,
+    start: float,
+    end: float,
+    duration: float,
+    context: ClipScoringContext | None = None,
+) -> str:
+    """Assemble the scoring prompt: profile persona + clip + optional evidence."""
+    ctx = context or ClipScoringContext()
+    pp = _PROFILE_PROMPTS.get(ctx.content_profile, _PROFILE_PROMPTS["general"])
+
+    sections: list[str] = [
+        f"You are {pp.persona}.",
+        "",
+        "Analyse this finished clip and score its viral potential for short-form.",
+        "",
+        "── VIRAL SIGNALS (score high) ────────────────────────────────────────────────",
+        pp.viral,
+        "",
+        "── ANTI-VIRAL SIGNALS (score low) ────────────────────────────────────────────",
+        pp.anti_viral,
+        "",
+        "── CLIP ───────────────────────────────────────────────────────────────────────",
+        f"Duration: {duration:.1f}s | Window: {start:.1f}s – {end:.1f}s",
+        "",
+        f'"{text}"',
+    ]
+
+    signals = [
+        ("Audio energy", ctx.audio_score),
+        ("Spectral novelty", ctx.spectral_score),
+        ("Visual motion", ctx.flow_score),
+        ("Chat spike", ctx.chat_score),
+    ]
+    known = [(name, v) for name, v in signals if v is not None]
+    if known:
+        sections += [
+            "",
+            "── SIGNAL TELEMETRY (0–1, measured from the video) ───────────────────────────",
+            " | ".join(f"{name}: {v:.2f}" for name, v in known),
+            "Use these to corroborate or challenge your read of the transcript — "
+            "high audio/chat with flat text often means a non-verbal hype moment.",
+        ]
+
+    if ctx.chat_excerpts:
+        joined = "\n".join(f"• {m}" for m in ctx.chat_excerpts)
+        sections += [
+            "",
+            "── LIVE CHAT DURING CLIP ─────────────────────────────────────────────────────",
+            joined,
+        ]
+
+    if ctx.text_before or ctx.text_after:
+        sections += [
+            "",
+            "── SURROUNDING TRANSCRIPT (context only — do not score this) ─────────────────",
+        ]
+        if ctx.text_before:
+            sections.append(f"Before: \"{ctx.text_before}\"")
+        if ctx.text_after:
+            sections.append(f"After: \"{ctx.text_after}\"")
+
+    sections += [
+        "",
+        "── OUTPUT FORMAT ──────────────────────────────────────────────────────────────",
+        "Return ONLY valid JSON (no markdown fences):",
+        "{",
+        '  "score": <integer 0–100>,',
+        '  "emotion": "<one of: hype|rage|funny|clutch|fail|weird|neutral>",',
+        '  "meme_keywords": ["<keyword1>", "<keyword2>"],',
+        '  "reason": "<1–2 sentences explaining the score>"',
+        "}",
+    ]
+    return "\n".join(sections)
 
 
 @dataclass(frozen=True)
@@ -105,14 +264,16 @@ def score_clip_virality(
     end_secs: float,
     cfg: Settings,
     client: Any | None = None,
+    context: ClipScoringContext | None = None,
 ) -> ViralityResult:
     """Score a finished clip transcript for viral potential (0–100)."""
     duration = max(0.0, end_secs - start_secs)
-    prompt = _VIRALITY_PROMPT.format(
+    prompt = build_virality_prompt(
         text=text,
         start=start_secs,
         end=end_secs,
         duration=duration,
+        context=context,
     )
     llm_client = client or _build_client(cfg.llm)
 
@@ -149,28 +310,33 @@ def score_clips_virality_parallel(
     cfg: Settings,
     *,
     max_workers: int | None = None,
+    contexts: list[ClipScoringContext | None] | None = None,
 ) -> list[ViralityResult]:
     """
     Score multiple clips concurrently (I/O-bound LLM calls).
-    Each item is (transcript_text, start_secs, end_secs).
+    Each item is (transcript_text, start_secs, end_secs); ``contexts`` is an
+    optional list aligned 1:1 with ``clips``.
     """
     if not clips:
         return []
+    if contexts is not None and len(contexts) != len(clips):
+        raise ValueError("contexts must align 1:1 with clips")
     workers = min(max_workers or cfg.llm.parallel_workers, len(clips))
     client = _build_client(cfg.llm)
 
-    def _score_one(item: tuple[str, float, float]) -> ViralityResult:
-        text, start, end = item
+    def _score_one(idx_item: tuple[int, tuple[str, float, float]]) -> ViralityResult:
+        idx, (text, start, end) = idx_item
         return score_clip_virality(
             text=text,
             start_secs=start,
             end_secs=end,
             cfg=cfg,
             client=client,
+            context=contexts[idx] if contexts else None,
         )
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(_score_one, clips))
+        return list(pool.map(_score_one, enumerate(clips)))
 
 
 def ensemble_with_virality(

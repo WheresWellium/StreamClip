@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.schemas import HealthResponse
+from backend.api.schemas import HealthResponse, StackHealthResponse
 from backend.db.session import get_db
 from core.config import get_settings
 from core.storage import make_storage
@@ -88,21 +88,62 @@ async def health(
     )
 
 
+@router.get("/health/stack", response_model=StackHealthResponse)
+async def health_stack(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StackHealthResponse:
+    """Extended stack health for onboarding wizard."""
+    base = await health(db)
+    cfg = get_settings()
+
+    worker_ok: bool | None = None
+    try:
+        import httpx
+        with httpx.Client(timeout=2.0) as client:
+            resp = client.get("http://flower:5555/api/workers")
+        worker_ok = resp.is_success
+    except Exception:
+        worker_ok = False
+
+    checks = {
+        "database": base.database,
+        "redis": base.redis,
+        "storage": base.storage,
+    }
+    if base.ollama is not None:
+        checks["ollama"] = base.ollama
+
+    return StackHealthResponse(
+        status=base.status,
+        version=VERSION,
+        environment=cfg.environment,
+        checks=checks,
+        worker=worker_ok,
+        beat=None,
+        web=None,
+    )
+
+
 @router.get("/meta")
 async def meta() -> dict:
     """Public configuration that the frontend may use to populate selects."""
-    from core.content_profiles import list_profiles
+    from core.creator_options import (
+        list_caption_styles,
+        list_content_profiles,
+        list_reframe_presets,
+    )
+    from core.eta import processing_profile
+
+    cfg = get_settings()
 
     return {
         "version": VERSION,
-        "content_profiles": list_profiles(),
-        "caption_styles": [
-            "gaming_impact", "tiktok_pop", "minimal_white", "podcast_clean",
-        ],
-        "reframe_presets": [
-            "fps_game", "moba", "battle_royale", "irl", "podcast", "auto",
-        ],
+        "processing_profile": processing_profile(cfg),
+        "content_profiles": list_content_profiles(),
+        "caption_styles": list_caption_styles(),
+        "reframe_presets": list_reframe_presets(),
         "emotion_labels": [
             "hype", "rage", "funny", "clutch", "fail", "weird", "neutral",
         ],
+        "onboarding_sample_url": cfg.onboarding.sample_url,
     }

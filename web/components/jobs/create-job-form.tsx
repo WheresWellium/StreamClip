@@ -43,7 +43,7 @@ import { DirectUpload } from "@/components/upload/direct-upload";
 import { AspectRatioSelect } from "@/components/jobs/aspect-ratio-select";
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { FORM_SECTION_LEGEND } from "@/lib/help/legends";
-import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
+import type { JobTemplate, MetaOption, StreamClipMeta } from "@/lib/api/meta-types";
 import { cn } from "@/lib/utils/format";
 
 const INITIAL_STATE: CreateJobActionState = { status: "idle" };
@@ -61,7 +61,25 @@ const PROFILE_ICONS: Record<string, React.ElementType> = {
 };
 
 const REFRAME_PLATFORM_NOTE =
-  "Presets control how we crop and track the subject — the export aspect ratio below sets the output frame.";
+  "Presets control how we crop and track the subject — the export aspect ratio sets the output frame.";
+
+function StepLabel({ n, title, tip }: { n: number; title: string; tip?: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center border border-sky-400/50 bg-sky-400/10 font-mono text-[10px] text-sky-400"
+        aria-hidden
+      >
+        {n}
+      </span>
+      {tip ? (
+        <SectionLegend title={title} tip={tip} />
+      ) : (
+        <span className="term-label">{title}</span>
+      )}
+    </div>
+  );
+}
 
 type Props = {
   meta: StreamClipMeta;
@@ -87,6 +105,15 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
   const [aspectRatio, setAspectRatio] = React.useState("9:16");
   const [targetClips, setTargetClips] = React.useState(5);
   const [templateMsg, setTemplateMsg] = React.useState<string | null>(null);
+
+  const selectedProfile = meta.content_profiles.find((p) => p.id === contentProfile);
+
+  /** Choosing a content type also configures its matching crop + caption presets. */
+  function selectContentProfile(profile: MetaOption) {
+    setContentProfile(profile.id);
+    if (profile.recommended_reframe) setReframePreset(profile.recommended_reframe);
+    if (profile.recommended_captions) setCaptionStyle(profile.recommended_captions);
+  }
 
   function applyTemplate(templateId: string) {
     const tpl = templates.find((t) => t.id === templateId);
@@ -149,9 +176,9 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
         )}
 
         <form action={formAction} className="space-y-6">
-          {/* Source mode tabs */}
+          {/* Step 1 — Source */}
           <div className="space-y-3">
-            <SectionLegend title="Source" tip={FORM_SECTION_LEGEND.source} />
+            <StepLabel n={1} title="Source" tip={FORM_SECTION_LEGEND.source} />
             <div className="grid grid-cols-2 border border-frame/25 rounded-sm overflow-hidden">
               {(["url", "upload"] as const).map((m) => {
                 const Icon = m === "url" ? Link2 : Upload;
@@ -201,11 +228,12 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
             )}
           </div>
 
-          {/* Content profile cards */}
+          {/* Step 2 — Content type */}
           <div className="space-y-3">
-            <SectionLegend
+            <StepLabel
+              n={2}
               title="Content type"
-              tip="Tunes highlight detection for your vertical. Pick the closest match."
+              tip="Tunes highlight detection for your vertical and pre-selects the matching crop and caption presets below. Pick the closest match."
             />
             <input type="hidden" name="content_profile" value={contentProfile} />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -217,7 +245,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setContentProfile(profile.id)}
+                        onClick={() => selectContentProfile(profile)}
                         className={cn(
                           "flex flex-col items-start gap-1.5 p-3 rounded-lg text-left transition-all border",
                           selected
@@ -259,31 +287,52 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           <input type="hidden" name="caption_style" value={captionStyle} />
           <input type="hidden" name="aspect_ratio" value={aspectRatio} />
 
-          <AspectRatioSelect
-            value={aspectRatio}
-            onChange={setAspectRatio}
-            options={meta.aspect_ratios}
-          />
+          {/* Step 3 — Output style (pre-configured by the content type) */}
+          <div className="space-y-5 border-l-2 border-frame/15 pl-4">
+            <div className="space-y-1">
+              <StepLabel
+                n={3}
+                title="Output style"
+                tip="Aspect ratio, cropping, and captions. Pre-configured by your content type — override anything."
+              />
+              {selectedProfile && (
+                <p className="text-xs text-muted-foreground pl-[30px]">
+                  Configured for <span className="text-sky-400">{selectedProfile.label}</span> —
+                  change anything below.
+                </p>
+              )}
+            </div>
 
-          <CreatorOptionCards
-            title="Reframe preset"
-            tip={`How we crop landscape source into vertical shorts. ${REFRAME_PLATFORM_NOTE}`}
-            options={meta.reframe_presets}
-            value={reframePreset}
-            onChange={setReframePreset}
-            columns={2}
-            showAspectBadge
-            showPlatformChips
-          />
+            <AspectRatioSelect
+              value={aspectRatio}
+              onChange={setAspectRatio}
+              options={meta.aspect_ratios}
+            />
 
-          <CreatorOptionCards
-            title="Caption style"
-            tip="Burned-in text style on every clip. Choose No Captions if you add subtitles elsewhere."
-            options={meta.caption_styles}
-            value={captionStyle}
-            onChange={setCaptionStyle}
-            columns={2}
-          />
+            <CreatorOptionCards
+              title="Reframe preset"
+              tip={`How we crop landscape source into social-ready clips. ${REFRAME_PLATFORM_NOTE}`}
+              options={meta.reframe_presets}
+              value={reframePreset}
+              onChange={setReframePreset}
+              columns={2}
+              showAspectBadge
+              showPlatformChips
+              aspectRatioId={aspectRatio}
+              aspectRatioCatalog={meta.aspect_ratios}
+              recommendedId={selectedProfile?.recommended_reframe}
+            />
+
+            <CreatorOptionCards
+              title="Caption style"
+              tip="Burned-in text style on every clip. Choose No Captions if you add subtitles elsewhere."
+              options={meta.caption_styles}
+              value={captionStyle}
+              onChange={setCaptionStyle}
+              columns={2}
+              recommendedId={selectedProfile?.recommended_captions}
+            />
+          </div>
 
           {/* Clip count — collapsed by default */}
           <div className="space-y-3">

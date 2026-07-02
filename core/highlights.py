@@ -492,7 +492,7 @@ def find_highlights(
     hints = pipeline_hints or {}
     skip_flow = bool(hints.get("skip_optical_flow", False))
     min_seg_dur = float(hints.get("min_clip_duration_override", 5.0))
-    content_profile = hints.get("content_profile", "gaming")
+    content_profile = hints.get("content_profile", "general")
     profile = get_profile(str(content_profile))
     candidate_mode = hcfg.candidate_mode
 

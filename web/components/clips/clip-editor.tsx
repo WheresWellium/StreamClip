@@ -15,7 +15,7 @@ import {
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { useJobProgress } from "@/lib/api/use-job-progress";
 import type { ClipOut } from "@/lib/api/types";
-import type { MetaOption } from "@/lib/api/meta-types";
+import type { AspectRatioOption, MetaOption } from "@/lib/api/meta-types";
 import { cn, formatDuration } from "@/lib/utils/format";
 
 type ClipWithOverrides = ClipOut & {
@@ -41,6 +41,7 @@ type Props = {
   captionStyleOptions: MetaOption[];
   reframePresetOptions: MetaOption[];
   jobAspectRatio?: string | null;
+  aspectRatioCatalog?: AspectRatioOption[];
   disabled?: boolean;
 };
 
@@ -125,6 +126,7 @@ export function ClipEditor({
   captionStyleOptions,
   reframePresetOptions,
   jobAspectRatio,
+  aspectRatioCatalog,
   disabled = false,
 }: Props) {
   const router = useRouter();
@@ -472,6 +474,7 @@ export function ClipEditor({
                 <AspectRatioSelect
                   value={form.aspectRatio}
                   onChange={(id) => patch("aspectRatio", id)}
+                  options={aspectRatioCatalog}
                   compact
                 />
                 <CreatorOptionCards
@@ -489,6 +492,8 @@ export function ClipEditor({
                   onChange={(id) => patch("reframePreset", id)}
                   columns={1}
                   showAspectBadge
+                  aspectRatioId={form.aspectRatio}
+                  aspectRatioCatalog={aspectRatioCatalog}
                 />
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input

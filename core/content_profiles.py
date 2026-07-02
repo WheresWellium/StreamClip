@@ -29,11 +29,13 @@ class ProfileWeights:
 
 _PROFILES: dict[ContentProfile, ProfileWeights] = {
     "gaming": ProfileWeights(
+        # Chat weight matches the "chat spikes" promise in the profile copy;
+        # it renormalizes away automatically when a source has no chat replay.
         weight_audio_energy=0.25,
         weight_spectral_novelty=0.15,
         weight_optical_flow=0.15,
-        weight_chat_spikes=0.05,
-        weight_llm_virality=0.40,
+        weight_chat_spikes=0.10,
+        weight_llm_virality=0.35,
         peak_min_height=0.55,
         peak_merge_gap_secs=90.0,
     ),

@@ -89,6 +89,11 @@ PRESETS: dict[str, _Preset] = {
         yolo_conf=0.38, track_classes=[0], smooth_window=150,
         max_pan_velocity=0.015, hud_bottom=0.0, hud_top=0.0,
     ),
+    # Music / stage: center-weighted performer tracking, moderate motion
+    "music_performance": _Preset(
+        yolo_conf=0.42, track_classes=[0], smooth_window=100,
+        max_pan_velocity=0.025, hud_bottom=0.0, hud_top=0.0,
+    ),
 }
 
 

@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown, Proportions } from "lucide-react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 import { Label } from "@/components/ui/form";
 import type { AspectRatioOption } from "@/lib/api/meta-types";
@@ -98,16 +99,44 @@ export function AspectRatioSelect({
 }: Props) {
   const catalog = options && options.length > 0 ? options : DEFAULT_OPTIONS;
   const [open, setOpen] = React.useState(false);
+  const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties>({});
   const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const menuRef = React.useRef<HTMLUListElement | null>(null);
 
   const selected = catalog.find((o) => o.id === value) ?? catalog[0];
+
+  const repositionMenu = React.useCallback(() => {
+    const trigger = rootRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    setMenuStyle({
+      position: "fixed",
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    repositionMenu();
+    window.addEventListener("resize", repositionMenu);
+    window.addEventListener("scroll", repositionMenu, true);
+    return () => {
+      window.removeEventListener("resize", repositionMenu);
+      window.removeEventListener("scroll", repositionMenu, true);
+    };
+  }, [open, repositionMenu, value]);
 
   React.useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -150,62 +179,67 @@ export function AspectRatioSelect({
         />
       </button>
 
-      {open && (
-        <ul
-          role="listbox"
-          aria-label={label}
-          className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-xl"
-        >
-          {catalog.map((option) => {
-            const active = option.id === selected.id;
-            return (
-              <li key={option.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => {
-                    onChange(option.id);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors",
-                    active ? "bg-sky-400/10" : "hover:bg-frame/5",
-                  )}
-                >
-                  <RatioThumb width={option.width} height={option.height} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">{option.label}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {option.output_resolution}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            role="listbox"
+            aria-label={label}
+            style={menuStyle}
+            className="max-h-[min(24rem,70vh)] overflow-y-auto rounded-sm border border-frame/40 bg-popover/95 shadow-[3px_3px_0_0_hsl(186_60%_3%/0.9)] backdrop-blur-md"
+          >
+            {catalog.map((option) => {
+              const active = option.id === selected.id;
+              return (
+                <li key={option.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    onClick={() => {
+                      onChange(option.id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors",
+                      active ? "bg-sky-400/10" : "hover:bg-frame/5",
+                    )}
+                  >
+                    <RatioThumb width={option.width} height={option.height} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">{option.label}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {option.output_resolution}
+                        </span>
                       </span>
+                      {option.description && (
+                        <span className="mt-0.5 block text-xs text-muted-foreground line-clamp-1">
+                          {option.description}
+                        </span>
+                      )}
+                      {option.platforms && option.platforms.length > 0 && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {option.platforms.map((p) => (
+                            <span
+                              key={p}
+                              className="rounded-sm border border-frame/15 bg-black/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                            >
+                              {p}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </span>
-                    {option.description && (
-                      <span className="mt-0.5 block text-xs text-muted-foreground line-clamp-1">
-                        {option.description}
-                      </span>
-                    )}
-                    {option.platforms && option.platforms.length > 0 && (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {option.platforms.map((p) => (
-                          <span
-                            key={p}
-                            className="rounded-sm border border-frame/15 bg-black/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
-                          >
-                            {p}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                  {active && <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    {active && <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 }

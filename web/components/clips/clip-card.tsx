@@ -22,7 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { ClipOut } from "@/lib/api/types";
-import type { MetaOption } from "@/lib/api/meta-types";
+import type { AspectRatioOption, MetaOption } from "@/lib/api/meta-types";
 import { CAPTION_STYLE_IDS, REFRAME_PRESET_IDS } from "@/lib/creator-option-ids";
 import { CLIP_SCORE_LEGEND, legendForEmotion } from "@/lib/help/legends";
 import {
@@ -40,6 +40,7 @@ interface ClipCardProps {
   captionStyleOptions?: MetaOption[];
   reframePresetOptions?: MetaOption[];
   jobAspectRatio?: string | null;
+  aspectRatioCatalog?: AspectRatioOption[];
 }
 
 export function ClipCard({
@@ -50,6 +51,7 @@ export function ClipCard({
   captionStyleOptions,
   reframePresetOptions,
   jobAspectRatio,
+  aspectRatioCatalog,
 }: ClipCardProps) {
   const captionOptions =
     captionStyleOptions ??
@@ -314,6 +316,7 @@ export function ClipCard({
               captionStyleOptions={captionOptions}
               reframePresetOptions={reframeOptions}
               jobAspectRatio={jobAspectRatio}
+              aspectRatioCatalog={aspectRatioCatalog}
               disabled={isProcessing}
             />
             {clip.status === "done" && (

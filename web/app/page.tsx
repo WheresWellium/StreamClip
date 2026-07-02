@@ -41,15 +41,15 @@ export default async function HomePage({
             <span className="animate-ping absolute inline-flex h-full w-full bg-sky-400 opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 bg-sky-400" />
           </span>
-          AI clip pipeline
+          Jet Stream — AI clip pipeline
         </div>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
           Turn long-form video into{" "}
           <span className="text-sky-400">viral social clips</span>
         </h1>
         <p className="text-muted-foreground max-w-xl text-sm">
-          Subject tracking, animated captions, and meme overlays — paste a URL or
-          upload, then watch progress and download clips when ready.
+          Three steps: paste a source, pick your content type, generate. Subject
+          tracking, animated captions, and export presets are configured for you.
         </p>
       </section>
 

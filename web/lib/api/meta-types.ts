@@ -9,6 +9,9 @@ export type MetaOption = {
   preview_hint?: string;
   category?: string;
   tags?: string[];
+  /** Content profiles: preset ids auto-applied when the profile is chosen. */
+  recommended_reframe?: string;
+  recommended_captions?: string;
 };
 
 export type AspectRatioOption = {

@@ -71,7 +71,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
 
       {step === "welcome" && (
         <section className="space-y-4">
-          <h1 className="text-2xl font-semibold">Welcome to StreamClip</h1>
+          <h1 className="text-2xl font-semibold">Welcome to Jet Stream</h1>
           <p className="text-muted-foreground">
             Turn long-form streams into vertical clips with AI captions, reframe, and overlays.
           </p>

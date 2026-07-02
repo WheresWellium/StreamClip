@@ -111,6 +111,10 @@ class CreatorOption:
     preview_hint: str = ""
     category: str = ""
     tags: tuple[str, ...] = ()
+    # Content profiles only: presets auto-applied when the profile is chosen,
+    # so the "best for" promise carries through cropping and captions.
+    recommended_reframe: str = ""
+    recommended_captions: str = ""
 
     def to_meta(self) -> dict[str, Any]:
         return {
@@ -124,6 +128,8 @@ class CreatorOption:
             "preview_hint": self.preview_hint,
             "category": self.category,
             "tags": list(self.tags),
+            "recommended_reframe": self.recommended_reframe,
+            "recommended_captions": self.recommended_captions,
         }
 
 
@@ -131,18 +137,22 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
     CreatorOption(
         id="gaming",
         label="Gaming / Twitch",
-        description="Fast action, chat spikes, and motion-heavy gameplay moments.",
+        description="Fast action, motion-heavy gameplay moments — plus chat-spike detection on Twitch VODs.",
         best_for="FPS, MOBA, battle royale, variety streams",
         category="live",
         tags=("twitch", "gameplay", "highlights"),
+        recommended_reframe="fps_game",
+        recommended_captions="gaming_impact",
     ),
     CreatorOption(
         id="esports",
         label="Esports / Casted",
-        description="Caster hype layered with on-screen team fights and objectives.",
+        description="Caster hype layered with on-screen team fights — chat spikes weighted on Twitch VODs.",
         best_for="Tournament VODs, co-streams, analyst desk clips",
         category="live",
         tags=("esports", "casters", "competitive"),
+        recommended_reframe="fps_game",
+        recommended_captions="shorts_bold",
     ),
     CreatorOption(
         id="irl",
@@ -151,6 +161,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="IRL streams, Q&A, reaction content",
         category="live",
         tags=("irl", "reactions", "facecam"),
+        recommended_reframe="irl",
+        recommended_captions="tiktok_pop",
     ),
     CreatorOption(
         id="vlog",
@@ -159,6 +171,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="YouTube vlogs, B-roll montages, lifestyle uploads",
         category="long-form",
         tags=("vlog", "lifestyle", "creator"),
+        recommended_reframe="cinematic_wide",
+        recommended_captions="shorts_bold",
     ),
     CreatorOption(
         id="podcast",
@@ -167,6 +181,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="Podcasts, interviews, panel shows, webinars",
         category="long-form",
         tags=("podcast", "dialogue", "talking"),
+        recommended_reframe="podcast",
+        recommended_captions="podcast_clean",
     ),
     CreatorOption(
         id="education",
@@ -175,6 +191,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="Courses, how-tos, tech reviews, lecture clips",
         category="long-form",
         tags=("education", "tutorial", "explainer"),
+        recommended_reframe="presentation",
+        recommended_captions="minimal_white",
     ),
     CreatorOption(
         id="sports",
@@ -183,6 +201,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="Game film, highlights reels, gym and field sports",
         category="long-form",
         tags=("sports", "athletics", "highlights"),
+        recommended_reframe="sports_action",
+        recommended_captions="shorts_bold",
     ),
     CreatorOption(
         id="music",
@@ -191,6 +211,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="Concerts, DJ sets, music videos, cover performances",
         category="long-form",
         tags=("music", "performance", "audio"),
+        recommended_reframe="music_performance",
+        recommended_captions="karaoke_highlight",
     ),
     CreatorOption(
         id="general",
@@ -199,6 +221,8 @@ CONTENT_PROFILE_OPTIONS: tuple[CreatorOption, ...] = (
         best_for="Mixed uploads, first-time jobs, unknown source",
         category="general",
         tags=("default", "mixed"),
+        recommended_reframe="auto",
+        recommended_captions="shorts_bold",
     ),
 )
 
@@ -274,6 +298,15 @@ REFRAME_PRESET_OPTIONS: tuple[CreatorOption, ...] = (
         preview_hint="Slow pan · scenic",
         category="cinematic",
         tags=("b-roll", "travel", "cinematic"),
+    ),
+    CreatorOption(
+        id="music_performance",
+        label="Music / Performance",
+        description="Stage-centered framing for performers, DJs, and instrument focus.",
+        best_for="Concerts, DJ sets, music videos, cover performances",
+        preview_hint="Performer lock · stage center",
+        category="music",
+        tags=("music", "stage", "performance"),
     ),
     CreatorOption(
         id="auto",

@@ -519,7 +519,7 @@ def run_virality_scores(self: ProgressTask, job_id: str) -> str:
             skip_flow = bool(hints.get("skip_optical_flow", False))
             has_chat = bool(hints.get("has_chat_data", False))
             profile_name = str(
-                (job.config_snapshot or {}).get("content_profile", "gaming"),
+                (job.config_snapshot or {}).get("content_profile", "general"),
             )
             profile = get_profile(profile_name)
 

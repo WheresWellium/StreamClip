@@ -1,4 +1,6 @@
-# StreamClip
+# Jet Stream
+
+*(formerly StreamClip — internal identifiers, env vars, and Docker services keep the `streamclip` name.)*
 
 **Self-hosted, zero-subscription AI clip pipeline.**
 From a 5-hour Twitch VOD to 5 ready-to-post vertical clips — in minutes.

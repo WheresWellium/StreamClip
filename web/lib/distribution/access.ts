@@ -1,4 +1,5 @@
 import { getAccessToken } from "@/lib/auth/session";
+import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
 
 const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
@@ -41,9 +42,10 @@ export async function hasDistributionAccess(token?: string): Promise<boolean> { 
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/license/status?machine_id=local`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${API_BASE}/api/license/status?machine_id=${encodeURIComponent(LICENSE_MACHINE_ID)}`,
+      { cache: "no-store" },
+    );
     if (res.ok) {
       const status = (await res.json()) as { active?: boolean; tier?: string };
       if (status.active && status.tier && PRO_TIERS.has(status.tier)) return true;

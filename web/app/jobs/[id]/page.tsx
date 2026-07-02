@@ -28,6 +28,7 @@ export default async function JobPage({ params }: JobPageProps) {
   let job;
   let captionStyleOptions = normalizeStreamClipMeta({}).caption_styles;
   let reframePresetOptions = normalizeStreamClipMeta({}).reframe_presets;
+  let aspectRatioCatalog = normalizeStreamClipMeta({}).aspect_ratios;
   let hasDistribution = false;
   try {
     const token = await getAccessToken();
@@ -37,6 +38,7 @@ export default async function JobPage({ params }: JobPageProps) {
     const meta = normalizeStreamClipMeta(rawMeta as Record<string, unknown>);
     captionStyleOptions = meta.caption_styles;
     reframePresetOptions = meta.reframe_presets;
+    aspectRatioCatalog = meta.aspect_ratios;
   } catch (err) {
     if (err instanceof ApiClientError && err.status === 404) {
       notFound();
@@ -132,6 +134,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 captionStyleOptions={captionStyleOptions}
                 reframePresetOptions={reframePresetOptions}
                 jobAspectRatio={job.aspect_ratio}
+                aspectRatioCatalog={aspectRatioCatalog}
               />
             ))}
           </div>

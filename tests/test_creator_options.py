@@ -79,6 +79,14 @@ def test_aspect_ratio_catalog() -> None:
         assert min(w, h) >= 1080
 
 
+def test_content_profile_recommendations_are_valid() -> None:
+    """Every profile must recommend a real reframe preset and caption style,
+    so choosing a content type actually configures the whole pipeline."""
+    for profile in list_content_profiles():
+        assert profile["recommended_reframe"] in REFRAME_PRESET_IDS, profile["id"]
+        assert profile["recommended_captions"] in CAPTION_STYLE_IDS, profile["id"]
+
+
 def test_aspect_ratio_validators_and_dimensions() -> None:
     assert is_valid_aspect_ratio("1:1")
     assert not is_valid_aspect_ratio("3:7")

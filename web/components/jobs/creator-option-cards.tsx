@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { SectionLegend } from "@/components/ui/section-legend";
+import type { AspectRatioOption } from "@/lib/api/meta-types";
 import type { CreatorMetaOption } from "@/lib/creator-option-ids";
 import { cn } from "@/lib/utils/format";
 
@@ -15,7 +16,32 @@ type Props = {
   columns?: 1 | 2 | 3;
   showAspectBadge?: boolean;
   showPlatformChips?: boolean;
+  /** Selected export aspect ratio — drives badge/resolution/chips when set. */
+  aspectRatioId?: string;
+  aspectRatioCatalog?: AspectRatioOption[];
+  /** Option id recommended by the selected content profile. */
+  recommendedId?: string;
 };
+
+function resolveAspectMeta(
+  aspectRatioId: string | undefined,
+  catalog: AspectRatioOption[] | undefined,
+  fallback?: CreatorMetaOption,
+) {
+  const fromCatalog = catalog?.find((o) => o.id === aspectRatioId);
+  if (fromCatalog) {
+    return {
+      ratio: fromCatalog.id,
+      resolution: fromCatalog.output_resolution,
+      platforms: fromCatalog.platforms ?? [],
+    };
+  }
+  return {
+    ratio: aspectRatioId ?? fallback?.aspect_ratio ?? "9:16",
+    resolution: fallback?.output_resolution,
+    platforms: fallback?.platforms ?? [],
+  };
+}
 
 export function CreatorOptionCards({
   title,
@@ -26,6 +52,9 @@ export function CreatorOptionCards({
   columns = 2,
   showAspectBadge = false,
   showPlatformChips = false,
+  aspectRatioId,
+  aspectRatioCatalog,
+  recommendedId,
 }: Props) {
   const gridClass =
     columns === 3
@@ -44,6 +73,7 @@ export function CreatorOptionCards({
       <div className={cn("grid gap-2", gridClass)}>
         {options.map((option) => {
           const selected = value === option.id;
+          const aspect = resolveAspectMeta(aspectRatioId, aspectRatioCatalog, option);
           return (
             <button
               key={option.id}
@@ -58,11 +88,18 @@ export function CreatorOptionCards({
             >
               <div className="flex items-start justify-between gap-2 w-full">
                 <span className="text-sm font-medium leading-snug">{option.label}</span>
-                {showAspectBadge && option.aspect_ratio && (
-                  <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-black/40 text-sky-300 border border-sky-500/30">
-                    {option.aspect_ratio}
-                  </span>
-                )}
+                <span className="flex shrink-0 items-center gap-1">
+                  {recommendedId === option.id && (
+                    <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-emerald-400/10 text-emerald-300 border border-emerald-400/30">
+                      Recommended
+                    </span>
+                  )}
+                  {showAspectBadge && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-black/40 text-sky-300 border border-sky-500/30">
+                      {aspect.ratio}
+                    </span>
+                  )}
+                </span>
               </div>
               {option.description && (
                 <span className="text-xs text-muted-foreground line-clamp-2">
@@ -78,14 +115,14 @@ export function CreatorOptionCards({
               {option.preview_hint && (
                 <span className="text-[10px] font-mono text-sky-400/80">{option.preview_hint}</span>
               )}
-              {showAspectBadge && option.output_resolution && (
+              {showAspectBadge && aspect.resolution && (
                 <span className="text-[10px] text-muted-foreground">
-                  Output {option.output_resolution}
+                  Output {aspect.resolution}
                 </span>
               )}
-              {showPlatformChips && option.platforms && option.platforms.length > 0 && (
+              {showPlatformChips && aspect.platforms.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-0.5">
-                  {option.platforms.slice(0, 4).map((p) => (
+                  {aspect.platforms.slice(0, 4).map((p) => (
                     <span
                       key={p}
                       className="text-[9px] px-1.5 py-0.5 rounded-sm bg-frame/5 text-muted-foreground border border-frame/10"

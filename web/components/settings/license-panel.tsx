@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
 
 type LicenseStatus = {
   active: boolean;
@@ -19,12 +20,7 @@ type LicenseStatus = {
 };
 
 async function getMachineId(): Promise<string> {
-  const res = await fetch("/api/license/status?machine_id=local");
-  if (res.ok) {
-    const data = await res.json();
-    if (data.machine_id) return data.machine_id;
-  }
-  return "local";
+  return LICENSE_MACHINE_ID;
 }
 
 export function LicensePanel() {

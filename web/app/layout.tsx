@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StreamClip — AI clip generator",
+  title: "Jet Stream — AI clip generator",
   description:
     "Self-hosted AI pipeline for turning streams into vertical short-form clips.",
   metadataBase: new URL(
@@ -55,10 +55,10 @@ export default function RootLayout({
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
-                    <path d="M7 4v16l13-8z" />
+                    <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
                   </svg>
                 </span>
-                StreamClip
+                Jet Stream
               </a>
               <nav className="flex items-center gap-4 text-sm">
                 <HeaderNavWrapper />

@@ -19,7 +19,9 @@ def test_generate_captions_no_words(tmp_path):
     probe = MagicMock(stdout='{"streams":[{"codec_type":"video","width":1080,"height":1920}]}', returncode=0)
     with patch.object(cap.subprocess, "run", return_value=probe):
         result = cap.generate_captions(clip, out, tr, 0.0, 1.0, cfg)
-    assert result == clip
+    # No words → clip is copied through to the output path untouched
+    assert result == out
+    assert out.read_bytes() == clip.read_bytes()
 
 def test_generate_captions_burn(tmp_path):
     cfg = get_settings(reload=True)

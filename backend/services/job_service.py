@@ -65,8 +65,8 @@ class JobService:
         owner_id = scope.user_id
         device_id: str | None = None
         if owner_id is None and scope.device_id:
-            await self.devices.upsert(scope.device_id)
-            device_id = scope.device_id
+            device = await self.devices.upsert(scope.device_id)
+            device_id = device.id  # normalized — keeps the jobs.device_id FK valid
 
         # Quota check
         if owner_id:

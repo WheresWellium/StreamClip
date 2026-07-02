@@ -172,6 +172,12 @@ class AuthError(StreamClipError):
     http_status = 401
 
 
+class DeviceIdRequiredError(StreamClipError):
+    code = "device_id_required"
+    user_message = "X-Device-Id header required for anonymous requests"
+    http_status = 400
+
+
 # ─── Licensing ──────────────────────────────────────────────────────────────
 
 class LicenseError(StreamClipError):

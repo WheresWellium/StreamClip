@@ -26,7 +26,11 @@ async def test_validation_error_handler():
     app = create_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/jobs", json={"target_clips": "bad"})
+        resp = await client.post(
+            "/api/jobs",
+            json={"target_clips": "bad"},
+            headers={"X-Device-Id": "test-device-0001"},
+        )
     assert resp.status_code == 422
 
 def test_main_entrypoint():

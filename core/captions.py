@@ -14,6 +14,7 @@ Styles available:
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -316,8 +317,6 @@ def generate_captions(
     ccfg: CaptionConfig = cfg.caption
 
     if ccfg.style == "none":
-        import shutil
-
         shutil.copy2(clip_path, output_path)
         log.info("captions_skipped", style="none", output=str(output_path))
         return output_path
@@ -355,8 +354,6 @@ def generate_captions(
 
     if not all_words:
         log.warning("no_words_in_clip_window", clip=str(clip_path))
-        import shutil
-
         shutil.copy2(clip_path, output_path)
         return output_path
 

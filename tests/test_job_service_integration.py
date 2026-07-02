@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from backend.api.schemas import CreateJobRequest, UploadInitRequest
-from backend.db.models import ClipStatus, JobStatus, UserTier
-from backend.db.repositories import ClipRepository, JobRepository, UserRepository
+from backend.api.schemas import CreateJobRequest, UpdateClipRequest, UploadInitRequest
+from backend.db.models import ClipStatus, UserTier
+from backend.db.repositories import ClipRepository, UserRepository
+from backend.middleware.scope import RequestScope
 from backend.services.job_service import JobService, UploadService
 from core.config import get_settings
 from core.errors import JobNotFoundError, QuotaExceededError, StreamClipError
 from core.storage import LocalStorage
+
+# Scope device ids arrive pre-normalized (no dashes) via get_device_id
+ANON = RequestScope(user_id=None, device_id="itestdevice0001")
 
 
 @pytest.fixture
@@ -27,7 +31,7 @@ async def test_create_job_with_upload_key(db, storage, tmp_path):
     svc = JobService(db, cfg, storage)
     job = await svc.create_job(
         CreateJobRequest(source_upload_key="uploads/x.mp4", target_clips=2),
-        owner_id=None,
+        ANON,
     )
     assert job.source_storage_key == "uploads/x.mp4"
 
@@ -43,14 +47,17 @@ async def test_quota_exceeded(db, storage):
     await db.flush()
     svc = JobService(db, cfg, storage)
     with pytest.raises(QuotaExceededError):
-        await svc.create_job(CreateJobRequest(source_url="https://x"), owner_id=user.id)
+        await svc.create_job(
+            CreateJobRequest(source_url="https://x"),
+            RequestScope(user_id=user.id, device_id=None),
+        )
 
 
 @pytest.mark.asyncio
 async def test_get_cancel_to_dto(db, storage, tmp_path):
     cfg = get_settings(reload=True)
     svc = JobService(db, cfg, storage)
-    job = await svc.create_job(CreateJobRequest(source_url="https://x"), owner_id=None)
+    job = await svc.create_job(CreateJobRequest(source_url="https://x"), ANON)
     storage.upload("clips/f.mp4", b"v")
     clips = ClipRepository(db)
     clip = await clips.create(job_id=job.id, rank=0, start_secs=0, end_secs=1, title="T")
@@ -58,45 +65,43 @@ async def test_get_cancel_to_dto(db, storage, tmp_path):
     clip.status = ClipStatus.DONE
     await db.flush()
 
-    full = await svc.get_job(job.id, owner_id=None)
+    full = await svc.get_job(job.id, scope=ANON)
     dto = await svc.to_dto(full)
     assert dto.clips[0].download_url
 
     with patch("core.celery_app.celery_app.control.revoke") as rev:
         await svc.jobs.attach_celery_task(job.id, "tid")
-        await svc.cancel_job(job.id, owner_id=None)
+        await svc.cancel_job(job.id, ANON)
         rev.assert_called_once()
 
     with pytest.raises(JobNotFoundError):
-        await svc.get_job("missing", owner_id=None)
+        await svc.get_job("missing", scope=ANON)
 
 
 @pytest.mark.asyncio
 async def test_regenerate_and_zip(db, storage, tmp_path):
     cfg = get_settings(reload=True)
     svc = JobService(db, cfg, storage)
-    job = await svc.create_job(CreateJobRequest(source_url="https://x"), owner_id=None)
+    job = await svc.create_job(CreateJobRequest(source_url="https://x"), ANON)
     clips = ClipRepository(db)
     clip = await clips.create(job_id=job.id, rank=0, start_secs=0, end_secs=1)
     with pytest.raises(StreamClipError):
-        await svc.regenerate_clip(job.id, clip.id, owner_id=None)
+        await svc.regenerate_clip(job.id, clip.id, scope=ANON)
     clip.status = ClipStatus.DONE
     clip.final_storage_key = "k"
     storage.upload("k", b"mp4")
     await db.flush()
-    job_full = await svc.get_job(job.id, owner_id=None)
+    job_full = await svc.get_job(job.id, scope=ANON)
     data = svc.build_clips_zip(job_full)
     assert data
-    await svc.regenerate_clip(job.id, clip.id, owner_id=None)
+    await svc.regenerate_clip(job.id, clip.id, scope=ANON)
 
 
 @pytest.mark.asyncio
 async def test_update_clip_boundaries_and_metadata(db, storage):
-    from backend.api.schemas import UpdateClipRequest
-
     cfg = get_settings(reload=True)
     svc = JobService(db, cfg, storage)
-    job = await svc.create_job(CreateJobRequest(source_url="https://x"), owner_id=None)
+    job = await svc.create_job(CreateJobRequest(source_url="https://x"), ANON)
     clips = ClipRepository(db)
     clip = await clips.create(
         job_id=job.id,
@@ -123,7 +128,7 @@ async def test_update_clip_boundaries_and_metadata(db, storage):
             overlay_enabled=False,
             rerender=False,
         ),
-        owner_id=None,
+        scope=ANON,
     )
     assert updated.title == "Edited title"
     assert updated.hook == "New hook"
@@ -135,11 +140,9 @@ async def test_update_clip_boundaries_and_metadata(db, storage):
 
 @pytest.mark.asyncio
 async def test_update_clip_rejects_while_processing(db, storage):
-    from backend.api.schemas import UpdateClipRequest
-
     cfg = get_settings(reload=True)
     svc = JobService(db, cfg, storage)
-    job = await svc.create_job(CreateJobRequest(source_url="https://x"), owner_id=None)
+    job = await svc.create_job(CreateJobRequest(source_url="https://x"), ANON)
     clips = ClipRepository(db)
     clip = await clips.create(job_id=job.id, rank=0, start_secs=0, end_secs=5)
     clip.status = ClipStatus.PROCESSING
@@ -150,7 +153,7 @@ async def test_update_clip_rejects_while_processing(db, storage):
             job.id,
             clip.id,
             UpdateClipRequest(start_secs=1.0, end_secs=4.0),
-            owner_id=None,
+            scope=ANON,
         )
 
 
@@ -160,7 +163,6 @@ async def test_upload_service(storage):
     us = UploadService(cfg, storage)
     resp = await us.init_upload(
         UploadInitRequest(filename="my video!.mp4", content_type="video/mp4"),
-        owner_id=None,
+        RequestScope(user_id=None, device_id=None),
     )
     assert resp.storage_key.startswith("uploads/anonymous/")
-

@@ -41,7 +41,9 @@ async def test_job_repository_crud(db):
     with_clips = await jobs.get(job.id, with_clips=True)
     assert with_clips is not None
 
-    assert await jobs.get_for_owner(job.id, None) is not None
+    # Anonymous access is device-scoped: no device id → no access
+    assert await jobs.get_for_owner(job.id, None) is None
+    assert await jobs.get_for_owner(job.id, None, device_scoped=False) is not None
     assert await jobs.get_for_owner(job.id, "other") is None
 
     job2 = await jobs.create(

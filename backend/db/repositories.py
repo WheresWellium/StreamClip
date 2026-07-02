@@ -603,39 +603,61 @@ class InstallLicenseRepository:
 
     async def get_active(self) -> InstallLicense | None:
         result = await self.db.execute(
-            select(InstallLicense).order_by(InstallLicense.activated_at.desc()).limit(1),
+            select(InstallLicense)
+            .where(InstallLicense.status == "activated")
+            .order_by(InstallLicense.activated_at.desc())
+            .limit(1),
         )
         return result.scalar_one_or_none()
 
-    async def upsert(
-        self,
-        *,
-        license_key_hash: str,
-        machine_id: str,
-        tier,
-        entitlement_jwt: str,
-        expires_at: datetime | None,
-    ) -> InstallLicense:
+    async def get_by_key_hash(self, license_key_hash: str) -> InstallLicense | None:
         result = await self.db.execute(
             select(InstallLicense).where(InstallLicense.license_key_hash == license_key_hash),
         )
-        existing = result.scalar_one_or_none()
-        if existing:
-            existing.machine_id = machine_id
-            existing.tier = tier
-            existing.entitlement_jwt = entitlement_jwt
-            existing.expires_at = expires_at
-            existing.activated_at = datetime.now(timezone.utc)
-            await self.db.flush()
-            return existing
+        return result.scalar_one_or_none()
+
+    async def get_by_order_id(self, order_id: str) -> InstallLicense | None:
+        result = await self.db.execute(
+            select(InstallLicense).where(InstallLicense.order_id == order_id).limit(1),
+        )
+        return result.scalar_one_or_none()
+
+    async def create_issued(
+        self,
+        *,
+        license_key_hash: str,
+        tier,
+        order_id: str | None = None,
+        customer_email: str | None = None,
+    ) -> InstallLicense:
+        """Record a commerce-issued key that hasn't been activated yet."""
         lic = InstallLicense(
             license_key_hash=license_key_hash,
-            machine_id=machine_id,
             tier=tier,
-            entitlement_jwt=entitlement_jwt,
-            expires_at=expires_at,
+            order_id=order_id,
+            customer_email=customer_email,
+            status="issued",
         )
         self.db.add(lic)
+        await self.db.flush()
+        return lic
+
+    async def mark_activated(
+        self,
+        lic: InstallLicense,
+        *,
+        machine_id: str,
+        entitlement_jwt: str,
+        expires_at: datetime | None,
+        count_activation: bool,
+    ) -> InstallLicense:
+        lic.machine_id = machine_id
+        lic.entitlement_jwt = entitlement_jwt
+        lic.expires_at = expires_at
+        lic.activated_at = datetime.now(timezone.utc)
+        lic.status = "activated"
+        if count_activation:
+            lic.activation_count = (lic.activation_count or 0) + 1
         await self.db.flush()
         return lic
 

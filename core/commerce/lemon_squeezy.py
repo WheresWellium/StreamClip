@@ -23,18 +23,27 @@ def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> boo
 
 
 def parse_order_event(payload: dict[str, Any]) -> dict[str, Any]:
-    """Extract license-relevant fields from a Lemon Squeezy webhook payload."""
+    """Extract license-relevant fields from a Lemon Squeezy webhook payload.
+
+    For ``license_key_created`` events the key comes from Lemon Squeezy
+    itself (LS also emails it to the customer). Other events carry no key —
+    the webhook handler decides whether to issue one locally.
+    """
     meta = payload.get("meta", {})
     data = payload.get("data", {})
     attrs = data.get("attributes", {})
-    license_key = generate_license_key()
+    event_name = meta.get("event_name", "")
+
+    license_key = str(attrs.get("key") or "") if event_name == "license_key_created" else ""
+    order_id = attrs.get("order_id") if event_name == "license_key_created" else data.get("id")
+
     return {
-        "event_name": meta.get("event_name", ""),
-        "order_id": str(data.get("id", "")),
+        "event_name": event_name,
+        "order_id": str(order_id or ""),
         "customer_email": attrs.get("user_email") or attrs.get("customer_email"),
         "product_name": attrs.get("first_order_item", {}).get("product_name")
         if isinstance(attrs.get("first_order_item"), dict)
         else attrs.get("product_name"),
         "license_key": license_key,
-        "license_key_hash": hash_license_key(license_key),
+        "license_key_hash": hash_license_key(license_key) if license_key else "",
     }

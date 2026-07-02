@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from core.billing import get_tier_limits, handle_stripe_webhook_stub
+from core.billing import get_tier_limits
 from core.style_learning import apply_feedback_to_user_weights, merge_user_style_weights
 from core.subtitle_import import parse_srt
 from backend.db.models import UserTier
@@ -11,11 +11,6 @@ from backend.db.models import UserTier
 def test_tier_limits_free():
     limits = get_tier_limits(UserTier.FREE)
     assert limits.max_target_clips == 5
-
-
-def test_stripe_webhook_stub():
-    assert handle_stripe_webhook_stub({"type": "checkout.session.completed"}) == "upgrade_user_tier"
-    assert handle_stripe_webhook_stub({"type": "other"}) == "ignored"
 
 
 def test_style_learning_feedback():

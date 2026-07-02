@@ -501,26 +501,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/billing/stripe/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stripe Webhook
-         * @description Accept Stripe events when billing is enabled (stub).
-         */
-        post: operations["stripe_webhook_api_billing_stripe_webhook_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/license/activate": {
         parameters: {
             query?: never;
@@ -530,7 +510,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Activate License */
+        /**
+         * Activate License
+         * @description Activate a purchased key: verify it was issued by commerce, bind it
+         *     to this machine, and return a signed entitlement JWT.
+         */
         post: operations["activate_license_api_license_activate_post"];
         delete?: never;
         options?: never;
@@ -2790,28 +2774,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stripe_webhook_api_billing_stripe_webhook_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
                 };
             };
         };

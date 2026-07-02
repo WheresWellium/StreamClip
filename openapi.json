@@ -2331,38 +2331,13 @@
         }
       }
     },
-    "/api/billing/stripe/webhook": {
-      "post": {
-        "tags": [
-          "billing"
-        ],
-        "summary": "Stripe Webhook",
-        "description": "Accept Stripe events when billing is enabled (stub).",
-        "operationId": "stripe_webhook_api_billing_stripe_webhook_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Stripe Webhook Api Billing Stripe Webhook Post"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/license/activate": {
       "post": {
         "tags": [
           "license"
         ],
         "summary": "Activate License",
+        "description": "Activate a purchased key: verify it was issued by commerce, bind it\nto this machine, and return a signed entitlement JWT.",
         "operationId": "activate_license_api_license_activate_post",
         "parameters": [
           {

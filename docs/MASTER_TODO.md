@@ -3,7 +3,7 @@
 **Living document — running list of everything left before packaging and distributing
 StreamClip as a Windows desktop executable, with a macOS port to follow.**
 
-Last updated: 2026-07-01 · Owner: core team
+Last updated: 2026-07-02 · Owner: core team
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
 
 ---
@@ -12,10 +12,10 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 1.1 | Commit the uncommitted diff (distribution, vault, creator options, virality context, feedback service, skills, docs). Exclude `.coverage`, `cov*.txt`, `coverage_term.txt`, temp scripts | 🔴 | S |
-| 1.2 | Run `alembic upgrade head` (migration `0006_distribution_vault`) everywhere | 🔴 | S |
+| 1.1 | ~~Commit the uncommitted diff~~ ✅ committed `7c32b2c` (temp scripts + coverage artifacts deleted, `.gitignore` tightened) | ✅ | — |
+| 1.2 | ~~Run `alembic upgrade head`~~ ✅ dev stack at `0007_license_issuance`. Rerun on any other deploy | ✅ | — |
 | 1.3 | ~~Fix anonymous-scope contract regression~~ ✅ `scope.py` now raises `StreamClipError(code="device_id_required")`; source validation moved before device upsert; test client sends `X-Device-Id` | ✅ | — |
-| 1.4 | Regenerate `web/lib/api/openapi.ts` — lags distribution/vault/approval endpoints; manual extensions in `types.ts` | 🟡 | S |
+| 1.4 | ~~Regenerate `web/lib/api/openapi.ts`~~ ✅ regenerated (`988aaac`); fixed `uploads.py` dependency that broke schema generation; `approval_status` now a literal union | ✅ | — |
 
 ## 2. Incomplete features / stubs (full scaffold scan, 2026-07-01)
 
@@ -24,10 +24,10 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 2.1 | TikTok video upload stub (`core/distribution/tiktok.py:83–103`) — worker calls stub → publish jobs **always marked failed** when `TIKTOK_PUBLISH_ENABLED=true` (`publish_tasks.py:143–189`). Implement Content Posting API or keep flag off + honest UI | 🔴 | L |
-| 2.2 | Stripe billing stub: `core/billing.py:52` returns strings, never updates `users.tier`; `backend/api/billing.py` accepts any JSON — **no signature verification** | 🔴 | M |
-| 2.3 | Lemon Squeezy webhook **generates a random license key per event** (`core/commerce/lemon_squeezy.py:25–39`); `backend/api/commerce.py:43` logs it but never persists / emails / links to `InstallLicenseRepository` | 🔴 | M |
-| 2.4 | License activation validates only length + `SCPRO-` prefix (`core/licensing.py:72–95`) — no allowlist or commerce linkage; any well-formed key activates Pro | 🔴 | M |
-| 2.5 | Pick ONE billing provider (Stripe vs Lemon Squeezy) and wire the full chain: purchase → webhook → persisted key → activation → tier enforcement | 🔴 | L |
+| 2.2 | ~~Stripe billing stub~~ ✅ removed (`backend/api/billing.py` deleted, stub dropped from `core/billing.py`) — Lemon Squeezy is the sole provider | ✅ | — |
+| 2.3 | ~~Lemon Squeezy webhook never persists keys~~ ✅ webhook now fail-closed on missing secret, verifies signature, persists issued keys idempotently (`install_licenses.status="issued"`, order id + email recorded); handles LS-native `license_key_created` events. **Remaining:** automated key delivery email for the `order_created` fallback path (key currently surfaced once in webhook response / LS log) | 🟡 | S |
+| 2.4 | ~~License activation accepts any well-formed key~~ ✅ activation now requires a commerce-issued key (DB allowlist), rejects revoked keys, enforces `max_activations` across machine rebinds (migration `0007_license_issuance`) | ✅ | — |
+| 2.5 | ~~Pick ONE billing provider~~ ✅ Lemon Squeezy chosen; chain wired: purchase → webhook → persisted key → activation → entitlement JWT → tier. Covered by `tests/test_license_chain.py` | ✅ | — |
 | 2.6 | `COMMERCIAL.md` promises **Instagram Reels** OAuth publish as a Pro feature — no adapter exists. Ship it or cut the promise | 🟡 | L |
 
 ### 2b. Scaffolded-but-unwired
@@ -41,7 +41,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.11 | Onboarding wizard never calls `POST /api/devices/onboarding-complete` (cookie only) | 🟢 | S |
 | 2.12 | Splice crossfade implemented in backend; UI always sends `transition: "cut"` (`web/app/actions/jobs.ts:194`) | 🟢 | S |
 | 2.13 | `core/config.py:224` `lemon_squeezy_store_id` defined, never read | 🟢 | S |
-| 2.14 | License panel placeholder shows `STREAMCLIP-XXXX` but valid prefix is `SCPRO-` (`web/components/settings/license-panel.tsx:83`) | 🟡 | S |
+| 2.14 | ~~License panel placeholder shows `STREAMCLIP-XXXX`~~ ✅ placeholder now `SCPRO-XXXX-XXXX-XXXX-XXXX` | ✅ | — |
 | 2.15 | Duplicate job-scoped publish routes (`/api/jobs/.../publish`, `.../batch-publish`) vs distribution hub (GAP T49) — deprecate | 🟢 | M |
 
 ### 2c. Roadmap features (not started)

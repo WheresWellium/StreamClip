@@ -73,15 +73,16 @@ def activate_license_key(
     license_key: str,
     machine_id: str,
     *,
+    tier: UserTier,
     cfg: Settings | None = None,
 ) -> tuple[str, Entitlement]:
-    """Validate license key format and issue a signed entitlement JWT."""
+    """Issue a signed entitlement JWT for a key already verified against
+    the issued-license records (see backend/api/license.py)."""
     cfg = cfg or get_settings()
     key = license_key.strip()
     if len(key) < 16:
         raise ValueError("Invalid license key")
     key_hash = hash_license_key(key)
-    tier = UserTier.PRO if key.startswith("SCPRO-") else UserTier.FREE
     expires_at = datetime.now(timezone.utc) + timedelta(days=365)
     token = create_entitlement_token(
         tier=tier,

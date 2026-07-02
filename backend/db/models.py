@@ -159,19 +159,30 @@ class LocalDevice(Base, IDMixin, TimestampMixin):
 
 
 class InstallLicense(Base, IDMixin, TimestampMixin):
+    """A license key's lifecycle: issued by commerce → activated on a machine.
+
+    Rows are created by the Lemon Squeezy webhook (status="issued",
+    machine_id/entitlement_jwt empty) and bound to a machine at activation
+    (status="activated"). Revoked keys keep their row so re-activation fails.
+    """
+
     __tablename__ = "install_licenses"
 
     license_key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    machine_id: Mapped[str] = mapped_column(String(128), index=True)
+    machine_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     tier: Mapped[UserTier] = mapped_column(
         SAEnum(UserTier, name="user_tier", values_callable=_enum_values),
         default=UserTier.PRO,
     )
-    entitlement_jwt: Mapped[str] = mapped_column(Text, nullable=False)
+    entitlement_jwt: Mapped[str | None] = mapped_column(Text, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    activated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    activated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
     )
+    status: Mapped[str] = mapped_column(String(16), default="issued", server_default="issued")
+    order_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    customer_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    activation_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class Job(Base, IDMixin, TimestampMixin):

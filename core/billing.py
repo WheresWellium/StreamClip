@@ -1,4 +1,5 @@
-"""Tier limits and Stripe billing stubs."""
+"""Per-tier usage limits (billing is handled by Lemon Squeezy — see
+backend/api/commerce.py and backend/api/license.py)."""
 
 from __future__ import annotations
 
@@ -47,11 +48,3 @@ TIER_LIMITS: dict[UserTier, TierLimits] = {
 
 def get_tier_limits(tier: UserTier) -> TierLimits:
     return TIER_LIMITS.get(tier, TIER_LIMITS[UserTier.FREE])
-
-
-def handle_stripe_webhook_stub(payload: dict) -> str:
-    """Process Stripe webhook events (stub — wire when billing enabled)."""
-    event_type = payload.get("type", "")
-    if event_type == "checkout.session.completed":
-        return "upgrade_user_tier"
-    return "ignored"

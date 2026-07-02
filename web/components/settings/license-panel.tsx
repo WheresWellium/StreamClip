@@ -80,7 +80,7 @@ export function LicensePanel() {
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="STREAMCLIP-XXXX-XXXX-XXXX"
+            placeholder="SCPRO-XXXX-XXXX-XXXX-XXXX"
             value={key}
             onChange={(e) => setKey(e.target.value)}
           />

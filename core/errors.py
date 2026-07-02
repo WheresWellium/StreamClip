@@ -170,3 +170,29 @@ class AuthError(StreamClipError):
     code = "auth_failed"
     user_message = "Authentication failed."
     http_status = 401
+
+
+# ─── Licensing ──────────────────────────────────────────────────────────────
+
+class LicenseError(StreamClipError):
+    code = "license_error"
+    user_message = "License operation failed."
+    http_status = 400
+
+
+class InvalidLicenseKeyError(LicenseError):
+    code = "invalid_license_key"
+    user_message = "That license key isn't valid."
+    http_status = 400
+
+
+class LicenseRevokedError(LicenseError):
+    code = "license_revoked"
+    user_message = "This license key has been revoked."
+    http_status = 403
+
+
+class ActivationLimitError(LicenseError):
+    code = "activation_limit_reached"
+    user_message = "This license key has reached its activation limit."
+    http_status = 403

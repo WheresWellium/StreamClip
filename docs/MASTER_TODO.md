@@ -67,12 +67,12 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 3.1 | Unit tests for `DistributionService` (gates, idempotency, ownership) | 🔴 | M |
-| 3.2 | HTTP tests for `/api/distribution/*` and `/api/vault/*` | 🔴 | M |
+| 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` — gates (approval, readiness, duration, connection, duplicate in-flight), ownership 404s, idempotency conflict/replay, schedule vs immediate enqueue | ✅ | — |
+| 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` — publish 202/error envelope, retry/cancel status guards, owner-scoped 404s, vault list/quota/save/delete. Also fixed vault delete returning 500 instead of 404, and a cached-Redis-across-event-loops bug in `conftest.py` that poisoned full-suite runs | ✅ | — |
 | 3.3 | E2E publish flow (Playwright) — none exists; whole e2e suite gated on `E2E_RUN=1` | 🟡 | M |
-| 3.6 | Zero tests for: assets API, billing API, commerce webhook, splice API, TikTok adapter, tenant middleware | 🟡 | L |
+| 3.6 | Zero tests for: assets API, billing API, splice API, tenant middleware (commerce webhook + TikTok adapter now covered) | 🟡 | L |
 | 3.4 | `tests/test_virality_twitch_misc.py::test_score_parallel_and_ensemble` fails locally (missing `ollama` package) — mock the import or add dev dependency | 🟢 | S |
-| 3.5 | Coverage gate set to `fail-under=100` while actual is ~40% — set a realistic threshold | 🟡 | S |
+| 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ root `.coveragerc` now `fail_under = 75` (full-suite actual 78.5%); duplicate `tests/.coveragerc` removed. Note: `.coveragerc`/`pytest.ini` are baked into the image, not volume-mounted — rebuild `api` to pick up config changes | ✅ | — |
 
 ## 4. Windows desktop packaging (.exe)
 
@@ -130,7 +130,7 @@ sidecar, no Docker). Everything below assumes embedded mode:
 |---|------|-----|--------|
 | 7.1 | Delete stray artifacts: `.coverage`, `cov2.txt`, `coverage_term.txt`, `scripts/_fix_*.py` temp files | 🟢 | S |
 | 7.2 | ~~`backend/api/vault.py` excessive blank lines~~ ✅ reformatted | ✅ | — |
-| 7.3 | Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py` | 🟡 | S |
-| 7.4 | YouTube upload loads full file into memory — stream instead | 🟡 | S |
+| 7.3 | ~~Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py`~~ ✅ retries only transient errors (`httpx.TransportError`, `ConnectionError`, `TimeoutError`, `StorageError`); claim released back to `pending` before retry so re-claim works; domain failures fail fast | ✅ | — |
+| 7.4 | ~~YouTube upload loads full file into memory~~ ✅ streams in 8 MB chunks (`_stream_file` async iterator in `youtube.py`) | ✅ | — |
 | 7.5 | ~~Destinations drawer default tab~~ ✅ now defaults to `"publish"` | ✅ | — |
 | 7.6 | Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish` (web uses `/api/distribution/publish`) | 🟢 | S |

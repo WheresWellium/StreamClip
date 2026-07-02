@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -25,6 +25,14 @@ YOUTUBE_SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
+UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
+
+
+async def _stream_file(path: Path, chunk_size: int = UPLOAD_CHUNK_BYTES) -> AsyncIterator[bytes]:
+    """Yield the video in chunks so multi-hundred-MB clips never sit in RAM."""
+    with path.open("rb") as fh:
+        while chunk := fh.read(chunk_size):
+            yield chunk
 
 
 class YouTubeShortsAdapter:
@@ -154,15 +162,14 @@ class YouTubeShortsAdapter:
             if on_progress:
                 on_progress("upload", 0.35)
 
-            video_bytes = video_path.read_bytes()
             upload_resp = await client.put(
                 upload_url,
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Content-Type": "video/mp4",
-                    "Content-Length": str(len(video_bytes)),
+                    "Content-Length": str(file_size),
                 },
-                content=video_bytes,
+                content=_stream_file(video_path),
             )
 
             if on_progress:

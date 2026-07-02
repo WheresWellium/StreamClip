@@ -6,6 +6,7 @@ import tempfile
 import time
 from pathlib import Path
 
+import httpx
 import structlog
 
 from backend.db.models import Clip, PlatformConnection, PublishJob, VaultClip
@@ -19,11 +20,22 @@ from core.distribution.notify import notify_publish_event, record_publish_outcom
 from core.distribution.registry import build_adapter
 from core.distribution.tiktok import TikTokAdapter
 from core.distribution.youtube import YouTubeShortsAdapter
+from core.errors import StorageError
 from core.storage import make_storage
 from core.tasks.pipeline_tasks import _safe_async
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
+
+# Only transient infrastructure failures are worth a retry. Domain failures
+# (bad metadata, platform rejection, missing clip) are marked failed inside the
+# task body and must NOT retry — the platform would reject them again.
+RETRYABLE_PUBLISH_ERRORS = (
+    httpx.TransportError,  # DNS, connect, read/write timeouts
+    ConnectionError,
+    TimeoutError,
+    StorageError,
+)
 
 
 def _report(publish_job_id: str, stage: str, progress: float, message: str = "") -> None:
@@ -39,7 +51,7 @@ def _report(publish_job_id: str, stage: str, progress: float, message: str = "")
 @celery_app.task(
     name="core.tasks.publish_tasks.publish_to_platform",
     bind=True,
-    autoretry_for=(Exception,),
+    autoretry_for=RETRYABLE_PUBLISH_ERRORS,
     retry_backoff=True,
     retry_backoff_max=300,
     max_retries=3,
@@ -230,36 +242,63 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
 
     try:
         return _safe_async(_do())
+    except RETRYABLE_PUBLISH_ERRORS as exc:
+        # Transient infra failure: return the claim to pending so the Celery
+        # retry can re-claim it, and let autoretry_for handle the backoff.
+        retries_left = self.request.retries < (self.max_retries or 0)
+        log.warning(
+            "publish_task_transient_error",
+            publish_job_id=publish_job_id,
+            error=str(exc),
+            attempt=self.request.retries + 1,
+            will_retry=retries_left,
+        )
+        if retries_left:
+
+            async def _release() -> None:
+                async with db_session() as db:
+                    await PublishJobRepository(db).release_claim(publish_job_id)
+                    await db.commit()
+
+            _safe_async(_release())
+            _report(publish_job_id, "retrying", 0.0, "Transient error — retrying")
+            raise
+
+        _mark_failed_terminal(publish_job_id, exc, started_at)
+        raise
     except Exception as exc:
         log.exception("publish_task_failed", publish_job_id=publish_job_id, error=str(exc))
-
-        async def _fail() -> None:
-            async with db_session() as db:
-                repo = PublishJobRepository(db)
-                await repo.mark_failed(
-                    publish_job_id,
-                    message=str(exc)[:500],
-                    error_code="WORKER_ERROR",
-                )
-                job = await repo.get(publish_job_id)
-                if job is not None:
-                    await notify_publish_event(db, job, event="publish.failed", cfg=cfg)
-                    record_publish_outcome(
-                        platform=job.platform,
-                        status="failed",
-                        duration_secs=time.perf_counter() - started_at,
-                    )
-                await db.commit()
-
-        _safe_async(_fail())
-        publish_job_progress(
-            publish_job_id,
-            stage="error",
-            progress=0.0,
-            message=str(exc)[:200],
-            status="error",
-        )
+        _mark_failed_terminal(publish_job_id, exc, started_at)
         raise
+
+
+def _mark_failed_terminal(publish_job_id: str, exc: Exception, started_at: float) -> None:
+    async def _fail() -> None:
+        async with db_session() as db:
+            repo = PublishJobRepository(db)
+            await repo.mark_failed(
+                publish_job_id,
+                message=str(exc)[:500],
+                error_code="WORKER_ERROR",
+            )
+            job = await repo.get(publish_job_id)
+            if job is not None:
+                await notify_publish_event(db, job, event="publish.failed", cfg=cfg)
+                record_publish_outcome(
+                    platform=job.platform,
+                    status="failed",
+                    duration_secs=time.perf_counter() - started_at,
+                )
+            await db.commit()
+
+    _safe_async(_fail())
+    publish_job_progress(
+        publish_job_id,
+        stage="error",
+        progress=0.0,
+        message=str(exc)[:200],
+        status="error",
+    )
 
 
 async def _resolve_storage_key(db, job: PublishJob) -> str | None:

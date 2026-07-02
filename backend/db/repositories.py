@@ -868,6 +868,22 @@ class PublishJobRepository:
         job.last_error_code = None
         await self.db.flush()
 
+    async def release_claim(self, publish_job_id: str) -> PublishJob | None:
+        """Return a claimed (publishing) job to pending so a retry can re-claim it."""
+        result = await self.db.execute(
+            update(PublishJob)
+            .where(
+                PublishJob.id == publish_job_id,
+                PublishJob.status == "publishing",
+            )
+            .values(status="pending")
+            .returning(PublishJob),
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            await self.db.flush()
+        return row
+
     async def mark_failed(
         self,
         publish_job_id: str,

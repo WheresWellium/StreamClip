@@ -160,7 +160,11 @@ async def delete_vault_clip(
     repo = VaultClipRepository(db)
     row = await repo.get_for_user(vault_clip_id, user_id)
     if row is None:
-        raise StreamClipError("Vault clip not found", user_message="Clip not found in your vault")
+        raise StreamClipError(
+            "Vault clip not found",
+            user_message="Clip not found in your vault",
+            http_status=404,
+        )
     if row.storage_key:
         try:
             storage.delete(row.storage_key)

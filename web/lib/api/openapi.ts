@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health/stack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Stack
+         * @description Extended stack health for onboarding wizard.
+         */
+        get: operations["health_stack_api_health_stack_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meta": {
         parameters: {
             query?: never;
@@ -35,6 +55,91 @@ export interface paths {
         get: operations["meta_api_meta_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["register_api_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh */
+        post: operations["refresh_api_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/claim-device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim Device */
+        post: operations["claim_device_api_auth_claim_device_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -62,6 +167,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Jobs Batch */
+        post: operations["create_jobs_batch_api_jobs_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -78,6 +200,131 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Job Clips Zip
+         * @description Download all finished clips for a job as a single ZIP archive.
+         */
+        get: operations["download_job_clips_zip_api_jobs__job_id__clips_zip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/{clip_id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate Clip
+         * @description Re-render a single clip (captions, reframe, overlays) without re-running the full job.
+         */
+        post: operations["regenerate_clip_api_jobs__job_id__clips__clip_id__regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/{clip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Clip */
+        patch: operations["update_clip_api_jobs__job_id__clips__clip_id__patch"];
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/splice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Splice Job Clips */
+        post: operations["splice_job_clips_api_jobs__job_id__clips_splice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/{clip_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Clip */
+        post: operations["publish_clip_api_jobs__job_id__clips__clip_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/batch-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Publish Clips */
+        post: operations["batch_publish_clips_api_jobs__job_id__clips_batch_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/{clip_id}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Clip Approval */
+        patch: operations["update_clip_approval_api_jobs__job_id__clips__clip_id__approval_patch"];
         trace?: never;
     };
     "/api/jobs/{job_id}/progress": {
@@ -149,6 +396,489 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_templates_get"];
+        put?: never;
+        /** Create Template */
+        post: operations["create_template_api_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Template */
+        delete: operations["delete_template_api_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assets */
+        get: operations["list_assets_api_assets_get"];
+        put?: never;
+        /** Create Asset */
+        post: operations["create_asset_api_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Asset */
+        delete: operations["delete_asset_api_assets__asset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Webhook Settings */
+        get: operations["get_webhook_settings_api_settings_webhook_get"];
+        /** Update Webhook Settings */
+        put: operations["update_webhook_settings_api_settings_webhook_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/clips/{clip_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Clip Feedback */
+        post: operations["submit_clip_feedback_api_settings_clips__clip_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/stripe/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe Webhook
+         * @description Accept Stripe events when billing is enabled (stub).
+         */
+        post: operations["stripe_webhook_api_billing_stripe_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/license/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate License */
+        post: operations["activate_license_api_license_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/license/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** License Status */
+        get: operations["license_status_api_license_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/commerce/webhooks/lemon-squeezy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lemon Squeezy Webhook */
+        post: operations["lemon_squeezy_webhook_api_commerce_webhooks_lemon_squeezy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/platforms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platforms Endpoint */
+        get: operations["list_platforms_endpoint_api_distribution_platforms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/oauth-apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Oauth Apps */
+        get: operations["list_oauth_apps_api_distribution_oauth_apps_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/oauth-apps/{platform}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Oauth App */
+        put: operations["update_oauth_app_api_distribution_oauth_apps__platform__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/oauth/{platform}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Start */
+        get: operations["oauth_start_api_distribution_oauth__platform__start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/oauth/{platform}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Callback */
+        get: operations["oauth_callback_api_distribution_oauth__platform__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Connections */
+        get: operations["list_connections_api_distribution_connections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect Platform */
+        delete: operations["disconnect_platform_api_distribution_connections__connection_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Publish Jobs */
+        get: operations["list_publish_jobs_api_distribution_publish_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Now */
+        post: operations["publish_now_api_distribution_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish-jobs/{publish_job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Publish Job */
+        post: operations["retry_publish_job_api_distribution_publish_jobs__publish_job_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish-jobs/{publish_job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Publish Job */
+        post: operations["cancel_publish_job_api_distribution_publish_jobs__publish_job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish-jobs/{publish_job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Publish Job */
+        get: operations["get_publish_job_api_distribution_publish_jobs__publish_job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/publish-jobs/{publish_job_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Publish Progress Stream */
+        get: operations["publish_progress_stream_api_distribution_publish_jobs__publish_job_id__progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/distribution/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule Publish */
+        post: operations["schedule_publish_api_distribution_schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vault Clips */
+        get: operations["list_vault_clips_api_vault_clips_get"];
+        put?: never;
+        /** Save To Vault */
+        post: operations["save_to_vault_api_vault_clips_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/quota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vault Quota */
+        get: operations["vault_quota_api_vault_quota_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vault/clips/{vault_clip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Vault Clip */
+        delete: operations["delete_vault_clip_api_vault_clips__vault_clip_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/onboarding-complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Onboarding */
+        post: operations["complete_onboarding_api_devices_onboarding_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metrics": {
         parameters: {
             query?: never;
@@ -170,6 +900,115 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssetOut */
+        AssetOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Asset Type */
+            asset_type: string;
+            /** Storage Key */
+            storage_key: string;
+            /** Sfx Storage Key */
+            sfx_storage_key: string | null;
+            /** Description */
+            description: string;
+            /** Tags */
+            tags: string[];
+            /** Default Duration Secs */
+            default_duration_secs: number;
+            /** Is Public */
+            is_public: boolean;
+            /** Use Count */
+            use_count: number;
+        };
+        /** AuthResponse */
+        AuthResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            user: components["schemas"]["UserOut"];
+        };
+        /** BatchCreateJobRequest */
+        BatchCreateJobRequest: {
+            /** Jobs */
+            jobs: components["schemas"]["CreateJobRequest"][];
+        };
+        /** BatchCreateJobResponse */
+        BatchCreateJobResponse: {
+            /** Jobs */
+            jobs: components["schemas"]["JobOut"][];
+        };
+        /** BatchPublishClipsRequest */
+        BatchPublishClipsRequest: {
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "youtube_shorts" | "tiktok";
+            /** Clip Ids */
+            clip_ids?: string[] | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** BatchPublishClipsResponse */
+        BatchPublishClipsResponse: {
+            /** Jobs */
+            jobs: components["schemas"]["PublishJobOut"][];
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+        };
+        /** ClaimDeviceRequest */
+        ClaimDeviceRequest: {
+            /** Device Id */
+            device_id?: string | null;
+        };
+        /** ClaimDeviceResponse */
+        ClaimDeviceResponse: {
+            /** Device Id */
+            device_id: string;
+            /** Jobs Claimed */
+            jobs_claimed: number;
+        };
+        /** ClipApprovalRequest */
+        ClipApprovalRequest: {
+            /**
+             * Approval Status
+             * @enum {string}
+             */
+            approval_status: "draft" | "approved" | "rejected";
+        };
+        /** ClipApprovalResponse */
+        ClipApprovalResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Approval Status */
+            approval_status: string;
+        };
+        /** ClipFeedbackOut */
+        ClipFeedbackOut: {
+            /** Clip Id */
+            clip_id: string;
+            /** Rating */
+            rating: number;
+        };
+        /** ClipFeedbackRequest */
+        ClipFeedbackRequest: {
+            /** Rating */
+            rating: number;
+        };
         /** ClipOut */
         ClipOut: {
             /** Id */
@@ -198,8 +1037,11 @@ export interface components {
             spectral_score: number;
             /** Flow Score */
             flow_score: number;
-            /** Chat Score */
-            chat_score?: number;
+            /**
+             * Chat Score
+             * @default 0
+             */
+            chat_score: number;
             /** Status */
             status: string;
             /** Error Message */
@@ -208,21 +1050,55 @@ export interface components {
             render_time_secs: number;
             /** File Size Bytes */
             file_size_bytes: number;
-            /** Transcript Text */
-            transcript_text?: string;
-            /** Llm Reason */
-            llm_reason?: string;
-            /** Meme Keywords */
-            meme_keywords?: string[];
+            /**
+             * Transcript Text
+             * @default
+             */
+            transcript_text: string;
+            /**
+             * Llm Reason
+             * @default
+             */
+            llm_reason: string;
+            /**
+             * Meme Keywords
+             * @default []
+             */
+            meme_keywords: string[];
             /**
              * Overlays
              * @default []
              */
             overlays: components["schemas"]["ClipOverlayOut"][];
+            /**
+             * Kind
+             * @default discovery
+             */
+            kind: string;
+            /**
+             * Parent Clip Ids
+             * @default []
+             */
+            parent_clip_ids: string[];
+            /**
+             * Render Overrides
+             * @default {}
+             */
+            render_overrides: {
+                [key: string]: unknown;
+            };
+            /**
+             * Approval Status
+             * @default draft
+             * @enum {string}
+             */
+            approval_status: "draft" | "approved" | "rejected";
             /** Download Url */
             download_url?: string | null;
             /** Thumbnail Url */
             thumbnail_url?: string | null;
+            /** Publish Statuses */
+            publish_statuses?: components["schemas"]["ClipPublishStatusOut"][];
         };
         /** ClipOverlayOut */
         ClipOverlayOut: {
@@ -238,6 +1114,40 @@ export interface components {
             similarity_score: number;
             /** Matched Keyword */
             matched_keyword: string;
+        };
+        /** ClipPublishStatusOut */
+        ClipPublishStatusOut: {
+            /** Platform */
+            platform: string;
+            /** Status */
+            status: string;
+            /** Publish Job Id */
+            publish_job_id: string;
+            /** External Url */
+            external_url?: string | null;
+        };
+        /** CreateAssetRequest */
+        CreateAssetRequest: {
+            /** Name */
+            name: string;
+            /**
+             * Asset Type
+             * @enum {string}
+             */
+            asset_type: "gif" | "png" | "mp4";
+            /** Storage Key */
+            storage_key: string;
+            /** Sfx Storage Key */
+            sfx_storage_key?: string | null;
+            /** Description */
+            description: string;
+            /** Tags */
+            tags?: string[];
+            /**
+             * Default Duration Secs
+             * @default 2.5
+             */
+            default_duration_secs: number;
         };
         /**
          * CreateJobRequest
@@ -262,21 +1172,32 @@ export interface components {
             /**
              * Caption Style
              * @default gaming_impact
-             * @enum {string}
              */
-            caption_style: "gaming_impact" | "tiktok_pop" | "minimal_white" | "podcast_clean";
+            caption_style: string;
             /**
              * Reframe Preset
              * @default fps_game
-             * @enum {string}
              */
-            reframe_preset: "fps_game" | "moba" | "battle_royale" | "irl" | "podcast" | "auto";
+            reframe_preset: string;
             /**
              * Content Profile
              * @default gaming
-             * @enum {string}
              */
-            content_profile: "gaming" | "irl" | "podcast" | "esports" | "general";
+            content_profile: string;
+            /**
+             * Asset Pack Id
+             * @description User asset pack for overlays
+             */
+            asset_pack_id?: string | null;
+        };
+        /** CreateJobTemplateRequest */
+        CreateJobTemplateRequest: {
+            /** Name */
+            name: string;
+            /** Config Json */
+            config_json?: {
+                [key: string]: unknown;
+            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -364,8 +1285,14 @@ export interface components {
             created_at: string;
             /** Started At */
             started_at?: string | null;
+            /** Pipeline Started At */
+            pipeline_started_at?: string | null;
             /** Finished At */
             finished_at?: string | null;
+            /** Stage Durations Json */
+            stage_durations_json?: {
+                [key: string]: number;
+            } | null;
             /** Content Profile */
             content_profile?: string | null;
             /**
@@ -373,6 +1300,299 @@ export interface components {
              * @default []
              */
             clips: components["schemas"]["ClipOut"][];
+        };
+        /** JobTemplateOut */
+        JobTemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Config Json */
+            config_json: {
+                [key: string]: unknown;
+            };
+        };
+        /** LicenseActivateRequest */
+        LicenseActivateRequest: {
+            /** License Key */
+            license_key: string;
+            /** Machine Id */
+            machine_id: string;
+        };
+        /** LicenseActivateResponse */
+        LicenseActivateResponse: {
+            /** Tier */
+            tier: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Entitlement Jwt */
+            entitlement_jwt: string;
+        };
+        /** LicenseStatusOut */
+        LicenseStatusOut: {
+            /** Active */
+            active: boolean;
+            /** Tier */
+            tier: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Machine Id */
+            machine_id?: string | null;
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /** OAuthAppOut */
+        OAuthAppOut: {
+            /** Platform */
+            platform: string;
+            /** Client Id */
+            client_id: string;
+            /** Redirect Uri */
+            redirect_uri: string;
+            /** Configured */
+            configured: boolean;
+        };
+        /** OAuthAppUpdateRequest */
+        OAuthAppUpdateRequest: {
+            /** Client Id */
+            client_id: string;
+            /** Client Secret */
+            client_secret: string;
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+        };
+        /** OAuthStartResponse */
+        OAuthStartResponse: {
+            /** Auth Url */
+            auth_url: string;
+            /** Platform */
+            platform: string;
+        };
+        /** OnboardingCompleteRequest */
+        OnboardingCompleteRequest: {
+            /** Device Id */
+            device_id: string;
+        };
+        /** OnboardingCompleteResponse */
+        OnboardingCompleteResponse: {
+            /** Device Id */
+            device_id: string;
+            /**
+             * Onboarding Complete
+             * @default true
+             */
+            onboarding_complete: boolean;
+        };
+        /** PlatformConnectionOut */
+        PlatformConnectionOut: {
+            /** Id */
+            id: string;
+            /** Platform */
+            platform: string;
+            /** Account Label */
+            account_label: string;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** PublishClipRequest */
+        PublishClipRequest: {
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "youtube_shorts" | "tiktok";
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** PublishClipResponse */
+        PublishClipResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Platform */
+            platform: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+            /** Publish Job Id */
+            publish_job_id?: string | null;
+        };
+        /** PublishJobOut */
+        PublishJobOut: {
+            /** Id */
+            id: string;
+            /** Clip Id */
+            clip_id: string | null;
+            /** Vault Clip Id */
+            vault_clip_id?: string | null;
+            /** Platform */
+            platform: string;
+            /** Status */
+            status: string;
+            /** Scheduled At */
+            scheduled_at: string | null;
+            /** Published At */
+            published_at?: string | null;
+            /** External Id */
+            external_id: string | null;
+            /** External Url */
+            external_url?: string | null;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Last Error Code */
+            last_error_code?: string | null;
+            /** Created At */
+            created_at?: string | null;
+        };
+        /** PublishNowRequest */
+        PublishNowRequest: {
+            /** Clip Id */
+            clip_id?: string | null;
+            /** Vault Clip Id */
+            vault_clip_id?: string | null;
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "youtube_shorts" | "tiktok";
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+        };
+        /** RefreshRequest */
+        RefreshRequest: {
+            /** Refresh Token */
+            refresh_token: string;
+        };
+        /** RegenerateClipResponse */
+        RegenerateClipResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Status
+             * @default queued
+             */
+            status: string;
+        };
+        /** RegisterRequest */
+        RegisterRequest: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+            /** Display Name */
+            display_name?: string | null;
+        };
+        /** SaveVaultClipRequest */
+        SaveVaultClipRequest: {
+            /** Clip Id */
+            clip_id: string;
+            /** Title */
+            title?: string | null;
+        };
+        /** SchedulePublishRequest */
+        SchedulePublishRequest: {
+            /** Clip Id */
+            clip_id?: string | null;
+            /** Vault Clip Id */
+            vault_clip_id?: string | null;
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "youtube_shorts" | "tiktok";
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** SpliceClipsRequest */
+        SpliceClipsRequest: {
+            /** Clip Ids */
+            clip_ids: string[];
+            /**
+             * Transition
+             * @default cut
+             * @enum {string}
+             */
+            transition: "cut" | "crossfade";
+        };
+        /** SpliceClipsResponse */
+        SpliceClipsResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Status
+             * @default queued
+             */
+            status: string;
+        };
+        /** StackHealthResponse */
+        StackHealthResponse: {
+            /** Status */
+            status: string;
+            /** Version */
+            version: string;
+            /** Environment */
+            environment: string;
+            /** Checks */
+            checks: {
+                [key: string]: boolean;
+            };
+            /** Worker */
+            worker?: boolean | null;
+            /** Beat */
+            beat?: boolean | null;
+            /** Web */
+            web?: boolean | null;
+        };
+        /** UpdateClipRequest */
+        UpdateClipRequest: {
+            /** Start Secs */
+            start_secs?: number | null;
+            /** End Secs */
+            end_secs?: number | null;
+            /** Title */
+            title?: string | null;
+            /** Hook */
+            hook?: string | null;
+            /** Caption Style */
+            caption_style?: string | null;
+            /** Reframe Preset */
+            reframe_preset?: string | null;
+            /** Overlay Enabled */
+            overlay_enabled?: boolean | null;
+            /**
+             * Rerender
+             * @default true
+             */
+            rerender: boolean;
         };
         /** UploadInitRequest */
         UploadInitRequest: {
@@ -397,6 +1617,21 @@ export interface components {
             /** Expires In */
             expires_in: number;
         };
+        /** UserOut */
+        UserOut: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Tier */
+            tier: string;
+            /** Jobs Used This Month */
+            jobs_used_this_month: number;
+            /** Minutes Processed This Month */
+            minutes_processed_this_month: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -409,6 +1644,59 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VaultClipOut */
+        VaultClipOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Hook */
+            hook: string;
+            /** Duration Secs */
+            duration_secs: number;
+            /** Status */
+            status: string;
+            /** Source Clip Id */
+            source_clip_id: string | null;
+            /** Source Job Id */
+            source_job_id: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Metadata Json */
+            metadata_json?: {
+                [key: string]: unknown;
+            };
+            /** Video Url */
+            video_url?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Publish Statuses */
+            publish_statuses?: components["schemas"]["ClipPublishStatusOut"][];
+        };
+        /** VaultQuotaOut */
+        VaultQuotaOut: {
+            /** Used */
+            used: number;
+            /** Limit */
+            limit: number;
+        };
+        /** WebhookSettingsOut */
+        WebhookSettingsOut: {
+            /** Webhook Url */
+            webhook_url: string | null;
+            /** Configured */
+            configured: boolean;
+        };
+        /** WebhookSettingsRequest */
+        WebhookSettingsRequest: {
+            /** Webhook Url */
+            webhook_url?: string | null;
+            /** Webhook Secret */
+            webhook_secret?: string | null;
         };
     };
     responses: never;
@@ -439,6 +1727,26 @@ export interface operations {
             };
         };
     };
+    health_stack_api_health_stack_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackHealthResponse"];
+                };
+            };
+        };
+    };
     meta_api_meta_get: {
         parameters: {
             query?: never;
@@ -461,14 +1769,193 @@ export interface operations {
             };
         };
     };
+    register_api_auth_register_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_api_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_device_api_auth_claim_device_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimDeviceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_jobs_api_jobs_get: {
         parameters: {
             query?: {
                 limit?: number;
                 offset?: number;
+                status?: string | null;
+                search?: string | null;
             };
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -500,6 +1987,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -530,11 +2018,48 @@ export interface operations {
             };
         };
     };
+    create_jobs_batch_api_jobs_batch_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchCreateJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchCreateJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_job_api_jobs__job_id__get: {
         parameters: {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path: {
                 job_id: string;
@@ -568,6 +2093,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path: {
                 job_id: string;
@@ -594,11 +2120,275 @@ export interface operations {
             };
         };
     };
-    progress_stream_api_jobs__job_id__progress_get: {
+    download_job_clips_zip_api_jobs__job_id__clips_zip_get: {
         parameters: {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_clip_api_jobs__job_id__clips__clip_id__regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegenerateClipResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_clip_api_jobs__job_id__clips__clip_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    splice_job_clips_api_jobs__job_id__clips_splice_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpliceClipsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpliceClipsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_clip_api_jobs__job_id__clips__clip_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishClipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishClipResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_publish_clips_api_jobs__job_id__clips_batch_publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchPublishClipsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchPublishClipsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_clip_approval_api_jobs__job_id__clips__clip_id__approval_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipApprovalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    progress_stream_api_jobs__job_id__progress_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-Id"?: string | null;
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path: {
                 job_id: string;
@@ -630,6 +2420,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -668,6 +2459,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Device-Id"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -683,6 +2475,1081 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_templates_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobTemplateOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_template_api_templates_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJobTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobTemplateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_template_api_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assets_api_assets_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_asset_api_assets_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_asset_api_assets__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_webhook_settings_api_settings_webhook_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_webhook_settings_api_settings_webhook_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_clip_feedback_api_settings_clips__clip_id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipFeedbackOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_api_billing_stripe_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    activate_license_api_license_activate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseActivateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    license_status_api_license_status_get: {
+        parameters: {
+            query: {
+                machine_id: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lemon_squeezy_webhook_api_commerce_webhooks_lemon_squeezy_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Signature"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_platforms_endpoint_api_distribution_platforms_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string | boolean;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_oauth_apps_api_distribution_oauth_apps_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAppOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_oauth_app_api_distribution_oauth_apps__platform__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthAppUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAppOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_start_api_distribution_oauth__platform__start_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_callback_api_distribution_oauth__platform__callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path: {
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_connections_api_distribution_connections_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformConnectionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disconnect_platform_api_distribution_connections__connection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_publish_jobs_api_distribution_publish_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_now_api_distribution_publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishNowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_publish_job_api_distribution_publish_jobs__publish_job_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                publish_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_publish_job_api_distribution_publish_jobs__publish_job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                publish_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_publish_job_api_distribution_publish_jobs__publish_job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                publish_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_progress_stream_api_distribution_publish_jobs__publish_job_id__progress_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-Id"?: string | null;
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                publish_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_publish_api_distribution_schedule_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePublishRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vault_clips_api_vault_clips_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultClipOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_to_vault_api_vault_clips_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveVaultClipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultClipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vault_quota_api_vault_quota_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultQuotaOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_vault_clip_api_vault_clips__vault_clip_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                vault_clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_onboarding_api_devices_onboarding_complete_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingCompleteResponse"];
                 };
             };
             /** @description Validation Error */

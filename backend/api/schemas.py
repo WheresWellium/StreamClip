@@ -119,7 +119,7 @@ class ClipOut(BaseModel):
     kind: str = "discovery"
     parent_clip_ids: list[str] = []
     render_overrides: dict[str, object] = {}
-    approval_status: str = "draft"
+    approval_status: Literal["draft", "approved", "rejected"] = "draft"
 
     # Presigned URLs filled in by service layer
     download_url: str | None = None

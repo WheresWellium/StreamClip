@@ -55,7 +55,6 @@ async def init_upload(
 )
 async def get_download_url(
     key: str = Query(..., description="Storage key"),
-    user_id: Annotated[str | None, Depends(get_current_user_id)] = None,
 ) -> dict[str, str]:
     """Get a fresh presigned download URL for a given storage key."""
     cfg = get_settings()

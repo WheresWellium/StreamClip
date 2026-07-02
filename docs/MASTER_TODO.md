@@ -71,7 +71,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` — publish 202/error envelope, retry/cancel status guards, owner-scoped 404s, vault list/quota/save/delete. Also fixed vault delete returning 500 instead of 404, and a cached-Redis-across-event-loops bug in `conftest.py` that poisoned full-suite runs | ✅ | — |
 | 3.3 | E2E publish flow (Playwright) — none exists; whole e2e suite gated on `E2E_RUN=1` | 🟡 | M |
 | 3.6 | Zero tests for: assets API, billing API, splice API, tenant middleware (commerce webhook + TikTok adapter now covered) | 🟡 | L |
-| 3.4 | `tests/test_virality_twitch_misc.py::test_score_parallel_and_ensemble` fails locally (missing `ollama` package) — mock the import or add dev dependency | 🟢 | S |
+| 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` now stubbed in the test — runs on hosts without worker deps | ✅ | — |
 | 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ root `.coveragerc` now `fail_under = 75` (full-suite actual 78.5%); duplicate `tests/.coveragerc` removed. Note: `.coveragerc`/`pytest.ini` are baked into the image, not volume-mounted — rebuild `api` to pick up config changes | ✅ | — |
 
 ## 4. Windows desktop packaging (.exe)
@@ -120,7 +120,7 @@ sidecar, no Docker). Everything below assumes embedded mode:
 | 6.1 | ~~TECHNICAL_DESIGN.md stale (social publish "out of scope")~~ ✅ updated to Rev 4 (2026-07-01) | — | — |
 | 6.2 | GAP_ANALYSIS.md stale rows: C3 (editor exists), C8 (per-clip webhooks shipped), C9 (style learning shipped), T47 (PRODUCTION.md distribution vars) | 🟢 | S |
 | 6.3 | Desktop packaging design doc (architecture decision record for 4.0) | 🟡 | M |
-| 6.4 | `.env.example` `LEMON_SQUEEZY_*` names don't match `STREAMCLIP_COMMERCE__*` read by code; `RATE_LIMIT` default mismatch (true in code, false in example) | 🟡 | S |
+| 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed to `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*`; rate-limit opt-out now documented as dev-only (code default stays ON). `.env.production.example` keeps bare names — `docker-compose.prod.yml` maps them | ✅ | — |
 | 6.5 | README roadmap checkboxes stale (webhooks are wired, default off); Unix-only venv instructions; `docs/CREATOR_PLATFORM.md` "Next/Later" lists shipped features | 🟢 | S |
 | 6.6 | `docs/cloud-deploy.md` describes aspirational multi-tenant + Stripe metering — mark as design-stage or align with 2.10 decision | 🟢 | S |
 

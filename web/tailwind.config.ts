@@ -14,7 +14,12 @@ const config: Config = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
       colors: {
+        frame: "hsl(var(--frame))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -50,10 +55,11 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      // Brutalist corners — near-sharp across the board
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "var(--radius)",
+        sm: "1px",
       },
       keyframes: {
         "fade-in": {

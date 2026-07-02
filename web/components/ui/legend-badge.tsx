@@ -3,7 +3,11 @@
 import * as React from "react";
 
 import { Badge } from "@/components/ui/form";
-import { HelpTip } from "@/components/ui/help-tip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/format";
 
 interface LegendBadgeProps {
@@ -13,7 +17,7 @@ interface LegendBadgeProps {
   tipLabel?: string;
 }
 
-/** Badge with an adjacent info icon explaining the label. */
+/** Badge that explains itself on hover — no extra icon. */
 export function LegendBadge({
   children,
   className,
@@ -21,14 +25,18 @@ export function LegendBadge({
   tipLabel = "Badge help",
 }: LegendBadgeProps) {
   return (
-    <span className="inline-flex items-center gap-1">
-      <Badge className={className}>{children}</Badge>
-      <HelpTip
-        content={tip}
-        label={tipLabel}
-        className="h-3 w-3 [&_svg]:h-2.5 [&_svg]:w-2.5"
-      />
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          className={cn("cursor-default", className)}
+          aria-label={tipLabel}
+          tabIndex={0}
+        >
+          {children}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top">{tip}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -39,7 +47,7 @@ interface LegendLabelProps {
   className?: string;
 }
 
-/** Small label (mono corner tags) with info icon. */
+/** Small label (mono corner tags) that explains itself on hover. */
 export function LegendLabel({
   children,
   tip,
@@ -47,13 +55,17 @@ export function LegendLabel({
   className,
 }: LegendLabelProps) {
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)}>
-      <span>{children}</span>
-      <HelpTip
-        content={tip}
-        label={tipLabel}
-        className="h-3 w-3 [&_svg]:h-2.5 [&_svg]:w-2.5 text-white/80 hover:text-white"
-      />
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn("cursor-default", className)}
+          aria-label={tipLabel}
+          tabIndex={0}
+        >
+          {children}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{tip}</TooltipContent>
+    </Tooltip>
   );
 }

@@ -14,8 +14,8 @@ import { ClipFeedbackButtons } from "@/components/clips/clip-feedback";
 import { RegenerateClipButton } from "@/components/clips/job-clips-toolbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/form";
-import { HelpTip } from "@/components/ui/help-tip";
 import { LegendBadge, LegendLabel } from "@/components/ui/legend-badge";
+import { SectionLegend } from "@/components/ui/section-legend";
 import {
   Tooltip,
   TooltipContent,
@@ -155,30 +155,28 @@ export function ClipCard({
         )}
 
         {/* Score corner badge */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5">
-          <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-black/70 text-white backdrop-blur inline-flex items-center gap-0.5">
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          <LegendLabel
+            tip={CLIP_SCORE_LEGEND.rank}
+            tipLabel="Rank help"
+            className="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-black/50 text-white border border-frame/20"
+          >
             #{clip.rank + 1}
-            <HelpTip
-              content={CLIP_SCORE_LEGEND.rank}
-              label="Rank help"
-              className="h-3 w-3 [&_svg]:h-2.5 [&_svg]:w-2.5 text-white/80 hover:text-white"
-            />
-          </span>
-          <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-black/70 text-white backdrop-blur inline-flex items-center gap-0.5">
+          </LegendLabel>
+          <LegendLabel
+            tip={CLIP_SCORE_LEGEND.ensemble}
+            tipLabel="Ensemble score help"
+            className="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-black/50 text-white border border-frame/20"
+          >
             {formatScore(clip.ensemble_score)}
-            <HelpTip
-              content={CLIP_SCORE_LEGEND.ensemble}
-              label="Ensemble score help"
-              className="h-3 w-3 [&_svg]:h-2.5 [&_svg]:w-2.5 text-white/80 hover:text-white"
-            />
-          </span>
+          </LegendLabel>
         </div>
 
         <div className="absolute top-2 right-2">
           <LegendBadge
             className={cn(
               emotionColors[clip.emotion] ?? emotionColors.neutral,
-              "backdrop-blur shadow-sm",
+              "bg-black/50",
             )}
             tip={legendForEmotion(clip.emotion)}
             tipLabel="Emotion help"
@@ -191,7 +189,7 @@ export function ClipCard({
           <LegendLabel
             tip={CLIP_SCORE_LEGEND.duration}
             tipLabel="Duration help"
-            className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-black/70 text-white backdrop-blur"
+            className="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-black/50 text-white border border-frame/20"
           >
             {formatDuration(clip.duration_secs)}
           </LegendLabel>
@@ -200,32 +198,22 @@ export function ClipCard({
 
       {/* Metadata footer */}
       <div className="p-3 space-y-2">
-        <div className="flex items-center gap-1">
-          <h3 className="text-sm font-medium line-clamp-1 flex-1">
-            {clip.title || `Clip ${clip.rank + 1}`}
-          </h3>
-          <HelpTip content={CLIP_SCORE_LEGEND.title} label="Title help" />
-        </div>
-        <div className="flex items-start gap-1">
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8 flex-1">
-            {clip.hook || "—"}
-          </p>
-          <HelpTip content={CLIP_SCORE_LEGEND.hook} label="Hook help" />
-        </div>
+        <h3 className="text-sm font-medium line-clamp-1">
+          {clip.title || `Clip ${clip.rank + 1}`}
+        </h3>
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8">
+          {clip.hook || "—"}
+        </p>
 
         {clip.publish_statuses && clip.publish_statuses.length > 0 && (
           <PublishStatusBadge statuses={clip.publish_statuses} />
         )}
 
-        <div className="flex items-center gap-1 pt-0.5">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-            Scores
-          </span>
-          <HelpTip
-            content="Signal breakdown for this clip. Virality is scored after creation."
-            label="Score section help"
-          />
-        </div>
+        <SectionLegend
+          title="Scores"
+          tip="Signal breakdown for this clip. Virality is scored after creation."
+          className="pt-0.5"
+        />
 
         {/* Score breakdown */}
         <ScoreBreakdown clip={clip} />
@@ -389,22 +377,19 @@ function ScoreBreakdown({ clip }: { clip: ClipOut }) {
     <div className={cn("grid gap-1 pt-1", scores.length > 4 ? "grid-cols-5" : "grid-cols-4")}>
       {scores.map((s) => (
         <div key={s.label} className="flex flex-col items-center gap-0.5">
-          <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+          <div className="h-1 w-full bg-secondary overflow-hidden">
             <div
               className="h-full bg-primary/70"
               style={{ width: `${Math.min(100, s.value * 100)}%` }}
             />
           </div>
-          <div className="flex items-center gap-0.5">
-            <span className="text-[10px] text-muted-foreground font-mono">
-              {s.label}
-            </span>
-            <HelpTip
-              content={s.tip}
-              label={`${s.label} score help`}
-              className="h-3 w-3 [&_svg]:h-2.5 [&_svg]:w-2.5"
-            />
-          </div>
+          <LegendLabel
+            tip={s.tip}
+            tipLabel={`${s.label} score help`}
+            className="text-[10px] text-muted-foreground font-mono"
+          >
+            {s.label}
+          </LegendLabel>
         </div>
       ))}
     </div>

@@ -4,7 +4,6 @@ import { ClipCard } from "@/components/clips/clip-card";
 import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
 import { SpliceClipsToolbar } from "@/components/clips/splice-clips-toolbar";
 import { LiveProgress } from "@/components/jobs/live-progress";
-import { HelpTip } from "@/components/ui/help-tip";
 import { LegendBadge } from "@/components/ui/legend-badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { legendForStatus } from "@/lib/help/legends";
@@ -69,8 +68,7 @@ export default async function JobPage({ params }: JobPageProps) {
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
           <span className="font-mono text-xs">{job.id}</span>
-          <HelpTip content="Unique job identifier for this pipeline run." label="Job ID help" />
-          <span>·</span>
+          <span aria-hidden>/</span>
           <span><RelativeTime iso={job.created_at} /></span>
           {job.source_duration_secs && (
             <>

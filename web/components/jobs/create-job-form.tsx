@@ -33,7 +33,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/form";
-import { HelpTip, LabelWithTip } from "@/components/ui/help-tip";
 import { SectionLegend } from "@/components/ui/section-legend";
 import {
   Tooltip,
@@ -113,10 +112,10 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
   }
 
   return (
-    <Card className="sky-glow border-sky-500/20">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Sparkles className="h-5 w-5 text-sky-400" />
+    <Card>
+      <CardHeader className="pb-3 border-b border-frame/10">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Sparkles className="h-4 w-4 text-sky-400" />
           New clip job
         </CardTitle>
         <CardDescription>
@@ -128,9 +127,9 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {isAuthenticated && templates.length > 0 && (
-          <div className="mb-5 space-y-1.5 p-3 rounded-md glossy-surface-light">
+          <div className="mb-5 space-y-1.5 p-3 rounded-sm glossy-surface-light">
             <Label htmlFor="template_select" className="text-muted-foreground text-xs">
               Quick start from template
             </Label>
@@ -152,11 +151,8 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
         <form action={formAction} className="space-y-6">
           {/* Source mode tabs */}
           <div className="space-y-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Source</span>
-              <HelpTip label="Source mode help" content={FORM_SECTION_LEGEND.source} />
-            </div>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-black/30 border border-white/10">
+            <SectionLegend title="Source" tip={FORM_SECTION_LEGEND.source} />
+            <div className="grid grid-cols-2 border border-frame/25 rounded-sm overflow-hidden">
               {(["url", "upload"] as const).map((m) => {
                 const Icon = m === "url" ? Link2 : Upload;
                 const active = mode === m;
@@ -166,10 +162,10 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
                     type="button"
                     onClick={() => setMode(m)}
                     className={cn(
-                      "flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all",
+                      "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors first:border-r first:border-frame/25",
                       active
-                        ? "bg-sky-400/15 text-sky-400 border border-sky-400/30 shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                        ? "bg-sky-400/10 text-sky-400"
+                        : "text-muted-foreground hover:text-foreground hover:bg-frame/5",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -181,9 +177,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
 
             {mode === "url" ? (
               <div className="space-y-1.5">
-                <LabelWithTip htmlFor="source_url" tip="Public VOD or clip URL" tipLabel="URL help">
-                  Video URL
-                </LabelWithTip>
+                <Label htmlFor="source_url">Video URL</Label>
                 <Input
                   id="source_url"
                   name="source_url"
@@ -196,9 +190,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
               </div>
             ) : (
               <div className="space-y-1.5">
-                <LabelWithTip tip="Upload MP4/MOV/MKV" tipLabel="Upload help">
-                  Upload
-                </LabelWithTip>
+                <Label>Upload (MP4 / MOV / MKV)</Label>
                 <DirectUpload
                   currentKey={uploadKey}
                   onUploaded={(key) => setUploadKey(key)}
@@ -230,7 +222,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
                           "flex flex-col items-start gap-1.5 p-3 rounded-lg text-left transition-all border",
                           selected
                             ? "border-sky-400/50 bg-sky-400/10 text-foreground sky-glow"
-                            : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5",
+                            : "border-frame/15 bg-black/20 hover:border-frame/30 hover:bg-frame/5",
                         )}
                       >
                         <div className="flex items-center gap-2 w-full">
@@ -308,10 +300,8 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
             </button>
 
             {showAdvanced && (
-              <div className="p-4 rounded-lg glossy-surface-light space-y-1.5">
-                <LabelWithTip htmlFor="target_clips" tip="1–20 clips" tipLabel="Clips help">
-                  Clips to generate
-                </LabelWithTip>
+              <div className="p-3 rounded-sm glossy-surface-light space-y-1.5">
+                <Label htmlFor="target_clips">Clips to generate (1–20)</Label>
                 <Input
                   id="target_clips"
                   name="target_clips"

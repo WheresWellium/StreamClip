@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { HelpTip } from "@/components/ui/help-tip";
 import { help } from "@/lib/help/legends";
 
 export default function Error({
@@ -13,11 +12,11 @@ export default function Error({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-semibold">Something went wrong</h1>
-        <HelpTip content={help.errors.jobDetail} />
-      </div>
+      <h1 className="text-2xl font-semibold">Something went wrong</h1>
       <p className="text-muted-foreground max-w-md text-sm">{error.message}</p>
+      <p className="text-muted-foreground/80 max-w-md text-xs">
+        {help.errors.jobDetail}
+      </p>
       <Button onClick={reset}>Try again</Button>
     </div>
   );

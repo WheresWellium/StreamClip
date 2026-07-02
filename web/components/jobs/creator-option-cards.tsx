@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { HelpTip } from "@/components/ui/help-tip";
+import { SectionLegend } from "@/components/ui/section-legend";
 import type { CreatorMetaOption } from "@/lib/creator-option-ids";
 import { cn } from "@/lib/utils/format";
 
@@ -36,10 +36,11 @@ export function CreatorOptionCards({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1.5">
-        <span className="text-sm font-medium">{title}</span>
-        {tip ? <HelpTip content={tip} label={`${title} help`} /> : null}
-      </div>
+      {tip ? (
+        <SectionLegend title={title} tip={tip} />
+      ) : (
+        <span className="term-label">{title}</span>
+      )}
       <div className={cn("grid gap-2", gridClass)}>
         {options.map((option) => {
           const selected = value === option.id;
@@ -49,16 +50,16 @@ export function CreatorOptionCards({
               type="button"
               onClick={() => onChange(option.id)}
               className={cn(
-                "flex flex-col items-start gap-2 p-3 rounded-lg text-left transition-all border min-h-[44px]",
+                "flex flex-col items-start gap-1.5 p-2.5 rounded-sm text-left transition-colors border min-h-[44px]",
                 selected
-                  ? "border-sky-400/50 bg-sky-400/10 text-foreground sky-glow"
-                  : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5",
+                  ? "border-sky-400 bg-sky-400/10 text-foreground"
+                  : "border-frame/15 bg-black/20 hover:border-frame/35 hover:bg-frame/5",
               )}
             >
               <div className="flex items-start justify-between gap-2 w-full">
                 <span className="text-sm font-medium leading-snug">{option.label}</span>
                 {showAspectBadge && option.aspect_ratio && (
-                  <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-sky-300 border border-sky-500/30">
+                  <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-black/40 text-sky-300 border border-sky-500/30">
                     {option.aspect_ratio}
                   </span>
                 )}
@@ -87,7 +88,7 @@ export function CreatorOptionCards({
                   {option.platforms.slice(0, 4).map((p) => (
                     <span
                       key={p}
-                      className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10"
+                      className="text-[9px] px-1.5 py-0.5 rounded-sm bg-frame/5 text-muted-foreground border border-frame/10"
                     >
                       {p}
                     </span>

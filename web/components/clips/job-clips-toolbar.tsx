@@ -8,7 +8,6 @@ import { batchPublishClipsAction } from "@/app/actions/distribution";
 import { regenerateClipAction } from "@/app/actions/jobs";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
-import { HelpTip } from "@/components/ui/help-tip";
 import { jobsApi } from "@/lib/api/client";
 
 interface JobClipsToolbarProps {
@@ -51,11 +50,11 @@ export function JobClipsToolbar({
   return (
     <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-medium">
+        <h2 className="text-base font-medium">
           {clipCount} clip{clipCount === 1 ? "" : "s"}
         </h2>
         {contentProfile && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+          <span className="font-mono text-[10px] uppercase tracking-wide px-1.5 py-px rounded-sm border border-frame/15 bg-muted text-muted-foreground">
             {contentProfile.replace("_", " ")}
           </span>
         )}
@@ -67,7 +66,7 @@ export function JobClipsToolbar({
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="rounded-md border border-border/60 bg-background px-2 py-1.5 text-xs min-h-[36px]"
+                className="h-7 rounded-sm border border-frame/20 bg-input px-2 text-xs"
                 aria-label="Publish platform"
               >
                 <option value="youtube_shorts">YouTube Shorts</option>
@@ -79,6 +78,7 @@ export function JobClipsToolbar({
                 size="sm"
                 disabled={pending}
                 onClick={handleBatchPublish}
+                tooltip="Queues all approved, finished clips to the selected platform."
               >
                 {pending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -87,22 +87,19 @@ export function JobClipsToolbar({
                 )}
                 Publish approved ({approvedClipCount})
               </Button>
-              <HelpTip
-                content="Queues all approved, finished clips to the selected platform."
-                label="Batch publish help"
-              />
             </>
           )}
-          <Button asChild variant="outline" size="sm">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            tooltip="Downloads every finished clip in one ZIP file, ranked by score."
+          >
             <a href={jobsApi.clipsZipUrl(jobId)} download>
               <Download className="h-3.5 w-3.5" />
               Download all (ZIP)
             </a>
           </Button>
-          <HelpTip
-            content="Downloads every finished clip in one ZIP file, ranked by score."
-            label="Download all help"
-          />
         </div>
       )}
     </div>

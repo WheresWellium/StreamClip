@@ -2,7 +2,11 @@
 
 import * as React from "react";
 
-import { HelpTip } from "@/components/ui/help-tip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/format";
 
 interface SectionLegendProps {
@@ -11,14 +15,21 @@ interface SectionLegendProps {
   className?: string;
 }
 
-/** Section header with an info icon legend. */
+/** Section header — hover the label itself for the legend (no icon). */
 export function SectionLegend({ title, tip, className }: SectionLegendProps) {
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {title}
-      </span>
-      <HelpTip content={tip} label={`${title} section help`} />
+    <div className={cn("flex items-center", className)}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="term-label cursor-help underline decoration-dotted decoration-frame/30 underline-offset-4"
+            aria-label={`${title} section help`}
+          >
+            {title}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tip}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

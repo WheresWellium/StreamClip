@@ -2,54 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  StreamClip design language — "midnight terminal"
+  Flat midnight-green field, crisp white hairline borders, hard shadows,
+  sharp corners. No gloss, no glow, no gradients on surfaces.
+*/
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 20% 6%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 6%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 6%;
+    --background: 186 42% 8%;
+    --foreground: 180 12% 94%;
+    --card: 186 36% 10%;
+    --card-foreground: 180 12% 94%;
+    --popover: 186 40% 9%;
+    --popover-foreground: 180 12% 96%;
     --primary: 199 89% 48%;
-    --primary-foreground: 220 20% 6%;
-    --secondary: 220 10% 94%;
-    --secondary-foreground: 220 15% 20%;
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 8% 42%;
-    --accent: 199 70% 94%;
-    --accent-foreground: 199 89% 30%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 12% 88%;
-    --input: 220 12% 88%;
-    --ring: 199 89% 48%;
-    --radius: 0.625rem;
-    --sky: 199 89% 48%;
-    --silver: 220 10% 72%;
-  }
-
-  .dark {
-    --background: 220 18% 4%;
-    --foreground: 0 0% 98%;
-    --card: 220 12% 11%;
-    --card-foreground: 0 0% 98%;
-    --popover: 220 14% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 220 20% 6%;
-    --secondary: 220 10% 16%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 220 10% 14%;
-    --muted-foreground: 220 8% 62%;
-    --accent: 220 12% 18%;
+    --primary-foreground: 186 45% 6%;
+    --secondary: 186 25% 14%;
+    --secondary-foreground: 180 10% 90%;
+    --muted: 186 28% 12%;
+    --muted-foreground: 184 10% 62%;
+    --accent: 186 30% 16%;
     --accent-foreground: 199 89% 68%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 10% 22%;
-    --input: 220 10% 18%;
+    --border: 184 12% 30%;
+    --input: 186 25% 16%;
+    --ring: 199 89% 48%;
+    --radius: 0.125rem;
+    --sky: 199 89% 48%;
+    --silver: 184 10% 62%;
+    /* Brutalist frame — the white bordering system */
+    --frame: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 186 42% 8%;
+    --foreground: 180 12% 94%;
+    --card: 186 36% 10%;
+    --card-foreground: 180 12% 94%;
+    --popover: 186 40% 9%;
+    --popover-foreground: 180 12% 96%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 186 45% 6%;
+    --secondary: 186 25% 14%;
+    --secondary-foreground: 180 10% 90%;
+    --muted: 186 28% 12%;
+    --muted-foreground: 184 10% 62%;
+    --accent: 186 30% 16%;
+    --accent-foreground: 199 89% 68%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 184 12% 30%;
+    --input: 186 25% 16%;
     --ring: 199 89% 48%;
     --sky: 199 89% 48%;
-    --silver: 220 8% 55%;
+    --silver: 184 10% 62%;
+    --frame: 0 0% 100%;
   }
 }
 
@@ -58,63 +67,75 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground text-base;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground text-[15px];
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    letter-spacing: 0.005em;
   }
   h1 {
-    @apply text-[22px] font-medium leading-tight;
+    @apply text-xl font-medium leading-tight tracking-tight;
   }
   h2 {
-    @apply text-lg font-medium leading-snug;
+    @apply text-base font-medium leading-snug tracking-tight;
   }
   h3 {
-    @apply text-base font-medium leading-snug;
+    @apply text-[15px] font-medium leading-snug;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none ring-1 ring-ring ring-offset-1 ring-offset-background;
+  }
+  ::selection {
+    background: hsl(var(--sky) / 0.28);
   }
 }
 
 @layer components {
+  /*
+    Primary panel — flat midnight surface, white hairline frame,
+    hard 3px offset shadow (brutalist).
+    Class names kept from the previous system so all usages restyle at once.
+  */
   .glossy-surface {
-    @apply relative overflow-hidden rounded-lg border border-white/10;
-    background: linear-gradient(
-      145deg,
-      hsl(220 12% 16%) 0%,
-      hsl(220 14% 9%) 50%,
-      hsl(220 16% 7%) 100%
-    );
-    box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
-      0 4px 24px -6px rgba(0, 0, 0, 0.55);
+    @apply relative rounded-sm;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--frame) / 0.32);
+    box-shadow: 3px 3px 0 0 hsl(186 60% 3% / 0.9);
   }
 
+  /* Secondary / inset panel — quieter frame, no shadow. */
   .glossy-surface-light {
-    @apply relative overflow-hidden rounded-lg border border-white/10;
-    background: linear-gradient(
-      145deg,
-      hsl(220 10% 20%) 0%,
-      hsl(220 12% 14%) 100%
-    );
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    @apply relative rounded-sm;
+    background: hsl(186 30% 11%);
+    border: 1px solid hsl(var(--frame) / 0.16);
   }
 
+  /* Page field — flat midnight green with a faint terminal grid. */
   .hero-gradient {
-    background: radial-gradient(
-        ellipse 80% 60% at 50% -20%,
-        hsl(199 89% 48% / 0.15),
-        transparent 70%
+    background-color: hsl(var(--background));
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        hsl(var(--frame) / 0.025) 0,
+        hsl(var(--frame) / 0.025) 1px,
+        transparent 1px,
+        transparent 48px
       ),
-      radial-gradient(
-        ellipse 60% 40% at 100% 0%,
-        hsl(220 10% 30% / 0.2),
-        transparent 60%
-      ),
-      hsl(var(--background));
+      repeating-linear-gradient(
+        90deg,
+        hsl(var(--frame) / 0.025) 0,
+        hsl(var(--frame) / 0.025) 1px,
+        transparent 1px,
+        transparent 48px
+      );
   }
 
+  /* Legacy glow alias — now a flat white frame emphasis. */
   .sky-glow {
-    box-shadow: 0 0 20px -4px hsl(199 89% 48% / 0.35);
+    box-shadow: 3px 3px 0 0 hsl(186 60% 3% / 0.9);
+  }
+
+  /* Terminal microlabel — uppercase mono section headers. */
+  .term-label {
+    @apply font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground;
   }
 }
 
@@ -142,7 +163,7 @@
   background: linear-gradient(
     90deg,
     hsl(var(--muted)) 0%,
-    hsl(220 10% 22%) 50%,
+    hsl(186 22% 16%) 50%,
     hsl(var(--muted)) 100%
   );
   background-size: 200% 100%;

@@ -10,7 +10,7 @@ const Input = React.forwardRef<
   <input
     type={type}
       className={cn(
-        "flex h-9 w-full rounded-md border border-white/10 bg-black/20 px-3 py-1 text-sm shadow-inner transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400/60 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-8 w-full rounded-sm border border-frame/20 bg-input px-2.5 py-1 text-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-sky-400 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
     ref={ref}
@@ -45,7 +45,7 @@ const Select = React.forwardRef<
   <select
     ref={ref}
       className={cn(
-      "flex h-9 w-full items-center rounded-md border border-white/10 bg-black/20 px-3 py-1 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-sky-400/60 disabled:cursor-not-allowed disabled:opacity-50",
+      "flex h-8 w-full items-center rounded-sm border border-frame/20 bg-input px-2.5 py-1 text-sm focus:outline-none focus:border-sky-400 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
     {...props}
@@ -64,7 +64,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
     <span
       ref={ref}
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-sm border px-1.5 py-px font-mono text-[10px] font-medium uppercase tracking-wide",
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     <div
       ref={ref}
       className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5",
+        "relative h-1.5 w-full overflow-hidden rounded-none bg-frame/10 border border-frame/15",
         className,
       )}
       role="progressbar"
@@ -94,7 +94,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       {...props}
     >
       <div
-        className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-400 transition-all duration-500 ease-out progress-bar shadow-[0_0_8px_rgba(56,189,248,0.4)]"
+        className="h-full bg-sky-400 transition-all duration-500 ease-out progress-bar"
         style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
       />
     </div>

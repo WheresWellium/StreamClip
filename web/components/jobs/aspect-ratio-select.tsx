@@ -170,7 +170,7 @@ export function AspectRatioSelect({
                   }}
                   className={cn(
                     "flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors",
-                    active ? "bg-sky-400/10" : "hover:bg-white/5",
+                    active ? "bg-sky-400/10" : "hover:bg-frame/5",
                   )}
                 >
                   <RatioThumb width={option.width} height={option.height} />
@@ -191,7 +191,7 @@ export function AspectRatioSelect({
                         {option.platforms.map((p) => (
                           <span
                             key={p}
-                            className="rounded-full border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                            className="rounded-sm border border-frame/15 bg-black/20 px-1.5 py-0.5 text-[9px] text-muted-foreground"
                           >
                             {p}
                           </span>

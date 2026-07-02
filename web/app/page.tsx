@@ -33,21 +33,21 @@ export default async function HomePage({
   }
 
   return (
-    <div className="space-y-10 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       {/* Hero */}
-      <section className="text-center sm:text-left space-y-3 pt-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-400/30 bg-sky-400/10 text-xs text-sky-400 mb-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-400" />
+      <section className="text-center sm:text-left space-y-3 pt-1">
+        <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border border-sky-400/40 bg-sky-400/10 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-400 mb-1">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full bg-sky-400 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 bg-sky-400" />
           </span>
           AI clip pipeline
         </div>
-        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
           Turn long-form video into{" "}
-          <span className="text-sky-400">viral vertical shorts</span>
+          <span className="text-sky-400">viral social clips</span>
         </h1>
-        <p className="text-muted-foreground max-w-xl text-base">
+        <p className="text-muted-foreground max-w-xl text-sm">
           Subject tracking, animated captions, and meme overlays — paste a URL or
           upload, then watch progress and download clips when ready.
         </p>
@@ -59,7 +59,7 @@ export default async function HomePage({
       </div>
 
       {!token && (
-        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200/90">
+        <div className="rounded-sm border border-amber-400/40 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-200/90">
           Jobs on this device are anonymous.{" "}
           <a href="/register" className="underline hover:text-amber-100">
             Create an account

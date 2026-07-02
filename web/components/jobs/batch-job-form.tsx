@@ -28,7 +28,7 @@ export function BatchJobForm() {
   }
 
   return (
-    <Card className="border-white/10">
+    <Card className="border-frame/15">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Layers className="h-4 w-4 text-sky-400" />
@@ -47,7 +47,7 @@ export function BatchJobForm() {
               value={urls}
               onChange={(e) => setUrls(e.target.value)}
               rows={4}
-              className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-400/60"
+              className="w-full rounded-md border border-frame/15 bg-black/20 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-400/60"
               placeholder="https://www.twitch.tv/videos/...&#10;https://youtube.com/watch?v=..."
             />
           </div>

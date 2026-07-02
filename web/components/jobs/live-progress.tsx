@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { Progress } from "@/components/ui/form";
-import { HelpTip } from "@/components/ui/help-tip";
-import { LegendBadge } from "@/components/ui/legend-badge";
+import { LegendBadge, LegendLabel } from "@/components/ui/legend-badge";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { useJobProgress } from "@/lib/api/use-job-progress";
 import type { ProgressEvent, StageDurations } from "@/lib/api/types";
@@ -117,10 +116,13 @@ function PipelineStepper({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-muted-foreground">Pipeline</span>
-        <HelpTip content={PROGRESS_LEGEND.stepper} label="Pipeline stepper help" />
-      </div>
+      <LegendLabel
+        tip={PROGRESS_LEGEND.stepper}
+        tipLabel="Pipeline stepper help"
+        className="term-label"
+      >
+        Pipeline
+      </LegendLabel>
       <ol className="flex items-center gap-1 sm:gap-2">
         {PIPELINE_STEPS.map((step, idx) => {
           const isComplete =
@@ -151,7 +153,7 @@ function PipelineStepper({
                     isCurrent &&
                       "border-sky-400 bg-sky-400/20 text-sky-400 sky-glow",
                     isPending &&
-                      "border-white/10 bg-white/5 text-muted-foreground",
+                      "border-frame/15 bg-frame/5 text-muted-foreground",
                   )}
                   aria-current={isCurrent ? "step" : undefined}
                   title={legendForPipelineStep(step.key)}
@@ -294,7 +296,6 @@ export function LiveProgress({
         <div className="flex items-center gap-2 min-w-0">
           {icon}
           <span className="text-sm font-medium truncate">{message}</span>
-          <HelpTip content={PROGRESS_LEGEND.message} label="Progress message help" />
         </div>
         <LegendBadge
           className={statusColors[status] ?? statusColors.queued}
@@ -308,19 +309,25 @@ export function LiveProgress({
       {(liveTotalElapsed != null || etaLabel) && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
           {liveTotalElapsed != null && (
-            <span className="inline-flex items-center gap-1">
+            <LegendLabel
+              tip={PROGRESS_LEGEND.elapsed}
+              tipLabel="Elapsed time help"
+              className="inline-flex items-center gap-1"
+            >
               <span className="font-mono text-foreground">
                 {formatDurationSeconds(liveTotalElapsed)}
-              </span>
-              <span>since start</span>
-              <HelpTip content={PROGRESS_LEGEND.elapsed} label="Elapsed time help" />
-            </span>
+              </span>{" "}
+              since start
+            </LegendLabel>
           )}
           {etaLabel && (
-            <span className="inline-flex items-center gap-1 text-sky-400">
-              <span className="font-mono">{etaLabel}</span>
-              <HelpTip content={PROGRESS_LEGEND.eta} label="ETA help" />
-            </span>
+            <LegendLabel
+              tip={PROGRESS_LEGEND.eta}
+              tipLabel="ETA help"
+              className="font-mono text-sky-400"
+            >
+              {etaLabel}
+            </LegendLabel>
           )}
         </div>
       )}
@@ -332,19 +339,13 @@ export function LiveProgress({
       />
 
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Progress</span>
-          <HelpTip content={PROGRESS_LEGEND.bar} label="Progress bar help" />
-        </div>
+        <span className="term-label">Progress</span>
         <Progress value={progress} />
       </div>
 
       {ingestSubPct != null && (
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Ingest</span>
-            <HelpTip content={PROGRESS_LEGEND.ingestSub} label="Ingest sub-progress help" />
-          </div>
+          <span className="term-label">Ingest</span>
           <Progress value={ingestSubPct / 100} />
           <div className="text-right text-xs font-mono text-muted-foreground">
             {ingestSubPct}%
@@ -353,11 +354,14 @@ export function LiveProgress({
       )}
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1 font-mono">
+        <LegendLabel
+          tip={legendForStage(stage)}
+          tipLabel="Pipeline stage help"
+          className="font-mono"
+        >
           {stage}
-          <HelpTip content={legendForStage(stage)} label="Pipeline stage help" />
-        </span>
-        <span className="text-sky-400 font-medium">
+        </LegendLabel>
+        <span className="text-sky-400 font-medium font-mono">
           {(progress * 100).toFixed(0)}%
         </span>
       </div>

@@ -19,7 +19,8 @@ interface HelpTipProps {
 }
 
 /**
- * Small (?) icon — hover or focus to read what a control does.
+ * Small (?) icon — reserve for controls whose purpose genuinely needs
+ * explanation. Prefer LegendLabel / SectionLegend (hover-on-text) elsewhere.
  */
 export function HelpTip({ content, className, label = "More info" }: HelpTipProps) {
   return (
@@ -28,17 +29,15 @@ export function HelpTip({ content, className, label = "More info" }: HelpTipProp
         <button
           type="button"
           className={cn(
-            "inline-flex shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors",
+            "inline-flex shrink-0 items-center justify-center text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors",
             className,
           )}
           aria-label={label}
         >
-          <CircleHelp className="h-3.5 w-3.5" aria-hidden />
+          <CircleHelp className="h-3 w-3" aria-hidden />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="leading-relaxed">
-        {content}
-      </TooltipContent>
+      <TooltipContent side="top">{content}</TooltipContent>
     </Tooltip>
   );
 }
@@ -48,7 +47,7 @@ interface LabelWithTipProps extends React.LabelHTMLAttributes<HTMLLabelElement> 
   tipLabel?: string;
 }
 
-/** Form label with an inline help icon. */
+/** Form label — hover the text itself for help (no icon). */
 export function LabelWithTip({
   tip,
   tipLabel,
@@ -57,14 +56,20 @@ export function LabelWithTip({
   ...props
 }: LabelWithTipProps) {
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
-      <label
-        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        {...props}
-      >
-        {children}
-      </label>
-      <HelpTip content={tip} label={tipLabel} />
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <label
+          className={cn(
+            "inline-block w-fit cursor-help text-sm font-medium leading-none underline decoration-dotted decoration-frame/25 underline-offset-4 peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+            className,
+          )}
+          aria-label={tipLabel}
+          {...props}
+        >
+          {children}
+        </label>
+      </TooltipTrigger>
+      <TooltipContent side="top">{tip}</TooltipContent>
+    </Tooltip>
   );
 }

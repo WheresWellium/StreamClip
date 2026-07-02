@@ -50,7 +50,7 @@ export const emotionColors: Record<string, string> = {
 };
 
 export const statusColors: Record<string, string> = {
-  queued: "bg-white/5 text-silver border-white/10",
+  queued: "bg-frame/5 text-silver border-frame/15",
   ingesting: "bg-sky-500/10 text-sky-400 border-sky-500/25",
   transcribing: "bg-sky-500/10 text-sky-400 border-sky-500/25",
   detecting: "bg-sky-500/10 text-sky-400 border-sky-500/25",
@@ -59,6 +59,6 @@ export const statusColors: Record<string, string> = {
   processing: "bg-sky-500/10 text-sky-400 border-sky-500/25",
   done: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
   error: "bg-red-500/10 text-red-400 border-red-500/25",
-  cancelled: "bg-white/5 text-silver border-white/10",
-  pending: "bg-white/5 text-silver border-white/10",
+  cancelled: "bg-frame/5 text-silver border-frame/15",
+  pending: "bg-frame/5 text-silver border-frame/15",
 };

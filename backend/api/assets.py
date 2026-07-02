@@ -48,6 +48,8 @@ async def create_asset(
         raise StreamClipError(
             "Asset limit reached (50)",
             user_message="Remove unused assets before uploading more.",
+            code="asset_limit",
+            http_status=400,
         )
     asset = await repo.create(
         name=body.name,
@@ -77,6 +79,6 @@ async def delete_asset(
     repo = AssetRepository(db)
     asset = await repo.get(asset_id)
     if asset is None or asset.owner_id != user_id:
-        raise StreamClipError("Asset not found", user_message="Asset not found")
+        raise StreamClipError("Asset not found", user_message="Asset not found", http_status=404)
     await repo.delete(asset_id)
     await db.commit()

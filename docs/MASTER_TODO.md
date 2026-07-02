@@ -70,7 +70,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` — gates (approval, readiness, duration, connection, duplicate in-flight), ownership 404s, idempotency conflict/replay, schedule vs immediate enqueue | ✅ | — |
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` — publish 202/error envelope, retry/cancel status guards, owner-scoped 404s, vault list/quota/save/delete. Also fixed vault delete returning 500 instead of 404, and a cached-Redis-across-event-loops bug in `conftest.py` that poisoned full-suite runs | ✅ | — |
 | 3.3 | E2E publish flow (Playwright) — none exists; whole e2e suite gated on `E2E_RUN=1` | 🟡 | M |
-| 3.6 | Zero tests for: assets API, billing API, splice API, tenant middleware (commerce webhook + TikTok adapter now covered) | 🟡 | L |
+| 3.6 | Zero-test surfaces mostly covered ✅ assets API + splice validation in `tests/test_assets_splice_api.py` (also fixed assets API returning 500 instead of 404/400); commerce webhook + TikTok adapter covered earlier. **Remaining:** tenant middleware (blocked on 2.10 keep-or-delete) | 🟡 | S |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` now stubbed in the test — runs on hosts without worker deps | ✅ | — |
 | 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ root `.coveragerc` now `fail_under = 75` (full-suite actual 78.5%); duplicate `tests/.coveragerc` removed. Note: `.coveragerc`/`pytest.ini` are baked into the image, not volume-mounted — rebuild `api` to pick up config changes | ✅ | — |
 
@@ -130,7 +130,7 @@ assumes embedded mode:
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 7.1 | Delete stray artifacts: `.coverage`, `cov2.txt`, `coverage_term.txt`, `scripts/_fix_*.py` temp files | 🟢 | S |
+| 7.1 | ~~Delete stray artifacts~~ ✅ verified clean 2026-07-02 — none of `.coverage`, `cov2.txt`, `coverage_term.txt`, `scripts/_fix_*.py` exist (removed in `7c32b2c`) | ✅ | — |
 | 7.2 | ~~`backend/api/vault.py` excessive blank lines~~ ✅ reformatted | ✅ | — |
 | 7.3 | ~~Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py`~~ ✅ retries only transient errors (`httpx.TransportError`, `ConnectionError`, `TimeoutError`, `StorageError`); claim released back to `pending` before retry so re-claim works; domain failures fail fast | ✅ | — |
 | 7.4 | ~~YouTube upload loads full file into memory~~ ✅ streams in 8 MB chunks (`_stream_file` async iterator in `youtube.py`) | ✅ | — |

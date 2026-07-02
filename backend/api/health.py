@@ -128,6 +128,7 @@ async def health_stack(
 async def meta() -> dict:
     """Public configuration that the frontend may use to populate selects."""
     from core.creator_options import (
+        list_aspect_ratios,
         list_caption_styles,
         list_content_profiles,
         list_reframe_presets,
@@ -142,6 +143,7 @@ async def meta() -> dict:
         "content_profiles": list_content_profiles(),
         "caption_styles": list_caption_styles(),
         "reframe_presets": list_reframe_presets(),
+        "aspect_ratios": list_aspect_ratios(),
         "emotion_labels": [
             "hype", "rage", "funny", "clutch", "fail", "weird", "neutral",
         ],

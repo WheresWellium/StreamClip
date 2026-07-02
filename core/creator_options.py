@@ -10,10 +10,93 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-# All vertical exports today use ExportConfig defaults (honest in UI).
+# Default export target (overridable per job / per clip via aspect_ratio).
 OUTPUT_ASPECT_RATIO = "9:16"
 OUTPUT_RESOLUTION = "1080×1920"
 OUTPUT_PLATFORMS = ("TikTok", "YouTube Shorts", "Instagram Reels", "Snap Spotlight")
+
+
+# ─── Export aspect ratios ─────────────────────────────────────────────────────
+# The curated, highest-quality social export set (Premiere-style dropdown).
+
+@dataclass(frozen=True)
+class AspectRatioOption:
+    id: str                    # canonical "W:H" id, e.g. "9:16"
+    label: str
+    width: int                 # output pixel dimensions at highest social quality
+    height: int
+    description: str
+    platforms: tuple[str, ...]
+
+    def to_meta(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "width": self.width,
+            "height": self.height,
+            "output_resolution": f"{self.width}×{self.height}",
+            "aspect_ratio": self.id,
+            "description": self.description,
+            "platforms": list(self.platforms),
+        }
+
+
+ASPECT_RATIO_OPTIONS: tuple[AspectRatioOption, ...] = (
+    AspectRatioOption(
+        id="9:16",
+        label="Vertical 9:16",
+        width=1080, height=1920,
+        description="Full-screen vertical — the short-form default.",
+        platforms=("TikTok", "YouTube Shorts", "Instagram Reels", "Snap Spotlight"),
+    ),
+    AspectRatioOption(
+        id="1:1",
+        label="Square 1:1",
+        width=1080, height=1080,
+        description="Square feed post — maximum feed real estate on X and LinkedIn.",
+        platforms=("Instagram Feed", "X / Twitter", "LinkedIn", "Facebook"),
+    ),
+    AspectRatioOption(
+        id="4:5",
+        label="Portrait 4:5",
+        width=1080, height=1350,
+        description="Tall feed post — the largest format Instagram allows in-feed.",
+        platforms=("Instagram Feed", "Facebook Feed"),
+    ),
+    AspectRatioOption(
+        id="16:9",
+        label="Landscape 16:9",
+        width=1920, height=1080,
+        description="Widescreen — standard for YouTube and landscape embeds.",
+        platforms=("YouTube", "X / Twitter", "LinkedIn", "Facebook"),
+    ),
+    AspectRatioOption(
+        id="2:3",
+        label="Portrait 2:3",
+        width=1080, height=1620,
+        description="Tall pin format — Pinterest's recommended video ratio.",
+        platforms=("Pinterest",),
+    ),
+)
+
+ASPECT_RATIO_IDS: tuple[str, ...] = tuple(o.id for o in ASPECT_RATIO_OPTIONS)
+DEFAULT_ASPECT_RATIO = "9:16"
+
+_ASPECT_RATIO_BY_ID: dict[str, AspectRatioOption] = {o.id: o for o in ASPECT_RATIO_OPTIONS}
+
+
+def list_aspect_ratios() -> list[dict[str, Any]]:
+    return [o.to_meta() for o in ASPECT_RATIO_OPTIONS]
+
+
+def is_valid_aspect_ratio(value: str) -> bool:
+    return value in _ASPECT_RATIO_BY_ID
+
+
+def aspect_ratio_dimensions(value: str) -> tuple[int, int]:
+    """Return (width, height) for a catalog aspect ratio id, defaulting to 9:16."""
+    option = _ASPECT_RATIO_BY_ID.get(value, _ASPECT_RATIO_BY_ID[DEFAULT_ASPECT_RATIO])
+    return option.width, option.height
 
 
 @dataclass(frozen=True)

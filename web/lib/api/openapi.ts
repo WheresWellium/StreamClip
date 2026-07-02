@@ -757,7 +757,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Publish Job
+         * @description Edit title/description/schedule of a queued or scheduled publish.
+         */
+        patch: operations["update_publish_job_api_distribution_publish_jobs__publish_job_id__patch"];
         trace?: never;
     };
     "/api/distribution/publish-jobs/{publish_job_id}/progress": {
@@ -843,7 +847,8 @@ export interface paths {
         delete: operations["delete_vault_clip_api_vault_clips__vault_clip_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Vault Clip */
+        patch: operations["update_vault_clip_api_vault_clips__vault_clip_id__patch"];
         trace?: never;
     };
     "/api/devices/onboarding-complete": {
@@ -1169,6 +1174,12 @@ export interface components {
              */
             content_profile: string;
             /**
+             * Aspect Ratio
+             * @description Export aspect ratio (see /api/meta aspect_ratios).
+             * @default 9:16
+             */
+            aspect_ratio: string;
+            /**
              * Asset Pack Id
              * @description User asset pack for overlays
              */
@@ -1279,6 +1290,8 @@ export interface components {
             } | null;
             /** Content Profile */
             content_profile?: string | null;
+            /** Aspect Ratio */
+            aspect_ratio?: string | null;
             /**
              * Clips
              * @default []
@@ -1570,6 +1583,8 @@ export interface components {
             caption_style?: string | null;
             /** Reframe Preset */
             reframe_preset?: string | null;
+            /** Aspect Ratio */
+            aspect_ratio?: string | null;
             /** Overlay Enabled */
             overlay_enabled?: boolean | null;
             /**
@@ -1577,6 +1592,23 @@ export interface components {
              * @default true
              */
             rerender: boolean;
+        };
+        /**
+         * UpdatePublishJobRequest
+         * @description Edit a queued/scheduled publish before it uploads.
+         */
+        UpdatePublishJobRequest: {
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+        };
+        /** UpdateVaultClipRequest */
+        UpdateVaultClipRequest: {
+            /** Title */
+            title: string;
         };
         /** UploadInitRequest */
         UploadInitRequest: {
@@ -3288,6 +3320,44 @@ export interface operations {
             };
         };
     };
+    update_publish_job_api_distribution_publish_jobs__publish_job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                publish_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePublishJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     publish_progress_stream_api_distribution_publish_jobs__publish_job_id__progress_get: {
         parameters: {
             query?: never;
@@ -3477,6 +3547,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_vault_clip_api_vault_clips__vault_clip_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                vault_clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVaultClipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultClipOut"];
+                };
             };
             /** @description Validation Error */
             422: {

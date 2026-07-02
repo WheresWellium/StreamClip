@@ -11,6 +11,21 @@ def test_create_job_defaults():
     req = CreateJobRequest(source_url="https://example.com/v.mp4")
     assert req.target_clips == 5
     assert req.caption_style == "gaming_impact"
+    assert req.aspect_ratio == "9:16"
+
+
+def test_create_job_aspect_ratio_validation():
+    req = CreateJobRequest(source_url="https://example.com/v.mp4", aspect_ratio="1:1")
+    assert req.aspect_ratio == "1:1"
+    with pytest.raises(ValueError):
+        CreateJobRequest(source_url="https://example.com/v.mp4", aspect_ratio="21:9")
+
+
+def test_update_clip_aspect_ratio_validation():
+    req = UpdateClipRequest(aspect_ratio="16:9")
+    assert req.aspect_ratio == "16:9"
+    with pytest.raises(ValueError):
+        UpdateClipRequest(aspect_ratio="banana")
 
 
 def test_health_response_shape():

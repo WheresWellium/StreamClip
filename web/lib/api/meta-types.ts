@@ -11,12 +11,24 @@ export type MetaOption = {
   tags?: string[];
 };
 
+export type AspectRatioOption = {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  output_resolution: string;
+  aspect_ratio: string;
+  description?: string;
+  platforms?: string[];
+};
+
 export type StreamClipMeta = {
   version: string;
   processing_profile?: "cpu" | "gpu";
   content_profiles: MetaOption[];
   caption_styles: MetaOption[];
   reframe_presets: MetaOption[];
+  aspect_ratios?: AspectRatioOption[];
   emotion_labels: string[];
 };
 
@@ -31,6 +43,7 @@ export type UpdateClipBody = {
   end_secs?: number;
   caption_style?: string;
   reframe_preset?: string;
+  aspect_ratio?: string;
   overlay_enabled?: boolean;
   rerender?: boolean;
 };

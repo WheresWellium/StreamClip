@@ -1,7 +1,8 @@
 """
-StreamClip — Vertical Reframe Engine
-Converts 16:9 gaming clips to 9:16 portrait using YOLOv11 + ByteTrack
-subject tracking with a smooth virtual camera path.
+StreamClip — Reframe Engine
+Converts source clips to the configured export aspect ratio (9:16 vertical by
+default; also 1:1, 4:5, 16:9, 2:3) using YOLOv11 + ByteTrack subject tracking
+with a smooth virtual camera path.
 
 Gaming-specific enhancements:
   • HUD protection zones (health bars, minimap, kill feed)
@@ -245,7 +246,7 @@ def _reframe_with_tracking(
     window, write output via ffmpeg pipe.
     """
     tw, th = cfg.target_width, cfg.target_height
-    target_ar = tw / th  # 9/16 ≈ 0.5625
+    target_ar = tw / th  # e.g. 9/16 ≈ 0.5625, 1/1 = 1.0, 16/9 ≈ 1.778
 
     cap = cv2.VideoCapture(str(input_path))
     src_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -253,10 +254,30 @@ def _reframe_with_tracking(
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    # Crop window: maintain target aspect ratio within source frame
-    crop_h = src_h - int(src_h * (preset.hud_bottom + preset.hud_top))
-    crop_w = int(crop_h * target_ar)
-    crop_w = min(crop_w, src_w)
+    # Crop window: largest target-AR rectangle inside the HUD-safe band.
+    # Works for both narrow (9:16) and wide (16:9, 1:1) targets.
+    hud_top_px = int(src_h * preset.hud_top)
+    hud_bot_px = int(src_h * preset.hud_bottom)
+    usable_h = src_h - hud_top_px - hud_bot_px
+    crop_w = min(src_w, int(usable_h * target_ar))
+    crop_h = min(usable_h, int(crop_w / target_ar))
+    # Centre the crop vertically within the HUD-safe band
+    crop_y1 = hud_top_px + (usable_h - crop_h) // 2
+
+    if crop_w >= src_w and crop_h >= src_h:
+        # Crop covers the whole frame — no tracking needed, just scale.
+        cap.release()
+        log.info("reframe_scale_only", src=f"{src_w}x{src_h}", target=f"{tw}x{th}")
+        cmd = [
+            "ffmpeg", "-y", "-i", str(input_path),
+            "-vf", f"scale={tw}:{th},setsar=1",
+            *video_encode_args(export_cfg),
+            *audio_encode_args(export_cfg),
+            *output_fps_args(export_cfg),
+            str(output_path),
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+        return output_path
 
     log.info(
         "reframe_start",
@@ -316,10 +337,7 @@ def _reframe_with_tracking(
     proc = subprocess.Popen(ffmpeg_in_cmd, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     frame_idx = 0
-    hud_top_px = int(src_h * preset.hud_top)
-    hud_bot_px = int(src_h * preset.hud_bottom)
-    usable_top = hud_top_px
-    usable_bot = src_h - hud_bot_px
+    crop_y2 = crop_y1 + crop_h
 
     while True:
         ret, frame = cap.read()
@@ -333,8 +351,8 @@ def _reframe_with_tracking(
         x1 = max(0, min(x1, src_w - crop_w))
         x2 = x1 + crop_w
 
-        # Crop the HUD-safe zone vertically
-        roi = frame[usable_top:usable_bot, x1:x2]
+        # Crop the target-AR window inside the HUD-safe band
+        roi = frame[crop_y1:crop_y2, x1:x2]
 
         # Resize to target
         out_frame = cv2.resize(roi, (tw, th), interpolation=cv2.INTER_LANCZOS4)
@@ -360,20 +378,21 @@ def reframe(
     webcam_path: Path | None = None,
 ) -> Path:
     """
-    Convert a 16:9 clip to 9:16 portrait using the configured preset.
+    Convert a source clip to the configured export aspect ratio
+    (cfg.reframe.target_width × target_height) using the configured preset.
 
     Tries the full tracking engine first. Falls back to a simple
     centre-crop via FFmpeg if tracking fails (faster, less precise).
 
     Args:
-        input_path:   The 16:9 source clip.
-        output_path:  Where to write the 9:16 output.
+        input_path:   The source clip (any aspect ratio).
+        output_path:  Where to write the reframed output.
         cfg:          Global settings.
         candidate:    Optional ClipCandidate (used for emotion-based preset selection).
         webcam_path:  Optional webcam/facecam feed for split-screen mode.
 
     Returns:
-        Path to the vertical output file.
+        Path to the reframed output file.
     """
     rcfg = cfg.reframe
     preset_name = rcfg.preset
@@ -402,11 +421,15 @@ def reframe(
         if not rcfg.fallback_center_crop:
             raise
 
-        # Fallback: FFmpeg centre-crop
+        # Fallback: FFmpeg centre-crop (largest target-AR rect, any orientation)
         tw, th = rcfg.target_width, rcfg.target_height
+        crop_expr = (
+            f"crop='min(iw,ih*{tw}/{th})':'min(ih,iw*{th}/{tw})',"
+            f"scale={tw}:{th},setsar=1"
+        )
         cmd = [
             "ffmpeg", "-y", "-i", str(input_path),
-            "-vf", f"crop=ih*{tw}/{th}:ih:(iw-ih*{tw}/{th})/2:0,scale={tw}:{th}",
+            "-vf", crop_expr,
             *video_encode_args(cfg.export),
             *audio_encode_args(cfg.export),
             *output_fps_args(cfg.export),

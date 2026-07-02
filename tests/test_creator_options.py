@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from core.creator_options import (
+    ASPECT_RATIO_IDS,
     CAPTION_STYLE_IDS,
     CONTENT_PROFILE_IDS,
+    DEFAULT_ASPECT_RATIO,
     REFRAME_PRESET_IDS,
+    aspect_ratio_dimensions,
+    is_valid_aspect_ratio,
     is_valid_caption_style,
     is_valid_content_profile,
     is_valid_reframe_preset,
+    list_aspect_ratios,
     list_caption_styles,
     list_content_profiles,
     list_reframe_presets,
@@ -60,3 +65,24 @@ def test_meta_includes_aspect_ratio() -> None:
     reframe = list_reframe_presets()[0]
     assert reframe["aspect_ratio"] == "9:16"
     assert "1080" in reframe["output_resolution"]
+
+
+def test_aspect_ratio_catalog() -> None:
+    assert DEFAULT_ASPECT_RATIO == "9:16"
+    assert set(ASPECT_RATIO_IDS) >= {"9:16", "1:1", "4:5", "16:9", "2:3"}
+    assert [o["id"] for o in list_aspect_ratios()] == list(ASPECT_RATIO_IDS)
+    for option in list_aspect_ratios():
+        w, h = option["width"], option["height"]
+        rw, rh = (int(x) for x in option["id"].split(":"))
+        # Pixel dimensions must exactly match the advertised ratio
+        assert w * rh == h * rw, option["id"]
+        assert min(w, h) >= 1080
+
+
+def test_aspect_ratio_validators_and_dimensions() -> None:
+    assert is_valid_aspect_ratio("1:1")
+    assert not is_valid_aspect_ratio("3:7")
+    assert aspect_ratio_dimensions("16:9") == (1920, 1080)
+    assert aspect_ratio_dimensions("4:5") == (1080, 1350)
+    # Unknown ids fall back to the 9:16 default
+    assert aspect_ratio_dimensions("nonsense") == (1080, 1920)

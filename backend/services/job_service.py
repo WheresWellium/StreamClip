@@ -87,6 +87,7 @@ class JobService:
             "caption_style": request.caption_style,
             "reframe_preset": request.reframe_preset,
             "content_profile": request.content_profile,
+            "aspect_ratio": request.aspect_ratio,
             "whisper_model": self.cfg.whisper.model_size,
             "llm_provider": self.cfg.llm.provider,
             "llm_model": self.cfg.llm.model,
@@ -189,12 +190,15 @@ class JobService:
             ]
             clip_dtos.append(dto)
 
+        snapshot_fields = {"clips", "content_profile", "aspect_ratio"}
         return JobOut(
             **{
                 k: getattr(job, k)
-                for k in JobOut.model_fields if k != "clips" and k != "content_profile" and hasattr(job, k)
+                for k in JobOut.model_fields
+                if k not in snapshot_fields and hasattr(job, k)
             },
             content_profile=(job.config_snapshot or {}).get("content_profile"),
+            aspect_ratio=(job.config_snapshot or {}).get("aspect_ratio"),
             clips=clip_dtos,
         )
 
@@ -247,6 +251,8 @@ class JobService:
             overrides["caption_style"] = body.caption_style
         if body.reframe_preset is not None:
             overrides["reframe_preset"] = body.reframe_preset
+        if body.aspect_ratio is not None:
+            overrides["aspect_ratio"] = body.aspect_ratio
         if body.overlay_enabled is not None:
             overrides["overlay_enabled"] = body.overlay_enabled
 
@@ -303,6 +309,16 @@ class JobService:
                     "All clips must be fully rendered before splicing",
                     user_message="Wait for clips to finish rendering.",
                 )
+
+        job_ar = (job.config_snapshot or {}).get("aspect_ratio", "9:16")
+        effective_ars = {
+            (c.render_overrides or {}).get("aspect_ratio", job_ar) for c in selected
+        }
+        if len(effective_ars) > 1:
+            raise StreamClipError(
+                "Cannot splice clips with different aspect ratios",
+                user_message="All merged clips must share the same aspect ratio.",
+            )
 
         rank = max((c.rank for c in job.clips), default=0) + 1
         splice_clip = await self.clips.create(

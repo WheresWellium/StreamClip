@@ -37,6 +37,11 @@ from core.celery_app import ProgressTask, celery_app, get_redis, publish_progres
 from core.chat_spikes import ChatEvent
 from core.config import get_settings
 from core.content_profiles import get_profile
+from core.creator_options import (
+    DEFAULT_ASPECT_RATIO,
+    aspect_ratio_dimensions,
+    is_valid_aspect_ratio,
+)
 from core.errors import StreamClipError
 from core.eta import build_eta_context
 from core.highlights import find_highlights
@@ -100,6 +105,15 @@ def _webhook_creds_from_owner(owner: Any) -> tuple[str | None, str | None]:
     return url, secret
 
 
+def _apply_aspect_ratio(value: Any) -> None:
+    """Resolve a catalog aspect-ratio id to reframe target dimensions."""
+    if not isinstance(value, str) or not is_valid_aspect_ratio(value):
+        return
+    width, height = aspect_ratio_dimensions(value)
+    cfg.reframe.target_width = width
+    cfg.reframe.target_height = height
+
+
 def _apply_clip_overrides(job: Any, clip: Any) -> None:
     """Merge per-clip render overrides into global cfg for this render pass."""
     overrides = getattr(clip, "render_overrides", None) or {}
@@ -109,6 +123,8 @@ def _apply_clip_overrides(job: Any, clip: Any) -> None:
         cfg.reframe.preset = overrides["reframe_preset"]
     if "overlay_enabled" in overrides:
         cfg.overlay.enabled = bool(overrides["overlay_enabled"])
+    if "aspect_ratio" in overrides:
+        _apply_aspect_ratio(overrides["aspect_ratio"])
 
 
 def _apply_job_config(job: Any) -> None:
@@ -122,6 +138,9 @@ def _apply_job_config(job: Any) -> None:
         cfg.reframe.preset = snap["reframe_preset"]
     if "whisper_model" in snap:
         cfg.whisper.model_size = snap["whisper_model"]
+    # Always apply: cfg is a per-process singleton, so a missing key must
+    # reset dimensions rather than inherit the previous job's target.
+    _apply_aspect_ratio(snap.get("aspect_ratio", DEFAULT_ASPECT_RATIO))
 
 
 def _local_workspace(job_id: str) -> Path:

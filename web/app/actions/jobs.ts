@@ -16,6 +16,7 @@ import { z } from "zod";
 import { ApiClientError, jobsApi, settingsApi } from "@/lib/api/client";
 import { getAccessToken, getDeviceId, authHeaders } from "@/lib/auth/session";
 import {
+  ASPECT_RATIO_IDS,
   CAPTION_STYLE_IDS,
   CONTENT_PROFILE_IDS,
   REFRAME_PRESET_IDS,
@@ -30,6 +31,7 @@ const CreateJobSchema = z.object({
   caption_style: z.enum(CAPTION_STYLE_IDS),
   reframe_preset: z.enum(REFRAME_PRESET_IDS),
   content_profile: z.enum(CONTENT_PROFILE_IDS),
+  aspect_ratio: z.enum(ASPECT_RATIO_IDS),
 });
 
 export type CreateJobActionState = {
@@ -56,6 +58,7 @@ export async function createJobAction(
       formData.get("reframe_preset")?.toString() ?? "fps_game",
     content_profile:
       formData.get("content_profile")?.toString() ?? "gaming",
+    aspect_ratio: formData.get("aspect_ratio")?.toString() || "9:16",
   };
 
   const parsed = CreateJobSchema.safeParse(raw);
@@ -156,6 +159,7 @@ export async function createBatchJobsAction(
       caption_style: "gaming_impact" as const,
       reframe_preset: "fps_game" as const,
       content_profile: "gaming" as const,
+      aspect_ratio: "9:16" as const,
     }));
     const result = await jobsApi.createBatch(jobs, token);
     revalidatePath("/");

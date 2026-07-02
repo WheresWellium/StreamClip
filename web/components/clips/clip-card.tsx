@@ -39,6 +39,7 @@ interface ClipCardProps {
   sourceDurationSecs?: number | null;
   captionStyleOptions?: MetaOption[];
   reframePresetOptions?: MetaOption[];
+  jobAspectRatio?: string | null;
 }
 
 export function ClipCard({
@@ -48,6 +49,7 @@ export function ClipCard({
   sourceDurationSecs,
   captionStyleOptions,
   reframePresetOptions,
+  jobAspectRatio,
 }: ClipCardProps) {
   const captionOptions =
     captionStyleOptions ??
@@ -323,6 +325,7 @@ export function ClipCard({
               sourceDurationSecs={sourceDurationSecs}
               captionStyleOptions={captionOptions}
               reframePresetOptions={reframeOptions}
+              jobAspectRatio={jobAspectRatio}
               disabled={isProcessing}
             />
             {clip.status === "done" && (

@@ -8,6 +8,10 @@ import { updateClipAction } from "@/app/actions/jobs";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Input, Label, Progress } from "@/components/ui/form";
+import {
+  AspectRatioSelect,
+  aspectRatioCss,
+} from "@/components/jobs/aspect-ratio-select";
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { useJobProgress } from "@/lib/api/use-job-progress";
 import type { ClipOut } from "@/lib/api/types";
@@ -26,6 +30,7 @@ type EditorForm = {
   end: number;
   captionStyle: string;
   reframePreset: string;
+  aspectRatio: string;
   overlayEnabled: boolean;
 };
 
@@ -35,6 +40,7 @@ type Props = {
   sourceDurationSecs?: number | null;
   captionStyleOptions: MetaOption[];
   reframePresetOptions: MetaOption[];
+  jobAspectRatio?: string | null;
   disabled?: boolean;
 };
 
@@ -48,6 +54,7 @@ function formFromClip(
   clip: ClipWithOverrides,
   captionStyleOptions: MetaOption[],
   reframePresetOptions: MetaOption[],
+  jobAspectRatio?: string | null,
 ): EditorForm {
   const overrides = readOverrides(clip);
   const captionIds = captionStyleOptions.map((o) => o.id);
@@ -67,6 +74,10 @@ function formFromClip(
       presetIds.includes(overrides.reframe_preset)
         ? overrides.reframe_preset
         : presetIds[0] ?? "fps_game",
+    aspectRatio:
+      typeof overrides.aspect_ratio === "string"
+        ? overrides.aspect_ratio
+        : jobAspectRatio || "9:16",
     overlayEnabled:
       typeof overrides.overlay_enabled === "boolean"
         ? overrides.overlay_enabled
@@ -82,6 +93,7 @@ function formsEqual(a: EditorForm, b: EditorForm): boolean {
     Math.abs(a.end - b.end) < 0.05 &&
     a.captionStyle === b.captionStyle &&
     a.reframePreset === b.reframePreset &&
+    a.aspectRatio === b.aspectRatio &&
     a.overlayEnabled === b.overlayEnabled
   );
 }
@@ -112,6 +124,7 @@ export function ClipEditor({
   sourceDurationSecs,
   captionStyleOptions,
   reframePresetOptions,
+  jobAspectRatio,
   disabled = false,
 }: Props) {
   const router = useRouter();
@@ -126,7 +139,7 @@ export function ClipEditor({
   const [error, setError] = React.useState<string | null>(null);
 
   const savedRef = React.useRef(
-    formFromClip(clipExt, captionStyleOptions, reframePresetOptions),
+    formFromClip(clipExt, captionStyleOptions, reframePresetOptions, jobAspectRatio),
   );
   const [form, setForm] = React.useState<EditorForm>(savedRef.current);
 
@@ -164,6 +177,7 @@ export function ClipEditor({
       clip as ClipWithOverrides,
       captionStyleOptions,
       reframePresetOptions,
+      jobAspectRatio,
     );
     savedRef.current = next;
     setForm(next);
@@ -178,6 +192,7 @@ export function ClipEditor({
     open,
     captionStyleOptions,
     reframePresetOptions,
+    jobAspectRatio,
     clip,
   ]);
 
@@ -207,6 +222,7 @@ export function ClipEditor({
       end_secs: form.end,
       caption_style: form.captionStyle,
       reframe_preset: form.reframePreset,
+      aspect_ratio: form.aspectRatio,
       overlay_enabled: form.overlayEnabled,
       rerender: true,
     });
@@ -316,8 +332,12 @@ export function ClipEditor({
                   Preview
                 </Label>
                 <div
-                  className="relative rounded-lg overflow-hidden bg-black border border-border/60"
-                  style={{ aspectRatio: "9/16", maxHeight: 220 }}
+                  className="relative mx-auto rounded-lg overflow-hidden bg-black border border-border/60"
+                  style={{
+                    aspectRatio: aspectRatioCss(form.aspectRatio),
+                    maxHeight: 220,
+                    maxWidth: "100%",
+                  }}
                 >
                   {clip.download_url ? (
                     <video
@@ -449,6 +469,11 @@ export function ClipEditor({
 
               {/* Style */}
               <section className="space-y-4">
+                <AspectRatioSelect
+                  value={form.aspectRatio}
+                  onChange={(id) => patch("aspectRatio", id)}
+                  compact
+                />
                 <CreatorOptionCards
                   title="Caption style"
                   options={captionStyleOptions}
@@ -458,7 +483,7 @@ export function ClipEditor({
                 />
                 <CreatorOptionCards
                   title="Reframe preset"
-                  tip="All presets export 9:16 (1080×1920) vertical shorts."
+                  tip="Controls subject tracking and crop behavior for the chosen aspect ratio."
                   options={reframePresetOptions}
                   value={form.reframePreset}
                   onChange={(id) => patch("reframePreset", id)}
@@ -555,6 +580,9 @@ function ChangeSummary({
   }
   if (before.reframePreset !== after.reframePreset) {
     lines.push(`Reframe → ${after.reframePreset.replace(/_/g, " ")}`);
+  }
+  if (before.aspectRatio !== after.aspectRatio) {
+    lines.push(`Aspect ratio → ${after.aspectRatio}`);
   }
   if (before.overlayEnabled !== after.overlayEnabled) {
     lines.push(after.overlayEnabled ? "Overlays on" : "Overlays off");

@@ -35,6 +35,14 @@ export const REFRAME_PRESET_IDS = [
   "auto",
 ] as const;
 
+export const ASPECT_RATIO_IDS = [
+  "9:16",
+  "1:1",
+  "4:5",
+  "16:9",
+  "2:3",
+] as const;
+
 export const CAPTION_STYLE_IDS = [
   "gaming_impact",
   "shorts_bold",

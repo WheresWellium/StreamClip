@@ -13,6 +13,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from core.creator_options import (
+    DEFAULT_ASPECT_RATIO,
+    is_valid_aspect_ratio,
     is_valid_caption_style,
     is_valid_content_profile,
     is_valid_reframe_preset,
@@ -35,6 +37,10 @@ class CreateJobRequest(BaseModel):
     caption_style: str = "gaming_impact"
     reframe_preset: str = "fps_game"
     content_profile: str = "gaming"
+    aspect_ratio: str = Field(
+        DEFAULT_ASPECT_RATIO,
+        description="Export aspect ratio (see /api/meta aspect_ratios).",
+    )
     asset_pack_id: str | None = Field(None, description="User asset pack for overlays")
 
     @field_validator("caption_style")
@@ -42,6 +48,13 @@ class CreateJobRequest(BaseModel):
     def _validate_caption_style(cls, v: str) -> str:
         if not is_valid_caption_style(v):
             raise ValueError(f"Invalid caption_style: {v}")
+        return v
+
+    @field_validator("aspect_ratio")
+    @classmethod
+    def _validate_aspect_ratio(cls, v: str) -> str:
+        if not is_valid_aspect_ratio(v):
+            raise ValueError(f"Invalid aspect_ratio: {v}")
         return v
 
     @field_validator("reframe_preset")
@@ -145,6 +158,7 @@ class JobOut(BaseModel):
     finished_at: datetime | None = None
     stage_durations_json: dict[str, float] | None = None
     content_profile: str | None = None
+    aspect_ratio: str | None = None
     clips: list[ClipOut] = []
 
 
@@ -291,6 +305,7 @@ class UpdateClipRequest(BaseModel):
     hook: str | None = Field(None, max_length=500)
     caption_style: str | None = None
     reframe_preset: str | None = None
+    aspect_ratio: str | None = None
     overlay_enabled: bool | None = None
     rerender: bool = True
 
@@ -306,6 +321,13 @@ class UpdateClipRequest(BaseModel):
     def _validate_reframe_preset(cls, v: str | None) -> str | None:
         if v is not None and not is_valid_reframe_preset(v):
             raise ValueError(f"Invalid reframe_preset: {v}")
+        return v
+
+    @field_validator("aspect_ratio")
+    @classmethod
+    def _validate_aspect_ratio(cls, v: str | None) -> str | None:
+        if v is not None and not is_valid_aspect_ratio(v):
+            raise ValueError(f"Invalid aspect_ratio: {v}")
         return v
 
 

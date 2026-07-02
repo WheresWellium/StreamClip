@@ -51,7 +51,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 2.16 | Publish performance feedback loop — poll YouTube Analytics, feed style learning | 🟢 | L |
-| 2.17 | Multi-aspect export (1:1, 16:9) — all presets 9:16 only | 🟢 | L |
+| 2.17 | ~~Multi-aspect export — all presets 9:16 only~~ ✅ curated catalog (9:16, 1:1, 4:5, 16:9, 2:3) in `core/creator_options.py`; reframe engine handles any target AR; job-level `aspect_ratio` + per-clip override; Premiere-style dropdown in create form + clip editor; splice guards mixed ARs | ✅ | — |
 | 2.18 | Speaker diarization (`pyannote.audio` commented out in requirements) | 🟢 | L |
 | 2.19 | yt-dlp subtitle reuse (`fetch_subs_on_long` downloads subs; Whisper always re-runs) | 🟢 | M |
 

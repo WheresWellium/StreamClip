@@ -133,6 +133,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 sourceDurationSecs={job.source_duration_secs}
                 captionStyleOptions={captionStyleOptions}
                 reframePresetOptions={reframePresetOptions}
+                jobAspectRatio={job.aspect_ratio}
               />
             ))}
           </div>

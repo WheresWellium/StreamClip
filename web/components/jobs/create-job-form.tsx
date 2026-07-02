@@ -41,6 +41,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DirectUpload } from "@/components/upload/direct-upload";
+import { AspectRatioSelect } from "@/components/jobs/aspect-ratio-select";
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { FORM_SECTION_LEGEND } from "@/lib/help/legends";
 import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
@@ -61,7 +62,7 @@ const PROFILE_ICONS: Record<string, React.ElementType> = {
 };
 
 const REFRAME_PLATFORM_NOTE =
-  "All presets export vertical 9:16 (1080×1920) — optimized for TikTok, YouTube Shorts, and Reels.";
+  "Presets control how we crop and track the subject — the export aspect ratio below sets the output frame.";
 
 type Props = {
   meta: StreamClipMeta;
@@ -84,6 +85,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
   const [contentProfile, setContentProfile] = React.useState(
     meta.content_profiles[0]?.id ?? "gaming",
   );
+  const [aspectRatio, setAspectRatio] = React.useState("9:16");
   const [targetClips, setTargetClips] = React.useState(5);
   const [templateMsg, setTemplateMsg] = React.useState<string | null>(null);
 
@@ -94,6 +96,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
     if (typeof c.content_profile === "string") setContentProfile(c.content_profile);
     if (typeof c.reframe_preset === "string") setReframePreset(c.reframe_preset);
     if (typeof c.caption_style === "string") setCaptionStyle(c.caption_style);
+    if (typeof c.aspect_ratio === "string") setAspectRatio(c.aspect_ratio);
     if (typeof c.target_clips === "number") setTargetClips(c.target_clips);
   }
 
@@ -103,6 +106,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
       content_profile: contentProfile,
       reframe_preset: reframePreset,
       caption_style: captionStyle,
+      aspect_ratio: aspectRatio,
       target_clips: targetClips,
     });
     setTemplateMsg(result.ok ? "Template saved" : result.message ?? "Could not save");
@@ -116,7 +120,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           New clip job
         </CardTitle>
         <CardDescription>
-          Paste a URL or upload a video — we&apos;ll find the best moments and render vertical clips.
+          Paste a URL or upload a video — we&apos;ll find the best moments and render social-ready clips.
           {meta.processing_profile === "cpu" && (
             <span className="block mt-1 text-sky-400/80 text-xs">
               CPU mode — transcribe and render may take longer. Enable GPU profile for faster jobs.
@@ -261,6 +265,13 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
 
           <input type="hidden" name="reframe_preset" value={reframePreset} />
           <input type="hidden" name="caption_style" value={captionStyle} />
+          <input type="hidden" name="aspect_ratio" value={aspectRatio} />
+
+          <AspectRatioSelect
+            value={aspectRatio}
+            onChange={setAspectRatio}
+            options={meta.aspect_ratios}
+          />
 
           <CreatorOptionCards
             title="Reframe preset"

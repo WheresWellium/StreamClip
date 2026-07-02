@@ -5,7 +5,7 @@
 
 ## 1. Purpose & scope
 
-StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders vertical (9:16) clips with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
+StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders social-ready clips (9:16 default; 1:1, 4:5, 16:9, 2:3 selectable) with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
 
 **In scope:** ingest, transcription, highlight discovery, post-hoc virality (profile-aware, context-enriched), per-clip render, JWT auth API, web UI with contextual legends, REST API, Docker deployment, Prometheus metrics, optional webhooks, **social distribution** (YouTube publish, TikTok OAuth, scheduling, Clip Vault), style learning from explicit + implicit feedback.  
 **Out of scope (roadmap):** speaker diarization, TikTok direct-post (inbox upload shipped behind `TIKTOK_PUBLISH_ENABLED`, default off pending TikTok app approval; direct public posting needs the `video.publish` scope audit), Instagram Reels, multi-aspect export (1:1 / 16:9). Billing is Lemon Squeezy (license keys); Stripe was dropped.
@@ -323,7 +323,6 @@ docker compose up -d
 | License key delivery email | Lemon Squeezy chain wired end-to-end; `order_created` fallback keys surfaced via webhook response only |
 | TikTok publish | Inbox upload implemented (user finishes post in TikTok app); direct-post requires `video.publish` scope audit. Flag default off pending app approval |
 | Publish analytics | No view/retention feedback loop from YouTube/TikTok yet |
-| Multi-aspect export | 9:16 (1080×1920) only; no 1:1 / 16:9 |
 | Speaker diarization | Not implemented |
 | yt-dlp subs reuse | Downloaded but Whisper always runs on audio |
 | Distribution unit tests | `DistributionService`, vault + distribution API routes thin on coverage |
@@ -334,7 +333,19 @@ Full gap register: `docs/GAP_ANALYSIS.md`
 
 ### 12.1 Reframe presets (`core/reframe.py`)
 
-9 presets (`core/creator_options.py`): `fps_game`, `moba`, `battle_royale`, `sports_action`, `irl`, `podcast`, `presentation`, `cinematic_wide`, `auto`. All export 9:16 (1080×1920) — multi-aspect is roadmap. `MIN_SMOOTH_WINDOW_FRAMES = 60` floor regardless of preset.
+9 presets (`core/creator_options.py`): `fps_game`, `moba`, `battle_royale`, `sports_action`, `irl`, `podcast`, `presentation`, `cinematic_wide`, `auto`. Presets control subject tracking and HUD-safe cropping; the export frame is set separately by the job/clip `aspect_ratio` (9:16 default; also 1:1, 4:5, 16:9, 2:3 — see 12.1a). `MIN_SMOOTH_WINDOW_FRAMES = 60` floor regardless of preset.
+
+### 12.1a Export aspect ratios (`core/creator_options.py`)
+
+| Ratio | Resolution | Platforms |
+|-------|------------|-----------|
+| 9:16 | 1080×1920 | TikTok, YouTube Shorts, Instagram Reels, Snap Spotlight |
+| 1:1 | 1080×1080 | Instagram Feed, X, LinkedIn, Facebook |
+| 4:5 | 1080×1350 | Instagram Feed, Facebook Feed |
+| 16:9 | 1920×1080 | YouTube, X, LinkedIn, Facebook |
+| 2:3 | 1080×1620 | Pinterest |
+
+Set per job (`CreateJobRequest.aspect_ratio`, snapshotted in `config_snapshot`) or overridden per clip (`render_overrides.aspect_ratio` via clip editor, triggers re-render). The reframe engine computes the largest target-AR crop window inside the HUD-safe band and falls back to a scale-only pass when the crop covers the full source frame. Splicing rejects clips with mismatched effective aspect ratios.
 
 ### 12.2 Caption styles (`core/creator_options.py`)
 

@@ -74,6 +74,47 @@ def load_manifest(assets_dir: Path) -> list[AssetRecord]:
     return records
 
 
+def records_from_db_assets(
+    assets: list,
+    storage,
+    cache_dir: Path,
+) -> list[AssetRecord]:
+    """Materialise DB `Asset` rows (backend.db.models) into AssetRecords.
+
+    Files are downloaded from object storage once per job workspace and
+    cached by asset id, so repeated clip renders don't re-fetch. Assets that
+    fail to download are skipped — overlays degrade, the render never fails.
+    """
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    records: list[AssetRecord] = []
+    for asset in assets:
+        try:
+            suffix = Path(asset.storage_key).suffix or f".{asset.asset_type}"
+            local = cache_dir / f"{asset.id}{suffix}"
+            if not local.exists():
+                storage.download(asset.storage_key, local)
+
+            sfx_local: Path | None = None
+            if asset.sfx_storage_key:
+                sfx_local = cache_dir / f"{asset.id}_sfx{Path(asset.sfx_storage_key).suffix}"
+                if not sfx_local.exists():
+                    storage.download(asset.sfx_storage_key, sfx_local)
+
+            records.append(AssetRecord(
+                path=local,
+                asset_type=asset.asset_type,
+                description=asset.description,
+                sfx_path=sfx_local,
+                default_duration=float(asset.default_duration_secs or 2.5),
+                tags=list(asset.tags or []),
+            ))
+        except Exception as exc:
+            log.warning("db_asset_skip", asset_id=asset.id, error=str(exc))
+    if records:
+        log.info("db_assets_loaded", count=len(records))
+    return records
+
+
 def _write_stub_manifest(assets_dir: Path, out: Path) -> None:
     """Create a starter manifest with common gaming assets."""
     stub = [
@@ -288,13 +329,19 @@ def _add_sfx(
 # ─── Public API ───────────────────────────────────────────────────────────────
 
 _matcher: _SemanticMatcher | None = None
+_matcher_signature: tuple[str, ...] | None = None
 
 
 def _get_matcher(assets: list[AssetRecord]) -> _SemanticMatcher:
-    global _matcher
+    """Model load is cached forever; the asset index is rebuilt only when the
+    asset set changes (e.g. a job owner has different vault assets)."""
+    global _matcher, _matcher_signature
+    signature = tuple(sorted(str(a.path) for a in assets))
     if _matcher is None:
         _matcher = _SemanticMatcher()
+    if signature != _matcher_signature:
         _matcher.index_assets(assets)
+        _matcher_signature = signature
     return _matcher
 
 
@@ -303,6 +350,7 @@ def apply_overlays(
     output_path: Path,
     candidate: ClipCandidate,
     cfg: Settings,
+    extra_assets: list[AssetRecord] | None = None,
 ) -> tuple[Path, list[OverlayAsset]]:
     """
     Select and composite meme overlays + SFX onto the clip.
@@ -312,10 +360,12 @@ def apply_overlays(
     cfg.overlay.semantic_threshold.
 
     Args:
-        clip_path:   The captioned 9:16 clip.
-        output_path: Where to write the final overlaid clip.
-        candidate:   ClipCandidate with hook text and meme_keywords.
-        cfg:         Global settings.
+        clip_path:    The captioned 9:16 clip.
+        output_path:  Where to write the final overlaid clip.
+        candidate:    ClipCandidate with hook text and meme_keywords.
+        cfg:          Global settings.
+        extra_assets: DB-backed user assets (see records_from_db_assets),
+                      merged with the filesystem manifest.
 
     Returns:
         (path_to_output, list_of_applied_overlays)
@@ -328,8 +378,8 @@ def apply_overlays(
 
     assets_dir = ocfg.assets_dir
 
-    # ── Load assets ───────────────────────────────────────────────────────
-    asset_records = load_manifest(assets_dir)
+    # ── Load assets (filesystem manifest + user vault) ─────────────────────
+    asset_records = load_manifest(assets_dir) + list(extra_assets or [])
     if not asset_records:
         log.warning("no_assets_found", dir=str(assets_dir))
         import shutil

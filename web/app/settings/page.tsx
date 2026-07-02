@@ -112,6 +112,10 @@ export default async function SettingsPage() {
           Manage job templates →
         </Link>
         {" · "}
+        <Link href="/settings/assets" className="text-sky-400 hover:underline">
+          Overlay assets →
+        </Link>
+        {" · "}
         <Link href="/distribution" className="text-sky-400 hover:underline">
           Distribution →
         </Link>

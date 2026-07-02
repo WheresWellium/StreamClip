@@ -471,6 +471,48 @@ export const distributionApi = {
     }),
 };
 
+export type OverlayAsset = {
+  id: string;
+  name: string;
+  asset_type: "gif" | "png" | "mp4";
+  storage_key: string;
+  sfx_storage_key: string | null;
+  description: string;
+  tags: string[];
+  default_duration_secs: number;
+  is_public: boolean;
+  use_count: number;
+};
+
+export const assetsApi = {
+  list: (authToken?: string) =>
+    request<OverlayAsset[]>("/api/assets", { authToken }),
+
+  create: (
+    body: {
+      name: string;
+      asset_type: OverlayAsset["asset_type"];
+      storage_key: string;
+      sfx_storage_key?: string;
+      description: string;
+      tags?: string[];
+      default_duration_secs?: number;
+    },
+    authToken?: string,
+  ) =>
+    request<OverlayAsset>("/api/assets", {
+      method: "POST",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
+  remove: (assetId: string, authToken?: string) =>
+    request<void>(`/api/assets/${assetId}`, {
+      method: "DELETE",
+      authToken,
+    }),
+};
+
 export const vaultApi = {
   list: (authToken?: string) =>
     request<VaultClip[]>("/api/vault/clips", { authToken }),

@@ -30,7 +30,7 @@ from celery import chain, group
 from celery.exceptions import SoftTimeLimitExceeded
 
 from backend.db.models import ClipStatus, JobStatus
-from backend.db.repositories import ClipRepository, JobRepository, UserRepository
+from backend.db.repositories import AssetRepository, ClipRepository, JobRepository, UserRepository
 from backend.db.session import db_session
 from core.captions import generate_captions
 from core.celery_app import ProgressTask, celery_app, get_redis, publish_progress, set_eta_context
@@ -48,7 +48,7 @@ from core.highlights import find_highlights
 from core.ingest.service import IngestService, get_job_source_path
 from core.ingest.types import IngestRequest
 from core.models import ClipCandidate, Transcript
-from core.overlay import apply_overlays
+from core.overlay import apply_overlays, records_from_db_assets
 from core.reframe import reframe
 from core.ffmpeg_utils import extract_segment, validate_output_duration
 from core.pipeline_metrics import (
@@ -734,7 +734,15 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             # ── Overlay ──
             self.report(job_id, stage=f"overlay/{slug}",
                        progress=0.85, message=f"Adding overlays to clip {clip.rank + 1}")
-            _, overlays = apply_overlays(captioned_path, final_path, cand, cfg)
+            # User-uploaded vault assets (DB rows) join the filesystem manifest;
+            # downloads are cached per job workspace so N clips fetch once.
+            db_assets = await AssetRepository(db).list_for_user(job.owner_id)
+            extra_records = records_from_db_assets(
+                db_assets, storage, cache_dir=workspace / "db_assets",
+            )
+            _, overlays = apply_overlays(
+                captioned_path, final_path, cand, cfg, extra_assets=extra_records,
+            )
 
             if not validate_output_duration(final_path, duration):
                 raise StreamClipError(

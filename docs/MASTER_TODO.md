@@ -36,7 +36,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 2.7 | Asset vault: full CRUD API (`backend/api/assets.py`) but **no web UI, no client methods**, and `core/overlay.py` reads filesystem manifest — never reads `Asset` DB rows (GAP U15) | 🟡 | L |
+| 2.7 | ~~Asset vault unwired~~ ✅ end-to-end: overlay engine merges DB `Asset` rows with the filesystem manifest (`records_from_db_assets` in `core/overlay.py`, wired into `process_clip` with per-job download cache + failed-download degradation); `assetsApi` client methods + server actions; management UI at `/settings/assets` (upload GIF/PNG/MP4 via presigned PUT, semantic description, delete). Matcher re-indexes only when the asset set changes (GAP U15) | ✅ | — |
 | 2.8 | ~~Webhook settings unwired~~ ✅ `WebhookPanel` form on the settings page (get/save/remove via server actions); `settingsApi.getWebhook`/`updateWebhook` added | ✅ | — |
 | 2.9 | ~~Token refresh stub~~ ✅ BFF route `web/app/api/auth/refresh/route.ts` exchanges the httpOnly refresh cookie server-side and rotates both cookies; focus handler debounced to 5 min | ✅ | — |
 | 2.10 | `backend/cloud/tenant.py` multi-tenant stub — not imported anywhere; `docker-compose.cloud.yml` sets `STREAMCLIP_CLOUD_MODE`/`STRIPE_*` that **no code reads**. Remove or finish | 🟡 | L |

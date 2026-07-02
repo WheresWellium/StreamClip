@@ -73,7 +73,8 @@ def test_process_clip_successful_transcribe_clip(tmp_path, monkeypatch, mock_db_
     seg_tr = Transcript(segments=[TranscriptSegment(id=0, start=0, end=5, text="hi", words=())], language="en", duration=5.0, source_path=Path("x"))
     final = tmp_path / "jobs" / "job1" / "clip_00_final.mp4"
     final.parent.mkdir(parents=True, exist_ok=True)
-    with patch.object(pt, "ClipRepository") as CR, patch.object(pt, "JobRepository") as JR:
+    with patch.object(pt, "ClipRepository") as CR, patch.object(pt, "JobRepository") as JR, \
+         patch.object(pt, "AssetRepository") as AR:
         clips = MagicMock()
         clips.get = AsyncMock(return_value=clip)
         clips.mark_status = AsyncMock()
@@ -81,6 +82,7 @@ def test_process_clip_successful_transcribe_clip(tmp_path, monkeypatch, mock_db_
         clips.add_overlay = AsyncMock()
         CR.return_value = clips
         JR.return_value = MagicMock(get=AsyncMock(return_value=job))
+        AR.return_value = MagicMock(list_for_user=AsyncMock(return_value=[]))
         with patch.object(pt, "_ensure_job_source", return_value=tmp_path / "src.mp4"):
             with patch.object(pt, "make_storage", return_value=MagicMock()):
                 with patch.object(pt, "extract_segment") as ex:

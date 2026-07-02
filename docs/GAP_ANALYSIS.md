@@ -21,9 +21,9 @@ The **clip pipeline and distribution plane are production-shaped**: modular `cor
 | T47 | `PRODUCTION.md` distribution env | Partial | P1 | doc | `deploy/PRODUCTION.md` omits `STREAMCLIP_DISTRIBUTION__*` — see `docs/distribution-runbook.md` |
 | T48 | README roadmap stale | **Fixed** | P1 | doc | README roadmap updated for vault, publish, webhooks |
 | T49 | Job-scoped publish API overlap | Partial | P2 | defer | `POST /api/jobs/{id}/clips/{id}/publish` duplicates hub `POST /api/distribution/publish`; batch-publish still job-scoped |
-| T50 | TikTok upload | Stub | P2 | flag | `core/distribution/tiktok.py`; off unless `TIKTOK_PUBLISH_ENABLED=true` |
-| T51 | Stripe billing | Stub | P2 | defer | `core/billing.py`, `backend/api/billing.py` |
-| T52 | OpenAPI type drift | Partial | P2 | defer | Hand types in `web/lib/api/types.ts`; regen per CONTRIBUTING |
+| T50 | TikTok upload | **Fixed** | P2 | code | Inbox-flow upload implemented (`upload_video_file`); flag off pending TikTok app approval |
+| T51 | Stripe billing | **Removed** | P2 | code | Lemon Squeezy is the sole provider; license chain wired end-to-end (see MASTER_TODO 2a) |
+| T52 | OpenAPI type drift | **Fixed** | P2 | code | `web/lib/api/openapi.ts` regenerated; `approval_status` literal union from backend schema |
 
 ## UX gaps
 

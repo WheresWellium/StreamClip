@@ -1,8 +1,10 @@
 # StreamClip Cloud MVP — Multi-tenant Architecture
 
+> **Status: design-stage only — nothing here is implemented.** `backend/cloud/tenant.py` is an unwired stub, no code reads `STREAMCLIP_CLOUD_MODE` or the `STRIPE_*` vars in `docker-compose.cloud.yml`, and Stripe has been removed from the product (Lemon Squeezy is the billing provider). Keep or delete per MASTER_TODO 2.10 before shipping cloud.
+
 ## Overview
 
-The cloud deployment extends the self-hosted stack with tenant isolation, row-level security (RLS), and Stripe usage metering. This document describes the target architecture; `backend/cloud/tenant.py` provides the middleware stub.
+The cloud deployment extends the self-hosted stack with tenant isolation, row-level security (RLS), and usage metering. This document describes a target architecture; `backend/cloud/tenant.py` provides the middleware stub.
 
 ## Tenancy model
 

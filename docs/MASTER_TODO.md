@@ -3,7 +3,7 @@
 **Living document — running list of everything left before packaging and distributing
 StreamClip as a Windows desktop executable, with a macOS port to follow.**
 
-Last updated: 2026-07-02 · Owner: core team
+Last updated: 2026-07-02 (evening pass: test debt §3, cleanup §7.3/7.4, docs §6.2/6.4–6.6) · Owner: core team
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
 
 ---
@@ -118,11 +118,11 @@ sidecar, no Docker). Everything below assumes embedded mode:
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 6.1 | ~~TECHNICAL_DESIGN.md stale (social publish "out of scope")~~ ✅ updated to Rev 4 (2026-07-01) | — | — |
-| 6.2 | GAP_ANALYSIS.md stale rows: C3 (editor exists), C8 (per-clip webhooks shipped), C9 (style learning shipped), T47 (PRODUCTION.md distribution vars) | 🟢 | S |
+| 6.2 | ~~GAP_ANALYSIS.md stale rows~~ ✅ C3/C8/C9 marked shipped with evidence; T47 fixed at the source — `deploy/PRODUCTION.md` §1.3 now documents `STREAMCLIP_DISTRIBUTION__*` | ✅ | — |
 | 6.3 | Desktop packaging design doc (architecture decision record for 4.0) | 🟡 | M |
 | 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed to `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*`; rate-limit opt-out now documented as dev-only (code default stays ON). `.env.production.example` keeps bare names — `docker-compose.prod.yml` maps them | ✅ | — |
-| 6.5 | README roadmap checkboxes stale (webhooks are wired, default off); Unix-only venv instructions; `docs/CREATOR_PLATFORM.md` "Next/Later" lists shipped features | 🟢 | S |
-| 6.6 | `docs/cloud-deploy.md` describes aspirational multi-tenant + Stripe metering — mark as design-stage or align with 2.10 decision | 🟢 | S |
+| 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ README roadmap checkboxes refreshed (webhooks/licensing shipped, Stripe row dropped), Windows venv activation noted; CREATOR_PLATFORM Now/Next/Later realigned with shipped features | ✅ | — |
+| 6.6 | ~~`docs/cloud-deploy.md` aspirational~~ ✅ prominent design-stage banner added (nothing implemented; Stripe removed; keep-or-delete per 2.10) | ✅ | — |
 
 ## 7. Cleanup
 

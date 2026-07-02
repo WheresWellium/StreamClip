@@ -12,6 +12,11 @@ Self-hosted AI clip pipeline: Next.js → FastAPI → Celery → Redis → Postg
    - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH__SECRET_KEY`
    - `STREAMCLIP_RATE_LIMIT__ENABLED=true`
    - `STREAMCLIP_LOG_JSON=true`
+   - Social distribution (publish/schedule), if enabled:
+     - `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` — Fernet key for OAuth secrets (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
+     - `STREAMCLIP_DISTRIBUTION__WEB_ORIGIN=https://clip.example.com`
+     - `STREAMCLIP_DISTRIBUTION__YOUTUBE_PUBLISH_ENABLED=true`, `STREAMCLIP_DISTRIBUTION__TIKTOK_PUBLISH_ENABLED=false`
+     - Full OAuth app setup: see `docs/distribution-runbook.md`
 4. **Caddy** reverse proxy (`/etc/caddy/Caddyfile`):
 
 ```caddy

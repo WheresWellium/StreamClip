@@ -49,23 +49,29 @@ Give **every content creator** — gamers, IRL streamers, podcasters, educators,
 ### Now (shipped)
 
 - Hybrid peak + transcript highlight discovery
-- Content profiles with tuned signal weights
+- Content profiles with tuned signal weights + recommended reframe/caption presets
 - Post-hoc virality + meme keyword persistence → overlays
-- Word-synced captions, idempotent render, webhooks, metrics
+- Word-synced captions, idempotent render, webhooks (job + per-clip), metrics
+- Post-generation clip editor (trim, restyle, regenerate, aspect ratio)
+- `/api/meta` drives the create-job UI end to end
+- Asset vault API (management UI still open)
+- Batch export ZIP; multi-aspect export (9:16, 1:1, 4:5, 16:9, 2:3)
+- Social publish: YouTube Shorts live; TikTok inbox upload flag-gated
+- Channel-style learning from creator feedback (`core/style_learning.py`)
+- Licensing/commerce via Lemon Squeezy (Stripe removed)
 
 ### Next (high value)
 
-- Post-generation clip actions (trim, restyle, regenerate)
-- `/api/meta` fully drives create-job UI
-- Asset vault API (replace filesystem-only overlays)
-- Batch export ZIP, per-clip webhooks
+- Asset vault management UI; overlay engine reads `Asset` DB rows
+- E2E publish flow tests (Playwright)
+- Desktop packaging (see `docs/MASTER_TODO.md` §4)
 
 ### Later (scale & distribution)
 
-- Social publish adapters (Shorts / TikTok / Reels OAuth)
-- Channel-style learning from creator feedback
+- Instagram Reels adapter
+- Publish performance feedback loop (YouTube Analytics → style learning)
 - Live stream / OBS integration
-- Stripe tiers for hosted SaaS offering (optional)
+- Speaker diarization
 
 ## Success metrics
 

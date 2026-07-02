@@ -18,7 +18,7 @@ The **clip pipeline and distribution plane are production-shaped**: modular `cor
 | T44 | `schemas.py` publish stub label | **Fixed** | P2 | code | Comment updated — publish is live, TikTok upload stubbed by flag |
 | T45 | Celery `vault_tasks` routing | **Fixed** | P2 | code | Explicit `core.tasks.vault_tasks.*` → `default` in `celery_app.py` |
 | T46 | Dead `jobsApi.publishClip` client | **Fixed** | P2 | code | Removed from `web/lib/api/client.ts`; web uses `distributionApi.publish` |
-| T47 | `PRODUCTION.md` distribution env | Partial | P1 | doc | `deploy/PRODUCTION.md` omits `STREAMCLIP_DISTRIBUTION__*` — see `docs/distribution-runbook.md` |
+| T47 | `PRODUCTION.md` distribution env | **Fixed** | P1 | doc | `deploy/PRODUCTION.md` §1.3 now lists `STREAMCLIP_DISTRIBUTION__*` + links the runbook |
 | T48 | README roadmap stale | **Fixed** | P1 | doc | README roadmap updated for vault, publish, webhooks |
 | T49 | Job-scoped publish API overlap | Partial | P2 | defer | `POST /api/jobs/{id}/clips/{id}/publish` duplicates hub `POST /api/distribution/publish`; batch-publish still job-scoped |
 | T50 | TikTok upload | **Fixed** | P2 | code | Inbox-flow upload implemented (`upload_video_file`); flag off pending TikTok app approval |
@@ -53,13 +53,13 @@ The **clip pipeline and distribution plane are production-shaped**: modular `cor
 |----|------------|--------|----------|
 | C1 | Multi-vertical profiles | **Shipped** | — |
 | C2 | Peak + chat discovery | **Shipped** | — |
-| C3 | Post-gen editor (trim, restyle) | Roadmap | P1 |
+| C3 | Post-gen editor (trim, restyle) | **Shipped** | — | `web/components/clips/clip-editor.tsx` — trim, reframe, captions, aspect ratio per clip |
 | C4 | Splice / merge clips | Partial | P1 | `jobs.py` splice endpoint exists |
 | C5 | Asset vault API | **Shipped** | — | UI management open |
 | C6 | Social publish | **Shipped** | — | YouTube live; TikTok flag-gated |
 | C7 | Batch ZIP export | **Shipped** | — | T33 |
-| C8 | Per-clip webhooks | Roadmap | P2 |
-| C9 | Channel style learning | Research | P3 | `core/style_learning.py` stub |
+| C8 | Per-clip webhooks | **Shipped** | — | `deliver_clip_webhook` in `core/tasks/pipeline_tasks.py` |
+| C9 | Channel style learning | **Shipped** | — | `core/style_learning.py` implemented + wired |
 
 ## AI / LLM layer assessment
 

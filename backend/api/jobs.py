@@ -277,6 +277,7 @@ async def splice_job_clips(
     "/{job_id}/clips/{clip_id}/publish",
     response_model=PublishClipResponse,
     dependencies=[Depends(rate_limit_request)],
+    deprecated=True,
 )
 async def publish_clip(
     job_id: str,
@@ -286,6 +287,10 @@ async def publish_clip(
     scope: Annotated[RequestScope, Depends(get_request_scope)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> PublishClipResponse:
+    """Deprecated: use POST /api/distribution/publish (the web UI already does).
+
+    Kept for external API consumers; batch-publish stays on the jobs router.
+    """
     svc = _get_service(db)
     await svc.get_job(job_id, scope=scope)
     cfg = get_settings()

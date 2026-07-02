@@ -285,7 +285,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Publish Clip */
+        /**
+         * Publish Clip
+         * @deprecated
+         * @description Deprecated: use POST /api/distribution/publish (the web UI already does).
+         *
+         *     Kept for external API consumers; batch-publish stays on the jobs router.
+         */
         post: operations["publish_clip_api_jobs__job_id__clips__clip_id__publish_post"];
         delete?: never;
         options?: never;

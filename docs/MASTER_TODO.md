@@ -44,7 +44,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.12 | ~~Splice UI always sends `transition: "cut"`~~ ✅ transition picker (hard cut / crossfade) in the merge toolbar | ✅ | — |
 | 2.13 | ~~`lemon_squeezy_store_id` defined, never read~~ ✅ removed from config and `COMMERCIAL.md` | ✅ | — |
 | 2.14 | ~~License panel placeholder shows `STREAMCLIP-XXXX`~~ ✅ placeholder now `SCPRO-XXXX-XXXX-XXXX-XXXX` | ✅ | — |
-| 2.15 | Duplicate job-scoped publish routes (`/api/jobs/.../publish`, `.../batch-publish`) vs distribution hub (GAP T49) — deprecate | 🟢 | M |
+| 2.15 | ~~Duplicate job-scoped publish routes~~ ✅ single-clip route deprecated in OpenAPI (see 7.6); batch-publish intentionally stays job-scoped per GAP register | ✅ | — |
 
 ### 2c. Roadmap features (not started)
 
@@ -83,7 +83,9 @@ Docker Desktop. That is not a distributable .exe for end users.
 
 **Decision required first (4.0):** Docker-in-desktop (bundle/require Docker, keep current
 shell) vs **embedded runtime** (recommended: SQLite + in-process queue + bundled Python
-sidecar, no Docker). Everything below assumes embedded mode:
+sidecar, no Docker). Full rationale + implementation order:
+`docs/ADR-001-desktop-packaging.md` (proposed, awaiting sign-off). Everything below
+assumes embedded mode:
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
@@ -119,7 +121,7 @@ sidecar, no Docker). Everything below assumes embedded mode:
 |---|------|-----|--------|
 | 6.1 | ~~TECHNICAL_DESIGN.md stale (social publish "out of scope")~~ ✅ updated to Rev 4 (2026-07-01) | — | — |
 | 6.2 | ~~GAP_ANALYSIS.md stale rows~~ ✅ C3/C8/C9 marked shipped with evidence; T47 fixed at the source — `deploy/PRODUCTION.md` §1.3 now documents `STREAMCLIP_DISTRIBUTION__*` | ✅ | — |
-| 6.3 | Desktop packaging design doc (architecture decision record for 4.0) | 🟡 | M |
+| 6.3 | ~~Desktop packaging ADR~~ ✅ `docs/ADR-001-desktop-packaging.md` — recommends embedded runtime (SQLite + in-process worker + PyInstaller sidecar, no Docker) with implementation order for §4. **Awaiting sign-off (4.0)** | ✅ | — |
 | 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed to `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*`; rate-limit opt-out now documented as dev-only (code default stays ON). `.env.production.example` keeps bare names — `docker-compose.prod.yml` maps them | ✅ | — |
 | 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ README roadmap checkboxes refreshed (webhooks/licensing shipped, Stripe row dropped), Windows venv activation noted; CREATOR_PLATFORM Now/Next/Later realigned with shipped features | ✅ | — |
 | 6.6 | ~~`docs/cloud-deploy.md` aspirational~~ ✅ prominent design-stage banner added (nothing implemented; Stripe removed; keep-or-delete per 2.10) | ✅ | — |
@@ -133,4 +135,4 @@ sidecar, no Docker). Everything below assumes embedded mode:
 | 7.3 | ~~Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py`~~ ✅ retries only transient errors (`httpx.TransportError`, `ConnectionError`, `TimeoutError`, `StorageError`); claim released back to `pending` before retry so re-claim works; domain failures fail fast | ✅ | — |
 | 7.4 | ~~YouTube upload loads full file into memory~~ ✅ streams in 8 MB chunks (`_stream_file` async iterator in `youtube.py`) | ✅ | — |
 | 7.5 | ~~Destinations drawer default tab~~ ✅ now defaults to `"publish"` | ✅ | — |
-| 7.6 | Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish` (web uses `/api/distribution/publish`) | 🟢 | S |
+| 7.6 | ~~Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish`~~ ✅ marked `deprecated=True` in OpenAPI with pointer to `/api/distribution/publish`; route kept for external consumers; `openapi.ts` regenerated (also closes 2.15 — batch-publish intentionally stays on the jobs router) | ✅ | — |

@@ -1,28 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-async function refreshAccessToken(): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: "" }),
-    credentials: "include",
-  });
-  return res.ok;
-}
+// Don't hammer the refresh route on every focus event.
+const MIN_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
- * Attempts token refresh on mount when session may be stale.
- * Server-side refresh is handled via httpOnly refresh_token cookie in a future
- * dedicated route; this client stub re-validates on focus.
+ * Rotates the session on window focus via the BFF refresh route, which
+ * exchanges the httpOnly refresh-token cookie server-side.
  */
 export function TokenRefreshProvider({ children }: { children: React.ReactNode }) {
+  const lastAttempt = useRef(0);
+
   useEffect(() => {
     const onFocus = () => {
-      void refreshAccessToken();
+      const now = Date.now();
+      if (now - lastAttempt.current < MIN_REFRESH_INTERVAL_MS) return;
+      lastAttempt.current = now;
+      // 401 just means no session — nothing to do client-side.
+      void fetch("/api/auth/refresh", { method: "POST" }).catch(() => {});
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);

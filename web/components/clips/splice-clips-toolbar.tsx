@@ -15,6 +15,7 @@ type Props = {
 
 export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [transition, setTransition] = React.useState<"cut" | "crossfade">("cut");
   const [message, setMessage] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
@@ -36,7 +37,7 @@ export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
   async function handleMerge() {
     if (selected.size < 2) return;
     setPending(true);
-    const result = await spliceClipsAction(jobId, Array.from(selected));
+    const result = await spliceClipsAction(jobId, Array.from(selected), transition);
     setPending(false);
     setMessage(result.ok ? result.message ?? "Queued" : result.message ?? "Failed");
     if (result.ok) setSelected(new Set());
@@ -49,14 +50,25 @@ export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
           <Merge className="h-4 w-4" />
           Merge clips
         </p>
-        <Button
-          type="button"
-          size="sm"
-          disabled={selected.size < 2 || pending}
-          onClick={handleMerge}
-        >
-          Merge selected ({selected.size})
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            aria-label="Transition between clips"
+            className="rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
+            value={transition}
+            onChange={(e) => setTransition(e.target.value as "cut" | "crossfade")}
+          >
+            <option value="cut">Hard cut</option>
+            <option value="crossfade">Crossfade</option>
+          </select>
+          <Button
+            type="button"
+            size="sm"
+            disabled={selected.size < 2 || pending}
+            onClick={handleMerge}
+          >
+            Merge selected ({selected.size})
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {eligible.map((c) => (

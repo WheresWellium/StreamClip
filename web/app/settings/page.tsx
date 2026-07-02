@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { LicensePanel } from "@/components/settings/license-panel";
 import { OAuthSetupWizard } from "@/components/settings/oauth-setup-wizard";
+import { WebhookPanel } from "@/components/settings/webhook-panel";
 import { distributionApi, type OAuthAppConfig } from "@/lib/api/client";
 import { hasDistributionAccess } from "@/lib/distribution/access";
 import {
@@ -53,18 +54,7 @@ export default async function SettingsPage() {
 
       <AuthPanel isAuthenticated={!!token} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Webhooks</CardTitle>
-          <CardDescription>
-            Per-user webhook URL for job.completed events (requires sign-in).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Configure via API <code className="text-xs">PATCH /api/settings/webhooks</code> or
-          use the OpenAPI docs.
-        </CardContent>
-      </Card>
+      <WebhookPanel isAuthenticated={!!token} />
 
       <Card>
         <CardHeader>

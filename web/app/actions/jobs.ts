@@ -13,7 +13,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { ApiClientError, jobsApi } from "@/lib/api/client";
+import { ApiClientError, jobsApi, settingsApi } from "@/lib/api/client";
 import { getAccessToken, getDeviceId, authHeaders } from "@/lib/auth/session";
 import {
   CAPTION_STYLE_IDS,
@@ -188,10 +188,11 @@ export async function updateClipAction(
 export async function spliceClipsAction(
   jobId: string,
   clipIds: string[],
+  transition: "cut" | "crossfade" = "cut",
 ): Promise<{ ok: boolean; message?: string }> {
   try {
     const token = await getAccessToken();
-    await jobsApi.spliceClips(jobId, clipIds, "cut", token);
+    await jobsApi.spliceClips(jobId, clipIds, transition, token);
     revalidatePath(`/jobs/${jobId}`);
     return { ok: true, message: "Merge queued" };
   } catch (err) {
@@ -206,7 +207,6 @@ export async function submitClipFeedbackAction(
 ): Promise<{ ok: boolean; message?: string }> {
   try {
     const token = await getAccessToken();
-    const { settingsApi } = await import("@/lib/api/client");
     await settingsApi.submitClipFeedback(clipId, rating, token ?? undefined);
     return { ok: true };
   } catch (err) {

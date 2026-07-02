@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { completeOnboardingAction } from "@/app/actions/onboarding";
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { Button } from "@/components/ui/button";
 import { metaApi } from "@/lib/api/client";
@@ -41,6 +42,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
 
   const finish = async () => {
     document.cookie = "onboarding_complete=1; path=/; max-age=31536000; samesite=lax";
+    await completeOnboardingAction();
     router.push("/");
     router.refresh();
   };

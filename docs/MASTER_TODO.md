@@ -35,11 +35,11 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 2.7 | Asset vault: full CRUD API (`backend/api/assets.py`) but **no web UI, no client methods**, and `core/overlay.py` reads filesystem manifest — never reads `Asset` DB rows (GAP U15) | 🟡 | L |
-| 2.8 | Webhook settings: API exists (`/api/settings/webhook`) but settings page has no form and cites wrong path (`web/app/settings/page.tsx:56`); `settingsApi` client lacks webhook methods | 🟡 | S |
-| 2.9 | Token refresh stub: `web/components/providers/token-refresh.tsx` POSTs empty `refresh_token` — non-functional session refresh | 🟡 | S |
+| 2.8 | ~~Webhook settings unwired~~ ✅ `WebhookPanel` form on the settings page (get/save/remove via server actions); `settingsApi.getWebhook`/`updateWebhook` added | ✅ | — |
+| 2.9 | ~~Token refresh stub~~ ✅ BFF route `web/app/api/auth/refresh/route.ts` exchanges the httpOnly refresh cookie server-side and rotates both cookies; focus handler debounced to 5 min | ✅ | — |
 | 2.10 | `backend/cloud/tenant.py` multi-tenant stub — not imported anywhere; `docker-compose.cloud.yml` sets `STREAMCLIP_CLOUD_MODE`/`STRIPE_*` that **no code reads**. Remove or finish | 🟡 | L |
-| 2.11 | Onboarding wizard never calls `POST /api/devices/onboarding-complete` (cookie only) | 🟢 | S |
-| 2.12 | Splice crossfade implemented in backend; UI always sends `transition: "cut"` (`web/app/actions/jobs.ts:194`) | 🟢 | S |
+| 2.11 | ~~Onboarding wizard never calls onboarding-complete~~ ✅ `completeOnboardingAction` posts the device id server-side on finish | ✅ | — |
+| 2.12 | ~~Splice UI always sends `transition: "cut"`~~ ✅ transition picker (hard cut / crossfade) in the merge toolbar | ✅ | — |
 | 2.13 | `core/config.py:224` `lemon_squeezy_store_id` defined, never read | 🟢 | S |
 | 2.14 | ~~License panel placeholder shows `STREAMCLIP-XXXX`~~ ✅ placeholder now `SCPRO-XXXX-XXXX-XXXX-XXXX` | ✅ | — |
 | 2.15 | Duplicate job-scoped publish routes (`/api/jobs/.../publish`, `.../batch-publish`) vs distribution hub (GAP T49) — deprecate | 🟢 | M |

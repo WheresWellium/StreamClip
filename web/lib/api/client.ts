@@ -278,12 +278,37 @@ export const templatesApi = {
     request<void>(`/api/templates/${id}`, { method: "DELETE", authToken }),
 };
 
+export const devicesApi = {
+  completeOnboarding: (deviceId: string) =>
+    request<{ device_id: string; onboarding_complete: boolean }>(
+      "/api/devices/onboarding-complete",
+      { method: "POST", body: JSON.stringify({}), deviceId },
+    ),
+};
+
+export type WebhookSettings = {
+  webhook_url: string | null;
+  configured: boolean;
+};
+
 export const settingsApi = {
   submitClipFeedback: (clipId: string, rating: number, authToken?: string) =>
     request<{ clip_id: string; rating: number }>(
       `/api/settings/clips/${clipId}/feedback`,
       { method: "POST", body: JSON.stringify({ rating }), authToken },
     ),
+  getWebhook: (authToken?: string) =>
+    request<WebhookSettings>("/api/settings/webhook", { authToken }),
+  updateWebhook: (
+    webhookUrl: string | null,
+    webhookSecret: string | null,
+    authToken?: string,
+  ) =>
+    request<WebhookSettings>("/api/settings/webhook", {
+      method: "PUT",
+      body: JSON.stringify({ webhook_url: webhookUrl, webhook_secret: webhookSecret }),
+      authToken,
+    }),
 };
 
 export type VaultClip = {

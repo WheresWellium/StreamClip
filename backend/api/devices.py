@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import OnboardingCompleteRequest, OnboardingCompleteResponse
@@ -28,7 +28,6 @@ async def complete_onboarding(
 ) -> OnboardingCompleteResponse:
     device_id = body.device_id or header_device
     if not device_id:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="device_id required")
     repo = DeviceRepository(db)
     await repo.mark_onboarding_complete(device_id)

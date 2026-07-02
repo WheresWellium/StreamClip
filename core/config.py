@@ -221,7 +221,6 @@ class LicensingConfig(BaseModel):
 class CommerceConfig(BaseModel):
     lemon_squeezy_api_key: str = ""
     lemon_squeezy_webhook_secret: str = ""
-    lemon_squeezy_store_id: str = ""
 
 
 class DistributionConfig(BaseModel):

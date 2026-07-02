@@ -981,6 +981,38 @@ class PublishJobRepository:
             await self.db.flush()
         return row
 
+    async def update_editable(
+        self,
+        publish_job_id: str,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        scheduled_at: datetime | None = None,
+    ) -> PublishJob | None:
+        """Edit metadata while the job hasn't started uploading yet."""
+        values: dict[str, Any] = {}
+        if title is not None:
+            values["title"] = title
+        if description is not None:
+            values["description"] = description
+        if scheduled_at is not None:
+            values["scheduled_at"] = scheduled_at
+        if not values:
+            return await self.get(publish_job_id)
+        result = await self.db.execute(
+            update(PublishJob)
+            .where(
+                PublishJob.id == publish_job_id,
+                PublishJob.status.in_(("pending", "scheduled")),
+            )
+            .values(**values)
+            .returning(PublishJob),
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            await self.db.flush()
+        return row
+
     async def retry_failed(self, publish_job_id: str) -> PublishJob | None:
         result = await self.db.execute(
             update(PublishJob)
@@ -1024,6 +1056,14 @@ class VaultClipRepository:
             ),
         )
         return result.scalar_one_or_none()
+
+    async def rename(self, vault_clip_id: str, user_id: str, title: str) -> VaultClip | None:
+        row = await self.get_for_user(vault_clip_id, user_id)
+        if row is None:
+            return None
+        row.title = title
+        await self.db.flush()
+        return row
 
     async def get_by_source_clip(self, user_id: str, source_clip_id: str) -> VaultClip | None:
         result = await self.db.execute(

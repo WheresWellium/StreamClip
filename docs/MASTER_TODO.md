@@ -29,6 +29,8 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.4 | ~~License activation accepts any well-formed key~~ ✅ activation now requires a commerce-issued key (DB allowlist), rejects revoked keys, enforces `max_activations` across machine rebinds (migration `0007_license_issuance`) | ✅ | — |
 | 2.5 | ~~Pick ONE billing provider~~ ✅ Lemon Squeezy chosen; chain wired: purchase → webhook → persisted key → activation → entitlement JWT → tier. Covered by `tests/test_license_chain.py` | ✅ | — |
 | 2.6 | ~~`COMMERCIAL.md` promises Instagram Reels~~ ✅ promise cut (moved to roadmap wording); Stripe-based Cloud tier removed from the doc. Adapter itself stays on the roadmap (2.18) | ✅ | — |
+| 2.19 | ~~Queued/scheduled publishes uneditable~~ ✅ `PATCH /api/distribution/publish-jobs/{id}` (title/description; reschedule for scheduled jobs) + inline edit form in the queue; guarded once upload starts (409) | ✅ | — |
+| 2.20 | ~~Vault clips unrenamable~~ ✅ `PATCH /api/vault/clips/{id}` + inline rename in the vault grid | ✅ | — |
 
 ### 2b. Scaffolded-but-unwired
 

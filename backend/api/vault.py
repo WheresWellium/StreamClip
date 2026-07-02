@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.schemas import (
     ClipPublishStatusOut,
     SaveVaultClipRequest,
+    UpdateVaultClipRequest,
     VaultClipOut,
     VaultQuotaOut,
 )
@@ -114,6 +115,32 @@ async def save_to_vault(
         clip_id=body.clip_id,
         title_override=body.title,
     )
+    await db.commit()
+    return await _to_out(row, svc, publish_repo)
+
+
+@router.patch(
+    "/clips/{vault_clip_id}",
+    response_model=VaultClipOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_vault_clip(
+    vault_clip_id: str,
+    body: UpdateVaultClipRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> VaultClipOut:
+    cfg = get_settings()
+    svc = VaultService(db, cfg)
+    repo = VaultClipRepository(db)
+    publish_repo = PublishJobRepository(db)
+    row = await repo.rename(vault_clip_id, user_id, body.title.strip())
+    if row is None:
+        raise StreamClipError(
+            "Vault clip not found",
+            user_message="Clip not found in your vault",
+            http_status=404,
+        )
     await db.commit()
     return await _to_out(row, svc, publish_repo)
 

@@ -31,12 +31,19 @@ class StreamClipError(Exception):
         message: str | None = None,
         *,
         user_message: str | None = None,
+        code: str | None = None,
+        http_status: int | None = None,
         context: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message or self.user_message)
         self.context: dict[str, Any] = context or {}
         if user_message is not None:
             self.user_message = user_message
+        # Per-instance overrides for one-off errors that don't warrant a subclass
+        if code is not None:
+            self.code = code
+        if http_status is not None:
+            self.http_status = http_status
 
     def to_dict(self) -> dict[str, Any]:
         """Serialisable payload for API responses and structured logs."""

@@ -16,6 +16,7 @@ from backend.api.schemas import (
     PublishJobOut,
     PublishNowRequest,
     SchedulePublishRequest,
+    UpdatePublishJobRequest,
 )
 from backend.db.repositories import (
     InstallOAuthAppRepository,
@@ -322,6 +323,53 @@ async def cancel_publish_job(
         )
     await notify_publish_event(db, job, event="publish.cancelled", cfg=get_settings())
     record_publish_outcome(platform=job.platform, status="cancelled")
+    await db.commit()
+    return PublishJobOut.model_validate(job)
+
+
+@router.patch(
+    "/publish-jobs/{publish_job_id}",
+    response_model=PublishJobOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_publish_job(
+    publish_job_id: str,
+    body: UpdatePublishJobRequest,
+    user_id: Annotated[str, Depends(require_distribution_access)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PublishJobOut:
+    """Edit title/description/schedule of a queued or scheduled publish."""
+    repo = PublishJobRepository(db)
+    existing = await repo.get_for_user(publish_job_id, user_id)
+    if existing is None:
+        raise StreamClipError("Publish job not found", user_message="Publish job not found", http_status=404)
+    if existing.status not in ("pending", "scheduled"):
+        raise StreamClipError(
+            "Cannot edit",
+            user_message="Only queued or scheduled publishes can be edited.",
+            code="invalid_status",
+            http_status=400,
+        )
+    if body.scheduled_at is not None and existing.status != "scheduled":
+        raise StreamClipError(
+            "Cannot reschedule",
+            user_message="Only scheduled publishes can be rescheduled.",
+            code="invalid_status",
+            http_status=400,
+        )
+    job = await repo.update_editable(
+        publish_job_id,
+        title=body.title,
+        description=body.description,
+        scheduled_at=body.scheduled_at,
+    )
+    if job is None:
+        raise StreamClipError(
+            "Edit failed",
+            user_message="The publish job started uploading — edits are no longer possible.",
+            code="invalid_status",
+            http_status=409,
+        )
     await db.commit()
     return PublishJobOut.model_validate(job)
 

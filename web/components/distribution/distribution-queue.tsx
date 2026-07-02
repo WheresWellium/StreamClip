@@ -1,15 +1,17 @@
 "use client";
 
-import { ExternalLink, Loader2, RotateCcw, X } from "lucide-react";
+import { ExternalLink, Loader2, Pencil, RotateCcw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import {
   cancelPublishJobAction,
   retryPublishJobAction,
+  updatePublishJobAction,
 } from "@/app/actions/distribution";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/form";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { PublishJob } from "@/lib/api/client";
 import { cn } from "@/lib/utils/format";
@@ -38,11 +40,20 @@ type Props = {
   hasPro: boolean;
 };
 
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function DistributionQueue({ jobs, hasPro }: Props) {
   const router = useRouter();
   const { push: toast } = useToastSafe();
   const [tab, setTab] = React.useState<Tab>("queue");
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editTitle, setEditTitle] = React.useState("");
+  const [editScheduledAt, setEditScheduledAt] = React.useState("");
 
   const queueJobs = jobs.filter((j) => QUEUE_STATUSES.has(j.status));
   const activityJobs = jobs.filter((j) => ACTIVITY_STATUSES.has(j.status));
@@ -72,6 +83,34 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
         router.refresh();
       } else {
         toast("Cancel failed", result.message ?? "Could not cancel.");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function startEdit(job: PublishJob) {
+    setEditingId(job.id);
+    setEditTitle(job.title || "");
+    setEditScheduledAt(job.scheduled_at ? toDatetimeLocal(job.scheduled_at) : "");
+  }
+
+  async function handleSaveEdit(job: PublishJob) {
+    setBusyId(job.id);
+    try {
+      const result = await updatePublishJobAction(job.id, {
+        title: editTitle.trim() || undefined,
+        scheduledAt:
+          job.status === "scheduled" && editScheduledAt
+            ? new Date(editScheduledAt).toISOString()
+            : undefined,
+      });
+      if (result.status === "ok") {
+        toast("Updated", "Publish job updated.");
+        setEditingId(null);
+        router.refresh();
+      } else {
+        toast("Update failed", result.message ?? "Could not update.");
       }
     } finally {
       setBusyId(null);
@@ -123,6 +162,8 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
             const statusClass = STATUS_STYLES[job.status] ?? "text-muted-foreground";
             const canCancel = job.status === "pending" || job.status === "scheduled";
             const canRetry = job.status === "failed";
+            const canEdit = canCancel;
+            const isEditing = editingId === job.id;
 
             return (
               <li
@@ -164,6 +205,67 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
                   </p>
                 )}
 
+                {isEditing && (
+                  <div className="space-y-2 rounded-md border border-border/60 bg-background/60 p-2">
+                    <div className="space-y-1">
+                      <label
+                        className="text-[10px] text-muted-foreground"
+                        htmlFor={`pub-title-${job.id}`}
+                      >
+                        Title
+                      </label>
+                      <Input
+                        id={`pub-title-${job.id}`}
+                        className="h-8 text-xs"
+                        value={editTitle}
+                        maxLength={255}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                      />
+                    </div>
+                    {job.status === "scheduled" && (
+                      <div className="space-y-1">
+                        <label
+                          className="text-[10px] text-muted-foreground"
+                          htmlFor={`pub-sched-${job.id}`}
+                        >
+                          Publish at
+                        </label>
+                        <Input
+                          id={`pub-sched-${job.id}`}
+                          className="h-8 text-xs"
+                          type="datetime-local"
+                          value={editScheduledAt}
+                          onChange={(e) => setEditScheduledAt(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={busyId === job.id}
+                        onClick={() => void handleSaveEdit(job)}
+                      >
+                        {busyId === job.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Save"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-muted-foreground"
+                        onClick={() => setEditingId(null)}
+                      >
+                        Discard
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 flex-wrap">
                   {job.external_url && (
                     <a
@@ -191,6 +293,19 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
                         <RotateCcw className="h-3 w-3" />
                       )}
                       Retry
+                    </Button>
+                  )}
+                  {canEdit && hasPro && !isEditing && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={busyId === job.id}
+                      onClick={() => startEdit(job)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
                     </Button>
                   )}
                   {canCancel && hasPro && (

@@ -430,6 +430,17 @@ export const distributionApi = {
       authToken,
     }),
 
+  updatePublishJob: (
+    publishJobId: string,
+    body: { title?: string; description?: string; scheduled_at?: string },
+    authToken?: string,
+  ) =>
+    request<PublishJob>(`/api/distribution/publish-jobs/${publishJobId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      authToken,
+    }),
+
   publishProgressUrl: (publishJobId: string): string =>
     `/api/distribution/publish-jobs/${publishJobId}/progress`,
 
@@ -471,6 +482,13 @@ export const vaultApi = {
     request<VaultClip>("/api/vault/clips", {
       method: "POST",
       body: JSON.stringify({ clip_id: clipId, title }),
+      authToken,
+    }),
+
+  rename: (vaultClipId: string, title: string, authToken?: string) =>
+    request<VaultClip>(`/api/vault/clips/${vaultClipId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
       authToken,
     }),
 

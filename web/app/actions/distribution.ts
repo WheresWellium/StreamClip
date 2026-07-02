@@ -260,6 +260,36 @@ export async function retryPublishJobAction(
   }
 }
 
+export async function updatePublishJobAction(
+  publishJobId: string,
+  edits: { title?: string; description?: string; scheduledAt?: string },
+): Promise<DistributionActionState> {
+  const session = await requireDistributionSession(
+    "Pro license required to edit publishes.",
+  );
+  if (!session.ok) {
+    return { status: "error", message: session.message };
+  }
+  try {
+    await distributionApi.updatePublishJob(
+      publishJobId,
+      {
+        title: edits.title,
+        description: edits.description,
+        scheduled_at: edits.scheduledAt,
+      },
+      session.token,
+    );
+    revalidatePath("/distribution");
+    return { status: "ok" };
+  } catch (err) {
+    if (err instanceof ApiClientError) {
+      return { status: "error", message: err.message };
+    }
+    return { status: "error", message: "Could not update publish." };
+  }
+}
+
 export async function cancelPublishJobAction(
   publishJobId: string,
 ): Promise<DistributionActionState> {

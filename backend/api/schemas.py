@@ -468,6 +468,10 @@ class SaveVaultClipRequest(BaseModel):
     title: str | None = None
 
 
+class UpdateVaultClipRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+
+
 class VaultClipOut(BaseModel):
     id: str
     title: str
@@ -524,6 +528,13 @@ class SchedulePublishRequest(BaseModel):
     scheduled_at: datetime
     title: str | None = None
     description: str | None = None
+
+
+class UpdatePublishJobRequest(BaseModel):
+    """Edit a queued/scheduled publish before it uploads."""
+    title: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=5000)
+    scheduled_at: datetime | None = None
 
 
 class PublishJobOut(BaseModel):

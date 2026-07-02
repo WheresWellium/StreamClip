@@ -147,8 +147,10 @@ Suggested alerts:
 
 ### TikTok
 
-- v1 uses stub adapter when `TIKTOK_PUBLISH_ENABLED=false`.
-- Real Content Posting API integration is deferred; enable flag only after API approval.
+- Upload uses the Content Posting API **inbox flow** (`video.upload` scope): the
+  clip lands in the user's TikTok app inbox and they finish the post there.
+- Direct public posting needs the `video.publish` scope + TikTok app audit — not wired.
+- Keep `TIKTOK_PUBLISH_ENABLED=false` until your TikTok developer app is approved.
 
 ### Webhook not received
 

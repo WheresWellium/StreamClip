@@ -141,8 +141,12 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
                         on_progress=on_progress,
                     )
                 elif isinstance(adapter, TikTokAdapter):
-                    _ = on_progress
-                    result = await adapter.publish(storage_key, metadata, creds)
+                    result = await adapter.upload_video_file(
+                        local_video,
+                        metadata,
+                        creds.access_token,
+                        on_progress=on_progress,
+                    )
                 else:
                     await repo.mark_failed(
                         publish_job_id,

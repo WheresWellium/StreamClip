@@ -23,7 +23,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 2.1 | TikTok video upload stub (`core/distribution/tiktok.py:83–103`) — worker calls stub → publish jobs **always marked failed** when `TIKTOK_PUBLISH_ENABLED=true` (`publish_tasks.py:143–189`). Implement Content Posting API or keep flag off + honest UI | 🔴 | L |
+| 2.1 | ~~TikTok video upload stub~~ ✅ Content Posting API **inbox flow** implemented (`upload_video_file`: chunked upload + status polling); worker wired; UI explains the finish-in-app step; covered by `tests/test_tiktok_adapter.py`. **Remaining:** direct public posting needs `video.publish` scope + TikTok app audit; flag stays off until app approval | 🟡 | M |
 | 2.2 | ~~Stripe billing stub~~ ✅ removed (`backend/api/billing.py` deleted, stub dropped from `core/billing.py`) — Lemon Squeezy is the sole provider | ✅ | — |
 | 2.3 | ~~Lemon Squeezy webhook never persists keys~~ ✅ webhook now fail-closed on missing secret, verifies signature, persists issued keys idempotently (`install_licenses.status="issued"`, order id + email recorded); handles LS-native `license_key_created` events. **Remaining:** automated key delivery email for the `order_created` fallback path (key currently surfaced once in webhook response / LS log) | 🟡 | S |
 | 2.4 | ~~License activation accepts any well-formed key~~ ✅ activation now requires a commerce-issued key (DB allowlist), rejects revoked keys, enforces `max_activations` across machine rebinds (migration `0007_license_issuance`) | ✅ | — |

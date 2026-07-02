@@ -8,7 +8,7 @@
 StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders vertical (9:16) clips with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
 
 **In scope:** ingest, transcription, highlight discovery, post-hoc virality (profile-aware, context-enriched), per-clip render, JWT auth API, web UI with contextual legends, REST API, Docker deployment, Prometheus metrics, optional webhooks, **social distribution** (YouTube publish, TikTok OAuth, scheduling, Clip Vault), style learning from explicit + implicit feedback.  
-**Out of scope (roadmap):** Stripe billing enforcement, speaker diarization, TikTok video upload (OAuth shipped; upload behind `TIKTOK_PUBLISH_ENABLED`, default off), Instagram Reels, multi-aspect export (1:1 / 16:9).
+**Out of scope (roadmap):** speaker diarization, TikTok direct-post (inbox upload shipped behind `TIKTOK_PUBLISH_ENABLED`, default off pending TikTok app approval; direct public posting needs the `video.publish` scope audit), Instagram Reels, multi-aspect export (1:1 / 16:9). Billing is Lemon Squeezy (license keys); Stripe was dropped.
 
 ## 2. Goals & non-goals
 
@@ -320,8 +320,8 @@ docker compose up -d
 |------|-------|
 | Playwright full e2e | Config exists; happy path gated on `E2E_RUN=1`; no publish-flow e2e |
 | Asset vault UI | API exists (`/api/assets`); no management page; overlays use filesystem manifest |
-| Stripe / tier enforcement | Quota counters exist; webhook stub only (`core/billing.py`) |
-| TikTok publish | OAuth shipped; video upload stub behind `TIKTOK_PUBLISH_ENABLED` (default off) |
+| License key delivery email | Lemon Squeezy chain wired end-to-end; `order_created` fallback keys surfaced via webhook response only |
+| TikTok publish | Inbox upload implemented (user finishes post in TikTok app); direct-post requires `video.publish` scope audit. Flag default off pending app approval |
 | Publish analytics | No view/retention feedback loop from YouTube/TikTok yet |
 | Multi-aspect export | 9:16 (1080×1920) only; no 1:1 / 16:9 |
 | Speaker diarization | Not implemented |

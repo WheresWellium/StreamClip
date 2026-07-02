@@ -201,6 +201,12 @@ export function VaultDestinationsDrawer({ clip, open, onClose }: Props) {
                     </option>
                   ))}
                 </select>
+                {platform === "tiktok" && (
+                  <p className="text-xs text-muted-foreground">
+                    TikTok uploads land in your TikTok app inbox — open the
+                    notification there to finish posting.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground" htmlFor="vault-pub-title">

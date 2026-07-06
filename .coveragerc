@@ -2,6 +2,7 @@
 source = backend,core
 
 [report]
-# Full-suite coverage was 78.5% on 2026-07-02 — ratchet upward as debt is paid.
-fail_under = 75
+# Ratchet toward 100% (the "110% plan" — line coverage caps at 100%; stretch goal is
+# 100% line + branch coverage on hot paths). Full-suite was 82.7% on 2026-07-05.
+fail_under = 82
 show_missing = true

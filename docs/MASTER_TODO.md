@@ -3,7 +3,7 @@
 **Living document — running list of everything left before packaging and distributing
 StreamClip as a Windows desktop executable, with a macOS port to follow.**
 
-Last updated: 2026-07-02 (evening pass: test debt §3, cleanup §7.3/7.4, docs §6.2/6.4–6.6) · Owner: core team
+Last updated: 2026-07-05 (coverage push: 79% → 82.7%, gate 82) · Owner: core team
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
 
 ---
@@ -70,9 +70,10 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` — gates (approval, readiness, duration, connection, duplicate in-flight), ownership 404s, idempotency conflict/replay, schedule vs immediate enqueue | ✅ | — |
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` — publish 202/error envelope, retry/cancel status guards, owner-scoped 404s, vault list/quota/save/delete. Also fixed vault delete returning 500 instead of 404, and a cached-Redis-across-event-loops bug in `conftest.py` that poisoned full-suite runs | ✅ | — |
 | 3.3 | E2E publish flow (Playwright) — none exists; whole e2e suite gated on `E2E_RUN=1` | 🟡 | M |
-| 3.6 | Zero-test surfaces mostly covered ✅ assets API + splice validation in `tests/test_assets_splice_api.py` (also fixed assets API returning 500 instead of 404/400); commerce webhook + TikTok adapter covered earlier. **Remaining:** tenant middleware (blocked on 2.10 keep-or-delete) | 🟡 | S |
+| 3.6 | ~~Zero-test surfaces~~ ✅ assets API, splice validation, vault service/tasks, publish task paths, licensing helpers, webhook delivery (`tests/test_splice_module.py`, `test_vault_*.py`, `test_publish_tasks_coverage.py`, `test_licensing_misc.py`, `test_webhooks_delivery.py`). **Remaining:** tenant middleware (blocked on 2.10) | 🟡 | S |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` now stubbed in the test — runs on hosts without worker deps | ✅ | — |
-| 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ root `.coveragerc` now `fail_under = 75` (full-suite actual 78.5%); duplicate `tests/.coveragerc` removed. Note: `.coveragerc`/`pytest.ini` are baked into the image, not volume-mounted — rebuild `api` to pick up config changes | ✅ | — |
+| 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ gate ratcheting — was 75 (78.5% actual), now **`fail_under=82`** (82.7% actual, 418 tests). **110% plan:** line coverage maxes at 100%; next milestones 85 → 90 → 95 → 100 (+ branch coverage on hot paths) | 🟡 | L |
+| 3.7 | **110% plan — next modules:** `core/tasks/pipeline_tasks.py` (86%), `backend/api/jobs.py`, `core/transcribe.py`, remaining `publish_tasks` TikTok path | 🟡 | M |
 
 ## 4. Windows desktop packaging (.exe)
 

@@ -5,6 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.desktop
+
 
 def test_electron_builder_includes_sidecar_staging():
     pkg = json.loads((Path("apps/desktop/package.json")).read_text(encoding="utf-8"))

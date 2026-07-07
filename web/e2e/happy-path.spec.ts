@@ -53,6 +53,17 @@ test.describe("Jet Stream happy path", () => {
     expect(res.status()).toBe(422);
   });
 
+  test("batch publish validates missing job or clips", async ({ request }) => {
+    const res = await request.post(
+      "http://localhost:8000/api/jobs/nonexistent-job/clips/batch-publish",
+      {
+        headers: { "X-Device-Id": "e2e-device-0001" },
+        data: { platform: "youtube_shorts", clip_ids: [] },
+      },
+    );
+    expect([400, 401, 403, 404]).toContain(res.status());
+  });
+
   test("create job API accepts URL and returns 202", async ({ request }) => {
     const res = await request.post("http://localhost:8000/api/jobs", {
       headers: { "X-Device-Id": "e2e-device-0001" },

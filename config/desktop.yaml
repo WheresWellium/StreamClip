@@ -24,6 +24,10 @@ queue:
   default_workers: 2
   gpu_workers: 1
 
+# GPU (§4.11): sidecar calls core/gpu_profile.py at boot — upgrades to CUDA/NVENC
+# when detected, falls back to cpu/libx264 when not. Override via STREAMCLIP_WHISPER__DEVICE
+# and STREAMCLIP_EXPORT__CODEC.
+
 ffmpeg:
   bin_dir: bin/ffmpeg
 

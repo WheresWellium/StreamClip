@@ -68,9 +68,11 @@ def test_get_model_cached():
         assert tr._get_model(cfg.whisper) is tr._get_model(cfg.whisper)
 
 def test_cuda_unavailable():
+    from core.gpu_profile import cuda_available
+
     import sys
     with patch.dict(sys.modules, {"torch": None}):
-        assert tr._cuda_available() is False
+        assert cuda_available() is False
 
 def test_fmt_ts():
     assert "," in tr._fmt_ts(65.5)

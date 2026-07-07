@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from core.config import ExportConfig
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
 
@@ -15,7 +17,8 @@ def test_libx264_encode_args():
 
 def test_nvenc_encode_args():
     cfg = ExportConfig(codec="h264_nvenc", crf=17, preset="fast", fps=60)
-    args = video_encode_args(cfg)
+    with patch("core.gpu_profile.nvenc_available", return_value=True):
+        args = video_encode_args(cfg)
     assert "h264_nvenc" in args
     assert "-cq" in args
 

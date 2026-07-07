@@ -126,6 +126,15 @@ async def health_stack(
     if base.ollama is not None:
         checks["ollama"] = base.ollama
 
+    try:
+        from core.gpu_profile import cuda_available, nvenc_available
+
+        checks["cuda"] = cuda_available()
+        checks["nvenc"] = nvenc_available(cfg)
+    except Exception:
+        checks["cuda"] = False
+        checks["nvenc"] = False
+
     return StackHealthResponse(
         status=base.status,
         version=VERSION,

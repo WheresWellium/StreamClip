@@ -46,3 +46,22 @@ async def db():
         finally:
             await session.rollback()
             await dispose_engine()
+
+
+from pathlib import Path
+
+# Docker API image does not ship desktop_sidecar/ or apps/desktop/ — skip
+# collection entirely so verify_stack.ps1 can run the server-profile suite.
+# SQLite profile tests need aiosqlite (desktop deps), not in the API image.
+_DESKTOP_ONLY_FILES = frozenset({
+    "test_sidecar_packaging.py",
+    "test_installer_config.py",
+    "test_sqlite_profile.py",
+})
+
+
+def pytest_ignore_collect(collection_path, config):
+    if collection_path.name in _DESKTOP_ONLY_FILES:
+        if not Path("desktop_sidecar/run.py").is_file():
+            return True
+    return False

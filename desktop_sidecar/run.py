@@ -78,6 +78,9 @@ def configure_data_dirs(data_dir: Path) -> None:
 
 def configure_desktop_env(root: Path | None = None) -> Path:
     """Set env defaults for embedded desktop mode."""
+    from core.gpu_profile import apply_gpu_env_defaults
+
+    apply_gpu_env_defaults()
     base = root or app_root()
     os.chdir(base)
     os.environ.setdefault("STREAMCLIP_APP_ROOT", str(base))

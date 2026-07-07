@@ -287,10 +287,9 @@ def test_fan_out_clips_empty(mock_db_cm):
         clips = MagicMock()
         clips.list_for_job = AsyncMock(return_value=[])
         CR.return_value = clips
-        with patch.object(pt, "finalise_job") as fj:
-            fj.apply_async = MagicMock()
+        with patch.object(pt, "apply_async") as apply_mock:
             assert pt.fan_out_clips.run("job1") == "job1"
-            fj.apply_async.assert_called_once()
+            apply_mock.assert_called_once()
 
 
 def test_fan_out_clips_with_clips(mock_db_cm):

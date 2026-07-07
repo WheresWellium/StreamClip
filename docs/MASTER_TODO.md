@@ -103,7 +103,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |
 | 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` orchestrates UI + sidecar + stage + Setup exe; `extraResources` ships sidecar under `resources/sidecar/`; `sign_windows_artifact.ps1` + `packaging/installer/README.md` for Authenticode. **Remaining:** purchase EV cert + first signed release; GitHub Releases publish for auto-update | 🟡 | M |
-| 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |
+| 4.11 | **GPU detection**: ✅ `core/gpu_profile.py` — CUDA + NVENC probes, safe fallbacks in `export_video`/`transcribe`, env defaults in desktop sidecar, `cuda`/`nvenc` in `/api/health/stack`. Config defaults remain CPU/libx264 | 🟢 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
 | 4.14 | **Prod compose gaps** (Docker self-host path): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues (GAP T56) | 🟡 | S |
@@ -170,7 +170,7 @@ Playwright smoke + `verify_stack.ps1`).
 | 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — TikTok inbox-only, no Instagram, CPU fallback SLAs, SmartScreen unsigned desktop (beta kit item in `BETA_TESTER_PLAN` §4.2) | 🟢 | S |
 | 8.8 | **GHCR image build + publish workflow** — ✅ `.github/workflows/images.yml` (api/worker/web on `v*` tags or manual dispatch). **Remaining:** repo owner must match `ghcr.io/streamclip/*` in prod compose (or set image prefix var) + first tagged release to publish | 🟡 | S |
 | 8.9 | **Beta launch ops** (`BETA_GO_LIVE` §2–§4): feedback channel (Discord/Discussions), clean VM verify, OAuth redirect URIs match `WEB_ORIGIN`, on-call rotation, changelog per wave | 🟡 | M |
-| 8.10 | Flip `docs/BETA_TESTER_PLAN.md` status **Draft → Active** when §8.1 gate is green | 🟡 | S |
+| 8.10 | ~~Flip `docs/BETA_TESTER_PLAN.md` Draft → Active~~ ✅ Phase 0 Active 2026-07-07 (Docker path) | ✅ | S |
 
 ## 9. Self-host / ops (Docker path — parallel to desktop)
 

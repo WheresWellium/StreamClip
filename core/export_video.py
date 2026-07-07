@@ -12,8 +12,14 @@ def video_encode_args(cfg: ExportConfig, *, crf: int | None = None) -> list[str]
     Build ``-c:v`` and quality arguments for ffmpeg.
 
     NVENC uses ``-cq``; software codecs use ``-crf``.
+    Falls back to libx264 when NVENC is configured but unavailable (§4.11).
     """
+    from core.config import get_settings
+    from core.gpu_profile import effective_export_codec
+
     codec = cfg.codec
+    if codec in _NVENC_CODECS:
+        codec = effective_export_codec(get_settings(), requested=codec)
     quality = crf if crf is not None else cfg.crf
     args: list[str] = ["-c:v", codec]
 

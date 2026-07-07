@@ -115,9 +115,10 @@ _model_cache: dict[str, WhisperModel] = {}
 
 
 def _get_model(cfg: WhisperConfig) -> WhisperModel:
-    device = cfg.device
-    if device == "auto":
-        device = "cuda" if _cuda_available() else "cpu"
+    from core.config import get_settings
+    from core.gpu_profile import effective_whisper_device
+
+    device = effective_whisper_device(get_settings())
     compute_type = cfg.compute_type
     if device == "cpu" and compute_type in ("float16", "int8_float16"):
         compute_type = "int8"
@@ -137,14 +138,6 @@ def _get_model(cfg: WhisperConfig) -> WhisperModel:
         )
         log.info("model_loaded", elapsed_secs=f"{time.perf_counter() - t0:.1f}")
     return _model_cache[key]
-
-
-def _cuda_available() -> bool:
-    try:
-        import torch
-        return bool(torch.cuda.is_available())
-    except ImportError:
-        return False
 
 
 # ─── Main transcription entry point ───────────────────────────────────────────

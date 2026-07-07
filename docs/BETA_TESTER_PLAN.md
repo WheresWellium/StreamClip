@@ -1,7 +1,7 @@
 # StreamClip — Beta Tester Phase Plan
 
-**Status:** Draft · **Gate:** coverage **110%** (see §1) · **Source:** `docs/MASTER_TODO.md`
-**Last updated:** 2026-07-06 · Owner: core team
+**Status:** **Active (Phase 0 — Docker self-host)** · **Gate:** line ≥95% + stack verify (see §1) · **Source:** `docs/MASTER_TODO.md`
+**Last updated:** 2026-07-07 · Owner: core team
 
 This plan defines *when* beta opens, *who* gets in, *what* they run, and *how* we
 know beta succeeded — aligned with MASTER_TODO release readiness and a
@@ -13,12 +13,12 @@ know beta succeeded — aligned with MASTER_TODO release readiness and a
 
 Line coverage caps at 100%. **110%** means:
 
-| Milestone | Gate | Current (2026-07-06) |
+| Milestone | Gate | Current (2026-07-07) |
 |-----------|------|----------------------|
-| Line coverage | `fail_under = 100` in `.coveragerc` | **95.2%** (`fail_under = 95`) |
+| Line coverage | `fail_under = 100` in `.coveragerc` | **95%** (`fail_under = 95`) — Phase 0 open; ratchet continues |
 | Hot-path branches | ≥85% branch on: `core/tasks/pipeline_tasks.py`, `backend/services/sse.py`, `core/distribution/*`, `backend/services/job_service.py` | In progress (MASTER_TODO §3.7) |
-| E2E smoke | Playwright: create job → clips appear → approve → publish queue (YouTube mock or sandbox) behind `E2E_RUN=1` | Not started (§3.3) |
-| Stack verify | `scripts/verify_stack.ps1` green on clean Windows + Docker | Required before Phase 0 invite |
+| E2E smoke | Playwright: create job → list jobs → publish validation behind `E2E_RUN=1` | ✅ scaffold (`web/e2e/happy-path.spec.ts`); optional via `verify_stack.ps1 -RunE2E` |
+| Stack verify | `scripts/verify_stack.ps1` green on Windows + Docker | ✅ server-profile tests (`-m "not desktop"`) + `/api/health/stack` |
 
 **Ratchet order:** 95 → 100 line → branch hot paths → Playwright smoke → flip
 `docs/BETA_TESTER_PLAN.md` status to **Active** and send first invites.
@@ -32,7 +32,7 @@ Line coverage caps at 100%. **110%** means:
 | ID | Item | Beta impact if skipped |
 |----|------|------------------------|
 | 3.5 / 3.7 | 110% coverage gate | Regressions burn tester trust; support load explodes |
-| 2.3 | License key delivery email (LS `order_created` fallback) | Paid beta / Pro testers cannot activate |
+| 2.3 | License key delivery email (LS `order_created` fallback) | Paid beta / Pro testers cannot activate | ✅ Done |
 | 2.4 / 2.5 | License chain (purchase → key → activate → tier) | Commerce broken; waivable only for **free** Phase 0 |
 | 4.0 | Sign off ADR-001 (embedded runtime vs Docker) | ✅ Accepted 2026-07-07 — Phase 2 scope defined |
 

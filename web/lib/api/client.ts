@@ -354,6 +354,36 @@ export const settingsApi = {
     }),
 };
 
+// ─── License ─────────────────────────────────────────────────────────────────
+
+export type LicenseStatus = {
+  active: boolean;
+  tier: string;
+  expires_at: string | null;
+  machine_id: string | null;
+};
+
+export type LicenseActivateResult = {
+  tier: string;
+  expires_at: string | null;
+  entitlement_jwt: string;
+};
+
+export const licenseApi = {
+  status: (machineId: string, authToken?: string) =>
+    request<LicenseStatus>(
+      `/api/license/status?machine_id=${encodeURIComponent(machineId)}`,
+      { authToken, cache: "no-store" },
+    ),
+
+  activate: (licenseKey: string, machineId: string, authToken?: string) =>
+    request<LicenseActivateResult>("/api/license/activate", {
+      method: "POST",
+      body: JSON.stringify({ license_key: licenseKey, machine_id: machineId }),
+      authToken,
+    }),
+};
+
 export type VaultClip = {
   id: string;
   title: string;

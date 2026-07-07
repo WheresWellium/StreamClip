@@ -104,7 +104,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; extend verify scripts for desktop mode | 🟡 | M |
 | 4.10 | **Installer**: MSIX or Inno Setup; code signing certificate; auto-update strategy | 🟡 | M |
 | 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |
-| 4.12 | **Licensing**: `/api/license/activate|status` exists — wire desktop activation UX (depends on 2.4/2.5) | 🟡 | M |
+| 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
 | 4.14 | **Prod compose gaps** (Docker self-host path): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues (GAP T56) | 🟡 | S |
 | 4.15 | **Alembic `upgrade head` on desktop sidecar startup** — ✅ in `desktop_sidecar/run.py` | 🟢 | S |

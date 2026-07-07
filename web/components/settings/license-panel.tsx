@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 
+import {
+  activateLicenseAction,
+  getLicenseStatusAction,
+} from "@/lib/api/actions/license";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import {
@@ -11,58 +15,45 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useToastSafe } from "@/components/providers/toast-provider";
+import type { LicenseStatus } from "@/lib/api/client";
 import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
 
-type LicenseStatus = {
-  active: boolean;
-  tier: string;
-  machine_id?: string;
-};
-
-async function getMachineId(): Promise<string> {
-  return LICENSE_MACHINE_ID;
-}
-
 export function LicensePanel() {
+  const { push: toast } = useToastSafe();
   const [key, setKey] = useState("");
-  const [machineId, setMachineId] = useState("local");
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadStatus = async (mid: string) => {
-    const res = await fetch(`/api/license/status?machine_id=${encodeURIComponent(mid)}`);
-    if (res.ok) setStatus(await res.json());
+  const loadStatus = async () => {
+    const result = await getLicenseStatusAction(LICENSE_MACHINE_ID);
+    if (result.status === "ok" && result.license) {
+      setStatus(result.license);
+    }
   };
 
   useEffect(() => {
-    void getMachineId().then((mid) => {
-      setMachineId(mid);
-      void loadStatus(mid);
-    });
+    void loadStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activate = async () => {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/license/activate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ license_key: key, machine_id: machineId }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? "Activation failed");
-      }
-      setStatus({ active: true, tier: (await res.json()).tier, machine_id: machineId });
-      setKey("");
-      void loadStatus(machineId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Activation failed");
-    } finally {
-      setLoading(false);
+    const result = await activateLicenseAction(key, LICENSE_MACHINE_ID);
+    setLoading(false);
+    if (result.status === "error") {
+      setError(result.message ?? "Activation failed. Try again.");
+      return;
     }
+    setStatus(result.license ?? null);
+    setKey("");
+    toast(
+      "License activated",
+      `${(result.license?.tier ?? "pro").toUpperCase()} tier is now active on this machine.`,
+    );
+    void loadStatus();
   };
 
   return (
@@ -71,6 +62,7 @@ export function LicensePanel() {
         <CardTitle>License</CardTitle>
         <CardDescription>
           Pro tier unlocks higher clip counts and monthly quotas on this install.
+          Keys work offline after first activation.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -79,11 +71,12 @@ export function LicensePanel() {
             placeholder="SCPRO-XXXX-XXXX-XXXX-XXXX"
             value={key}
             onChange={(e) => setKey(e.target.value)}
+            disabled={loading}
           />
           <Button onClick={() => void activate()} disabled={loading || !key.trim()}>
-            Activate
+            {loading ? "Activating…" : "Activate"}
           </Button>
-          <Button variant="outline" onClick={() => void loadStatus(machineId)}>
+          <Button variant="outline" onClick={() => void loadStatus()} disabled={loading}>
             Refresh
           </Button>
         </div>
@@ -91,11 +84,13 @@ export function LicensePanel() {
         {status && (
           <dl className="text-sm grid grid-cols-2 gap-2">
             <dt className="text-muted-foreground">Tier</dt>
-            <dd>{status.tier}</dd>
+            <dd className="uppercase">{status.tier}</dd>
             <dt className="text-muted-foreground">Active</dt>
             <dd>{status.active ? "Yes" : "No"}</dd>
+            <dt className="text-muted-foreground">Expires</dt>
+            <dd>{status.expires_at ?? "Never (perpetual)"}</dd>
             <dt className="text-muted-foreground">Machine</dt>
-            <dd className="font-mono text-xs truncate">{status.machine_id}</dd>
+            <dd className="font-mono text-xs truncate">{status.machine_id ?? LICENSE_MACHINE_ID}</dd>
           </dl>
         )}
       </CardContent>

@@ -15,11 +15,18 @@ type OpenApiCreateJob = components["schemas"]["CreateJobRequest"];
 
 export type CreateJobRequest = Omit<
   OpenApiCreateJob,
-  "caption_style" | "reframe_preset" | "content_profile"
+  | "caption_style"
+  | "reframe_preset"
+  | "content_profile"
+  | "profanity_filter"
+  | "profanity_mode"
 > & {
   caption_style?: (typeof CAPTION_STYLE_IDS)[number];
   reframe_preset?: (typeof REFRAME_PRESET_IDS)[number];
   content_profile?: (typeof CONTENT_PROFILE_IDS)[number];
+  // Server defaults these; clients only send them when overriding.
+  profanity_filter?: OpenApiCreateJob["profanity_filter"];
+  profanity_mode?: OpenApiCreateJob["profanity_mode"];
 };
 
 export type JobOut = components["schemas"]["JobOut"];

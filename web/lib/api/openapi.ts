@@ -199,7 +199,11 @@ export interface paths {
         delete: operations["cancel_job_api_jobs__job_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Job
+         * @description Update editable job fields (e.g. display title).
+         */
+        patch: operations["update_job_api_jobs__job_id__patch"];
         trace?: never;
     };
     "/api/jobs/{job_id}/clips.zip": {
@@ -257,6 +261,46 @@ export interface paths {
         head?: never;
         /** Update Clip */
         patch: operations["update_clip_api_jobs__job_id__clips__clip_id__patch"];
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/waveform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Job Waveform
+         * @description Presigned URL for the source waveform PNG (timeline editor track).
+         */
+        get: operations["get_job_waveform_api_jobs__job_id__waveform_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/clips/{clip_id}/words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Clip Words
+         * @description Caption word list for a clip — index basis for transcript_edits.
+         */
+        get: operations["get_clip_words_api_jobs__job_id__clips__clip_id__words_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/jobs/{job_id}/clips/splice": {
@@ -402,6 +446,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storage/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Local Object
+         * @description Serve a file from local storage (desktop / dev profile).
+         */
+        get: operations["get_local_object_storage__key__get"];
+        /**
+         * Put Local Object
+         * @description Accept a direct browser upload for local storage.
+         */
+        put: operations["put_local_object_storage__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/templates": {
         parameters: {
             query?: never;
@@ -483,6 +551,24 @@ export interface paths {
         get: operations["get_webhook_settings_api_settings_webhook_get"];
         /** Update Webhook Settings */
         put: operations["update_webhook_settings_api_settings_webhook_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/privacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Privacy Settings */
+        get: operations["get_privacy_settings_api_settings_privacy_get"];
+        /** Update Privacy Settings */
+        put: operations["update_privacy_settings_api_settings_privacy_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -874,6 +960,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/support/bug-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Bug Report */
+        post: operations["submit_bug_report_api_support_bug_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/licenses/{license_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke License */
+        post: operations["revoke_license_api_admin_licenses__license_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metrics": {
         parameters: {
             query?: never;
@@ -964,6 +1084,47 @@ export interface components {
              * @default 0
              */
             skipped: number;
+        };
+        /** BugReportOut */
+        BugReportOut: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Severity */
+            severity: string;
+            /** Categories */
+            categories: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * BugReportRequest
+         * @description Body for POST /api/support/bug-reports
+         */
+        BugReportRequest: {
+            /** Message */
+            message: string;
+            /** Categories */
+            categories: string[];
+            /**
+             * Severity
+             * @default medium
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high" | "critical";
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Environment
+             * @description Client-collected context: app version, OS, browser.
+             */
+            environment?: {
+                [key: string]: string;
+            } | null;
         };
         /** ClaimDeviceRequest */
         ClaimDeviceRequest: {
@@ -1121,6 +1282,30 @@ export interface components {
             /** External Url */
             external_url?: string | null;
         };
+        /**
+         * ClipWordOut
+         * @description One caption word with clip-relative timing.
+         */
+        ClipWordOut: {
+            /** Index */
+            index: number;
+            /** Text */
+            text: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
+        };
+        /**
+         * ClipWordsOut
+         * @description Word list used for caption rendering — basis for transcript_edits indices.
+         */
+        ClipWordsOut: {
+            /** Clip Id */
+            clip_id: string;
+            /** Words */
+            words: components["schemas"]["ClipWordOut"][];
+        };
         /** CreateAssetRequest */
         CreateAssetRequest: {
             /** Name */
@@ -1160,24 +1345,6 @@ export interface components {
              */
             source_upload_key?: string | null;
             /**
-             * Display Title
-             * @description Optional user-facing job name (overrides ingest title in UI).
-             */
-            display_title?: string | null;
-            /**
-             * Profanity Filter
-             * @description Censor profanity in captions and clip title/hook.
-             * @default false
-             */
-            profanity_filter?: boolean;
-            /**
-             * Profanity Mode
-             * @description How censored words render: mask (f***), bleep (•••), omit.
-             * @default mask
-             * @enum {string}
-             */
-            profanity_mode?: "mask" | "bleep" | "omit";
-            /**
              * Target Clips
              * @default 5
              */
@@ -1208,6 +1375,24 @@ export interface components {
              * @description User asset pack for overlays
              */
             asset_pack_id?: string | null;
+            /**
+             * Display Title
+             * @description Optional user-facing job name (overrides ingest title in UI).
+             */
+            display_title?: string | null;
+            /**
+             * Profanity Filter
+             * @description Censor profanity in captions and clip title/hook.
+             * @default false
+             */
+            profanity_filter: boolean;
+            /**
+             * Profanity Mode
+             * @description How censored words render: mask (f***), bleep (•••), omit.
+             * @default mask
+             * @enum {string}
+             */
+            profanity_mode: "mask" | "bleep" | "omit";
         };
         /** CreateJobTemplateRequest */
         CreateJobTemplateRequest: {
@@ -1424,6 +1609,16 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
+        /** PrivacySettingsOut */
+        PrivacySettingsOut: {
+            /** Data Contribution Opt In */
+            data_contribution_opt_in: boolean;
+        };
+        /** PrivacySettingsRequest */
+        PrivacySettingsRequest: {
+            /** Data Contribution Opt In */
+            data_contribution_opt_in: boolean;
+        };
         /** PublishClipRequest */
         PublishClipRequest: {
             /**
@@ -1616,10 +1811,30 @@ export interface components {
             /** Overlay Enabled */
             overlay_enabled?: boolean | null;
             /**
+             * Transcript Edits
+             * @description Word-level caption edits keyed by word index (from the clip words endpoint). Empty string removes the word. Empty dict clears all edits.
+             */
+            transcript_edits?: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Caption Words Per Group
+             * @description Max words per on-screen caption line (phrase grouping).
+             */
+            caption_words_per_group?: number | null;
+            /**
              * Rerender
              * @default true
              */
             rerender: boolean;
+        };
+        /**
+         * UpdateJobRequest
+         * @description Body for PATCH /api/jobs/{id}
+         */
+        UpdateJobRequest: {
+            /** Display Title */
+            display_title?: string | null;
         };
         /**
          * UpdatePublishJobRequest
@@ -2164,6 +2379,44 @@ export interface operations {
             };
         };
     };
+    update_job_api_jobs__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     download_job_clips_zip_api_jobs__job_id__clips_zip_get: {
         parameters: {
             query?: never;
@@ -2259,6 +2512,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_waveform_api_jobs__job_id__waveform_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_clip_words_api_jobs__job_id__clips__clip_id__words_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                job_id: string;
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipWordsOut"];
                 };
             };
             /** @description Validation Error */
@@ -2532,6 +2856,76 @@ export interface operations {
             };
         };
     };
+    get_local_object_storage__key__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_local_object_storage__key__put: {
+        parameters: {
+            query?: {
+                upload?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_templates_api_templates_get: {
         parameters: {
             query?: never;
@@ -2787,6 +3181,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebhookSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_privacy_settings_api_settings_privacy_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacySettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_privacy_settings_api_settings_privacy_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacySettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacySettingsOut"];
                 };
             };
             /** @description Validation Error */
@@ -3648,6 +4110,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OnboardingCompleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_bug_report_api_support_bug_reports_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BugReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BugReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_license_api_admin_licenses__license_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Device-Id"?: string | null;
+            };
+            path: {
+                license_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

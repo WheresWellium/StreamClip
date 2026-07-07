@@ -50,7 +50,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.12 | ~~Splice UI always sends `transition: "cut"`~~ ✅ transition picker (hard cut / crossfade) in the merge toolbar | ✅ | — |
 | 2.13 | ~~`lemon_squeezy_store_id` defined, never read~~ ✅ removed from config and `COMMERCIAL.md` | ✅ | — |
 | 2.14 | ~~Duplicate job-scoped publish routes~~ ✅ single-clip route deprecated in OpenAPI (see 7.6); batch-publish intentionally stays job-scoped per GAP register | ✅ | — |
-| 2.15 | Create-job UI missing **`asset_pack_id`** and **`profanity_mode`** fields (API + `CreateJobRequest` support them; GAP U25) | 🟡 | S |
+| 2.15 | ~~Create-job UI missing **`asset_pack_id`** and **`profanity_mode`** fields~~ ✅ censor-style select + overlay pack dropdown in More options; wired through zod schema and payload (GAP U25) | ✅ | — |
 
 ### 2c. Roadmap features (not started)
 

@@ -24,6 +24,8 @@ const CreateJobSchema = z.object({
   content_profile: z.enum(CONTENT_PROFILE_IDS),
   aspect_ratio: z.enum(ASPECT_RATIO_IDS),
   profanity_filter: z.boolean().default(false),
+  profanity_mode: z.enum(["mask", "bleep", "omit"]).default("mask"),
+  asset_pack_id: z.string().min(1).optional().nullable(),
 });
 
 export type CreateJobActionState = {
@@ -51,6 +53,8 @@ export async function createJobAction(
       formData.get("content_profile")?.toString() ?? "gaming",
     aspect_ratio: formData.get("aspect_ratio")?.toString() || "9:16",
     profanity_filter: formData.get("profanity_filter") === "on",
+    profanity_mode: formData.get("profanity_mode")?.toString() || "mask",
+    asset_pack_id: formData.get("asset_pack_id")?.toString().trim() || null,
   };
 
   const parsed = CreateJobSchema.safeParse(raw);

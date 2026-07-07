@@ -24,6 +24,8 @@ import {
   saveTemplateAction,
   type CreateJobActionState,
 } from "@/lib/api/actions/jobs";
+import { assetsApi, type OverlayAsset } from "@/lib/api/client";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +63,12 @@ const PROFILE_ICONS: Record<string, React.ElementType> = {
   music: Music2,
   general: Sparkles,
 };
+
+const PROFANITY_MODES = [
+  { id: "mask", label: "Mask (f***)" },
+  { id: "bleep", label: "Bleep (•••)" },
+  { id: "omit", label: "Omit (remove word)" },
+] as const;
 
 const REFRAME_PLATFORM_NOTE =
   "Presets control how we crop and track the subject — the export aspect ratio sets the output frame.";
@@ -110,7 +118,27 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
   const audioIngestEnabled = meta.features?.audio_ingest !== false;
   const [targetClips, setTargetClips] = React.useState(5);
   const [profanityFilter, setProfanityFilter] = React.useState(false);
+  const [profanityMode, setProfanityMode] = React.useState<
+    (typeof PROFANITY_MODES)[number]["id"]
+  >("mask");
+  const [assetPackId, setAssetPackId] = React.useState("");
+  const [assets, setAssets] = React.useState<OverlayAsset[]>([]);
   const [templateMsg, setTemplateMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void assetsApi
+      .list(getClientAccessToken() ?? undefined)
+      .then((list) => {
+        if (!cancelled) setAssets(list);
+      })
+      .catch(() => {
+        // Overlay packs are optional — the field is simply hidden if unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (state.status === "ok" && state.jobId) {
@@ -137,6 +165,13 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
     if (typeof c.aspect_ratio === "string") setAspectRatio(c.aspect_ratio);
     if (typeof c.target_clips === "number") setTargetClips(c.target_clips);
     if (typeof c.profanity_filter === "boolean") setProfanityFilter(c.profanity_filter);
+    if (
+      typeof c.profanity_mode === "string" &&
+      PROFANITY_MODES.some((m) => m.id === c.profanity_mode)
+    ) {
+      setProfanityMode(c.profanity_mode as (typeof PROFANITY_MODES)[number]["id"]);
+    }
+    if (typeof c.asset_pack_id === "string") setAssetPackId(c.asset_pack_id);
   }
 
   async function handleSaveTemplate() {
@@ -148,6 +183,8 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
       aspect_ratio: aspectRatio,
       target_clips: targetClips,
       profanity_filter: profanityFilter,
+      profanity_mode: profanityMode,
+      ...(assetPackId ? { asset_pack_id: assetPackId } : {}),
     });
     setTemplateMsg(result.ok ? "Template saved" : result.message ?? "Could not save");
   }
@@ -324,6 +361,8 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
             name="profanity_filter"
             value={profanityFilter ? "on" : "off"}
           />
+          <input type="hidden" name="profanity_mode" value={profanityMode} />
+          <input type="hidden" name="asset_pack_id" value={assetPackId} />
 
           {/* Step 3 — Output style (collapsed until expanded) */}
           <CollapsibleSection
@@ -416,10 +455,50 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
                   <span>
                     Filter profanity
                     <span className="block text-xs text-muted-foreground">
-                      Censors swear words in captions and clip titles (f***)
+                      Censors swear words in captions and clip titles
                     </span>
                   </span>
                 </label>
+                {profanityFilter && (
+                  <div className="space-y-1.5 pl-6">
+                    <Label htmlFor="profanity_mode_select">Censor style</Label>
+                    <Select
+                      id="profanity_mode_select"
+                      value={profanityMode}
+                      onChange={(e) =>
+                        setProfanityMode(
+                          e.target.value as (typeof PROFANITY_MODES)[number]["id"],
+                        )
+                      }
+                    >
+                      {PROFANITY_MODES.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {assets.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="asset_pack_select">Overlay asset pack</Label>
+                    <Select
+                      id="asset_pack_select"
+                      value={assetPackId}
+                      onChange={(e) => setAssetPackId(e.target.value)}
+                    >
+                      <option value="">None</option>
+                      {assets.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.asset_type})
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Meme overlays are matched from this pack during rendering.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

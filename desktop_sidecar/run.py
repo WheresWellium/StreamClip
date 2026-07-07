@@ -105,6 +105,20 @@ def run_migrations(root: Path | None = None) -> None:
         raise
 
 
+def start_model_prefetch() -> bool:
+    """Warm ML models in the background so the first job doesn't stall (§4.8).
+
+    Opt out with ``STREAMCLIP_SIDECAR_SKIP_PREFETCH=1``. Progress is exposed
+    at ``/api/health/models``.
+    """
+    if os.environ.get("STREAMCLIP_SIDECAR_SKIP_PREFETCH", "").lower() in ("1", "true", "yes"):
+        return False
+    from core.config import get_settings
+    from core.model_prefetch import start_prefetch
+
+    return start_prefetch(get_settings())
+
+
 def run_server(
     *,
     host: str | None = None,
@@ -122,6 +136,8 @@ def run_server(
 
     if os.environ.get("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "").lower() not in ("1", "true", "yes"):
         run_migrations(base)
+
+    start_model_prefetch()
 
     log.info("sidecar_starting", host=bind_host, port=bind_port, root=str(base))
     uvicorn.run(

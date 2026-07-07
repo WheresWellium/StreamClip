@@ -5,6 +5,7 @@ import "./globals.css";
 import { ClientProviders } from "@/components/providers/client-providers";
 import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
 import { AuthExtras } from "@/components/auth/auth-extras";
+import { ModelWarmupBanner } from "@/components/onboarding/model-warmup-banner";
 import { BugReportDialog } from "@/components/support/bug-report-dialog";
 
 const spaceGrotesk = Space_Grotesk({
@@ -67,6 +68,7 @@ export default function RootLayout({
               </nav>
             </div>
           </header>
+          <ModelWarmupBanner />
           <main className="container py-6">{children}</main>
           </div>
         </ClientProviders>

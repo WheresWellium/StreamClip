@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.schemas import HealthResponse, StackHealthResponse
 from backend.db.session import get_db
 from core.config import get_settings
+from core.model_prefetch import snapshot as model_prefetch_snapshot
 from core.storage import make_storage
 
 log = structlog.get_logger(__name__)
@@ -86,6 +87,18 @@ async def health(
         storage=storage_ok,
         ollama=ollama_ok,
     )
+
+
+@router.get("/health/models")
+async def health_models() -> dict[str, object]:
+    """First-run model prefetch progress (desktop profile; MASTER_TODO §4.8).
+
+    Empty ``models`` means no prefetch was started (Docker path warms models
+    in the image build instead).
+    """
+    models = model_prefetch_snapshot()
+    ready = all(s["state"] in ("ready", "skipped") for s in models.values()) if models else True
+    return {"ready": ready, "models": models}
 
 
 @router.get("/health/stack", response_model=StackHealthResponse)

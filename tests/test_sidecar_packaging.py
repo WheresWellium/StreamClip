@@ -113,9 +113,27 @@ def test_run_migrations_calls_alembic(tmp_path, monkeypatch):
 
 def test_run_server_invokes_uvicorn(monkeypatch):
     monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "1")
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", "1")
     with patch.object(sidecar, "configure_desktop_env") as cfg:
         with patch("uvicorn.run") as uvicorn_run:
             sidecar.run_server(host="127.0.0.1", port=9999, root=Path("."))
             cfg.assert_called_once()
             uvicorn_run.assert_called_once()
             assert uvicorn_run.call_args.kwargs.get("port") == 9999
+
+
+def test_run_server_starts_model_prefetch(monkeypatch):
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "1")
+    monkeypatch.delenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", raising=False)
+    with patch.object(sidecar, "configure_desktop_env"):
+        with patch("uvicorn.run"):
+            with patch("core.model_prefetch.start_prefetch") as prefetch:
+                sidecar.run_server(host="127.0.0.1", port=9999, root=Path("."))
+                prefetch.assert_called_once()
+
+
+def test_start_model_prefetch_respects_skip_env(monkeypatch):
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", "1")
+    with patch("core.model_prefetch.start_prefetch") as prefetch:
+        assert sidecar.start_model_prefetch() is False
+        prefetch.assert_not_called()

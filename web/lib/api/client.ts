@@ -287,8 +287,20 @@ export const uploadsApi = {
 
 // ─── Meta / Health ───────────────────────────────────────────────────────────
 
+export interface ModelPrefetchStatus {
+  state: "pending" | "downloading" | "ready" | "failed" | "skipped";
+  detail: string;
+  elapsed_secs: number;
+}
+
+export interface ModelsHealthResponse {
+  ready: boolean;
+  models: Record<string, ModelPrefetchStatus>;
+}
+
 export const metaApi = {
   health: () => request<Record<string, unknown>>("/api/health"),
+  modelsHealth: () => request<ModelsHealthResponse>("/api/health/models"),
   meta: () => request<Record<string, unknown>>("/api/meta"),
 };
 

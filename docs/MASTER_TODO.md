@@ -31,7 +31,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 |---|------|-----|--------|
 | 2.1 | ~~TikTok video upload stub~~ ✅ Content Posting API **inbox flow** implemented (`upload_video_file`: chunked upload + status polling); worker wired; UI explains the finish-in-app step; covered by `tests/test_tiktok_adapter.py`. **Remaining:** direct public posting needs `video.publish` scope + TikTok app audit; flag stays off until app approval | 🟡 | M |
 | 2.2 | ~~Stripe billing stub~~ ✅ removed (`backend/api/billing.py` deleted, stub dropped from `core/billing.py`) — Lemon Squeezy is the sole provider | ✅ | — |
-| 2.3 | ~~Lemon Squeezy webhook never persists keys~~ ✅ webhook now fail-closed on missing secret, verifies signature, persists issued keys idempotently (`install_licenses.status="issued"`, order id + email recorded); handles LS-native `license_key_created` events. **Remaining:** automated key delivery email for the `order_created` fallback path (key currently surfaced once in webhook response / LS log) | 🟡 | S |
+| 2.3 | ~~Lemon Squeezy webhook never persists keys~~ ✅ webhook fail-closed + signature verified + idempotent key persistence; LS-native `license_key_created` handled. ✅ `order_created` fallback now emails the key (`send_license_key_email` via dispatch seam, replay-guarded; `test_license_hardening.py`) | ✅ | — |
 | 2.4 | ~~License activation accepts any well-formed key~~ ✅ activation now requires a commerce-issued key (DB allowlist), rejects revoked keys, enforces `max_activations` across machine rebinds (migration `0007_license_issuance`) | ✅ | — |
 | 2.5 | ~~Pick ONE billing provider~~ ✅ Lemon Squeezy chosen; chain wired: purchase → webhook → persisted key → activation → entitlement JWT → tier. Covered by `tests/test_license_chain.py` | ✅ | — |
 | 2.6 | ~~`COMMERCIAL.md` promises Instagram Reels~~ ✅ promise cut (moved to roadmap wording); Stripe-based Cloud tier removed from the doc. Adapter itself stays on the roadmap (§2.22) | ✅ | — |
@@ -100,7 +100,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.5 | **ffmpeg**: ✅ `core/ffmpeg_bins.py` resolves bundled `bin/ffmpeg/` or PATH; all pipeline call sites use `ffmpeg_bin()` / `ffprobe_bin()` | 🟢 | S |
 | 4.6 | **Python runtime**: ✅ **Scaffold** — `desktop_sidecar/run.py`, PyInstaller spec, `build_sidecar.ps1`. **Remaining:** full ML bundle size (torch/whisper), CPU-only wheels, ONNX YOLO | 🟡 | L |
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
-| 4.8 | **First-run experience**: model downloads (whisper, YOLO) with progress UI. Data dir ✅ done via §4.18 (`%LOCALAPPDATA%\StreamClip`) | 🟡 | M |
+| 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; extend verify scripts for desktop mode | 🟡 | M |
 | 4.10 | **Installer**: MSIX or Inno Setup; code signing certificate; auto-update strategy | 🟡 | M |
 | 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |

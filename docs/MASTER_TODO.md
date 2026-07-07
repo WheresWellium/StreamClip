@@ -20,7 +20,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 1.2 | ~~Run `alembic upgrade head`~~ ✅ through `0007_license_issuance` on dev stack. **Current head:** `0009_phase3_trust_ops` — rerun `alembic upgrade head` on every deploy | 🟡 | S |
 | 1.3 | ~~Fix anonymous-scope contract regression~~ ✅ `scope.py` now raises `StreamClipError(code="device_id_required")`; source validation moved before device upsert; test client sends `X-Device-Id` | ✅ | — |
 | 1.4 | ~~Regenerate `web/lib/api/openapi.ts`~~ ✅ regenerated (`988aaac`); fixed `uploads.py` dependency that broke schema generation; `approval_status` now a literal union | ✅ | — |
-| 1.5 | **Commit large in-flight diff** — desktop §4.1–4.5, gap closure, migrations `0008`–`0009`, verify scripts, web UX, coverage tests (`HEAD` still `faa88e1` with extensive unstaged changes) | 🔴 | S |
+| 1.5 | ~~Commit large in-flight diff~~ ✅ committed `be095a9` (276 files: desktop §4.1–4.7a + §4.13, trust-ops, coverage batches, docs) | ✅ | — |
 | 1.6 | Regenerate `web/lib/api/openapi.ts` after recent API surface changes (`/storage`, trust-ops, admin/support routes) | 🟡 | S |
 
 ## 2. Incomplete features / stubs (full scaffold scan, 2026-07-01)

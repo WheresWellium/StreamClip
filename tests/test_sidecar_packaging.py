@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import desktop_sidecar.run as sidecar
+
+_DATA_ENV_KEYS = (
+    "STREAMCLIP_DATABASE__URL",
+    "STREAMCLIP_DATABASE__SYNC_URL",
+    "STREAMCLIP_STORAGE__LOCAL_ROOT",
+    "STREAMCLIP_WORKSPACE_DIR",
+    "STREAMCLIP_CACHE_DIR",
+)
 
 
 def test_app_root_in_dev():
@@ -22,6 +32,73 @@ def test_configure_desktop_env_sets_config(tmp_path, monkeypatch):
     monkeypatch.setattr(sidecar, "app_root", lambda: tmp_path)
     sidecar.configure_desktop_env(tmp_path)
     assert "STREAMCLIP_CONFIG" in __import__("os").environ
+
+
+def test_desktop_data_dir_dev_default_is_none(monkeypatch):
+    monkeypatch.delenv("STREAMCLIP_DESKTOP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", False, raising=False)
+    assert sidecar.desktop_data_dir() is None
+
+
+def test_desktop_data_dir_env_override(tmp_path, monkeypatch):
+    monkeypatch.setenv("STREAMCLIP_DESKTOP_DATA_DIR", str(tmp_path / "data"))
+    assert sidecar.desktop_data_dir() == tmp_path / "data"
+
+
+def test_desktop_data_dir_frozen_uses_localappdata(tmp_path, monkeypatch):
+    monkeypatch.delenv("STREAMCLIP_DESKTOP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert sidecar.desktop_data_dir() == tmp_path / "StreamClip"
+
+
+def test_desktop_data_dir_frozen_fallback_without_localappdata(monkeypatch):
+    monkeypatch.delenv("STREAMCLIP_DESKTOP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    assert sidecar.desktop_data_dir() == Path.home() / ".streamclip"
+
+
+def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
+    data_dir = tmp_path / "StreamClip"
+    with patch.dict(os.environ):
+        for key in _DATA_ENV_KEYS:
+            os.environ.pop(key, None)
+
+        sidecar.configure_data_dirs(data_dir)
+
+        db_posix = (data_dir / "streamclip.db").as_posix()
+        assert os.environ["STREAMCLIP_DATABASE__URL"] == f"sqlite+aiosqlite:///{db_posix}"
+        assert os.environ["STREAMCLIP_DATABASE__SYNC_URL"] == f"sqlite:///{db_posix}"
+        assert os.environ["STREAMCLIP_STORAGE__LOCAL_ROOT"] == str(data_dir / "storage")
+        assert os.environ["STREAMCLIP_WORKSPACE_DIR"] == str(data_dir / "workspace")
+        assert os.environ["STREAMCLIP_CACHE_DIR"] == str(data_dir / "cache")
+    assert (data_dir / "workspace").is_dir()
+    assert (data_dir / "storage").is_dir()
+    assert (data_dir / "cache").is_dir()
+
+
+def test_configure_data_dirs_respects_explicit_env(tmp_path):
+    with patch.dict(os.environ):
+        os.environ["STREAMCLIP_DATABASE__URL"] = "sqlite+aiosqlite:///C:/custom/app.db"
+        sidecar.configure_data_dirs(tmp_path / "StreamClip")
+        assert os.environ["STREAMCLIP_DATABASE__URL"] == "sqlite+aiosqlite:///C:/custom/app.db"
+
+
+def test_configure_desktop_env_wires_data_dir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sidecar, "app_root", lambda: tmp_path)
+    data_dir = tmp_path / "appdata"
+    with patch.dict(os.environ):
+        for key in _DATA_ENV_KEYS:
+            os.environ.pop(key, None)
+        os.environ["STREAMCLIP_DESKTOP_DATA_DIR"] = str(data_dir)
+
+        sidecar.configure_desktop_env(tmp_path)
+
+        assert os.environ["STREAMCLIP_STORAGE__LOCAL_ROOT"] == str(data_dir / "storage")
+        assert os.environ["STREAMCLIP_WORKSPACE_DIR"] == str(data_dir / "workspace")
+    assert (data_dir / "workspace").is_dir()
 
 
 def test_run_migrations_calls_alembic(tmp_path, monkeypatch):

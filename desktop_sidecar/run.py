@@ -17,12 +17,55 @@ log = structlog.get_logger(__name__)
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
+APP_DATA_DIR_NAME = "StreamClip"
+
 
 def app_root() -> Path:
     """Repository root in dev; install dir when frozen (PyInstaller)."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parents[1]
+
+
+def desktop_data_dir() -> Path | None:
+    """Per-user data dir for packaged installs (MASTER_TODO §4.18).
+
+    Resolution order:
+      1. ``STREAMCLIP_DESKTOP_DATA_DIR`` env override (any platform, incl. dev)
+      2. When frozen (PyInstaller): ``%LOCALAPPDATA%\\StreamClip``,
+         falling back to ``~/.streamclip`` where LOCALAPPDATA is unset
+      3. Dev (not frozen, no override): ``None`` — config defaults apply
+    """
+    override = os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR")
+    if override:
+        return Path(override)
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / APP_DATA_DIR_NAME
+        return Path.home() / ".streamclip"
+    return None
+
+
+def configure_data_dirs(data_dir: Path) -> None:
+    """Point DB/storage/workspace/cache env overrides into *data_dir*.
+
+    Uses ``setdefault`` so explicit user env vars always win; the config
+    file keeps its dev-relative defaults.
+    """
+    workspace = data_dir / "workspace"
+    storage = data_dir / "storage"
+    cache = data_dir / "cache"
+    for d in (data_dir, workspace, storage, cache):
+        d.mkdir(parents=True, exist_ok=True)
+
+    db_path = (data_dir / "streamclip.db").as_posix()
+    os.environ.setdefault("STREAMCLIP_DATABASE__URL", f"sqlite+aiosqlite:///{db_path}")
+    os.environ.setdefault("STREAMCLIP_DATABASE__SYNC_URL", f"sqlite:///{db_path}")
+    os.environ.setdefault("STREAMCLIP_STORAGE__LOCAL_ROOT", str(storage))
+    os.environ.setdefault("STREAMCLIP_WORKSPACE_DIR", str(workspace))
+    os.environ.setdefault("STREAMCLIP_CACHE_DIR", str(cache))
+    log.info("sidecar_data_dir", path=str(data_dir))
 
 
 def configure_desktop_env(root: Path | None = None) -> Path:
@@ -33,6 +76,9 @@ def configure_desktop_env(root: Path | None = None) -> Path:
     config_path = base / "config" / "desktop.yaml"
     if config_path.is_file():
         os.environ.setdefault("STREAMCLIP_CONFIG", str(config_path))
+    data_dir = desktop_data_dir()
+    if data_dir is not None:
+        configure_data_dirs(data_dir)
     return base
 
 

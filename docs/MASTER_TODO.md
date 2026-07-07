@@ -21,7 +21,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 1.3 | ~~Fix anonymous-scope contract regression~~ ✅ `scope.py` now raises `StreamClipError(code="device_id_required")`; source validation moved before device upsert; test client sends `X-Device-Id` | ✅ | — |
 | 1.4 | ~~Regenerate `web/lib/api/openapi.ts`~~ ✅ regenerated (`988aaac`); fixed `uploads.py` dependency that broke schema generation; `approval_status` now a literal union | ✅ | — |
 | 1.5 | ~~Commit large in-flight diff~~ ✅ committed `be095a9` (276 files: desktop §4.1–4.7a + §4.13, trust-ops, coverage batches, docs) | ✅ | — |
-| 1.6 | Regenerate `web/lib/api/openapi.ts` after recent API surface changes (`/storage`, trust-ops, admin/support routes) | 🟡 | S |
+| 1.6 | ~~Regenerate `web/lib/api/openapi.ts` after recent API surface changes~~ ✅ regenerated offline (no Docker); new paths: `/storage/{key}`, clip words, waveform, privacy settings, bug reports, license revoke; `CreateJobRequest` override extended for `profanity_filter`/`profanity_mode` | ✅ | — |
 
 ## 2. Incomplete features / stubs (full scaffold scan, 2026-07-01)
 
@@ -111,7 +111,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
 | 4.17 | **Full in-process parity**: ✅ all direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault, CLI) routed through `core/task_dispatch.py` / `task_runner`; in-process Beat loop fires scheduled publishes + cleanup (`queue.inprocess_beat`, only while app runs — see BETA_KNOWN_ISSUES) | 🟢 | M |
 | 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; BFF routes moved to `web/app/_api_bff/` | 🟢 | L |
-| 4.18 | **Production desktop config profile** — `%LOCALAPPDATA%/JetStream/` for DB, storage, workspace (dev uses `./workspace/` in `config/desktop.yaml`) | 🟡 | S |
+| 4.18 | **Production desktop config profile** — ✅ frozen builds (or `STREAMCLIP_DESKTOP_DATA_DIR`) resolve DB/storage/workspace/cache under `%LOCALAPPDATA%\StreamClip` (`~/.streamclip` fallback) via env overrides in `desktop_sidecar/run.py`; config file keeps dev defaults | 🟢 | S |
 
 ## 5. macOS port (after Windows)
 

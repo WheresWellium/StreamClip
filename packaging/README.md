@@ -22,6 +22,24 @@ Bundled output: `dist/streamclip-sidecar/streamclip-sidecar.exe` (Windows).
 
 Set `STREAMCLIP_APP_ROOT` to the install dir so `bin/ffmpeg/`, `config/desktop.yaml`, and DB paths resolve.
 
+### Data directory (§4.18)
+
+Frozen (PyInstaller) builds keep user data out of the install dir. On startup
+`configure_desktop_env()` resolves a per-user data dir and points env overrides
+into it (SQLite DB, `storage/`, `workspace/`, `cache/`), creating directories
+as needed. `config/desktop.yaml` keeps its dev-relative defaults.
+
+| Scenario | Data dir |
+|----------|----------|
+| `STREAMCLIP_DESKTOP_DATA_DIR` set (any mode) | that path |
+| Frozen, Windows | `%LOCALAPPDATA%\StreamClip` |
+| Frozen, no `LOCALAPPDATA` | `~/.streamclip` |
+| Dev (not frozen, no override) | none — dev-relative `./workspace/` |
+
+Explicit `STREAMCLIP_DATABASE__URL` / `STREAMCLIP_STORAGE__LOCAL_ROOT` /
+`STREAMCLIP_WORKSPACE_DIR` / `STREAMCLIP_CACHE_DIR` env vars always win
+(overrides use `setdefault`).
+
 ## Static UI (§4.7 + §4.7a)
 
 | Path | Purpose |

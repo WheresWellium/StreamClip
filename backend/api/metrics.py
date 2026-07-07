@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.repositories import JobRepository
 from backend.db.session import get_db
+from core.config import get_settings
 from core.pipeline_metrics import (
     CLIP_RENDER_SECONDS,
     CLIPS_PROCESSED,
@@ -53,6 +55,27 @@ async def _refresh_gauges(db: AsyncSession) -> None:
 
 
 @router.get("/metrics")
-async def metrics(db: AsyncSession = Depends(get_db)) -> Response:
+async def metrics(request: Request, db: AsyncSession = Depends(get_db)) -> Response:
+    cfg = get_settings()
+    key = cfg.observability.metrics_api_key
+    if key:
+        auth_header = request.headers.get("Authorization", "")
+        provided = (
+            auth_header.removeprefix("Bearer ").strip()
+            or request.headers.get("X-Metrics-Key", "")
+        )
+        if provided != key:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"code": "unauthorized", "message": "Invalid metrics API key."},
+            )
+    elif cfg.environment != "development":
+        # No key configured outside dev: restrict to loopback only.
+        client_host = getattr(request.client, "host", "") or ""
+        if client_host not in ("127.0.0.1", "::1", "localhost"):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={"code": "forbidden", "message": "Metrics endpoint is restricted. Set STREAMCLIP_OBSERVABILITY__METRICS_API_KEY to enable external access."},
+            )
     await _refresh_gauges(db)
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

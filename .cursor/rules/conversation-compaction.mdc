@@ -1,0 +1,27 @@
+---
+description: Externalize durable state so Cursor can summarize conversation aggressively without losing execution context.
+alwaysApply: true
+---
+
+# Conversation compaction
+
+Long threads should keep **facts on disk**, not in chat. Tool outputs dominate context (~80% of conversation tokens in long jobs).
+
+## Before compaction or phase changes
+
+1. Update `docs/SESSION_STATE.md` (goal, blockers, decisions, ordered next steps, key paths) — **≤60 lines**.
+2. Update `AGENTS.md` only for **durable** preferences/workspace facts (≤12 bullets per section).
+
+## During work
+
+- **Explore via Task subagents** (`explore`, `shell`, `generalPurpose`). Parent reply after a subagent: **≤1 short paragraph** — no paste of subagent output.
+- **Prefer `run_in_background: true`** on Task when the user is not watching live progress.
+- **Never paste** large shell/test output in chat; write to a file or cite the command to re-run.
+- **Grep agent transcripts** (`agent-transcripts/<chat-id>/*.jsonl`) for history; do not read transcripts linearly.
+- After summarization, **read `docs/SESSION_STATE.md` first**, then `AGENTS.md`, then grep transcript if still unclear.
+
+## Tool discipline (largest token saver)
+
+- Read **focused line ranges**, not whole large files.
+- One Grep/Glob/Read intent per call; avoid redundant re-reads.
+- Batch independent reads in parallel when safe.

@@ -18,10 +18,10 @@ export type DistributionContext = {
 
 export async function getDistributionContextAction(): Promise<DistributionContext> {
   const token = getClientAccessToken();
-  if (!token) {
-    return { platforms: [], connections: [], hasPro: false };
-  }
   const hasPro = await hasDistributionAccess(token);
+  if (!token) {
+    return { platforms: [], connections: [], hasPro };
+  }
   try {
     const [platforms, connections] = await Promise.all([
       distributionApi.platforms(token),
@@ -29,7 +29,7 @@ export async function getDistributionContextAction(): Promise<DistributionContex
     ]);
     return { platforms, connections, hasPro };
   } catch {
-    return { platforms: [], connections: [], hasPro: false };
+    return { platforms: [], connections: [], hasPro };
   }
 }
 

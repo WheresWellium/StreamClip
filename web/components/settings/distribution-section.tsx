@@ -34,25 +34,23 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
     let cancelled = false;
     const t = getClientAccessToken();
     setToken(t);
-    if (!t) {
-      setReady(true);
-      return;
-    }
     void (async () => {
       const pro = await hasDistributionAccess(t);
       let plats: typeof platforms = [];
       let conns: typeof connections = [];
       let jobs: typeof publishJobs = [];
-      try {
-        [plats, conns, jobs] = await Promise.all([
-          distributionApi.platforms(t),
-          distributionApi.connections(t),
-          distributionApi.publishJobs(t),
-        ]);
-      } catch {
-        plats = [];
-        conns = [];
-        jobs = [];
+      if (t) {
+        try {
+          [plats, conns, jobs] = await Promise.all([
+            distributionApi.platforms(t),
+            distributionApi.connections(t),
+            distributionApi.publishJobs(t),
+          ]);
+        } catch {
+          plats = [];
+          conns = [];
+          jobs = [];
+        }
       }
       if (!cancelled) {
         setHasPro(pro);
@@ -71,7 +69,7 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
     return <p className="text-sm text-muted-foreground py-4">Loading distribution…</p>;
   }
 
-  if (!token) {
+  if (!token && !hasPro) {
     return (
       <Card>
         <CardHeader>

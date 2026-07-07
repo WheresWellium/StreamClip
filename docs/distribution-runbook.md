@@ -22,6 +22,13 @@ STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY=<Fernet key>
 
 # OAuth redirect base (must match your web origin)
 STREAMCLIP_DISTRIBUTION__WEB_ORIGIN=https://your-app.example.com
+```
+
+`docker-compose.yml` (local dev) already sets a hardcoded DEV-ONLY key + `WEB_ORIGIN=http://localhost:3000`
+on `api`/`worker`/`gpu-worker` so OAuth connections work out of the box locally — never reuse that key
+in production; generate a fresh one per the command above.
+
+```bash
 
 # Platform feature flags
 STREAMCLIP_DISTRIBUTION__YOUTUBE_PUBLISH_ENABLED=true

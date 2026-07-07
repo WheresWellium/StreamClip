@@ -182,7 +182,21 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
                     await db.commit()
                     return {"status": "failed", "publish_job_id": publish_job_id}
 
-            if result.status != "published":
+            if result.status == "pending":
+                # Upload accepted by the platform but processing status is unknown
+                # (e.g. TikTok poll budget expired). Release the claim back to
+                # "pending" so a future retry can re-check.
+                await repo.release_claim(publish_job_id)
+                publish_job_progress(
+                    publish_job_id,
+                    stage="pending",
+                    progress=0.85,
+                    message=result.message or "Upload pending — check back later.",
+                    status="pending",
+                )
+                await db.commit()
+                return {"status": "pending", "publish_job_id": publish_job_id}
+            elif result.status != "published":
                 await repo.mark_failed(
                     publish_job_id,
                     message=result.message or "Platform rejected the upload.",

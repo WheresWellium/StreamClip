@@ -226,10 +226,14 @@ class TikTokAdapter:
                     message=f"TikTok processing failed: {reason}",
                 )
             await asyncio.sleep(_STATUS_POLL_SECS)
-        # Upload was accepted; processing just outlived our poll budget.
+        # Poll budget expired without a conclusive status. Return "pending" so the
+        # caller marks the DB row appropriately rather than assuming published.
         return PublishResult(
-            status="published",
-            message="Uploaded to TikTok — check the TikTok app inbox to finish posting.",
+            status="pending",
+            message=(
+                "TikTok upload accepted but processing status timed out — "
+                "check the TikTok app inbox to confirm posting."
+            ),
         )
 
     async def schedule(

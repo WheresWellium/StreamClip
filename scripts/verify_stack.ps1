@@ -1,8 +1,10 @@
-# Stack verification — run after `docker compose up -d` (Phase 0 beta gate).
-# Excludes @pytest.mark.desktop tests (embedded sidecar/installer; not in API image).
+# Stack verification — run after `docker compose up -d`.
+# Default: health + server-profile tests (--no-cov). Does NOT prove coverage gate.
+# Pre-invite gate: -WithCoverage or scripts/verify_coverage.ps1 (MASTER_TODO §3.10).
 param(
     [switch]$SkipTests,
-    [switch]$RunE2E
+    [switch]$RunE2E,
+    [switch]$WithCoverage
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -50,8 +52,14 @@ catch {
 
 if (-not $SkipTests) {
     Write-Host ""
-    Write-Host "Running server-profile unit tests in API container (desktop tests excluded)..." -ForegroundColor Cyan
-    docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" --no-cov
+    if ($WithCoverage) {
+        Write-Host "Running server-profile tests WITH coverage gate (MASTER_TODO 3.10)..." -ForegroundColor Cyan
+        docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" `
+            --cov=backend --cov=core --cov-report=term-missing:skip-covered
+    } else {
+        Write-Host "Running server-profile unit tests in API container (desktop tests excluded, --no-cov)..." -ForegroundColor Cyan
+        docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" --no-cov
+    }
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
@@ -71,4 +79,7 @@ Write-Host ""
 Write-Host "Stack verification passed." -ForegroundColor Green
 if (-not $RunE2E) {
     Write-Host "Optional: .\scripts\verify_stack.ps1 -RunE2E" -ForegroundColor Cyan
+}
+if (-not $WithCoverage) {
+    Write-Host "Pre-invite coverage gate: .\scripts\verify_stack.ps1 -WithCoverage  (or .\scripts\verify_coverage.ps1)" -ForegroundColor Cyan
 }

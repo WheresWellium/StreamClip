@@ -51,6 +51,10 @@ def create_entitlement_token(
         "iat": now,
         "exp": exp,
     }
+    # TODO: implement jti blocklist for revoke — no jti claim is included here,
+    # so revoking a license does not invalidate the issued JWT until it expires
+    # naturally (up to 100 years for perpetual purchases). A Redis jti set keyed
+    # by license_key_hash would allow instant revocation without key rotation.
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 

@@ -227,6 +227,163 @@ async def test_splice_clips_errors():
 
 
 @pytest.mark.asyncio
+async def test_create_job_increments_owner_usage():
+    svc, _, _, _ = _svc()
+    svc.users.get = AsyncMock(return_value=SimpleNamespace(
+        id="u1", tier=UserTier.FREE, jobs_used_this_month=0, minutes_processed_this_month=0.0,
+    ))
+    svc.users.increment_jobs_used = AsyncMock()
+    svc.jobs.create = AsyncMock(return_value=SimpleNamespace(id="j1"))
+    scope = RequestScope(user_id="u1", device_id=None)
+    await svc.create_job(
+        CreateJobRequest(source_url="https://example.com/v.mp4"),
+        scope,
+    )
+    svc.users.increment_jobs_used.assert_awaited_once_with("u1")
+
+
+@pytest.mark.asyncio
+async def test_cancel_job_not_found():
+    svc, _, _, _ = _svc()
+    svc.jobs.get_for_scope = AsyncMock(return_value=None)
+    with pytest.raises(JobNotFoundError):
+        await svc.cancel_job("missing", scope=RequestScope(user_id="u1", device_id=None))
+
+
+@pytest.mark.asyncio
+async def test_update_job_display_title():
+    from backend.api.schemas import UpdateJobRequest
+
+    svc, db, _, _ = _svc()
+    job = SimpleNamespace(id="j1", display_title="Old")
+    svc.jobs.get_for_scope = AsyncMock(return_value=job)
+    svc.jobs.get = AsyncMock(return_value=SimpleNamespace(id="j1", clips=[]))
+    updated = await svc.update_job(
+        "j1",
+        UpdateJobRequest(display_title="New title"),
+        scope=RequestScope(user_id="u1", device_id=None),
+    )
+    assert job.display_title == "New title"
+    db.flush.assert_awaited()
+    assert updated.id == "j1"
+
+
+@pytest.mark.asyncio
+async def test_update_job_not_found():
+    from backend.api.schemas import UpdateJobRequest
+
+    svc, _, _, _ = _svc()
+    svc.jobs.get_for_scope = AsyncMock(return_value=None)
+    with pytest.raises(JobNotFoundError):
+        await svc.update_job(
+            "missing",
+            UpdateJobRequest(display_title="x"),
+            scope=RequestScope(user_id="u1", device_id=None),
+        )
+
+
+@pytest.mark.asyncio
+async def test_regenerate_clip_not_found():
+    svc, _, _, _ = _svc()
+    job = SimpleNamespace(id="j1", clips=[])
+    svc.get_job = AsyncMock(return_value=job)
+    with pytest.raises(StreamClipError) as exc:
+        await svc.regenerate_clip("j1", "missing", scope=RequestScope(user_id="u1", device_id=None))
+    assert exc.value.code == "clip_not_found"
+
+
+@pytest.mark.asyncio
+async def test_update_clip_overrides_and_rerender():
+    svc, db, _, _ = _svc()
+    clip = SimpleNamespace(
+        id="c1", start_secs=0.0, end_secs=10.0, status=ClipStatus.DONE,
+        render_overrides={}, hook="h",
+    )
+    job = SimpleNamespace(id="j1", clips=[clip], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job)
+    svc.clips.update_boundaries = AsyncMock()
+    svc.clips.reset_for_regenerate = AsyncMock()
+    svc.clips.get = AsyncMock(return_value=clip)
+
+    await svc.update_clip(
+        "j1", "c1",
+        UpdateClipRequest(
+            aspect_ratio="16:9",
+            overlay_enabled=False,
+            rerender=True,
+        ),
+        scope=RequestScope(user_id="u1", device_id=None),
+    )
+    overrides = svc.clips.update_boundaries.call_args.kwargs["render_overrides"]
+    assert overrides["aspect_ratio"] == "16:9"
+    assert overrides["overlay_enabled"] is False
+    svc.clips.reset_for_regenerate.assert_awaited_once_with("c1")
+    db.flush.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_clip_missing_after_flush():
+    svc, db, _, _ = _svc()
+    clip = SimpleNamespace(
+        id="c1", start_secs=0.0, end_secs=10.0, status=ClipStatus.DONE,
+        render_overrides={}, hook="h",
+    )
+    job = SimpleNamespace(id="j1", clips=[clip], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job)
+    svc.clips.update_boundaries = AsyncMock()
+    svc.clips.get = AsyncMock(return_value=None)
+
+    with pytest.raises(StreamClipError):
+        await svc.update_clip(
+            "j1", "c1",
+            UpdateClipRequest(title="New"),
+            scope=RequestScope(user_id="u1", device_id=None),
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_clip_words_success_and_not_found():
+    svc, _, _, _ = _svc()
+    job = SimpleNamespace(id="j1", clips=[], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job)
+    with pytest.raises(StreamClipError) as exc:
+        await svc.get_clip_words("j1", "missing", scope=RequestScope(user_id="u1", device_id=None))
+    assert exc.value.code == "clip_not_found"
+
+    clip = SimpleNamespace(id="c1", start_secs=0.0, end_secs=2.0)
+    job2 = SimpleNamespace(id="j1", clips=[clip], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job2)
+    transcript = MagicMock()
+    word = SimpleNamespace(text="hello", start=0.0, end=0.5)
+    with patch("backend.services.job_service.load_persisted_job_transcript", return_value=transcript):
+        with patch("backend.services.job_service.collect_words_for_window", return_value=[word]):
+            out = await svc.get_clip_words("j1", "c1", scope=RequestScope(user_id="u1", device_id=None))
+    assert out.clip_id == "c1"
+    assert out.words[0].text == "hello"
+
+
+@pytest.mark.asyncio
+async def test_update_clip_sets_transcript_edits():
+    svc, _, _, _ = _svc()
+    clip = SimpleNamespace(
+        id="c1", start_secs=0.0, end_secs=10.0, status=ClipStatus.DONE,
+        render_overrides={}, hook="h",
+    )
+    job = SimpleNamespace(id="j1", clips=[clip], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job)
+    svc.clips.update_boundaries = AsyncMock()
+    svc.clips.get = AsyncMock(return_value=clip)
+
+    await svc.update_clip(
+        "j1", "c1",
+        UpdateClipRequest(transcript_edits={"0": "edited word"}, rerender=False),
+        scope=RequestScope(user_id="u1", device_id=None),
+    )
+    overrides = svc.clips.update_boundaries.call_args.kwargs["render_overrides"]
+    assert overrides["transcript_edits"] == {"0": "edited word"}
+
+
+@pytest.mark.asyncio
 async def test_to_dto_with_clips_and_publish():
     svc, _, _, storage = _svc()
     from datetime import datetime, timezone

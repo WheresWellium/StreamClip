@@ -26,4 +26,6 @@ build/
 site/
 .DS_Store
 
+.cursor/hooks/state/
+
 .vercel

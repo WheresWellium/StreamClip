@@ -4,7 +4,7 @@ import { Loader2, Pencil, RotateCcw, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { updateClipAction } from "@/lib/api/actions/jobs";
+import { refreshClipMediaAction, updateClipAction } from "@/lib/api/actions/jobs";
 import { SafeZoneOverlay } from "@/components/clips/safe-zone-overlay";
 import { TranscriptEditPanel } from "@/components/clips/transcript-edit-panel";
 import { TrimTimeline } from "@/components/clips/trim-timeline";
@@ -172,6 +172,27 @@ export function ClipEditor({
     () => clip.status === "processing",
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [previewDownloadUrl, setPreviewDownloadUrl] = React.useState(clip.download_url ?? null);
+  const [previewThumbnailUrl, setPreviewThumbnailUrl] = React.useState(clip.thumbnail_url ?? null);
+  const previewRetriedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    setPreviewDownloadUrl(clip.download_url ?? null);
+    setPreviewThumbnailUrl(clip.thumbnail_url ?? null);
+    previewRetriedRef.current = false;
+  }, [clip.download_url, clip.thumbnail_url]);
+
+  async function onPreviewMediaError() {
+    if (previewRetriedRef.current) return;
+    previewRetriedRef.current = true;
+    const result = await refreshClipMediaAction(jobId, clip.id);
+    if (result.ok) {
+      setPreviewDownloadUrl(result.download_url);
+      setPreviewThumbnailUrl(result.thumbnail_url);
+    } else {
+      toast("Couldn't refresh preview", result.message ?? "The link may have expired.");
+    }
+  }
   const [showSafeZones, setShowSafeZones] = React.useState(false);
 
   const savedRef = React.useRef(
@@ -385,20 +406,22 @@ export function ClipEditor({
                     maxWidth: "100%",
                   }}
                 >
-                  {clip.download_url ? (
+                  {previewDownloadUrl ? (
                     <video
-                      key={clip.download_url}
-                      src={clip.download_url}
+                      key={previewDownloadUrl}
+                      src={previewDownloadUrl}
                       controls
                       playsInline
                       className="absolute inset-0 w-full h-full object-contain"
+                      onError={onPreviewMediaError}
                     />
-                  ) : clip.thumbnail_url ? (
+                  ) : previewThumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={clip.thumbnail_url}
+                      src={previewThumbnailUrl}
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover opacity-80"
+                      onError={onPreviewMediaError}
                     />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">

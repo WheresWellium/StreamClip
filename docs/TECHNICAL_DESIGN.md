@@ -316,16 +316,17 @@ docker compose up -d
 
 ## 11. Known limitations
 
+See **`docs/MASTER_TODO.md`** (open items) and **`docs/GAP_ANALYSIS.md`** (gap register). Beta-facing summary: **`docs/BETA_KNOWN_ISSUES.md`**.
+
 | Item | Notes |
 |------|-------|
-| Playwright full e2e | Config exists; happy path gated on `E2E_RUN=1`; no publish-flow e2e |
-| Asset vault UI | API exists (`/api/assets`); no management page; overlays use filesystem manifest |
-| License key delivery email | Lemon Squeezy chain wired end-to-end; `order_created` fallback keys surfaced via webhook response only |
-| TikTok publish | Inbox upload implemented (user finishes post in TikTok app); direct-post requires `video.publish` scope audit. Flag default off pending app approval |
-| Publish analytics | No view/retention feedback loop from YouTube/TikTok yet |
-| Speaker diarization | Not implemented |
-| yt-dlp subs reuse | Downloaded but Whisper always runs on audio |
-| Distribution unit tests | `DistributionService`, vault + distribution API routes thin on coverage |
+| Playwright full e2e | Smoke gated on `E2E_RUN=1`; publish-flow extension — MASTER §3.3 |
+| TikTok publish | Inbox upload implemented; direct-post requires `video.publish` scope audit — MASTER §2.1 |
+| Publish analytics | No view/retention feedback loop — MASTER §2.16 |
+| Speaker diarization | Not implemented — MASTER §2.18 |
+| yt-dlp subs reuse | Downloaded but Whisper always runs — MASTER §2.19 |
+| Instagram Reels | Not implemented — MASTER §2.22 |
+| Coverage gate | Canonical measurement — MASTER §3.10; `scripts/verify_coverage.ps1` |
 
 Full gap register: `docs/GAP_ANALYSIS.md`
 

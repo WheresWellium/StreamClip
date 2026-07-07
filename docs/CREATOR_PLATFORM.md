@@ -63,8 +63,11 @@ Give **every content creator** — gamers, IRL streamers, podcasters, educators,
 
 ### Next (high value)
 
-- E2E publish flow tests (Playwright)
-- Desktop packaging: Server Actions → API migration for static export, full PyInstaller bundle, Electron sidecar shell (see `docs/MASTER_TODO.md` §4.6–4.13)
+Tracked in [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3–§4:
+
+- E2E publish flow tests (Playwright) — §3.3
+- Coverage ratchet to 95% then 110% — §3.5, §3.7, §3.10
+- Desktop signed release — §4.10 remaining (EV cert)
 
 ### Later (scale & distribution)
 

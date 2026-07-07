@@ -16,7 +16,10 @@ from core.distribution.errors import DistributionProRequired
 
 async def _install_has_pro_license(db: AsyncSession) -> bool:
     result = await db.execute(
-        select(InstallLicense.id).where(InstallLicense.tier.in_([UserTier.PRO, UserTier.ADMIN])).limit(1),
+        select(InstallLicense.id).where(
+            InstallLicense.tier.in_([UserTier.PRO, UserTier.ADMIN]),
+            InstallLicense.status == "activated",
+        ).limit(1),
     )
     return result.scalar_one_or_none() is not None
 

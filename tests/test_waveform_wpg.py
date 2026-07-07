@@ -185,7 +185,7 @@ def restore_wpg():
 
 def test_apply_clip_overrides_sets_words_per_group(restore_wpg):
     clip = SimpleNamespace(render_overrides={"caption_words_per_group": 2})
-    pt._apply_clip_overrides(SimpleNamespace(), clip)
+    pt._apply_clip_overrides(pt.cfg, SimpleNamespace(), clip)
     assert pt.cfg.caption.words_per_group == 2
 
 
@@ -193,12 +193,12 @@ def test_apply_clip_overrides_sets_words_per_group(restore_wpg):
 def test_apply_clip_overrides_ignores_invalid_wpg(restore_wpg, bad):
     pt.cfg.caption.words_per_group = 4
     clip = SimpleNamespace(render_overrides={"caption_words_per_group": bad})
-    pt._apply_clip_overrides(SimpleNamespace(), clip)
+    pt._apply_clip_overrides(pt.cfg, SimpleNamespace(), clip)
     assert pt.cfg.caption.words_per_group == 4
 
 
 def test_apply_job_config_resets_words_per_group(restore_wpg):
     pt.cfg.caption.words_per_group = 2
     job = SimpleNamespace(config_snapshot={})
-    pt._apply_job_config(job)
+    pt._apply_job_config(pt.cfg, job)
     assert pt.cfg.caption.words_per_group == pt._DEFAULT_WORDS_PER_GROUP

@@ -6,6 +6,7 @@ import * as React from "react";
 import { useToastSafe } from "@/components/providers/toast-provider";
 
 import { updateClipApprovalAction } from "@/lib/api/actions/approval";
+import { refreshClipMediaAction } from "@/lib/api/actions/jobs";
 import { ApprovalToggle, type ApprovalValue } from "@/components/clips/approval-toggle";
 import { ClipDestinationsDrawer } from "@/components/clips/clip-destinations-drawer";
 import { PublishStatusBadge } from "@/components/clips/publish-status-badge";
@@ -32,6 +33,7 @@ import {
   formatDuration,
   formatScore,
 } from "@/lib/utils/format";
+import { downloadBlob } from "@/lib/utils/download";
 
 interface ClipCardProps {
   clip: ClipOut;
@@ -67,10 +69,72 @@ export function ClipCard({
   const [destinationsOpen, setDestinationsOpen] = React.useState(false);
   const approval = (clip.approval_status ?? "draft") as ApprovalValue;
   const [approvalLocal, setApprovalLocal] = React.useState<ApprovalValue>(approval);
+  const [downloadUrl, setDownloadUrl] = React.useState(clip.download_url ?? null);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState(clip.thumbnail_url ?? null);
+  const refreshingRef = React.useRef(false);
+  const retriedVideoRef = React.useRef(false);
+  const retriedThumbRef = React.useRef(false);
 
   React.useEffect(() => {
     setApprovalLocal((clip.approval_status ?? "draft") as ApprovalValue);
   }, [clip.approval_status]);
+
+  React.useEffect(() => {
+    setDownloadUrl(clip.download_url ?? null);
+    setThumbnailUrl(clip.thumbnail_url ?? null);
+    retriedVideoRef.current = false;
+    retriedThumbRef.current = false;
+  }, [clip.download_url, clip.thumbnail_url]);
+
+  const refreshMedia = React.useCallback(async () => {
+    if (refreshingRef.current) return null;
+    refreshingRef.current = true;
+    try {
+      const result = await refreshClipMediaAction(jobId, clip.id);
+      if (result.ok) {
+        setDownloadUrl(result.download_url);
+        setThumbnailUrl(result.thumbnail_url);
+        return result;
+      }
+      toast("Couldn't refresh clip media", result.message ?? "The link may have expired.");
+      return null;
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [jobId, clip.id, toast]);
+
+  async function onVideoError() {
+    if (retriedVideoRef.current) {
+      toast("Playback failed", "Couldn't reload this clip's video. Try refreshing the page.");
+      return;
+    }
+    retriedVideoRef.current = true;
+    await refreshMedia();
+  }
+
+  async function onThumbnailError() {
+    if (retriedThumbRef.current) return;
+    retriedThumbRef.current = true;
+    await refreshMedia();
+  }
+
+  async function onDownloadClick() {
+    const url = downloadUrl;
+    if (!url) return;
+    const filename = (clip.title || `clip-${clip.rank + 1}`) + ".mp4";
+    try {
+      const res = await fetch(url, { method: "HEAD" });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      await downloadBlob(url, filename);
+    } catch {
+      const result = await refreshMedia();
+      if (result?.download_url) {
+        await downloadBlob(result.download_url, filename);
+      } else {
+        toast("Download failed", "Couldn't refresh the download link. Try again shortly.");
+      }
+    }
+  }
 
   const isProcessing = clip.status === "processing";
   const canEdit = jobDone && (clip.status === "done" || clip.status === "processing");
@@ -89,8 +153,8 @@ export function ClipCard({
   }
 
   async function copyLink() {
-    if (!clip.download_url) return;
-    await navigator.clipboard.writeText(clip.download_url);
+    if (!downloadUrl) return;
+    await navigator.clipboard.writeText(downloadUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }
@@ -104,29 +168,31 @@ export function ClipCard({
     >
       {/* Vertical 9:16 video preview */}
       <div className="relative bg-black" style={{ aspectRatio: "9/16" }}>
-        {playing && clip.download_url ? (
+        {playing && downloadUrl ? (
           <video
-            src={clip.download_url}
+            src={downloadUrl}
             controls
             autoPlay
             className="absolute inset-0 w-full h-full"
             playsInline
+            onError={onVideoError}
           />
         ) : (
           <>
-            {clip.thumbnail_url ? (
+            {thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={clip.thumbnail_url}
+                src={thumbnailUrl}
                 alt={clip.title || `Clip ${clip.rank + 1}`}
                 className="absolute inset-0 w-full h-full object-cover"
+                onError={onThumbnailError}
               />
             ) : (
               <div className="absolute inset-0 grid place-items-center text-muted-foreground/40 text-xs">
                 No preview
               </div>
             )}
-            {clip.download_url && !isProcessing && (
+            {downloadUrl && !isProcessing && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -213,18 +279,17 @@ export function ClipCard({
         )}
 
         <div className="flex gap-2 pt-1">
-          {clip.download_url && (
+          {downloadUrl && (
             <Button
-              asChild
+              type="button"
               variant="outline"
               size="sm"
               className="flex-1"
               tooltip="Download the rendered MP4 to your device."
+              onClick={() => void onDownloadClick()}
             >
-              <a href={clip.download_url} download>
-                <Download className="h-3.5 w-3.5" />
-                Download
-              </a>
+              <Download className="h-3.5 w-3.5" />
+              Download
             </Button>
           )}
           {jobDone && clip.status === "done" && (
@@ -240,7 +305,7 @@ export function ClipCard({
               Destinations
             </Button>
           )}
-          {clip.download_url && (
+          {downloadUrl && (
             <Button
               type="button"
               variant="outline"

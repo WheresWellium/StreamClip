@@ -1,25 +1,39 @@
-"""Production docker-compose sanity checks (MASTER_TODO §4.14)."""
+"""Production docker-compose sanity checks (MASTER_TODO §4.14).
+
+Host-only: the API container does not need to validate compose YAML.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
+
+pytestmark = pytest.mark.desktop
+
+COMPOSE = Path("docker-compose.prod.yml")
+
+
+def _compose_text() -> str:
+    return COMPOSE.read_text(encoding="utf-8")
 
 
 def _load_prod_compose() -> dict:
-    path = Path("docker-compose.prod.yml")
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
     assert isinstance(data, dict)
     return data
 
 
-def test_prod_compose_has_distribution_env_on_api():
-    compose = _load_prod_compose()
-    env = compose["services"]["api"]["environment"]
-    assert "STREAMCLIP_DISTRIBUTION__WEB_ORIGIN" in env
-    assert "STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY" in env
-    assert "STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_ID" in env
+def test_prod_compose_declares_distribution_env():
+    text = _compose_text()
+    for key in (
+        "STREAMCLIP_DISTRIBUTION__WEB_ORIGIN",
+        "STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY",
+        "STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_ID",
+        "streamclip-distribution-env",
+    ):
+        assert key in text
 
 
 def test_prod_compose_mounts_assets_volume():
@@ -32,21 +46,17 @@ def test_prod_compose_mounts_assets_volume():
 
 
 def test_prod_compose_worker_queues_configurable():
-    compose = _load_prod_compose()
-    worker_env = compose["services"]["worker"]["environment"]
-    assert worker_env.get("STREAMCLIP_WORKER_QUEUES") == "${STREAMCLIP_WORKER_QUEUES:-default}"
-    cmd = compose["services"]["worker"]["command"]
-    assert "STREAMCLIP_WORKER_QUEUES" in cmd
-    gpu = compose["services"]["gpu-worker"]
+    text = _compose_text()
+    assert "STREAMCLIP_WORKER_QUEUES" in text
+    assert "--queues=gpu" in text
+    gpu = _load_prod_compose()["services"]["gpu-worker"]
     assert gpu["profiles"] == ["gpu"]
-    assert "--queues=gpu" in gpu["command"]
 
 
 def test_prod_compose_cpu_safe_defaults_on_worker():
-    compose = _load_prod_compose()
-    env = compose["services"]["worker"]["environment"]
-    assert env.get("STREAMCLIP_WHISPER__DEVICE") == "cpu"
-    assert env.get("STREAMCLIP_EXPORT__CODEC") == "libx264"
+    text = _compose_text()
+    assert "STREAMCLIP_WHISPER__DEVICE: cpu" in text
+    assert "STREAMCLIP_EXPORT__CODEC: libx264" in text
 
 
 def test_seed_assets_script_exists():

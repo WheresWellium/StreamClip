@@ -92,6 +92,20 @@ async def lifespan(app: FastAPI):
         version="1.0.0",
         log_level=cfg.log_level,
     )
+
+    # Loudly warn when the default JWT secret is still set outside dev.
+    # This does not raise — it would break existing dev workflows.
+    # In production, generate a strong key: openssl rand -hex 32
+    if cfg.auth.secret_key == "CHANGE_ME_IN_PRODUCTION" and cfg.environment != "development":
+        log.critical(
+            "SECURITY_WARNING",
+            message=(
+                "Default JWT secret key 'CHANGE_ME_IN_PRODUCTION' is still in use. "
+                "Set STREAMCLIP_AUTH__SECRET_KEY to a strong random value: "
+                "openssl rand -hex 32"
+            ),
+        )
+
     _init_sentry()
     init_opentelemetry(cfg)
 

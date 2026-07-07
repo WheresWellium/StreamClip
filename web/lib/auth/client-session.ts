@@ -93,6 +93,7 @@ export function setAuthTokens(accessToken: string, refreshToken: string): void {
   localStorage.setItem(LS_REFRESH, refreshToken);
   writeCookie(ACCESS_TOKEN_COOKIE, accessToken, 60 * 60 * 24);
   writeCookie(REFRESH_TOKEN_COOKIE, refreshToken, 60 * 60 * 24 * 30);
+  window.dispatchEvent(new Event("auth-changed"));
 }
 
 export function clearAuthTokens(): void {
@@ -100,6 +101,7 @@ export function clearAuthTokens(): void {
   localStorage.removeItem(LS_REFRESH);
   deleteCookie(ACCESS_TOKEN_COOKIE);
   deleteCookie(REFRESH_TOKEN_COOKIE);
+  window.dispatchEvent(new Event("auth-changed"));
 }
 
 export function isClientAuthenticated(): boolean {

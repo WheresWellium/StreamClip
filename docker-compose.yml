@@ -91,6 +91,9 @@ services:
     environment:
       MINIO_ROOT_USER: streamclip
       MINIO_ROOT_PASSWORD: streamclip_secret
+      # Browser uploads PUT directly to MinIO via presigned URLs (see core/storage.py);
+      # community MinIO only supports CORS globally, not per-bucket (mc cors set requires AIStor).
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
@@ -164,6 +167,11 @@ services:
       STREAMCLIP_LOG_JSON: "true"
       STREAMCLIP_OBSERVABILITY__ENABLE_METRICS: "true"
       STREAMCLIP_QUEUE__BACKEND: ${STREAMCLIP_QUEUE__BACKEND:-celery}
+      # DEV-ONLY Fernet key for OAuth token encryption (core/distribution/tokens.py).
+      # Generated via: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      # Do NOT reuse this key in production — generate a fresh one per .env.production.example.
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -198,6 +206,9 @@ services:
       STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
       STREAMCLIP_STORAGE__BACKEND: minio
       STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      # Worker generates presigned URLs too (vault save, publish thumbnails) — must
+      # match the browser-reachable host, not the internal `minio:9000` hostname.
+      STREAMCLIP_STORAGE__PUBLIC_BASE_URL: http://localhost:9000
       STREAMCLIP_STORAGE__BUCKET: streamclip
       STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
       STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
@@ -206,6 +217,9 @@ services:
       STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
       STREAMCLIP_WHISPER__MODEL_SIZE: medium
       STREAMCLIP_EXPORT__CODEC: libx264
+      # DEV-ONLY Fernet key — see api service for generation command. Do not reuse in prod.
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
     depends_on:
       api:
         condition: service_started
@@ -241,6 +255,7 @@ services:
       STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
       STREAMCLIP_STORAGE__BACKEND: minio
       STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__PUBLIC_BASE_URL: http://localhost:9000
       STREAMCLIP_STORAGE__BUCKET: streamclip
       STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
       STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
@@ -248,6 +263,8 @@ services:
       STREAMCLIP_WHISPER__DEVICE: cuda
       STREAMCLIP_WHISPER__COMPUTE_TYPE: float16
       STREAMCLIP_EXPORT__CODEC: h264_nvenc
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
     depends_on:
       api:
         condition: service_started

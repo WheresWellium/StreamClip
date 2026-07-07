@@ -55,7 +55,7 @@ def test_apply_job_config_and_hints(tmp_path, monkeypatch):
         "target_clips": 5, "caption_style": "minimal_white", "reframe_preset": "irl",
         "whisper_model": "small", "skip_optical_flow": True, "min_clip_duration_override": 8,
         "processing_tier": "short", "has_chat_data": True, "content_profile": "podcast"})
-    pt._apply_job_config(job)
+    pt._apply_job_config(pt.cfg, job)
     hints = pt._pipeline_hints_from_job(job)
     assert hints["processing_tier"] == "short"
     assert pt._local_workspace("job1").exists()

@@ -38,7 +38,7 @@ export function ProGateModal({
             Close
           </Button>
           <Button asChild>
-            <Link href="/settings">Open Settings</Link>
+            <Link href="/settings?section=license">Open Settings</Link>
           </Button>
         </div>
       </div>

@@ -116,59 +116,69 @@ def _webhook_creds_from_owner(owner: Any) -> tuple[str | None, str | None]:
     return url, secret
 
 
-def _apply_aspect_ratio(value: Any) -> None:
-    """Resolve a catalog aspect-ratio id to reframe target dimensions."""
+def _apply_aspect_ratio(cfg_obj: Any, value: Any) -> None:
+    """Resolve a catalog aspect-ratio id to reframe target dimensions on ``cfg_obj``."""
     if not isinstance(value, str) or not is_valid_aspect_ratio(value):
         return
     width, height = aspect_ratio_dimensions(value)
-    cfg.reframe.target_width = width
-    cfg.reframe.target_height = height
+    cfg_obj.reframe.target_width = width
+    cfg_obj.reframe.target_height = height
 
 
-def _apply_clip_overrides(job: Any, clip: Any) -> None:
-    """Merge per-clip render overrides into global cfg for this render pass."""
+def _apply_clip_overrides(cfg_obj: Any, job: Any, clip: Any) -> None:
+    """Merge per-clip render overrides into ``cfg_obj`` for this render pass.
+
+    Callers processing clips concurrently (``fan_out_clips`` → ``process_clip``)
+    MUST pass a per-task local copy of settings here, never the shared
+    module-level ``cfg`` singleton — otherwise one clip's overrides can leak
+    into another clip rendering at the same time on a different thread/task.
+    """
     overrides = getattr(clip, "render_overrides", None) or {}
     if "caption_style" in overrides:
-        cfg.caption.style = overrides["caption_style"]
+        cfg_obj.caption.style = overrides["caption_style"]
     if "reframe_preset" in overrides:
-        cfg.reframe.preset = overrides["reframe_preset"]
+        cfg_obj.reframe.preset = overrides["reframe_preset"]
     if "overlay_enabled" in overrides:
-        cfg.overlay.enabled = bool(overrides["overlay_enabled"])
+        cfg_obj.overlay.enabled = bool(overrides["overlay_enabled"])
     if "aspect_ratio" in overrides:
-        _apply_aspect_ratio(overrides["aspect_ratio"])
+        _apply_aspect_ratio(cfg_obj, overrides["aspect_ratio"])
     if "profanity_filter" in overrides:
-        cfg.caption.profanity_filter = bool(overrides["profanity_filter"])
+        cfg_obj.caption.profanity_filter = bool(overrides["profanity_filter"])
     if overrides.get("profanity_mode") in ("mask", "bleep", "omit"):
-        cfg.caption.profanity_mode = overrides["profanity_mode"]
+        cfg_obj.caption.profanity_mode = overrides["profanity_mode"]
     wpg = overrides.get("caption_words_per_group")
     if isinstance(wpg, int) and 1 <= wpg <= 8:
-        cfg.caption.words_per_group = wpg
+        cfg_obj.caption.words_per_group = wpg
 
 
-def _apply_job_config(job: Any) -> None:
-    """Apply per-job config snapshot to global settings for this task."""
+def _apply_job_config(cfg_obj: Any, job: Any) -> None:
+    """Apply per-job config snapshot onto ``cfg_obj`` for this task invocation.
+
+    Same concurrency caveat as ``_apply_clip_overrides`` — pass a local copy
+    from tasks that may run concurrently across clips/jobs on this worker.
+    """
     snap = job.config_snapshot or {}
     if "target_clips" in snap:
-        cfg.highlight.target_clips = int(snap["target_clips"])
+        cfg_obj.highlight.target_clips = int(snap["target_clips"])
     if "caption_style" in snap:
-        cfg.caption.style = snap["caption_style"]
+        cfg_obj.caption.style = snap["caption_style"]
     if "reframe_preset" in snap:
-        cfg.reframe.preset = snap["reframe_preset"]
+        cfg_obj.reframe.preset = snap["reframe_preset"]
     if "whisper_model" in snap:
-        cfg.whisper.model_size = snap["whisper_model"]
-    # Always apply: cfg is a per-process singleton — a missing key must reset
-    # to the boot-time default rather than inherit the previous job's setting.
-    cfg.caption.profanity_filter = bool(
+        cfg_obj.whisper.model_size = snap["whisper_model"]
+    # Always apply: a missing key must reset to the boot-time default rather
+    # than inherit whatever the previous _apply_job_config call left behind.
+    cfg_obj.caption.profanity_filter = bool(
         snap.get("profanity_filter", _DEFAULT_PROFANITY_FILTER)
     )
     mode = snap.get("profanity_mode")
-    cfg.caption.profanity_mode = (
+    cfg_obj.caption.profanity_mode = (
         mode if mode in ("mask", "bleep", "omit") else _DEFAULT_PROFANITY_MODE
     )
-    cfg.caption.words_per_group = _DEFAULT_WORDS_PER_GROUP
-    # Always apply: cfg is a per-process singleton, so a missing key must
-    # reset dimensions rather than inherit the previous job's target.
-    _apply_aspect_ratio(snap.get("aspect_ratio", DEFAULT_ASPECT_RATIO))
+    cfg_obj.caption.words_per_group = _DEFAULT_WORDS_PER_GROUP
+    # Always apply: a missing key must reset dimensions rather than inherit
+    # whatever the previous call left behind.
+    _apply_aspect_ratio(cfg_obj, snap.get("aspect_ratio", DEFAULT_ASPECT_RATIO))
 
 
 def _local_workspace(job_id: str) -> Path:
@@ -455,7 +465,7 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
             if job is None:
                 raise StreamClipError(f"Job {job_id} not found")
 
-            _apply_job_config(job)
+            _apply_job_config(cfg, job)
 
             if job.owner_id:
                 owner = await UserRepository(db).get(job.owner_id)
@@ -566,7 +576,7 @@ def run_virality_scores(self: ProgressTask, job_id: str) -> str:
             if job is None:
                 raise StreamClipError(f"Job {job_id} not found")
 
-            _apply_job_config(job)
+            _apply_job_config(cfg, job)
             hints = _pipeline_hints_from_job(job)
             skip_flow = bool(hints.get("skip_optical_flow", False))
             has_chat = bool(hints.get("has_chat_data", False))
@@ -714,6 +724,13 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 
     t0 = time.perf_counter()
 
+    # Per-invocation local copy — never mutate the shared module-level `cfg`
+    # here. fan_out_clips runs a Celery group() of concurrent process_clip
+    # tasks per job, so mutating a shared singleton is a genuine race: one
+    # clip's aspect-ratio/profanity/caption overrides could leak into
+    # another clip rendering at the same time on this worker.
+    local_cfg = cfg.model_copy(deep=True)
+
     async def _do() -> dict[str, Any]:
         async with db_session() as db:
             clips_repo = ClipRepository(db)
@@ -740,8 +757,8 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 )
                 return {"clip_id": clip_id, "status": "done", "skipped": True}
 
-            _apply_job_config(job)
-            _apply_clip_overrides(job, clip)
+            _apply_job_config(local_cfg, job)
+            _apply_clip_overrides(local_cfg, job, clip)
 
             await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
 
@@ -761,7 +778,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 
             workspace = _local_workspace(job_id)
             local_source = _ensure_job_source(job_id, job.source_storage_key)
-            storage = make_storage(cfg)
+            storage = make_storage(local_cfg)
 
             # Local paths for this clip's stages
             raw_path       = workspace / f"{slug}_raw.mp4"
@@ -776,20 +793,20 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 raw_path,
                 start_secs=clip.start_secs,
                 duration_secs=duration,
-                export_cfg=cfg.export,
+                export_cfg=local_cfg.export,
             )
 
             # ── Reframe ──
             self.report(job_id, stage=f"reframe/{slug}",
                        progress=0.55, message=f"Reframing clip {clip.rank + 1}")
             cand = _clip_to_candidate(clip)
-            reframe(raw_path, vertical_path, cfg, cand)
+            reframe(raw_path, vertical_path, local_cfg, cand)
 
             # ── Caption ──
             self.report(job_id, stage=f"caption/{slug}",
                        progress=0.70, message=f"Captioning clip {clip.rank + 1}")
             transcript = load_job_transcript(
-                job_id, cfg, storage=storage, source_path=local_source,
+                job_id, local_cfg, storage=storage, source_path=local_source,
             )
             overrides = getattr(clip, "render_overrides", None) or {}
             raw_edits = overrides.get("transcript_edits")
@@ -798,14 +815,14 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             # Skip the per-clip Whisper refinement pass when user edits exist:
             # edit indices are anchored to the job-transcript word list, and
             # skipping keeps them aligned (and saves a GPU transcription).
-            if cfg.caption.refine_clip_transcript and transcript_edits is None:
+            if local_cfg.caption.refine_clip_transcript and transcript_edits is None:
                 try:
-                    clip_transcript = transcribe_clip(raw_path, cfg)
+                    clip_transcript = transcribe_clip(raw_path, local_cfg)
                 except Exception as exc:
                     log.warning("clip_transcribe_fallback", error=str(exc))
             generate_captions(
                 vertical_path, captioned_path, transcript,
-                clip.start_secs, clip.end_secs, cfg, emotion=clip.emotion,
+                clip.start_secs, clip.end_secs, local_cfg, emotion=clip.emotion,
                 clip_transcript=clip_transcript,
                 transcript_edits=transcript_edits,
             )
@@ -825,7 +842,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 db_assets, storage, cache_dir=workspace / "db_assets",
             )
             _, overlays = apply_overlays(
-                captioned_path, final_path, cand, cfg, extra_assets=extra_records,
+                captioned_path, final_path, cand, local_cfg, extra_assets=extra_records,
             )
 
             if not validate_output_duration(final_path, duration):

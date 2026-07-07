@@ -23,6 +23,7 @@ from backend.middleware.scope import RequestScope, get_request_scope
 from backend.middleware.rate_limit import rate_limit_request
 from backend.services.job_service import UploadService
 from core.config import get_settings
+from core.errors import StreamClipError
 from core.storage import make_storage
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
@@ -54,10 +55,27 @@ async def init_upload(
     dependencies=[Depends(rate_limit_request)],
 )
 async def get_download_url(
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
     key: str = Query(..., description="Storage key"),
 ) -> dict[str, str]:
-    """Get a fresh presigned download URL for a given storage key."""
+    """Get a fresh presigned download URL for a given storage key.
+
+    Upload keys (``uploads/{owner}/...``) are scope-checked: the caller must
+    own the key prefix. Other key namespaces (e.g. workspace clips) are not
+    constrained here — those are access-controlled at the job/clip layer.
+    """
     cfg = get_settings()
+    # Ownership check: upload keys embed the owner id as the second path segment.
+    # Keys constructed by UploadService.init_upload use uploads/{user_or_device_id}/...
+    if key.startswith("uploads/"):
+        expected_owner = scope.user_id or scope.device_id
+        if expected_owner and not key.startswith(f"uploads/{expected_owner}/"):
+            raise StreamClipError(
+                f"Storage key does not belong to this account (scope={expected_owner!r})",
+                user_message="You don't have access to this file.",
+                code="access_denied",
+                http_status=403,
+            )
     storage = make_storage(cfg)
     url = storage.presigned_get_url(key, expires_in=cfg.storage.presigned_expiry_secs)
     return {"url": url, "expires_in": str(cfg.storage.presigned_expiry_secs)}

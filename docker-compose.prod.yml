@@ -17,6 +17,10 @@ x-streamclip-redis-env: &streamclip-redis-env
 x-streamclip-storage-env: &streamclip-storage-env
   STREAMCLIP_STORAGE__BACKEND: minio
   STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+  # MUST be a browser-reachable URL (not the internal `minio:9000` Docker hostname) —
+  # used to sign presigned GET/PUT URLs returned to the browser for playback,
+  # thumbnails, downloads, and uploads. Both api and worker generate presigned URLs.
+  STREAMCLIP_STORAGE__PUBLIC_BASE_URL: ${STREAMCLIP_PUBLIC_BASE_URL:-http://localhost:9000}
   STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
   STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
   STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
@@ -102,7 +106,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ghcr.io/streamclip/api:${STREAMCLIP_VERSION:-latest}
+    image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/api:${STREAMCLIP_VERSION:-latest}
     command: >
       sh -c "python scripts/seed_assets_if_empty.py &&
              alembic upgrade head &&
@@ -133,16 +137,20 @@ services:
     restart: unless-stopped
 
   worker:
-    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/worker:${STREAMCLIP_VERSION:-latest}
     command: >
       sh -c "python scripts/seed_assets_if_empty.py &&
              celery -A core.celery_app.celery_app worker
                --loglevel=info
-               --queues=$${STREAMCLIP_WORKER_QUEUES:-default}
+               --queues=$${STREAMCLIP_WORKER_QUEUES:-default,gpu}
                --concurrency=4"
     environment:
       <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
-      STREAMCLIP_WORKER_QUEUES: ${STREAMCLIP_WORKER_QUEUES:-default}
+      # Default is CPU-safe all-in-one (consumes both queues so GPU-routed tasks like
+      # run_transcribe/process_clip still execute without a GPU worker). Operators
+      # running an isolated `gpu-worker` (--profile gpu) should set this to "default"
+      # on the main worker so GPU tasks only run on gpu-worker.
+      STREAMCLIP_WORKER_QUEUES: ${STREAMCLIP_WORKER_QUEUES:-default,gpu}
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
       STREAMCLIP_WHISPER__DEVICE: cpu
       STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
@@ -155,7 +163,7 @@ services:
 
   gpu-worker:
     profiles: [gpu]
-    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/worker:${STREAMCLIP_VERSION:-latest}
     command: >
       sh -c "python scripts/seed_assets_if_empty.py &&
              celery -A core.celery_app.celery_app worker
@@ -183,7 +191,7 @@ services:
     restart: unless-stopped
 
   beat:
-    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/worker:${STREAMCLIP_VERSION:-latest}
     command: celery -A core.celery_app.celery_app beat --loglevel=info
     environment:
       <<: *streamclip-redis-env
@@ -193,7 +201,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ghcr.io/streamclip/web:${STREAMCLIP_VERSION:-latest}
+    image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/web:${STREAMCLIP_VERSION:-latest}
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:

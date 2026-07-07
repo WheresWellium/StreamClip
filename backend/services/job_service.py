@@ -75,16 +75,25 @@ class JobService:
             device = await self.devices.upsert(scope.device_id)
             device_id = device.id  # normalized — keeps the jobs.device_id FK valid
 
-        # Quota check
+        # Tier quota check — unconditional for authenticated users.
+        # Per-minute Redis rate limiting stays in backend/middleware/rate_limit.py
+        # and remains gated on cfg.rate_limit.enabled.
         if owner_id:
             user = await self.users.get(owner_id)
-            if user and self.cfg.rate_limit.enabled:
+            if user:
                 limits = get_tier_limits(user.tier)
                 if user.jobs_used_this_month >= limits.max_jobs_per_month:
                     raise QuotaExceededError("Monthly job quota exceeded")
                 if request.target_clips > limits.max_target_clips:
                     raise QuotaExceededError(
                         f"Your plan allows up to {limits.max_target_clips} clips per job",
+                    )
+                # Minutes-per-month ceiling; 0 means unlimited, skip check.
+                max_mins = limits.max_minutes_per_month
+                if max_mins > 0 and user.minutes_processed_this_month >= max_mins:
+                    raise QuotaExceededError(
+                        f"Monthly minutes quota exceeded. "
+                        f"Your plan allows {max_mins:.0f} minutes per month.",
                     )
 
         # Snapshot the config the job will use. This freezes settings so

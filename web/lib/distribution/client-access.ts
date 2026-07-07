@@ -26,19 +26,21 @@ export async function hasDistributionAccessClient(
   token?: string,
 ): Promise<boolean> {
   const authToken = token ?? getClientAuth().token;
-  if (!authToken) return false;
 
-  try {
-    const res = await fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${authToken}` },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const user = (await res.json()) as { tier?: string };
-      if (user.tier && PRO_TIERS.has(user.tier)) return true;
+  // Try JWT/user-tier check first; skip safely when no token is present.
+  if (authToken) {
+    try {
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${authToken}` },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const user = (await res.json()) as { tier?: string };
+        if (user.tier && PRO_TIERS.has(user.tier)) return true;
+      }
+    } catch {
+      /* fall through to install-license check */
     }
-  } catch {
-    /* try install license */
   }
 
   try {

@@ -57,11 +57,15 @@ _DESKTOP_ONLY_FILES = frozenset({
     "test_sidecar_packaging.py",
     "test_installer_config.py",
     "test_sqlite_profile.py",
+    "test_prod_compose.py",
 })
 
 
 def pytest_ignore_collect(collection_path, config):
-    if collection_path.name in _DESKTOP_ONLY_FILES:
-        if not Path("desktop_sidecar/run.py").is_file():
-            return True
-    return False
+    name = collection_path.name
+    if name not in _DESKTOP_ONLY_FILES:
+        return False
+    if name == "test_prod_compose.py":
+        # Host-only compose validation (YAML anchors; file baked into image but not useful in-container).
+        return Path("/.dockerenv").is_file()
+    return not Path("desktop_sidecar/run.py").is_file()

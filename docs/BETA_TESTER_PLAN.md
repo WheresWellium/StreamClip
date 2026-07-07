@@ -1,6 +1,6 @@
 # StreamClip — Beta Tester Phase Plan
 
-**Status:** **Active (Phase 0 — Docker self-host)** · **Gate:** line ≥95% + stack verify (see §1) · **Source:** `docs/MASTER_TODO.md`
+**Status:** **Prepared (Phase 0 — Docker self-host)** · **Invite gate:** `verify_coverage.ps1` ≥95% + `verify_stack.ps1` (see §1, MASTER §3.10) · **Coverage today:** 95.01% — **gate GREEN**, but clean-VM `verify_stack.ps1` (§3.8) still **not cleared** · **Source:** `docs/MASTER_TODO.md`
 **Last updated:** 2026-07-07 · Owner: core team
 
 This plan defines *when* beta opens, *who* gets in, *what* they run, and *how* we
@@ -11,17 +11,16 @@ know beta succeeded — aligned with MASTER_TODO release readiness and a
 
 ## 1. Entry gate — “110% coverage” (do not invite testers before this)
 
-Line coverage caps at 100%. **110%** means:
+Line coverage caps at 100%. **110%** means the full row below. **Canonical measurement:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10** (command, scope, footguns, phase waivers).
 
 | Milestone | Gate | Current (2026-07-07) |
 |-----------|------|----------------------|
-| Line coverage | `fail_under = 100` in `.coveragerc` | **95%** (`fail_under = 95`) — Phase 0 open; ratchet continues |
-| Hot-path branches | ≥85% branch on: `core/tasks/pipeline_tasks.py`, `backend/services/sse.py`, `core/distribution/*`, `backend/services/job_service.py` | In progress (MASTER_TODO §3.7) |
+| Line coverage | `fail_under` in `.coveragerc` | **95** active — **95.01%** last Docker full suite; **gate GREEN** (§3.5, 2026-07-07) |
+| Hot-path branches | ≥85% branch on hot modules (Phase 1+) | Not enabled yet — see MASTER §3.7 |
 | E2E smoke | Playwright: create job → list jobs → publish validation behind `E2E_RUN=1` | ✅ scaffold (`web/e2e/happy-path.spec.ts`); optional via `verify_stack.ps1 -RunE2E` |
 | Stack verify | `scripts/verify_stack.ps1` green on Windows + Docker | ✅ server-profile tests (`-m "not desktop"`) + `/api/health/stack` |
 
-**Ratchet order:** 95 → 100 line → branch hot paths → Playwright smoke → flip
-`docs/BETA_TESTER_PLAN.md` status to **Active** and send first invites.
+**Phase 0 invite gate:** Do **not** send external invites until **`verify_coverage.ps1` passes** (≥95% line per `.coveragerc`) **and** `verify_stack.ps1` passes. Last measured: **95.01%** (2026-07-07) — **coverage gate is now GREEN** (MASTER §3.5), but clean-VM `verify_stack.ps1` (§3.8) has **not** been run — invites remain blocked on that step. **Ratchet order for Phase 1+:** 95 green ✅ → 100 line → branch hot paths → Playwright smoke → expand cohort.
 
 ---
 
@@ -31,10 +30,11 @@ Line coverage caps at 100%. **110%** means:
 
 | ID | Item | Beta impact if skipped |
 |----|------|------------------------|
-| 3.5 / 3.7 | 110% coverage gate | Regressions burn tester trust; support load explodes |
-| 2.3 | License key delivery email (LS `order_created` fallback) | Paid beta / Pro testers cannot activate | ✅ Done |
+| 3.5 | Line coverage ≥95% (`verify_coverage.ps1`) | **GREEN ✅** (95.01% last run, 2026-07-07) — no longer blocks Phase 0 invites; §3.8 clean-VM verify still outstanding |
+| 3.7 / 8.1 | Full 110% row (100% line + branches + E2E) | Phase 1+ blocker; see MASTER §3.10 |
+| 2.3 | ~~License key delivery email~~ ✅ Done | — |
 | 2.4 / 2.5 | License chain (purchase → key → activate → tier) | Commerce broken; waivable only for **free** Phase 0 |
-| 4.0 | Sign off ADR-001 (embedded runtime vs Docker) | ✅ Accepted 2026-07-07 — Phase 2 scope defined |
+| 4.0 | ~~ADR-001 sign-off~~ ✅ Accepted 2026-07-07 | — |
 
 ### 🟡 Soft blockers (waivable per phase with documented risk)
 
@@ -62,8 +62,7 @@ Line coverage caps at 100%. **110%** means:
 | **1 — Creator closed** | Streamers / editors | GHCR images *or* single hosted URL; Pro license keys | §2.3 email, §3.3 E2E, §6 docs |
 | **2 — Desktop closed** | Non-Docker creators | Signed installer + sidecar (ADR-001) | §4.1–4.13, §4.12 license UX |
 
-**Parallel track:** Phase 0 can start at **100% line + branch hot paths** if Playwright
-is still in flight; Phase 1/2 require full **110%** row in §1.
+**Parallel track:** Phase 0 invites require **§3.5 green** (≥95% line via `verify_coverage.ps1`). Phase 1+ requires the full **110%** row in §1.
 
 ---
 
@@ -106,10 +105,13 @@ Collect from testers (spreadsheet or form):
 
 ### 4.5 Exit criteria → Phase 1
 
+See MASTER §8.16:
+
 - [ ] ≥4/5 testers complete T0-1..T0-4
 - [ ] No 🔴 blocker bugs open > 7 days
 - [ ] License chain verified with at least one real LS test purchase (§2.3)
-- [ ] 110% coverage gate met
+- [ ] Line coverage ≥95% verified (`verify_coverage.ps1`) — **required before Phase 0 invites**
+- [ ] 110% coverage gate met (Phase 1 only; see MASTER §8.1)
 
 ---
 
@@ -236,8 +238,11 @@ unless tester enables phone-home (future).
 
 ### Week-before-invite checklist
 
-- [ ] Coverage 110% green in CI
-- [ ] `verify_stack.ps1` on clean VM
+See MASTER §8.19:
+
+- [ ] Line coverage ≥95% green (`verify_coverage.ps1`) — blocks Phase 0 invites until §3.5 done
+- [ ] Coverage 110% green in CI (§3.11) — Phase 1+
+- [ ] `verify_stack.ps1` on clean VM (§3.8)
 - [ ] Changelog / known issues published
 - [ ] LS test purchase → key → activate end-to-end
 - [ ] OAuth redirect URIs match deployed `WEB_ORIGIN`
@@ -253,7 +258,7 @@ Now ──► 95% line ──► 100% line ──► branch hot paths ──► 
                                                               ▼
                                                     Phase 0 invites (5–10)
                                                               │
-                              2.3 license email + Phase 0 exit │
+                              §3.5 ≥95% green + Phase 0 exit │
                                                               ▼
                                                     Phase 1 invites (20–40)
                                                               │
@@ -272,7 +277,7 @@ Now ──► 95% line ──► 100% line ──► branch hot paths ──► 
 
 | Beta need | MASTER_TODO |
 |-----------|-------------|
-| Coverage gate | §3.5, §3.7 |
+| Coverage gate | §3.5, §3.7, **§3.10** (canonical) |
 | E2E | §3.3 |
 | License / commerce | §2.3–2.5, §4.12 |
 | Distribution | §2.1, §2.19, runbook |

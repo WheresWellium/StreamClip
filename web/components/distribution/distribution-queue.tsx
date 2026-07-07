@@ -10,6 +10,7 @@ import {
   updatePublishJobAction,
 } from "@/lib/api/actions/distribution";
 import { useToastSafe } from "@/components/providers/toast-provider";
+import { usePublishProgress } from "@/hooks/use-publish-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -44,6 +45,233 @@ function toDatetimeLocal(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+type PublishJobRowProps = {
+  job: PublishJob;
+  hasPro: boolean;
+  busyId: string | null;
+  editingId: string | null;
+  editTitle: string;
+  editScheduledAt: string;
+  onStartEdit: (job: PublishJob) => void;
+  onDiscardEdit: () => void;
+  onSaveEdit: (job: PublishJob) => void;
+  onRetry: (jobId: string) => void;
+  onCancel: (jobId: string) => void;
+  onEditTitleChange: (v: string) => void;
+  onEditScheduledAtChange: (v: string) => void;
+};
+
+function PublishJobRow({
+  job,
+  hasPro,
+  busyId,
+  editingId,
+  editTitle,
+  editScheduledAt,
+  onStartEdit,
+  onDiscardEdit,
+  onSaveEdit,
+  onRetry,
+  onCancel,
+  onEditTitleChange,
+  onEditScheduledAtChange,
+}: PublishJobRowProps) {
+  const { event: liveEvent, terminal } = usePublishProgress(
+    job.status === "publishing" ? job.id : null,
+  );
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (terminal) router.refresh();
+  }, [terminal, router]);
+
+  const platformLabel = PLATFORM_LABELS[job.platform] ?? job.platform;
+  const statusClass = STATUS_STYLES[job.status] ?? "text-muted-foreground";
+  const canCancel = job.status === "pending" || job.status === "scheduled";
+  const canRetry = job.status === "failed";
+  const canEdit = canCancel;
+  const isEditing = editingId === job.id;
+  const isBusy = busyId === job.id;
+  const externalUrl = liveEvent?.external_url ?? job.external_url;
+
+  return (
+    <li className="glossy-surface rounded-lg border border-border/60 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">
+            {job.title || "Untitled clip"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {platformLabel}
+            {job.scheduled_at && job.status === "scheduled" && (
+              <>
+                {" · "}
+                <RelativeTime iso={job.scheduled_at} />
+              </>
+            )}
+            {job.published_at && job.status === "published" && (
+              <>
+                {" · "}
+                <RelativeTime iso={job.published_at} />
+              </>
+            )}
+          </p>
+        </div>
+        <span className={cn("text-xs capitalize shrink-0", statusClass)}>
+          {job.status === "publishing" && (
+            <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+          )}
+          {job.status}
+        </span>
+      </div>
+
+      {job.error_message && job.status === "failed" && (
+        <p className="text-xs text-destructive/90 line-clamp-2">
+          {job.error_message}
+        </p>
+      )}
+
+      {job.status === "publishing" && liveEvent && (
+        <div className="space-y-1">
+          <div className="h-1 w-full rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-amber-400/70 transition-[width]"
+              style={{ width: `${Math.min(100, Math.round(liveEvent.progress * 100))}%` }}
+            />
+          </div>
+          {liveEvent.message && (
+            <p className="text-[10px] text-muted-foreground truncate">
+              {liveEvent.message}
+            </p>
+          )}
+        </div>
+      )}
+
+      {isEditing && (
+        <div className="space-y-2 rounded-md border border-border/60 bg-background/60 p-2">
+          <div className="space-y-1">
+            <label
+              className="text-[10px] text-muted-foreground"
+              htmlFor={`pub-title-${job.id}`}
+            >
+              Title
+            </label>
+            <Input
+              id={`pub-title-${job.id}`}
+              className="h-8 text-xs"
+              value={editTitle}
+              maxLength={255}
+              onChange={(e) => onEditTitleChange(e.target.value)}
+            />
+          </div>
+          {job.status === "scheduled" && (
+            <div className="space-y-1">
+              <label
+                className="text-[10px] text-muted-foreground"
+                htmlFor={`pub-sched-${job.id}`}
+              >
+                Publish at
+              </label>
+              <Input
+                id={`pub-sched-${job.id}`}
+                className="h-8 text-xs"
+                type="datetime-local"
+                value={editScheduledAt}
+                onChange={(e) => onEditScheduledAtChange(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={isBusy}
+              onClick={() => onSaveEdit(job)}
+            >
+              {isBusy ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                "Save"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={onDiscardEdit}
+            >
+              Discard
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {externalUrl && (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:underline"
+          >
+            View post
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+        {canRetry && hasPro && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={isBusy}
+            onClick={() => onRetry(job.id)}
+          >
+            {isBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RotateCcw className="h-3 w-3" />
+            )}
+            Retry
+          </Button>
+        )}
+        {canEdit && hasPro && !isEditing && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={isBusy}
+            onClick={() => onStartEdit(job)}
+          >
+            <Pencil className="h-3 w-3" />
+            Edit
+          </Button>
+        )}
+        {canCancel && hasPro && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            disabled={isBusy}
+            onClick={() => onCancel(job.id)}
+          >
+            {isBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <X className="h-3 w-3" />
+            )}
+            Cancel
+          </Button>
+        )}
+      </div>
+    </li>
+  );
 }
 
 export function DistributionQueue({ jobs, hasPro }: Props) {
@@ -119,7 +347,7 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex rounded-md border border-border/60 overflow-hidden text-xs">
+      <div role="tablist" className="flex rounded-md border border-border/60 overflow-hidden text-xs">
         {(
           [
             { id: "queue" as const, label: "Queue", count: queueJobs.length },
@@ -129,6 +357,8 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
           <button
             key={id}
             type="button"
+            role="tab"
+            aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
               "flex-1 px-3 py-2 min-h-[44px] font-medium",
@@ -157,178 +387,24 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
         </p>
       ) : (
         <ul className="space-y-2">
-          {visible.map((job) => {
-            const platformLabel = PLATFORM_LABELS[job.platform] ?? job.platform;
-            const statusClass = STATUS_STYLES[job.status] ?? "text-muted-foreground";
-            const canCancel = job.status === "pending" || job.status === "scheduled";
-            const canRetry = job.status === "failed";
-            const canEdit = canCancel;
-            const isEditing = editingId === job.id;
-
-            return (
-              <li
-                key={job.id}
-                className="glossy-surface rounded-lg border border-border/60 p-3 space-y-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {job.title || "Untitled clip"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {platformLabel}
-                      {job.scheduled_at && job.status === "scheduled" && (
-                        <>
-                          {" · "}
-                          <RelativeTime iso={job.scheduled_at} />
-                        </>
-                      )}
-                      {job.published_at && job.status === "published" && (
-                        <>
-                          {" · "}
-                          <RelativeTime iso={job.published_at} />
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <span className={cn("text-xs capitalize shrink-0", statusClass)}>
-                    {job.status === "publishing" && (
-                      <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
-                    )}
-                    {job.status}
-                  </span>
-                </div>
-
-                {job.error_message && job.status === "failed" && (
-                  <p className="text-xs text-destructive/90 line-clamp-2">
-                    {job.error_message}
-                  </p>
-                )}
-
-                {isEditing && (
-                  <div className="space-y-2 rounded-md border border-border/60 bg-background/60 p-2">
-                    <div className="space-y-1">
-                      <label
-                        className="text-[10px] text-muted-foreground"
-                        htmlFor={`pub-title-${job.id}`}
-                      >
-                        Title
-                      </label>
-                      <Input
-                        id={`pub-title-${job.id}`}
-                        className="h-8 text-xs"
-                        value={editTitle}
-                        maxLength={255}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                      />
-                    </div>
-                    {job.status === "scheduled" && (
-                      <div className="space-y-1">
-                        <label
-                          className="text-[10px] text-muted-foreground"
-                          htmlFor={`pub-sched-${job.id}`}
-                        >
-                          Publish at
-                        </label>
-                        <Input
-                          id={`pub-sched-${job.id}`}
-                          className="h-8 text-xs"
-                          type="datetime-local"
-                          value={editScheduledAt}
-                          onChange={(e) => setEditScheduledAt(e.target.value)}
-                        />
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 text-xs"
-                        disabled={busyId === job.id}
-                        onClick={() => void handleSaveEdit(job)}
-                      >
-                        {busyId === job.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          "Save"
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-muted-foreground"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Discard
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {job.external_url && (
-                    <a
-                      href={job.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:underline"
-                    >
-                      View post
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                  {canRetry && hasPro && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={busyId === job.id}
-                      onClick={() => void handleRetry(job.id)}
-                    >
-                      {busyId === job.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-3 w-3" />
-                      )}
-                      Retry
-                    </Button>
-                  )}
-                  {canEdit && hasPro && !isEditing && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={busyId === job.id}
-                      onClick={() => startEdit(job)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                      Edit
-                    </Button>
-                  )}
-                  {canCancel && hasPro && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-muted-foreground"
-                      disabled={busyId === job.id}
-                      onClick={() => void handleCancel(job.id)}
-                    >
-                      {busyId === job.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {visible.map((job) => (
+            <PublishJobRow
+              key={job.id}
+              job={job}
+              hasPro={hasPro}
+              busyId={busyId}
+              editingId={editingId}
+              editTitle={editTitle}
+              editScheduledAt={editScheduledAt}
+              onStartEdit={startEdit}
+              onDiscardEdit={() => setEditingId(null)}
+              onSaveEdit={(j) => void handleSaveEdit(j)}
+              onRetry={(id) => void handleRetry(id)}
+              onCancel={(id) => void handleCancel(id)}
+              onEditTitleChange={setEditTitle}
+              onEditScheduledAtChange={setEditScheduledAt}
+            />
+          ))}
         </ul>
       )}
     </div>

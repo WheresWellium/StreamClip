@@ -10,12 +10,14 @@ export function HeaderNavWrapper() {
 
   useEffect(() => {
     setIsAuthenticated(Boolean(getClientAccessToken()));
-    const onStorage = () => setIsAuthenticated(Boolean(getClientAccessToken()));
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", onStorage);
+    const onAuthChange = () => setIsAuthenticated(Boolean(getClientAccessToken()));
+    window.addEventListener("storage", onAuthChange);
+    window.addEventListener("focus", onAuthChange);
+    window.addEventListener("auth-changed", onAuthChange);
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", onStorage);
+      window.removeEventListener("storage", onAuthChange);
+      window.removeEventListener("focus", onAuthChange);
+      window.removeEventListener("auth-changed", onAuthChange);
     };
   }, []);
 

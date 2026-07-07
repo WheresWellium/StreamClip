@@ -53,7 +53,22 @@ Hand-written types in `web/lib/api/types.ts` should be replaced with imports fro
 # API unit tests (host or container)
 pip install pytest pytest-asyncio pytest-cov httpx
 pytest
+```
 
+**Coverage gate (authoritative):** see `docs/MASTER_TODO.md` §3.10.
+
+```powershell
+# Full Docker suite + fail_under from .coveragerc (backend + core, not desktop)
+.\scripts\verify_coverage.ps1
+
+# Fast stack health + tests without coverage
+.\scripts\verify_stack.ps1
+
+# Pre-invite gate
+.\scripts\verify_stack.ps1 -WithCoverage
+```
+
+```bash
 # End-to-end smoke (requires running stack + test video in workspace/)
 docker compose exec api python /app/workspace/smoke_test.py
 

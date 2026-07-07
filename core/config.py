@@ -306,6 +306,11 @@ class ObservabilityConfig(BaseModel):
     otel_endpoint: str = ""
     enable_metrics: bool = True
     metrics_port: int = 9090
+    # If set, the /metrics endpoint requires this value as a Bearer token or
+    # X-Metrics-Key header. In development with no key set, loopback-only access
+    # is enforced when environment != "development". Set via
+    # STREAMCLIP_OBSERVABILITY__METRICS_API_KEY.
+    metrics_api_key: str = ""
 
 
 class WebhookConfig(BaseModel):

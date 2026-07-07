@@ -1,64 +1,65 @@
 # StreamClip — Beta Go-Live Checklist
 
-**Purpose:** Single-page runbook for Phase 0 (Docker technical beta). Phase 1/2 still gated on 100% line + branch coverage.  
+**Purpose:** Single-page runbook for Phase 0 (Docker technical beta). Phase 1/2 still gated on 110% (see [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3.10).  
 **Companion docs:** `docs/BETA_TESTER_PLAN.md`, `docs/BETA_TESTER_QUICKSTART.md`, `docs/MASTER_TODO.md`
 
 ---
 
 ## 1. Gate status (Phase 0)
 
+**Authoritative coverage rules:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10** (canonical command, scope, phase waivers).
+
 | Gate | Target | Verify | Status |
 |------|--------|--------|--------|
-| Line coverage | `fail_under = 100` (Phase 1+) | `docker compose exec -T api pytest tests/ -m "not desktop" --cov=backend --cov=core` | ✅ 95% — Phase 0 waived |
-| Hot-path branches | ≥85% hot paths (Phase 1+) | §3.7 branch cov | 🟡 in progress |
+| Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | `.\scripts\verify_coverage.ps1` or `verify_stack.ps1 -WithCoverage` | 🟢 95.01% — gate GREEN (§3.5, 2026-07-07) |
+| Hot-path branches | ≥85% hot paths (Phase 1+) | §3.7; enable `branch = True` when ready | 🟡 not measured yet |
 | Playwright smoke | `E2E_RUN=1` | `.\scripts\verify_stack.ps1 -RunE2E` | ✅ optional |
 | Stack verify | Windows + Docker | `.\scripts\verify_stack.ps1` | ✅ required |
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 Docker beta:** **OPEN** as of 2026-07-07. Invite 5–10 technical testers after `verify_stack.ps1` passes locally.
+**Phase 0 Docker beta:** **Prepared, not open for invites** (2026-07-07). **§3.5 is now GREEN** (95.01%, `verify_coverage.ps1` confirmed) but **§3.8 clean-VM `verify_stack.ps1` has not been run** — that is the remaining blocker before first cohort. Full 110% required before Phase 1 (MASTER §8.1).
 
 ---
 
 ## 2. T-minus 7 days — engineering
 
-- [ ] Ratchet `.coveragerc` to 100; rebuild API image: `docker compose build api && docker compose up -d api --force-recreate`
-- [ ] Branch coverage tests merged for hot paths (see `docs/MASTER_TODO.md` §3.7)
-- [ ] Playwright smoke covers: health → create job (202) → list jobs → batch publish validation
-- [ ] `verify_stack.ps1` passes on a **clean** Windows 11 VM (Docker Desktop, no prior workspace)
-- [ ] Known-issues doc updated (TikTok inbox-only, CPU fallback SLAs)
-- [ ] `docs/BETA_TESTER_QUICKSTART.md` reviewed by someone who has never run the repo
+Tracked in [`docs/MASTER_TODO.md`](MASTER_TODO.md):
+
+- §3.5 / §3.7 — coverage ratchet to 95% then 100% + hot-path branches
+- §3.3 — Playwright smoke scope
+- §3.8 — clean Windows 11 VM `verify_stack.ps1`
+- §8.7 — known-issues doc current
+- §8.14 — quickstart fresh-reader review
 
 ---
 
 ## 3. T-minus 3 days — ops & comms
 
-- [ ] Private GitHub repo or zip kit prepared (see §5)
-- [ ] Discord `#beta-bugs` or GitHub Discussions category live
-- [ ] Feedback template pinned (job id, GPU model, logs snippet, steps)
-- [ ] On-call rotation named for first 72h (P0 = pipeline stuck, auth broken, data loss)
-- [ ] Prometheus/Grafana or log tail procedure documented for testers who opt in
+Tracked in MASTER §8.9, §8.11–§8.13, §8.19, §9.2:
+
+- Beta kit prep, feedback channel, on-call, observability procedure
 
 ---
 
 ## 4. T-minus 1 day — cohort
 
-- [ ] **5–10** Phase 0 testers confirmed (≥2 with NVIDIA GPU)
-- [ ] Invite email drafted (§6)
-- [ ] Pro license keys ready for optional T0-6 (`SCPRO-…` staging keys)
-- [ ] Flip `docs/BETA_TESTER_PLAN.md` status **Draft → Active**
+Tracked in MASTER §8.3, §8.10, §8.15:
+
+- 5–10 Phase 0 testers (≥2 NVIDIA GPU), invite email, staging Pro keys
+- ~~Flip BETA_TESTER_PLAN Draft → Active~~ ✅ done (§8.10)
 
 ---
 
 ## 5. Phase 0 kit contents
 
-Ship via private link or encrypted zip:
+See MASTER §8.9. Ship via private link or encrypted zip:
 
 1. `docs/BETA_TESTER_QUICKSTART.md`
 2. `.env.example` (MinIO + Ollama + distribution BYO OAuth)
 3. `scripts/verify_stack.ps1`
 4. `docs/BETA_TESTER_PLAN.md` §4.3 flows (T0-1 … T0-6)
-5. Known issues + performance tolerance (+25% on `docs/PERFORMANCE.md` budgets)
+5. `docs/BETA_KNOWN_ISSUES.md` + performance tolerance (+25% on `docs/PERFORMANCE.md` budgets)
 
 **Recommended run:** `docker compose up -d` on Windows 11, localhost UI at `:3000`, API at `:8000`.
 
@@ -94,18 +95,21 @@ Body:
 | H+0 | Send invites; monitor `#beta-bugs` |
 | H+2 | Confirm ≥3 testers passed T0-1 (`verify_stack` + `/api/health/stack`) |
 | H+24 | Triage P0/P1; publish known-issues addendum if needed |
-| H+72 | Go/no-go for expanding cohort (see `BETA_TESTER_PLAN.md` §4.5) |
+| H+72 | Go/no-go for expanding cohort (see `BETA_TESTER_PLAN.md` §4.5, MASTER §8.16) |
 
 ---
 
 ## 8. Success metrics (Phase 0 exit)
 
+See MASTER §8.16:
+
 - ≥4/5 testers complete T0-1 … T0-4
 - No open 🔴 blockers > 7 days
-- 110% gate green on `main`
+- Line coverage ≥95% verified (`verify_coverage.ps1`) — **required before Phase 0 invites** (✅ met: 95.01% last run, 2026-07-07). Clean-VM `verify_stack.ps1` (§3.8) still required and **not yet run**.
+- 110% gate green on `main` (Phase 1 only)
 - At least one staging Lemon Squeezy purchase → activate → Pro tier verified
 
-**Then:** Open Phase 1 (creator closed, GHCR or hosted URL) per `docs/BETA_TESTER_PLAN.md` §5.
+**Then:** Open Phase 1 per `docs/BETA_TESTER_PLAN.md` §5.
 
 ---
 
@@ -119,4 +123,4 @@ If a show-stopper ships after invites:
 
 ---
 
-*Last updated: 2026-07-06*
+*Last updated: 2026-07-07*

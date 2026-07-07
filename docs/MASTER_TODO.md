@@ -3,10 +3,10 @@
 **Living document — running list of everything left before packaging and distributing
 StreamClip as a Windows desktop executable, with a macOS port to follow.**
 
-Last updated: 2026-07-07 (plan audit + desktop §4.1–4.5) · Owner: core team  
+Last updated: 2026-07-07 (MASTER consolidation + coverage truth §3.10) · Owner: core team  
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
 
-**Desktop embedded runtime (ADR-001):** §4.1–4.9 ✅ · §4.10 installer scaffold ✅ (NSIS + signing docs) · §4.13 Electron ✅ · Next: signed release + §4.11 GPU detection.
+**Desktop embedded runtime (ADR-001):** §4.1–4.11 ✅ · §4.10 installer scaffold ✅ (NSIS + signing docs) · §4.13 Electron ✅ · Next: EV cert + signed release (§4.10).
 
 **Cross-refs:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) · [`docs/BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · [`docs/GAP_ANALYSIS.md`](GAP_ANALYSIS.md) · [`docs/ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md)
 
@@ -77,17 +77,54 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 |---|------|-----|--------|
 | 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` | ✅ | — |
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` | ✅ | — |
-| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; extend to upload → clips → approve → publish queue (`BETA_TESTER_PLAN` §1, `BETA_GO_LIVE` §2) | 🟡 | M |
+| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; extend to health → create job → list → batch publish validation (`BETA_TESTER_PLAN` §1, `BETA_GO_LIVE` §2) | 🟡 | M |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` stubbed in test | ✅ | — |
-| 3.5 | Coverage gate ratchet — **`fail_under=95`** green (~95%). **110% plan:** 100% line + hot-path branches + Playwright smoke (`BETA_GO_LIVE` §1) | 🟡 | L |
+| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.01%** (2026-07-07) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
 | 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3. **Remaining:** Playwright e2e (§3.3) | 🟡 | S |
-| 3.7 | **110% plan — next modules:** `core/tasks/pipeline_tasks.py` remaining ~76 lines, branch coverage on `backend/services/sse.py` + distribution OAuth + `job_service` | 🟡 | M |
-| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — required before Phase 0 invites (`BETA_GO_LIVE` §2, `BETA_TESTER_PLAN` §1) | 🟡 | S |
+| 3.7 | **110% hot-path gaps** (2026-07-07 Docker `-m "not desktop"`): `pipeline_tasks.py` ~24 lines (96%), `sse.py` ~21 lines (90%), `job_service.py` ~1 line (99%), distribution OAuth helpers — branch cov not enabled yet | 🟡 | M |
+| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — required before Phase 0 invites (`BETA_GO_LIVE` §2, `BETA_TESTER_PLAN` §1); use `-WithCoverage` for pre-invite gate | 🟡 | S |
 | 3.9 | Desktop verify scripts in CI or release checklist: `verify_desktop_db.ps1`, `verify_inprocess.ps1`, `verify_desktop_storage.ps1`, `verify_desktop_ffmpeg.ps1` | 🟡 | S |
+| 3.10 | **Coverage measurement (canonical)** — see subsection below | 🟡 | S |
+| 3.11 | **CI coverage job** — ✅ `.github/workflows/test.yml` runs Docker pytest + `fail_under=95` on PR/`main` (fails until §3.5 green) | 🟡 | S |
+
+### 3.10 Coverage measurement (single source of truth)
+
+**“110%” definition** (line coverage caps at 100%; stretch = line + branches + E2E):
+
+| Pillar | Gate | Phase 0 (Docker beta) | Phase 1+ |
+|--------|------|----------------------|----------|
+| Line | `.coveragerc` `fail_under` | **95** (active) | **100** |
+| Hot-path branches | ≥85% on listed modules | Waived | Required (`branch = True` in `.coveragerc` when ready) |
+| E2E smoke | Playwright `E2E_RUN=1` | Optional (`verify_stack.ps1 -RunE2E`) | Required |
+| Stack verify | `verify_stack.ps1` | Required (tests default `--no-cov`; does **not** prove coverage %) | Required + `-WithCoverage` before invites |
+
+**Current measured line coverage (2026-07-07):** **95.01%** — **gate GREEN** (§3.5, `fail_under=95` reached; confirmed via `pytest` exit code and the "Required test coverage of 95.0% reached" message). Re-verify with `verify_coverage.ps1` before citing in release comms.
+
+**Phase 0 invite rule:** `verify_stack.ps1` green **and** `verify_coverage.ps1` green (≥95% line). Stack-only verify is for local dev smoke, not beta clearance.
+
+**Canonical command** (only percentage cited in docs):
+
+```powershell
+docker compose exec -T api pytest tests/ -m "not desktop" -q `
+  --cov=backend --cov=core --cov-report=term-missing:skip-covered
+```
+
+Shortcut: `.\scripts\verify_coverage.ps1`
+
+**Scope:** `backend` + `core` only (not `web/`, `desktop_sidecar/`, `apps/`). **Exclusions:** `@pytest.mark.desktop` + `tests/conftest.py` `pytest_ignore_collect` for sidecar/installer/SQLite/prod-compose-in-Docker.
+
+**Hot-path branch targets (Phase 1+):** `core/tasks/pipeline_tasks.py`, `backend/services/sse.py`, `core/distribution/*`, `backend/services/job_service.py`.
+
+**Footguns:**
+
+- `pytest.ini` always adds `--cov` — **subset runs** (single file) enforce `fail_under` on partial scope → misleading low %.
+- `verify_stack.ps1` default uses `--no-cov` (fast); use **`-WithCoverage`** for authoritative gate.
+- `test_prod_compose.py` runs on **host only** (ignored when `/.dockerenv` exists).
+
 
 ## 4. Windows desktop packaging (.exe)
 
-**Current state:** Electron shell at `apps/desktop` is still a **Docker launcher** (`docker-compose.prod.yml`, `ghcr.io/streamclip/*`). Embedded runtime seam is partially built (§4.1–4.5 ✅).
+**Current state:** Electron shell at `apps/desktop` spawns `streamclip-sidecar.exe` (prod) or `python -m desktop_sidecar` (dev) — no Docker required. See `apps/desktop/src/main.ts` and `docs/ADR-001-desktop-packaging.md` for the embedded runtime architecture. §4.1–4.13 are ✅; remaining work is EV code-signing and the signed release (§4.10).
 
 **Decision (4.0):** ✅ **Accepted 2026-07-07** — embedded runtime (SQLite + in-process queue + bundled Python sidecar, no Docker). Rationale: `docs/ADR-001-desktop-packaging.md`.
 
@@ -132,7 +169,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 6.2 | ~~GAP_ANALYSIS.md stale rows~~ ✅ C3/C8/C9 marked shipped with evidence; T47 fixed at the source | ✅ | — |
 | 6.3 | ~~Desktop packaging ADR~~ ✅ `docs/ADR-001-desktop-packaging.md` — **Accepted 2026-07-07** | ✅ | — |
 | 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed; rate-limit opt-out documented as dev-only | ✅ | — |
-| 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ partial refresh 2026-07-01. **Remaining:** README project layout (GAP T54), CREATOR_PLATFORM vault/desktop rows | 🟡 | S |
+| 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ refreshed 2026-07-07 (layout §6.7, CREATOR_PLATFORM §6.10; GAP T54 closed) | ✅ | — |
 | 6.6 | ~~`docs/cloud-deploy.md` aspirational~~ ✅ design-stage banner added (keep-or-delete per 2.10) | ✅ | — |
 | 6.7 | ~~README project layout~~ ✅ layout refreshed: `core/ingest/`, router list, migrations `0001`–`0009`, desktop paths (`desktop_sidecar/`, `packaging/`, `static/ui/`, `bin/ffmpeg/`, `config/desktop.yaml`) | ✅ | — |
 | 6.8 | ~~GPU queue narrative~~ ✅ `worker` queues now `${STREAMCLIP_WORKER_QUEUES:-default,gpu}` — set `default` with `--profile gpu` for true isolation; README ship checklist updated (GAP T56) | ✅ | — |
@@ -155,33 +192,104 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 ## 8. Beta tester program (gated on 110% coverage)
 
 **Canonical plan:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) — Phase 0 (Docker
-technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`). Do **not**
-invite external testers until §1 gate in that doc is green (100% line + hot-path branches +
-Playwright smoke + `verify_stack.ps1`).
+technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`).
+
+**Phase 0 status (2026-07-07):** **Prepared, not cleared for invites.** Kit/docs/scripts ready; **§3.5 coverage gate is now GREEN** (95.01% last full Docker run, confirmed via `verify_coverage.ps1`). Still blocked on **§3.8 clean-VM `verify_stack.ps1`** (not yet run on a clean Windows 11 VM) before first external invite. Full **110%** row (§3.10) required before Phase 1.
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 8.1 | Hit 110% coverage gate (§3.5 → 100% line + §3.7 branches + §3.3 Playwright) | 🔴 | L |
+| 8.1 | Hit 110% coverage gate (§3.5 → 100% line + §3.7 branches + §3.3 Playwright) — Phase 1+ blocker | 🔴 | L |
 | 8.2 | ~~Write `docs/BETA_TESTER_QUICKSTART.md` at Phase 0 open~~ ✅ exists | ✅ | S |
-| 8.3 | Phase 0 cohort (5–10): Docker self-host, T0 flows in beta plan | 🟡 | M |
-| 8.4 | Phase 1: LS license email (2.3) + 20–40 creators + optional GHCR tags | 🟡 | M |
+| 8.3 | Phase 0 cohort (5–10): Docker self-host, T0 flows in beta plan §4.3 | 🟡 | M |
+| 8.4 | Phase 1: 20–40 creators + optional GHCR tags (license email §2.3 ✅) | 🟡 | M |
 | 8.5 | Phase 2: desktop closed beta (§4.6–4.8 minimum) — 50–100 testers | 🔴 | L |
 | 8.6 | ~~Align commerce docs/code to one-time purchase~~ ✅ `COMMERCIAL.md` now states one-time purchase / perpetual entitlement, activation limits, offline grace; code already matched (`entitlement_days: 0` → perpetual). **Remaining:** confirm LS product config (dashboard, not repo) | 🟢 | S |
-| 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — TikTok inbox-only, no Instagram, CPU fallback SLAs, SmartScreen unsigned desktop (beta kit item in `BETA_TESTER_PLAN` §4.2) | 🟢 | S |
+| 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — keep current for TikTok inbox-only, no Instagram, CPU SLAs, SmartScreen unsigned desktop | 🟢 | S |
 | 8.8 | **GHCR image build + publish workflow** — ✅ `.github/workflows/images.yml` (api/worker/web on `v*` tags or manual dispatch). **Remaining:** repo owner must match `ghcr.io/streamclip/*` in prod compose (or set image prefix var) + first tagged release to publish | 🟡 | S |
-| 8.9 | **Beta launch ops** (`BETA_GO_LIVE` §2–§4): feedback channel (Discord/Discussions), clean VM verify, OAuth redirect URIs match `WEB_ORIGIN`, on-call rotation, changelog per wave | 🟡 | M |
-| 8.10 | ~~Flip `docs/BETA_TESTER_PLAN.md` Draft → Active~~ ✅ Phase 0 Active 2026-07-07 (Docker path) | ✅ | S |
+| 8.9 | **Beta kit prep** — private repo link or encrypted zip with quickstart, `.env.example`, `verify_stack.ps1`, known issues, T0 flows (`BETA_GO_LIVE` §5) | 🟡 | S |
+| 8.10 | ~~Flip `docs/BETA_TESTER_PLAN.md` Draft → Active~~ ✅ plan doc **Active** 2026-07-07 (≠ beta invites open — see §3.5) | ✅ | S |
+| 8.11 | **Feedback channel** — Discord `#beta-bugs` or GitHub Discussions + pinned template (job id, GPU, logs, steps) | 🟡 | S |
+| 8.12 | **On-call rotation** — named for first 72h post-invite (P0 = pipeline stuck, auth broken, data loss) | 🟡 | S |
+| 8.13 | **OAuth redirect URIs** — match deployed `WEB_ORIGIN` for YouTube/TikTok apps | 🟡 | S |
+| 8.14 | **Quickstart fresh-reader review** — someone who never ran the repo walks `BETA_TESTER_QUICKSTART.md` | 🟡 | S |
+| 8.15 | **Invite comms** — Phase 0 email drafted (`BETA_GO_LIVE` §6); staging Pro keys for optional T0-6 | 🟡 | S |
+| 8.16 | **Phase exit — Phase 0** (`BETA_TESTER_PLAN` §4.5): ≥4/5 complete T0-1..T0-4; no 🔴 >7d; LS test purchase → activate; 110% before Phase 1 | 🟡 | M |
+| 8.17 | **Phase exit — Phase 1** (§5.6): ≥70% T1-1..T1-3; Playwright CI green (§3.3); GPU perf within `PERFORMANCE.md` (+25% beta tolerance) | 🟡 | M |
+| 8.18 | **Phase exit — Phase 2** (§6.4): crash-free >98% (7d); install→first clip <45m median; signing (§4.10); macOS scoped (§5) | 🔴 | L |
+| 8.19 | **Week-before-invite checklist** (`BETA_TESTER_PLAN` §8): **§3.5 green ✅ (2026-07-07, 95.01%)** (`verify_coverage.ps1`), clean VM verify (§3.8) — **still outstanding**, changelog/known issues, LS E2E purchase, OAuth URIs (§8.13), Beat/scheduled-publish docs | 🟡 | M |
 
 ## 9. Self-host / ops (Docker path — parallel to desktop)
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 9.1 | **`/api/health/stack` deep probe** — ✅ documented in `BETA_TESTER_QUICKSTART.md` §4; prod compose + `verify_stack.ps1` hit `/api/health/stack` (database, redis, cuda/nvenc flags) | 🟢 | S |
-| 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers (`BETA_GO_LIVE` §3, `BETA_TESTER_PLAN` §7) | 🟢 | S |
+| 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers — see §8.19 week-before checklist; `BETA_GO_LIVE` §3 | 🟢 | S |
 | 9.3 | **MkDocs internal docs site** — maintain `mkdocs.yml`, Vercel deploy, keep `GAP_ANALYSIS` / `MASTER_TODO` in `exclude_docs` (`docs/INTERNAL.md`) | 🟢 | S |
+
+## 10. Final Stretch — release readiness (2026-07-07)
+
+**Source:** 7-way parallel `streamclip-gap-analysis` audit (backend/auth/billing, core pipeline, distribution/vault/ops, web frontend, desktop/deploy, media-serving, upload). All P0s and P1s resolved in the same session. Coverage gate held at **95.02%** (886 tests, 0 failures) throughout.
 
 ---
 
+### FS-1 — Completed this session ✅
+
+| # | What was fixed | Files changed |
+|---|----------------|---------------|
+| FS-1.1 | ~~Upload broken — MinIO had no CORS policy, blocked browser presigned PUT~~ ✅ `MINIO_API_CORS_ALLOW_ORIGIN: "*"` in dev compose; verified live (PUT 200, job created); 41/41 upload tests pass | `docker-compose.yml` |
+| FS-1.2 | ~~Playback/thumbnails/download in prod — URLs fell back to unreachable `minio:9000`~~ ✅ `STREAMCLIP_STORAGE__PUBLIC_BASE_URL` (env-driven) added to `docker-compose.prod.yml` (api+worker) and dev worker/gpu-worker; `.env.production.example` documented | `docker-compose.yml`, `docker-compose.prod.yml`, `.env.production.example` |
+| FS-1.3 | ~~No frontend URL refresh on presigned 1h expiry~~ ✅ `clip-card.tsx`/`clip-editor.tsx` hold local URL state; `onError` calls `refreshClipMediaAction` (refetches job) and retries once; download HEAD-checks before navigating; `useToastSafe` on final failure | `web/components/clips/clip-card.tsx`, `clip-editor.tsx`, `web/lib/api/actions/jobs.ts` |
+| FS-1.4 | ~~Distribution/OAuth broken in dev compose — no `TOKEN_ENCRYPTION_KEY`~~ ✅ Fernet key + `WEB_ORIGIN` added to all dev services; verified live; `.env.example` + `distribution-runbook.md` updated | `docker-compose.yml`, `.env.example`, `docs/distribution-runbook.md` |
+| FS-1.5 | ~~Prod worker never consumed `gpu` queue~~ ✅ default changed to `${STREAMCLIP_WORKER_QUEUES:-default,gpu}`; GPU-isolation override documented | `docker-compose.prod.yml`, `deploy/PRODUCTION.md` |
+| FS-1.6 | ~~Race condition — global `cfg` mutated under parallel `process_clip`~~ ✅ `_apply_job_config`/`_apply_clip_overrides`/`_apply_aspect_ratio` take explicit `cfg_obj`; `process_clip` creates `local_cfg = cfg.model_copy(deep=True)` per invocation; regression test added; 64-test suite + 95.02% coverage pass | `core/tasks/pipeline_tasks.py`, `tests/test_aspect_ratio_pipeline.py` |
+| FS-1.7 | ~~Tier quotas silently disabled — gated on `rate_limit.enabled`~~ ✅ quota block unconditional for authenticated users; Redis rate-limit path unchanged | `backend/services/job_service.py` |
+| FS-1.8 | ~~`max_minutes_per_month` defined but never enforced~~ ✅ `QuotaExceededError` raised in `create_job` when limit exceeded; 0 = unlimited | `backend/services/job_service.py` |
+| FS-1.9 | ~~License revoke didn't downgrade user tier or invalidate JWT~~ ✅ revoke downgrades `users.tier` → FREE when no other activated license remains; JWT blocklist limitation documented in `BETA_KNOWN_ISSUES.md` + `# TODO: jti blocklist` comment in `core/licensing.py` | `backend/api/admin.py`, `core/licensing.py`, `docs/BETA_KNOWN_ISSUES.md` |
+| FS-1.10 | ~~Distribution unlocked before license activation~~ ✅ `_install_has_pro_license` now requires `status='activated'` | `backend/middleware/distribution.py` |
+| FS-1.11 | ~~`/metrics` unauthenticated; default JWT secret active~~ ✅ `/metrics` gated by `STREAMCLIP_OBSERVABILITY__METRICS_API_KEY` (Bearer/header); loopback-only in non-dev otherwise; CRITICAL log on default JWT secret; documented in `deploy/PRODUCTION.md` + `.env.example` | `core/config.py`, `backend/api/metrics.py`, `backend/main.py`, `deploy/PRODUCTION.md`, `.env.example` |
+| FS-1.12 | ~~Uploads presign endpoint had no ownership check~~ ✅ `GET /api/uploads/url` validates `uploads/` key prefix against requesting user/device; 403 on mismatch | `backend/api/uploads.py` |
+| FS-1.13 | ~~Web UI ignored install-level Pro/Admin license for distribution~~ ✅ `hasDistributionAccessClient` no longer short-circuits on missing JWT; machine-license check always runs as fallback | `web/lib/distribution/client-access.ts`, `web/components/settings/distribution-section.tsx`, `web/lib/api/actions/distribution.ts` |
+| FS-1.14 | ~~Header auth state stale after same-tab login~~ ✅ `setAuthTokens`/`clearAuthTokens` dispatch `"auth-changed"` event; `header-nav-wrapper.tsx` listens alongside `storage`/`focus` | `web/lib/auth/client-session.ts`, `web/components/layout/header-nav-wrapper.tsx` |
+| FS-1.15 | ~~Publish SSE endpoint unroutable (`_api_bff/`)~~ ✅ job + publish-job progress BFFs moved to `web/app/api/.../progress/route.ts`; both visible in `npm run build` as `ƒ` dynamic routes; auth + `Last-Event-Id` forwarded | `web/app/api/distribution/publish-jobs/[id]/progress/route.ts` (new), `web/app/api/jobs/[id]/progress/route.ts` (new) |
+| FS-1.16 | ~~Per-clip download didn't force-save cross-origin~~ ✅ `downloadBlob(url, filename)` utility created (fetch → blob → object URL → programmatic click); wire into `clip-card.tsx` after FS-1.3 review | `web/lib/utils/download.ts` (new) |
+| FS-1.17 | ~~TikTok upload poll returned `"published"` on status-unknown timeout~~ ✅ poll returns `"pending"` on budget expiry; publish task releases claim to `"pending"` for retry | `core/distribution/tiktok.py`, `core/tasks/publish_tasks.py` |
+| FS-1.18 | ~~`MASTER_TODO.md` §4 intro described Electron as Docker launcher (doc regression)~~ ✅ intro rewritten to describe embedded sidecar | `docs/MASTER_TODO.md` |
+| FS-1.19 | ~~UX: `not-found.tsx` said "static desktop UI"~~ ✅ generic web 404 copy | `web/app/not-found.tsx` |
+| FS-1.20 | ~~UX: Pro gate modal linked to `/settings` instead of license panel~~ ✅ links to `/settings?section=license` | `web/components/distribution/pro-gate-modal.tsx` |
+| FS-1.21 | ~~UX: Distribution queue tabs missing a11y roles~~ ✅ `role="tablist"` / `role="tab"` / `aria-selected` added | `web/components/distribution/distribution-queue.tsx` |
+
+---
+
+### FS-2 — Still open (final push) 🟡
+
+| # | Item | Effort | Who |
+|---|------|--------|-----|
+| ~~FS-2.1~~ ✅ | ~~**Wire `downloadBlob` into `clip-card.tsx`**~~ — import added; `onDownloadClick` now calls `downloadBlob(url, title+'.mp4')` after HEAD-check; fallback also uses `downloadBlob`; plain `<a>` replaced with `<button>` | S | Agent |
+| ~~FS-2.2~~ ✅ | ~~**Wire `use-publish-progress.ts` into Distribution Queue UI**~~ — `PublishJobRow` sub-component extracted; calls `usePublishProgress(job.id)` for `publishing` rows; shows live progress bar + message; `router.refresh()` fires on SSE terminal event | M | Agent |
+| ~~FS-2.3~~ ✅ | ~~**GHCR image prefix in `docker-compose.prod.yml`**~~ — all 5 `ghcr.io/streamclip/` image refs (api, worker ×3, web) replaced with `${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/`; `.env.production.example` comment updated; `docker compose config --quiet` passes | S | Agent |
+| FS-2.4 | **Clean-VM `verify_stack.ps1` run** (§3.8) — last hard gate before Phase 0 beta invites; must run on a machine that has never had the repo before | S | **You** |
+
+---
+
+### FS-3 — Deferred consolidation (post-release, P2) 🟢
+
+| Area | Files | Target pattern |
+|------|-------|----------------|
+| Presigned URL generation | `job_service.to_dto`, `vault/service.py`, `uploads.py`, `jobs.py` | Single `storage.presign_for_browser(key)` helper |
+| Thumbnail ffmpeg one-liner | `pipeline_tasks.py` (2 call sites) | Extract `extract_thumbnail()` helper |
+| OAuth token exchange/refresh | `core/distribution/youtube.py`, `tiktok.py` | Shared `OAuthPlatformAdapter` base |
+| Rate-limit dependency boilerplate | ~15 routers, ~50+ endpoints | Router-level `dependencies=[...]` instead of per-route |
+| Tier limit checks | `vault/service.py` (correct) vs `assets.py`/`templates.py` (hardcoded) | Single `enforce_resource_limit()` via `get_tier_limits()` |
+| API client types | `web/lib/api/client.ts` hand-written vs generated `openapi.ts` | Regenerate + import from OpenAPI per `CONTRIBUTING.md` |
+| Platform label maps | 4 web components | Single shared `PLATFORM_LABELS` constant |
+| Distribution context fetch | 3 web components/actions | Single shared helper |
+| Monthly quota reset | `backend/db/repositories.py` | Beat task that zeroes `minutes_processed_this_month`/`jobs_used_this_month` on month rollover |
+
+---
+
+**Bottom line:** All critical bugs and P1 correctness issues from the full audit are fixed. To reach Phase 0 invite readiness: complete FS-2.1–FS-2.3 (agent work, ~1–2h), then FS-2.4 (your clean-VM run).
+
+---
 ## Plan sync checklist (agents)
 
 When closing work from any plan doc, update **this file** and the source plan:
@@ -191,7 +299,11 @@ When closing work from any plan doc, update **this file** and the source plan:
 | `GAP_ANALYSIS.md` | New T/U/C gap or deferral changes |
 | `BETA_TESTER_PLAN.md` | Phase gates, kit contents, exit criteria |
 | `BETA_GO_LIVE.md` | Launch checklist items move |
+| `BETA_KNOWN_ISSUES.md` | Beta-facing limitation text changes |
+| `TECHNICAL_DESIGN.md` §11 | Known limitations list changes |
 | `ADR-001-desktop-packaging.md` | Desktop implementation order advances |
 | `CREATOR_PLATFORM.md` | Roadmap Now/Next/Later shifts |
 
 Invoke skill: **streamclip-gap-analysis** for full doc/code drift audits.
+
+

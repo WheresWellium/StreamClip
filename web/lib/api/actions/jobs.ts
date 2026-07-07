@@ -226,6 +226,30 @@ export async function spliceClipsAction(
   }
 }
 
+export async function refreshClipMediaAction(
+  jobId: string,
+  clipId: string,
+): Promise<
+  | { ok: true; download_url: string | null; thumbnail_url: string | null }
+  | { ok: false; message?: string }
+> {
+  try {
+    const token = getClientAccessToken();
+    const deviceId = getClientDeviceId();
+    const job = await jobsApi.get(jobId, token ?? undefined, deviceId ?? undefined);
+    const clip = job.clips?.find((c) => c.id === clipId);
+    if (!clip) return { ok: false, message: "Clip not found" };
+    return {
+      ok: true,
+      download_url: clip.download_url ?? null,
+      thumbnail_url: clip.thumbnail_url ?? null,
+    };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not refresh clip media" };
+  }
+}
+
 export async function submitClipFeedbackAction(
   clipId: string,
   rating: number,

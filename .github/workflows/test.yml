@@ -1,0 +1,35 @@
+# Server-profile pytest + coverage gate (MASTER_TODO §3.11, §3.10)
+name: test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start API stack
+        run: |
+          docker compose build api
+          docker compose up -d postgres redis minio api
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/health >/dev/null; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API failed to become healthy"
+          docker compose logs api
+          exit 1
+
+      - name: Pytest with coverage (not desktop)
+        run: |
+          docker compose exec -T api pytest tests/ -m "not desktop" -q \
+            --cov=backend --cov=core --cov-report=term-missing:skip-covered

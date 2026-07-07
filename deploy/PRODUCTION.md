@@ -10,8 +10,10 @@ Self-hosted AI clip pipeline: Next.js → FastAPI → Celery → Redis → Postg
 2. Clone the repo and copy `.env.example` values into `docker-compose.yml` environment blocks (or use an `.env` file).
 3. Set production secrets:
    - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH__SECRET_KEY`
+   - **`STREAMCLIP_AUTH__SECRET_KEY`** — **required** — generate with `openssl rand -hex 32`. Using the default value (`CHANGE_ME_IN_PRODUCTION`) logs a `SECURITY_WARNING` at startup and signs both auth and entitlement JWTs with a well-known key.
    - `STREAMCLIP_RATE_LIMIT__ENABLED=true`
    - `STREAMCLIP_LOG_JSON=true`
+   - **Metrics auth** (recommended): set `STREAMCLIP_OBSERVABILITY__METRICS_API_KEY` to a random token (`openssl rand -hex 16`). Without this, the `/metrics` endpoint is restricted to loopback only when `STREAMCLIP_ENVIRONMENT=production`. Include the key in your Prometheus scrape config as `Authorization: Bearer <key>` or `X-Metrics-Key: <key>`.
    - Social distribution (publish/schedule), if enabled:
      - `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` — Fernet key for OAuth secrets (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
      - `STREAMCLIP_DISTRIBUTION__WEB_ORIGIN=https://clip.example.com`
@@ -86,13 +88,13 @@ Suitable for ~5 active creators processing a few hours of VOD per week on CPU; G
 
 ## CPU vs GPU
 
-Default compose runs a single worker on `default,gpu` queues with `libx264` and Whisper `medium` + `int8`. For NVIDIA:
+Default compose runs a single worker on `default,gpu` queues with `libx264` and Whisper `medium` + `int8` — this is CPU-safe and works out of the box with zero manual overrides. For NVIDIA:
 
 ```bash
-docker compose --profile gpu up -d
+docker compose -f docker-compose.prod.yml --profile gpu up -d
 ```
 
-GPU worker uses `h264_nvenc` and Whisper `float16` on CUDA.
+GPU worker uses `h264_nvenc` and Whisper `float16` on CUDA. When running an isolated `gpu-worker` this way, set `STREAMCLIP_WORKER_QUEUES=default` on the main `worker` service so GPU-routed tasks (`run_transcribe`, `process_clip`) only run on `gpu-worker` instead of double-consuming on both.
 
 ## 6. Webhooks
 

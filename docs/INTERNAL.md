@@ -6,7 +6,10 @@ These files live in `docs/` for version control and agent workflows but are **ex
 |------|---------|-------------|
 | [GAP_ANALYSIS.md](GAP_ANALYSIS.md) | Doc vs code / UX gap register | After gap-analysis runs, releases, major refactors |
 | [MASTER_TODO.md](MASTER_TODO.md) | Engineering backlog and ship checklist | When closing or opening beta blockers |
+| [PLAN.md](../PLAN.md) | Short-lived execution tracker (repo root) | During multi-step agent plans |
 | [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) | Beta tester limitations and SLAs | Each beta wave |
+
+**Coverage gate:** canonical rules in [MASTER_TODO.md §3.10](MASTER_TODO.md); run `scripts/verify_coverage.ps1`.
 
 **Workflow:** run the `streamclip-gap-analysis` skill (`.cursor/skills/streamclip-gap-analysis/SKILL.md`) — it updates `GAP_ANALYSIS.md` in place. Sync `MASTER_TODO.md` when items move to done or new gates appear.
 

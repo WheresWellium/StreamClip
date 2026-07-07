@@ -1,0 +1,93 @@
+﻿"""Focused coverage for backend/api/admin.py — require_admin dependency and
+the license revoke endpoint's not-found / already-revoked / success paths.
+"""
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from fastapi import HTTPException
+
+from backend.api import admin as admin_mod
+from backend.db.models import UserTier
+
+
+@pytest.mark.asyncio
+async def test_require_admin_rejects_missing_user():
+    with patch.object(admin_mod, "UserRepository") as UR:
+        UR.return_value.get = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await admin_mod.require_admin(user_id="u1", db=object())
+        assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_require_admin_rejects_non_admin_tier():
+    user = SimpleNamespace(tier=UserTier.FREE, is_active=True)
+    with patch.object(admin_mod, "UserRepository") as UR:
+        UR.return_value.get = AsyncMock(return_value=user)
+        with pytest.raises(HTTPException) as exc:
+            await admin_mod.require_admin(user_id="u1", db=object())
+        assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_require_admin_rejects_inactive_admin():
+    user = SimpleNamespace(tier=UserTier.ADMIN, is_active=False)
+    with patch.object(admin_mod, "UserRepository") as UR:
+        UR.return_value.get = AsyncMock(return_value=user)
+        with pytest.raises(HTTPException) as exc:
+            await admin_mod.require_admin(user_id="u1", db=object())
+        assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_require_admin_allows_active_admin():
+    user = SimpleNamespace(tier=UserTier.ADMIN, is_active=True)
+    with patch.object(admin_mod, "UserRepository") as UR:
+        UR.return_value.get = AsyncMock(return_value=user)
+        result = await admin_mod.require_admin(user_id="u1", db=object())
+    assert result == "u1"
+
+
+@pytest.mark.asyncio
+async def test_revoke_license_not_found():
+    with patch.object(admin_mod, "InstallLicenseRepository") as ILR:
+        ILR.return_value.get = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await admin_mod.revoke_license("lic-missing", admin_id="admin1", db=object())
+        assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_revoke_license_already_revoked_skips_revoke_call():
+    lic = SimpleNamespace(status="revoked", license_key_hash="abcdef0123456789")
+    db = SimpleNamespace(commit=AsyncMock())
+    with patch.object(admin_mod, "InstallLicenseRepository") as ILR:
+        repo = ILR.return_value
+        repo.get = AsyncMock(return_value=lic)
+        repo.revoke = AsyncMock()
+        result = await admin_mod.revoke_license("lic-1", admin_id="admin1", db=db)
+    repo.revoke.assert_not_called()
+    db.commit.assert_not_called()
+    assert result["license_id"] == "lic-1"
+    assert result["status"] == "revoked"
+    assert "note" in result  # JWT-invalidation known-limitation notice
+
+
+@pytest.mark.asyncio
+async def test_revoke_license_success_commits_and_logs():
+    # user_id=None so the tier-downgrade path is skipped in this basic smoke test.
+    lic = SimpleNamespace(status="issued", license_key_hash="abcdef0123456789", user_id=None)
+    db = SimpleNamespace(commit=AsyncMock(), execute=AsyncMock())
+    with patch.object(admin_mod, "InstallLicenseRepository") as ILR:
+        repo = ILR.return_value
+        repo.get = AsyncMock(return_value=lic)
+        repo.revoke = AsyncMock()
+        result = await admin_mod.revoke_license("lic-2", admin_id="admin1", db=db)
+    repo.revoke.assert_called_once_with(lic)
+    db.commit.assert_called_once()
+    assert result["license_id"] == "lic-2"
+    assert result["status"] == "revoked"
+    assert "note" in result  # JWT-invalidation known-limitation notice

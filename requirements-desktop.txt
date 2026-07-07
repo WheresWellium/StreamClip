@@ -1,0 +1,20 @@
+# ═══════════════════════════════════════════════════════════════════
+# StreamClip — desktop packaging profile (ADR-001 §4.6)
+#
+# CPU-only torch wheels: the desktop .exe must run without CUDA and the
+# CUDA wheel family adds ~2 GB of DLLs. Install into the build venv:
+#
+#   pip install -r requirements-desktop.txt -r requirements-packaging.txt
+#
+# The --index-url line scopes ONLY the torch family to the CPU wheel index;
+# everything else resolves from PyPI as usual.
+# ═══════════════════════════════════════════════════════════════════
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch>=2.3.0
+torchvision>=0.18.0
+torchaudio>=2.3.0
+
+# Everything else matches the server profile.
+-r requirements.txt

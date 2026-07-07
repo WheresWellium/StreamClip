@@ -21,8 +21,16 @@ APP_DATA_DIR_NAME = "StreamClip"
 
 
 def app_root() -> Path:
-    """Repository root in dev; install dir when frozen (PyInstaller)."""
+    """Repository root in dev; bundled resources dir when frozen.
+
+    PyInstaller ≥6 one-dir places datas under ``_internal/`` next to the exe
+    and exposes it as ``sys._MEIPASS`` — config/alembic/static live there,
+    not beside the executable.
+    """
     if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            return Path(meipass).resolve()
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parents[1]
 
@@ -126,11 +134,13 @@ def run_server(
     root: Path | None = None,
 ) -> None:
     """Start FastAPI + in-process worker (desktop profile)."""
+    # Env overrides MUST land before backend.main import: modules resolve
+    # get_settings() at import time and would cache the Postgres defaults.
+    base = configure_desktop_env(root)
+
     import uvicorn
 
     from backend.main import create_app
-
-    base = configure_desktop_env(root)
     bind_host = host or os.environ.get("STREAMCLIP_SIDECAR_HOST", DEFAULT_HOST)
     bind_port = int(port or os.environ.get("STREAMCLIP_SIDECAR_PORT", DEFAULT_PORT))
 

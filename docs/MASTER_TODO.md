@@ -6,7 +6,7 @@ StreamClip as a Windows desktop executable, with a macOS port to follow.**
 Last updated: 2026-07-07 (plan audit + desktop §4.1–4.5) · Owner: core team  
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
 
-**Desktop embedded runtime (ADR-001):** §4.1–4.5 ✅ · §4.6 scaffold ✅ · §4.7 + §4.7a static export ✅ · §4.13 Electron sidecar shell ✅ · Next: full PyInstaller ML bundle.
+**Desktop embedded runtime (ADR-001):** §4.1–4.9 ✅ (incl. full PyInstaller ML bundle + first-run prefetch + Windows audit) · §4.13 Electron sidecar shell ✅ · Next: §4.10 installer + code signing.
 
 **Cross-refs:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) · [`docs/BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · [`docs/GAP_ANALYSIS.md`](GAP_ANALYSIS.md) · [`docs/ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md)
 
@@ -98,7 +98,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.3 | **Storage**: ✅ LocalStorage served via `/storage/{key}` (GET/PUT); Next.js rewrite proxies same-origin; `test_local_storage_http.py` | 🟢 | S |
 | 4.4 | ~~LLM desktop defaults~~ ✅ `config/desktop.yaml` documents `STREAMCLIP_LLM__PROVIDER=openai|anthropic` + key env; shorter 30s timeout; no-LLM path degrades to score 0 (`core/virality.py:301`) with ensemble still ranking | ✅ | — |
 | 4.5 | **ffmpeg**: ✅ `core/ffmpeg_bins.py` resolves bundled `bin/ffmpeg/` or PATH; all pipeline call sites use `ffmpeg_bin()` / `ffprobe_bin()` | 🟢 | S |
-| 4.6 | **Python runtime**: ✅ **Scaffold** — `desktop_sidecar/run.py`, PyInstaller spec, `build_sidecar.ps1`. **Remaining:** full ML bundle size (torch/whisper), CPU-only wheels, ONNX YOLO | 🟡 | L |
+| 4.6 | **Python runtime**: ✅ **Full ML bundle** — spec collects torch (CPU wheels via `requirements-desktop.txt`), ctranslate2/faster-whisper, ultralytics (`module_collection_mode="py"`), mediapipe, librosa, celery/kombu submodules; excludes asyncpg/psycopg/boto3/sentry. Frozen root resolves via `sys._MEIPASS`; env config applied **before** backend import. ~1.1 GB one-dir; smoke-tested end-to-end (`verify_sidecar_exe.ps1`: boot → health → SQLite migrations). `STREAMCLIP_LITE=1` for API-only bundle. Weights download on first run (§4.8) | 🟢 | L |
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |

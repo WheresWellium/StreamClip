@@ -5,22 +5,33 @@
 | Path | Purpose |
 |------|---------|
 | `desktop_sidecar/run.py` | Entry: migrations + uvicorn (workers=1, in-process queue) |
-| `packaging/pyinstaller/streamclip-sidecar.spec` | One-dir bundle scaffold |
-| `scripts/build_sidecar.ps1` | Test scaffold; optional full PyInstaller build |
+| `packaging/pyinstaller/streamclip-sidecar.spec` | One-dir **full ML bundle** (torch CPU, faster-whisper, ultralytics, mediapipe, librosa) |
+| `scripts/build_sidecar.ps1` | Tests + full PyInstaller build with size report |
+| `scripts/verify_sidecar_exe.ps1` | Smoke test the built exe (boot → health → migrations) |
 | `scripts/run_desktop_sidecar.ps1` | Dev sidecar without PyInstaller |
+| `requirements-desktop.txt` | CPU-only torch wheel profile for the build venv |
 
 ```powershell
-# Dev sidecar (SQLite + inprocess + static UI placeholder)
-.\scripts\run_desktop_sidecar.ps1
+# Build venv should use CPU-only torch (2 GB smaller than CUDA):
+pip install -r requirements-desktop.txt -r requirements-packaging.txt
 
-# Scaffold tests only (skip multi-GB PyInstaller)
-$env:STREAMCLIP_SKIP_PYINSTALLER = "1"
+# Full build (~1.1 GB one-dir output, several minutes)
 .\scripts\build_sidecar.ps1
+
+# Smoke test the bundle (temp data dir, prefetch skipped)
+.\scripts\verify_sidecar_exe.ps1
+
+# Scaffold tests only (skip PyInstaller)
+$env:STREAMCLIP_SKIP_PYINSTALLER = "1"; .\scripts\build_sidecar.ps1
+
+# API-only lite bundle (no ML stack — fast packaging smoke)
+$env:STREAMCLIP_LITE = "1"; .\scripts\build_sidecar.ps1
 ```
 
-Bundled output: `dist/streamclip-sidecar/streamclip-sidecar.exe` (Windows).
-
-Set `STREAMCLIP_APP_ROOT` to the install dir so `bin/ffmpeg/`, `config/desktop.yaml`, and DB paths resolve.
+Bundled output: `dist/streamclip-sidecar/streamclip-sidecar.exe` (Windows, ~1.1 GB one-dir).
+Model weights are **not** bundled — they download on first run (§4.8 prefetch,
+progress at `/api/health/models`). Bundled resources (config, alembic, static UI,
+ffmpeg if present in `bin/ffmpeg/`) resolve via `sys._MEIPASS` (`_internal/`).
 
 ### Data directory (§4.18)
 

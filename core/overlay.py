@@ -53,7 +53,7 @@ def load_manifest(assets_dir: Path) -> list[AssetRecord]:
     if not manifest_path.exists():
         _write_stub_manifest(assets_dir, manifest_path)
 
-    with open(manifest_path) as fh:
+    with open(manifest_path, encoding="utf-8") as fh:
         raw: list[dict] = json.load(fh)
 
     records = []
@@ -177,7 +177,7 @@ def _write_stub_manifest(assets_dir: Path, out: Path) -> None:
         },
     ]
     out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w") as fh:
+    with open(out, "w", encoding="utf-8") as fh:
         json.dump(stub, fh, indent=2)
     log.info("stub_manifest_written", path=str(out))
 

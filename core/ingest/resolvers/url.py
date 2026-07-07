@@ -228,7 +228,7 @@ def download_url(
             on_progress(1.0)
         meta = probe_video(cached_path, url=url)
         if meta_path.exists():
-            with open(meta_path) as fh:
+            with open(meta_path, encoding="utf-8") as fh:
                 saved = json.load(fh)
             meta = VideoMeta(**{**vars(meta), "title": saved.get("title", meta.title)})
         return meta, True
@@ -298,8 +298,8 @@ def download_url(
     tmp_path.rename(cached_path)
     meta = probe_video(cached_path, url=url)
 
-    with open(meta_path, "w") as fh:
-        json.dump({"title": meta.title, "duration": meta.duration}, fh)
+    with open(meta_path, "w", encoding="utf-8") as fh:
+        json.dump({"title": meta.title, "duration": meta.duration}, fh, ensure_ascii=False)
 
     log.info(
         "ingest_download_complete",

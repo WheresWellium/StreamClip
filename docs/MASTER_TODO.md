@@ -101,7 +101,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.6 | **Python runtime**: ✅ **Scaffold** — `desktop_sidecar/run.py`, PyInstaller spec, `build_sidecar.ps1`. **Remaining:** full ML bundle size (torch/whisper), CPU-only wheels, ONNX YOLO | 🟡 | L |
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
-| 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; extend verify scripts for desktop mode | 🟡 | M |
+| 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |
 | 4.10 | **Installer**: MSIX or Inno Setup; code signing certificate; auto-update strategy | 🟡 | M |
 | 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |

@@ -43,9 +43,14 @@ def splice_clip_files(
             str(output_path),
         ]
     else:
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".txt", delete=False, encoding="utf-8"
+        ) as fh:
             for p in input_paths:
-                fh.write(f"file '{p.resolve()}'\n")
+                # Forward slashes + escaped quotes: concat demuxer chokes on
+                # raw Windows backslashes and apostrophes in usernames.
+                posix = p.resolve().as_posix().replace("'", r"'\''")
+                fh.write(f"file '{posix}'\n")
             list_path = Path(fh.name)
         cmd = [
             ffmpeg_bin(), "-y",

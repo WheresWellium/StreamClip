@@ -40,6 +40,28 @@ def test_splice_concat_cut_uses_ffmpeg_concat(cfg, tmp_path):
     assert str(out) in cmd
 
 
+def test_splice_concat_list_uses_posix_paths(cfg, tmp_path):
+    """Concat list must use forward slashes — backslashes break ffmpeg's demuxer."""
+    inputs = [tmp_path / f"c{i}.mp4" for i in range(2)]
+    for p in inputs:
+        p.write_bytes(b"vid")
+    out = tmp_path / "merged.mp4"
+
+    captured: dict[str, str] = {}
+
+    def _capture(cmd, **kwargs):
+        list_path = Path(cmd[cmd.index("-i") + 1])
+        captured["content"] = list_path.read_text(encoding="utf-8")
+        return MagicMock(returncode=0)
+
+    with patch("core.splice.subprocess.run", side_effect=_capture):
+        splice_clip_files(inputs, out, cfg, transition="cut")
+
+    assert "\\" not in captured["content"]
+    for p in inputs:
+        assert p.resolve().as_posix() in captured["content"]
+
+
 def test_splice_crossfade_two_clips(cfg, tmp_path):
     a, b = tmp_path / "a.mp4", tmp_path / "b.mp4"
     a.write_bytes(b"a")

@@ -40,9 +40,13 @@ async def test_splice_endpoint_queues_task(jobs_client, monkeypatch):
     svc.splice_clips = AsyncMock(return_value=clip)
     delayed: list[tuple] = []
 
+    def _fake_apply_async(**kw):
+        delayed.append(kw)
+        return SimpleNamespace(id="task-splice-1")
+
     with patch.object(jobs_api, "_get_service", return_value=svc), \
          patch.object(jobs_api, "splice_clips") as task:
-        task.apply_async = MagicMock(side_effect=lambda **kw: delayed.append(kw))
+        task.apply_async = MagicMock(side_effect=_fake_apply_async)
         resp = await jobs_client.client.post(
             "/api/jobs/job-1/clips/splice",
             json={"clip_ids": ["c1", "c2"], "transition": "crossfade"},

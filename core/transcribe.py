@@ -316,5 +316,5 @@ def export_word_level_json(transcript: Transcript, out_path: Path) -> Path:
         for seg in transcript.segments
         for w in seg.words
     ]
-    out_path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    out_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return out_path

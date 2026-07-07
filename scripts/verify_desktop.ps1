@@ -23,6 +23,11 @@ python -m pytest tests/test_sidecar_packaging.py tests/test_static_ui.py -q --no
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
+Write-Host "=== model prefetch + Windows path handling ===" -ForegroundColor Cyan
+python -m pytest tests/test_model_prefetch.py tests/test_splice_module.py -q --no-cov --tb=short
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host ""
 Write-Host "Optional: in-process stack against Docker API (requires Docker running):"
 Write-Host "  .\scripts\verify_inprocess.ps1"
 

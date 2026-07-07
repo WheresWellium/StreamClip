@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import struct
 import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / "assets"
+ASSETS = Path(os.environ.get("STREAMCLIP_ASSETS_DIR", str(ROOT / "assets")))
 
 MANIFEST = [
     {"path": "gifs/hype.gif", "type": "gif", "description": "absolute hype, let's go, incredible win, amazing play, fire moment, clutch victory", "sfx": "sfx/airhorn.mp3", "duration": 2.5, "tags": ["hype", "win", "clutch", "fire"]},

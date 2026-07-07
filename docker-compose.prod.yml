@@ -1,7 +1,40 @@
 # ═══════════════════════════════════════════════════════════════════════
 # StreamClip — Production docker-compose (pinned GHCR images, no bind-mounts)
 # Usage: docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+# GPU:   docker compose -f docker-compose.prod.yml --env-file .env.production --profile gpu up -d
+#        Set STREAMCLIP_WORKER_QUEUES=default so GPU tasks run only on gpu-worker.
 # ═══════════════════════════════════════════════════════════════════════
+
+x-streamclip-db-env: &streamclip-db-env
+  STREAMCLIP_DATABASE__URL: postgresql+asyncpg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+  STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
+
+x-streamclip-redis-env: &streamclip-redis-env
+  STREAMCLIP_REDIS__URL: redis://redis:6379/0
+  STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
+  STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+
+x-streamclip-storage-env: &streamclip-storage-env
+  STREAMCLIP_STORAGE__BACKEND: minio
+  STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+  STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
+  STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
+  STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+
+x-streamclip-distribution-env: &streamclip-distribution-env
+  STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: ${STREAMCLIP_DISTRIBUTION__WEB_ORIGIN:-${NEXT_PUBLIC_APP_URL:-http://localhost:3000}}
+  STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ${STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY:-}
+  STREAMCLIP_DISTRIBUTION__YOUTUBE_PUBLISH_ENABLED: ${STREAMCLIP_DISTRIBUTION__YOUTUBE_PUBLISH_ENABLED:-true}
+  STREAMCLIP_DISTRIBUTION__TIKTOK_PUBLISH_ENABLED: ${STREAMCLIP_DISTRIBUTION__TIKTOK_PUBLISH_ENABLED:-false}
+  STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_ID: ${STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_ID:-}
+  STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_SECRET: ${STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_SECRET:-}
+  STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY:-}
+  STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET:-}
+
+x-streamclip-worker-volumes: &streamclip-worker-volumes
+  - workspace_data:/app/workspace
+  - cache_data:/app/.cache
+  - assets_data:/app/assets
 
 services:
   postgres:
@@ -71,25 +104,17 @@ services:
   api:
     image: ghcr.io/streamclip/api:${STREAMCLIP_VERSION:-latest}
     command: >
-      sh -c "alembic upgrade head &&
+      sh -c "python scripts/seed_assets_if_empty.py &&
+             alembic upgrade head &&
              uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2"
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
       STREAMCLIP_ENVIRONMENT: production
       STREAMCLIP_AUTH__SECRET_KEY: ${STREAMCLIP_AUTH_SECRET_KEY:?set STREAMCLIP_AUTH_SECRET_KEY}
       STREAMCLIP_AUTH__ALLOW_ANONYMOUS: ${STREAMCLIP_AUTH_ALLOW_ANONYMOUS:-true}
       STREAMCLIP_AUTH__DEVICE_SCOPED_ANONYMOUS: "true"
-      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
-      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
-      STREAMCLIP_REDIS__URL: redis://redis:6379/0
-      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
-      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
-      STREAMCLIP_STORAGE__BACKEND: minio
-      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
-      STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
-      STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
-      STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
       STREAMCLIP_COMMERCE__LEMON_SQUEEZY_WEBHOOK_SECRET: ${LEMON_SQUEEZY_WEBHOOK_SECRET:-}
       STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY: ${LEMON_SQUEEZY_API_KEY:-}
@@ -97,6 +122,7 @@ services:
     volumes:
       - workspace_data:/app/workspace
       - cache_data:/app/.cache
+      - assets_data:/app/assets
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,36 +135,58 @@ services:
   worker:
     image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
     command: >
-      celery -A core.celery_app.celery_app worker
-        --loglevel=info
-        --queues=default,gpu
-        --concurrency=4
+      sh -c "python scripts/seed_assets_if_empty.py &&
+             celery -A core.celery_app.celery_app worker
+               --loglevel=info
+               --queues=$${STREAMCLIP_WORKER_QUEUES:-default}
+               --concurrency=4"
     environment:
-      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
-      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-streamclip}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-streamclip}
-      STREAMCLIP_REDIS__URL: redis://redis:6379/0
-      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
-      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
-      STREAMCLIP_STORAGE__BACKEND: minio
-      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
-      STREAMCLIP_STORAGE__BUCKET: ${MINIO_BUCKET:-streamclip}
-      STREAMCLIP_STORAGE__ACCESS_KEY: ${MINIO_ROOT_USER}
-      STREAMCLIP_STORAGE__SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
+      STREAMCLIP_WORKER_QUEUES: ${STREAMCLIP_WORKER_QUEUES:-default}
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
-    volumes:
-      - workspace_data:/app/workspace
-      - cache_data:/app/.cache
+      STREAMCLIP_WHISPER__DEVICE: cpu
+      STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
+      STREAMCLIP_EXPORT__CODEC: libx264
+    volumes: *streamclip-worker-volumes
     depends_on:
       api:
         condition: service_started
+    restart: unless-stopped
+
+  gpu-worker:
+    profiles: [gpu]
+    image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
+    command: >
+      sh -c "python scripts/seed_assets_if_empty.py &&
+             celery -A core.celery_app.celery_app worker
+               --loglevel=info
+               --queues=gpu
+               --concurrency=1
+               --max-tasks-per-child=20"
+    environment:
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
+      STREAMCLIP_LLM__BASE_URL: http://ollama:11434
+      STREAMCLIP_WHISPER__DEVICE: cuda
+      STREAMCLIP_WHISPER__COMPUTE_TYPE: float16
+      STREAMCLIP_EXPORT__CODEC: h264_nvenc
+    volumes: *streamclip-worker-volumes
+    depends_on:
+      api:
+        condition: service_started
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
 
   beat:
     image: ghcr.io/streamclip/worker:${STREAMCLIP_VERSION:-latest}
     command: celery -A core.celery_app.celery_app beat --loglevel=info
     environment:
-      STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
-      STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      <<: *streamclip-redis-env
     depends_on:
       redis:
         condition: service_healthy
@@ -164,3 +212,4 @@ volumes:
   ollama_data:
   workspace_data:
   cache_data:
+  assets_data:

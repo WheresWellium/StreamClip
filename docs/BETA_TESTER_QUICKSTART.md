@@ -55,7 +55,11 @@ Manual checks:
 
 - UI: http://localhost:3000 — “Jet Stream” home loads
 - API: http://localhost:8000/api/health — `status` is `ok` or `degraded`, `database` is true
-- Stack: http://localhost:8000/api/health/stack — all required services green
+- Stack: http://localhost:8000/api/health/stack — `checks.database` and `checks.redis` true; `checks.cuda` / `checks.nvenc` show GPU availability
+
+**Production compose** (GHCR images, no bind mounts): see `.env.production.example` and
+`docker compose -f docker-compose.prod.yml --env-file .env.production up -d`.
+Use `--profile gpu` with `STREAMCLIP_WORKER_QUEUES=default` for NVIDIA queue isolation.
 
 ---
 

@@ -106,7 +106,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.11 | **GPU detection**: ✅ `core/gpu_profile.py` — CUDA + NVENC probes, safe fallbacks in `export_video`/`transcribe`, env defaults in desktop sidecar, `cuda`/`nvenc` in `/api/health/stack`. Config defaults remain CPU/libx264 | 🟢 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
-| 4.14 | **Prod compose gaps** (Docker self-host path): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues (GAP T56) | 🟡 | S |
+| 4.14 | **Prod compose gaps**: ✅ `docker-compose.prod.yml` — distribution OAuth env on api/worker, `assets_data` volume + `seed_assets_if_empty.py`, CPU-safe worker defaults, configurable `STREAMCLIP_WORKER_QUEUES`, optional `gpu-worker` profile | 🟢 | S |
 | 4.15 | **Alembic `upgrade head` on desktop sidecar startup** — ✅ in `desktop_sidecar/run.py` | 🟢 | S |
 | 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
 | 4.17 | **Full in-process parity**: ✅ all direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault, CLI) routed through `core/task_dispatch.py` / `task_runner`; in-process Beat loop fires scheduled publishes + cleanup (`queue.inprocess_beat`, only while app runs — see BETA_KNOWN_ISSUES) | 🟢 | M |
@@ -176,7 +176,7 @@ Playwright smoke + `verify_stack.ps1`).
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 9.1 | **`/api/health/stack` deep probe** documented in beta flows (T0-1) — verify endpoint covers worker, beat, minio, redis, postgres | 🟢 | S |
+| 9.1 | **`/api/health/stack` deep probe** — ✅ documented in `BETA_TESTER_QUICKSTART.md` §4; prod compose + `verify_stack.ps1` hit `/api/health/stack` (database, redis, cuda/nvenc flags) | 🟢 | S |
 | 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers (`BETA_GO_LIVE` §3, `BETA_TESTER_PLAN` §7) | 🟢 | S |
 | 9.3 | **MkDocs internal docs site** — maintain `mkdocs.yml`, Vercel deploy, keep `GAP_ANALYSIS` / `MASTER_TODO` in `exclude_docs` (`docs/INTERNAL.md`) | 🟢 | S |
 

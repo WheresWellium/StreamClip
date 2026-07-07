@@ -35,9 +35,22 @@ Environment (set automatically in dev):
 
 ## Production layout
 
-Electron-builder packages `dist/**` and `assets/**`. Place
-`streamclip-sidecar.exe` under `resources/sidecar/` or set
-`STREAMCLIP_SIDECAR_BIN` to an absolute path.
+Electron-builder packages `dist/**`, `assets/**`, and the staged sidecar under
+`resources/sidecar/` (see `build.extraResources` in `package.json`).
+
+Build the full NSIS installer from repo root:
+
+```powershell
+.\scripts\build_desktop_installer.ps1
+```
+
+Or stage an existing PyInstaller output only:
+
+```powershell
+.\scripts\stage_sidecar_for_electron.ps1
+cd apps\desktop
+npm run dist
+```
 
 ## IPC (preload)
 
@@ -50,5 +63,7 @@ The renderer exposes `window.streamclip`:
 
 ## Auto-update
 
-`electron-updater` is wired as a **log-only stub** on startup. Configure
-`build.publish` in `package.json` before enabling real updates.
+`electron-updater` checks GitHub Releases on startup when packaged (disable with
+`STREAMCLIP_AUTO_UPDATE=0`). Tray menu **Check for updates** triggers a manual check.
+Configure `build.publish` and sign builds before shipping — see
+`packaging/installer/README.md`.

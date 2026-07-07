@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
 Write-Host "=== model prefetch + Windows path handling ===" -ForegroundColor Cyan
-python -m pytest tests/test_model_prefetch.py tests/test_splice_module.py -q --no-cov --tb=short
+python -m pytest tests/test_model_prefetch.py tests/test_splice_module.py tests/test_installer_config.py -q --no-cov --tb=short
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""

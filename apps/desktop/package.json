@@ -2,6 +2,7 @@
   "name": "streamclip-desktop",
   "version": "1.0.0",
   "description": "StreamClip desktop tray app — embedded sidecar + BrowserWindow UI",
+  "author": "StreamClip",
   "main": "dist/main.js",
   "private": true,
   "scripts": {
@@ -24,16 +25,43 @@
     "appId": "io.streamclip.desktop",
     "productName": "StreamClip",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "assets"
     },
     "files": ["dist/**/*", "assets/**/*"],
+    "extraResources": [
+      {
+        "from": ".staging/sidecar",
+        "to": "sidecar",
+        "filter": ["**/*"]
+      }
+    ],
     "publish": {
       "provider": "github",
       "owner": "streamclip",
-      "repo": "streamclip"
+      "repo": "streamclip",
+      "releaseType": "release"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName} Setup ${version}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "StreamClip",
+      "installerLanguages": ["en_US"],
+      "deleteAppDataOnUninstall": false,
+      "differentialPackage": false
     },
     "mac": {
       "target": ["dmg"]

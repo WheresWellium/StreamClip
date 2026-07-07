@@ -146,8 +146,11 @@ app.whenReady().then(() => {
 
   autoUpdater.autoDownload = false;
   autoUpdater.on("update-available", () => {
-    console.log("Update available (configure publish in electron-builder)");
+    console.log("Update available — download via Check for updates or enable autoDownload");
   });
+  if (!isDev && process.env.STREAMCLIP_AUTO_UPDATE !== "0") {
+    void autoUpdater.checkForUpdatesAndNotify();
+  }
 });
 
 app.on("window-all-closed", () => {

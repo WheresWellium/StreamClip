@@ -42,5 +42,5 @@ if (-not (Test-Path $exe)) {
     exit 1
 }
 $sizeMB = [math]::Round((Get-ChildItem dist\streamclip-sidecar -Recurse | Measure-Object Length -Sum).Sum / 1MB)
-Write-Host "Sidecar build complete: dist\streamclip-sidecar ($sizeMB MB)" -ForegroundColor Green
+Write-Host ('Sidecar build complete: dist\streamclip-sidecar ({0} MB)' -f $sizeMB) -ForegroundColor Green
 Write-Host "Smoke test: .\scripts\verify_sidecar_exe.ps1" -ForegroundColor Cyan

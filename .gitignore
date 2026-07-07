@@ -17,6 +17,7 @@ static/ui/**
 !static/ui/.gitkeep
 !static/ui/index.html
 apps/desktop/release/
+apps/desktop/.staging/
 *.sqlite3
 *.db
 *.egg-info/

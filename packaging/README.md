@@ -77,12 +77,21 @@ Build:
 
 **Dev note:** `middleware.ts` is disabled during static export builds (onboarding redirect). Docker/Next dev still uses `middleware.ts` normally.
 
-## Electron (§4.13)
+## Electron (§4.13 + §4.10 installer)
 
 `apps/desktop` spawns the Python sidecar and opens a `BrowserWindow` to `http://127.0.0.1:8765/`.
 
 | Dev | `python -m desktop_sidecar` via `npm start` in `apps/desktop` |
-| Prod | `streamclip-sidecar.exe` beside Electron resources (`resources/sidecar/`) |
+| Prod | `streamclip-sidecar.exe` under `resources/sidecar/` (staged by `scripts/stage_sidecar_for_electron.ps1`) |
+
+**Full Windows installer** (NSIS via electron-builder):
+
+```powershell
+# From repo root — builds UI, sidecar, stages, packages NSIS Setup exe
+.\scripts\build_desktop_installer.ps1
+```
+
+Output: `apps/desktop/release/StreamClip Setup <version>.exe`. Signing and auto-update: `packaging/installer/README.md`.
 
 Preload exposes `window.streamclip.sidecar.{start,stop,health}` and `window.streamclip.version()`.
 

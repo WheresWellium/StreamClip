@@ -166,7 +166,7 @@ Playwright smoke + `verify_stack.ps1`).
 | 8.3 | Phase 0 cohort (5–10): Docker self-host, T0 flows in beta plan | 🟡 | M |
 | 8.4 | Phase 1: LS license email (2.3) + 20–40 creators + optional GHCR tags | 🟡 | M |
 | 8.5 | Phase 2: desktop closed beta (§4.6–4.8 minimum) — 50–100 testers | 🔴 | L |
-| 8.6 | Align commerce docs/code to one-time purchase (perpetual entitlement) before paid Phase 1 (`COMMERCIAL.md`, `core/licensing.py`, LS product config) | 🟡 | S |
+| 8.6 | ~~Align commerce docs/code to one-time purchase~~ ✅ `COMMERCIAL.md` now states one-time purchase / perpetual entitlement, activation limits, offline grace; code already matched (`entitlement_days: 0` → perpetual). **Remaining:** confirm LS product config (dashboard, not repo) | 🟢 | S |
 | 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — TikTok inbox-only, no Instagram, CPU fallback SLAs, SmartScreen unsigned desktop (beta kit item in `BETA_TESTER_PLAN` §4.2) | 🟢 | S |
 | 8.8 | **GHCR image build + publish workflow** — ✅ `.github/workflows/images.yml` (api/worker/web on `v*` tags or manual dispatch). **Remaining:** repo owner must match `ghcr.io/streamclip/*` in prod compose (or set image prefix var) + first tagged release to publish | 🟡 | S |
 | 8.9 | **Beta launch ops** (`BETA_GO_LIVE` §2–§4): feedback channel (Discord/Discussions), clean VM verify, OAuth redirect URIs match `WEB_ORIGIN`, on-call rotation, changelog per wave | 🟡 | M |

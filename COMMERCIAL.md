@@ -10,11 +10,15 @@ The following components require a **StreamClip Pro** commercial license:
 
 ## Purchasing
 
-- **Self-Hosted Pro:** Annual license via [Lemon Squeezy](https://lemonsqueezy.com) — includes Docker production bundle and license key activation.
+- **Self-Hosted Pro:** One-time purchase via [Lemon Squeezy](https://lemonsqueezy.com) — perpetual entitlement, includes Docker production bundle and license key activation. Keys are delivered by email at purchase (Lemon Squeezy license keys, or StreamClip's own delivery email on the `order_created` fallback path).
 
 ## Activation
 
 Self-hosted Pro licenses activate at **Settings → License** using a key formatted `SCPRO-XXXX-XXXX-XXXX-XXXX`.
+
+- **Entitlement:** perpetual by default (`licensing.entitlement_days: 0`); a positive value switches to subscription-style expiry.
+- **Activations:** up to 3 machines per key (`licensing.max_activations`).
+- **Offline grace:** 7 days between entitlement re-verifications (`licensing.offline_grace_days`).
 
 Environment variables for commerce webhooks:
 

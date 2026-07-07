@@ -27,6 +27,17 @@ queue:
 ffmpeg:
   bin_dir: bin/ffmpeg
 
+# Desktop LLM (§4.4): no bundled Ollama. Point at a hosted provider via env:
+#   set STREAMCLIP_LLM__PROVIDER=openai        (or anthropic)
+#   set STREAMCLIP_LLM__MODEL=gpt-4o-mini
+#   set STREAMCLIP_LLM__API_KEY=sk-...
+# Without a key, virality LLM scoring degrades to 0 and the audio/visual
+# ensemble still ranks clips. Local Ollama also works if installed.
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  timeout_secs: 30
+
 web:
   serve_static: true
   static_dir: static/ui

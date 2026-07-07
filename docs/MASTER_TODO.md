@@ -96,11 +96,11 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.1 | **Database**: ✅ SQLite (aiosqlite) profile + portable Alembic migrations (`backend/db/types.py`, `config/desktop.yaml`) | 🟢 | M |
 | 4.2 | **Task queue**: ✅ In-process worker (`core/inprocess_worker.py`, `core/task_runner.py`, memory progress bus). Enable via `STREAMCLIP_QUEUE__BACKEND=inprocess` or `config/desktop.yaml` | 🟢 | L |
 | 4.3 | **Storage**: ✅ LocalStorage served via `/storage/{key}` (GET/PUT); Next.js rewrite proxies same-origin; `test_local_storage_http.py` | 🟢 | S |
-| 4.4 | **LLM**: Ollama optional — default desktop build to OpenAI/Anthropic API keys or bundled llama.cpp; degrade gracefully to score 0 (already does) | 🟡 | M |
+| 4.4 | ~~LLM desktop defaults~~ ✅ `config/desktop.yaml` documents `STREAMCLIP_LLM__PROVIDER=openai|anthropic` + key env; shorter 30s timeout; no-LLM path degrades to score 0 (`core/virality.py:301`) with ensemble still ranking | ✅ | — |
 | 4.5 | **ffmpeg**: ✅ `core/ffmpeg_bins.py` resolves bundled `bin/ffmpeg/` or PATH; all pipeline call sites use `ffmpeg_bin()` / `ffprobe_bin()` | 🟢 | S |
 | 4.6 | **Python runtime**: ✅ **Scaffold** — `desktop_sidecar/run.py`, PyInstaller spec, `build_sidecar.ps1`. **Remaining:** full ML bundle size (torch/whisper), CPU-only wheels, ONNX YOLO | 🟡 | L |
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
-| 4.8 | **First-run experience**: model downloads (whisper, YOLO) with progress UI; workspace dir under `%LOCALAPPDATA%\JetStream` | 🟡 | M |
+| 4.8 | **First-run experience**: model downloads (whisper, YOLO) with progress UI. Data dir ✅ done via §4.18 (`%LOCALAPPDATA%\StreamClip`) | 🟡 | M |
 | 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; extend verify scripts for desktop mode | 🟡 | M |
 | 4.10 | **Installer**: MSIX or Inno Setup; code signing certificate; auto-update strategy | 🟡 | M |
 | 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |

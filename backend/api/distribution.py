@@ -39,6 +39,7 @@ from core.distribution.tokens import encrypt_secret, is_token_key_configured
 from core.distribution.youtube import YouTubeShortsAdapter
 from core.distribution.tiktok import TikTokAdapter
 from core.errors import StreamClipError
+from core.task_dispatch import dispatch_task
 from core.tasks.publish_tasks import publish_to_platform
 
 router = APIRouter(prefix="/api/distribution", tags=["distribution"])
@@ -294,7 +295,7 @@ async def retry_publish_job(
     job = await repo.retry_failed(publish_job_id)
     if job is None:
         raise StreamClipError("Retry failed", user_message="Could not retry publish job.", http_status=409)
-    publish_to_platform.delay(job.id)
+    dispatch_task(publish_to_platform, args=(job.id,))
     await db.commit()
     return PublishJobOut.model_validate(job)
 

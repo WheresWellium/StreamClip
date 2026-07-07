@@ -198,9 +198,9 @@ async def test_retry_failed_job_requeues(dist_client, monkeypatch):
 
     monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
     monkeypatch.setattr(
-        distribution_api.publish_to_platform,
-        "delay",
-        lambda job_id: delayed.append(job_id),
+        distribution_api,
+        "dispatch_task",
+        lambda task, *, args=(), **kw: delayed.append(args[0]),
     )
     resp = await dist_client.client.post("/api/distribution/publish-jobs/pj-1/retry")
     assert resp.status_code == 202, resp.text

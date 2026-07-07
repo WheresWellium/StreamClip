@@ -231,6 +231,10 @@ class QueueConfig(BaseModel):
     backend: Literal["celery", "inprocess"] = "celery"
     gpu_workers: int = Field(1, ge=1, le=2, description="In-process GPU slot count (desktop)")
     default_workers: int = Field(2, ge=1, le=8, description="In-process CPU/IO pool size")
+    inprocess_beat: bool = Field(
+        True,
+        description="Run periodic (Beat) tasks in-process — scheduled publishes, cleanup (desktop)",
+    )
 
 
 class AuthConfig(BaseModel):

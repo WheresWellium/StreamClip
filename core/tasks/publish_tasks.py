@@ -22,6 +22,7 @@ from core.distribution.tiktok import TikTokAdapter
 from core.distribution.youtube import YouTubeShortsAdapter
 from core.errors import StorageError
 from core.storage import make_storage
+from core.task_runner import delay
 from core.tasks.pipeline_tasks import _safe_async
 
 log = structlog.get_logger(__name__)
@@ -323,7 +324,7 @@ def process_due_scheduled_jobs() -> dict[str, list[str]]:
             for job in due:
                 promoted = await repo.promote_scheduled_to_pending(job.id)
                 if promoted is not None:
-                    publish_to_platform.delay(job.id)
+                    delay(publish_to_platform, job.id)
                     enqueued.append(job.id)
             if enqueued:
                 await db.commit()

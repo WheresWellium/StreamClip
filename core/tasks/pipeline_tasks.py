@@ -66,6 +66,7 @@ from core.storage import job_key, make_storage
 from core.transcribe import load_job_transcript, save_transcript_json, transcribe, transcribe_clip
 from core.twitch_chat import fetch_vod_chat
 from core.webhooks import deliver_job_webhook
+from core.task_dispatch import dispatch_task_by_name
 from core.task_runner import apply_async, delay
 from core.virality import (
     ClipScoringContext,
@@ -1014,11 +1015,11 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
         )
         WEBHOOK_DELIVERIES.labels(result="success" if ok else "failure").inc()
     # Phase 3c — anonymized training export for opted-in owners (default
-    # queue via send_task; avoids importing notify_tasks → circular import).
+    # queue, by name; avoids importing notify_tasks → circular import).
     if terminal == "done" and data_opt_in:
-        celery_app.send_task(
+        dispatch_task_by_name(
             "core.tasks.notify_tasks.export_training_bundle",
-            args=[job_id],
+            args=(job_id,),
             queue="default",
         )
     return summary

@@ -24,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.db.models import InstallLicense, UserTier
 from backend.db.repositories import InstallLicenseRepository
 from backend.db.session import get_db
-from core.celery_app import celery_app
 from core.commerce.lemon_squeezy import (
     generate_license_key,
     parse_order_event,
@@ -32,6 +31,7 @@ from core.commerce.lemon_squeezy import (
 )
 from core.config import get_settings
 from core.licensing import hash_license_key
+from core.task_dispatch import dispatch_task_by_name
 
 log = structlog.get_logger(__name__)
 
@@ -146,9 +146,9 @@ async def lemon_squeezy_webhook(
         customer_email = event.get("customer_email")
         if customer_email:
             try:
-                celery_app.send_task(
+                dispatch_task_by_name(
                     "core.tasks.notify_tasks.send_license_key_email",
-                    args=[customer_email, license_key, event["order_id"] or None],
+                    args=(customer_email, license_key, event["order_id"] or None),
                     queue="default",
                 )
             except Exception as exc:  # noqa: BLE001 — delivery is best-effort

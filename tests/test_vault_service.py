@@ -88,12 +88,13 @@ class FakeJobRepo:
 def env(monkeypatch):
     celery = MagicMock()
 
-    def _delay(*args, **kwargs):
-        celery.delayed.append(args)
+    def _dispatch(name, *, args=(), kwargs=None, queue=None, cfg=None):
+        celery.delayed.append(tuple(args))
+        celery.dispatched_names.append(name)
 
     celery.delayed = []
-    celery.delay = _delay
-    monkeypatch.setattr("core.tasks.vault_tasks.copy_clip_to_vault", celery)
+    celery.dispatched_names = []
+    monkeypatch.setattr("core.vault.service.dispatch_task_by_name", _dispatch)
 
     svc = VaultService.__new__(VaultService)
     svc.db = FakeSession()
@@ -113,6 +114,7 @@ async def test_save_clip_enqueues_copy(env):
     assert row.status == "copying"
     assert env.celery.delayed
     assert env.celery.delayed[0][0] == row.id
+    assert env.celery.dispatched_names == ["core.tasks.vault_tasks.copy_clip_to_vault"]
 
 
 @pytest.mark.asyncio

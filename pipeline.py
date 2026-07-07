@@ -38,6 +38,7 @@ from backend.services.sse import stream_job_progress
 from core.config import get_settings
 from core.creator_options import CAPTION_STYLE_IDS, REFRAME_PRESET_IDS
 from core.storage import make_storage, upload_key
+from core.task_dispatch import dispatch_task
 from core.tasks.pipeline_tasks import start_pipeline
 
 console = Console()
@@ -85,8 +86,8 @@ async def _create_and_dispatch(
         # Commit the job row so the worker sees it
         await db.commit()
 
-        # Dispatch to Celery
-        task = start_pipeline.apply_async(args=[job.id])
+        # Dispatch through the queue seam (Celery or in-process)
+        task = dispatch_task(start_pipeline, args=(job.id,))
         await svc.jobs.attach_celery_task(job.id, task.id)
         await db.commit()
 

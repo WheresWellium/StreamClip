@@ -10,6 +10,7 @@ from core.errors import StreamClipError
 from core.pipeline_metrics import VAULT_QUOTA_DENIED_TOTAL
 from core.storage import make_storage
 from core.config import Settings
+from core.task_dispatch import dispatch_task_by_name
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -79,12 +80,11 @@ class VaultService:
         )
         await self.db.flush()
 
-        from core.tasks.vault_tasks import copy_clip_to_vault
-
-        copy_clip_to_vault.delay(
-            row.id,
-            clip.final_storage_key,
-            clip.thumbnail_storage_key,
+        # Dispatch by name — importing vault_tasks here would pull the heavy
+        # pipeline task module into every API request path.
+        dispatch_task_by_name(
+            "core.tasks.vault_tasks.copy_clip_to_vault",
+            args=(row.id, clip.final_storage_key, clip.thumbnail_storage_key),
         )
         return row
 

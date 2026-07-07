@@ -36,6 +36,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - **Unsigned builds** trigger Windows SmartScreen — click “More info → Run anyway” until code signing (MASTER_TODO §4.10)
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
 - Auto-update is a **stub** — manual reinstall until §4.10
+- **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
 
 ## Reporting bugs
 

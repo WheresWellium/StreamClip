@@ -219,7 +219,7 @@ async def test_order_created_enqueues_license_email(client):
                 "attributes": {"user_email": "buyer@example.com"},
             },
         }).encode()
-        with patch("backend.api.commerce.celery_app") as celery:
+        with patch("backend.api.commerce.dispatch_task_by_name") as dispatch:
             resp = await client.post(
                 "/api/commerce/webhooks/lemon-squeezy",
                 content=body,
@@ -227,8 +227,8 @@ async def test_order_created_enqueues_license_email(client):
             )
         assert resp.status_code == 200
         assert resp.json()["license_key"].startswith("SCPRO-")
-        celery.send_task.assert_called_once()
-        args, kwargs = celery.send_task.call_args
+        dispatch.assert_called_once()
+        args, kwargs = dispatch.call_args
         assert args[0] == "core.tasks.notify_tasks.send_license_key_email"
         assert kwargs["args"][0] == "buyer@example.com"
         assert kwargs["queue"] == "default"

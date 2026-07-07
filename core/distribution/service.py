@@ -26,6 +26,7 @@ from core.distribution.errors import (
 from core.distribution.notify import notify_publish_event
 from core.distribution.registry import get_platform_meta, list_platforms
 from core.errors import StreamClipError
+from core.task_dispatch import dispatch_task
 from core.tasks.publish_tasks import publish_to_platform
 
 IN_FLIGHT_STATUSES = frozenset({"pending", "scheduled", "publishing"})
@@ -153,7 +154,7 @@ class DistributionService:
         await self.db.flush()
 
         if status == "pending":
-            publish_to_platform.delay(job.id)
+            dispatch_task(publish_to_platform, args=(job.id,))
         elif status == "scheduled":
             await notify_publish_event(self.db, job, event="publish.scheduled", cfg=self.cfg)
 

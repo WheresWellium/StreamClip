@@ -8,9 +8,12 @@ Thread pool for CPU/IO (``default`` queue) and a bounded GPU executor for
 
 from __future__ import annotations
 
+import importlib
 import threading
+import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
+from datetime import timedelta
 from typing import Any
 
 import structlog
@@ -24,6 +27,21 @@ GPU_TASKS = frozenset({
     "core.tasks.pipeline_tasks.run_transcribe",
     "core.tasks.pipeline_tasks.process_clip",
 })
+
+# Beat loop wake-up granularity; entries fire on their own intervals.
+_BEAT_TICK_SECS = 1.0
+
+
+def _import_task_modules() -> None:
+    """
+    Populate ``celery_app.tasks`` with every task module so by-name dispatch
+    (vault copy, notify emails, training export) resolves without a broker.
+    Runtime importlib call (not top-level imports) because the task modules
+    themselves import this module via ``core.task_runner`` — a top-level
+    import would be circular.
+    """
+    for module in celery_app.conf.include or ():
+        importlib.import_module(module)
 
 _worker: InProcessWorker | None = None
 _worker_lock = threading.Lock()
@@ -51,11 +69,66 @@ class InProcessWorker:
             max_workers=4,
             thread_name_prefix="streamclip-orch",
         )
+        self._beat_stop = threading.Event()
+        self._beat_thread: threading.Thread | None = None
+        if cfg.queue.inprocess_beat:
+            self._beat_thread = threading.Thread(
+                target=self._beat_loop,
+                name="streamclip-beat",
+                daemon=True,
+            )
+            self._beat_thread.start()
 
     def shutdown(self, *, wait: bool = True) -> None:
+        self._beat_stop.set()
+        if self._beat_thread is not None:
+            self._beat_thread.join(timeout=_BEAT_TICK_SECS * 2)
+            self._beat_thread = None
         self._orchestrator.shutdown(wait=wait, cancel_futures=False)
         self._default_pool.shutdown(wait=wait, cancel_futures=False)
         self._gpu_pool.shutdown(wait=wait, cancel_futures=False)
+
+    def _beat_loop(self) -> None:
+        """
+        Minimal Celery Beat stand-in: run each ``beat_schedule`` entry on its
+        interval so scheduled publishes (``process_due_scheduled_jobs``) and
+        periodic cleanup fire in desktop mode. Entries fire only while the
+        app is running; overdue work catches up on the next tick because the
+        beat tasks themselves promote everything past due.
+        """
+        entries: list[dict[str, Any]] = []
+        for entry_name, entry in (celery_app.conf.beat_schedule or {}).items():
+            schedule = entry.get("schedule")
+            if isinstance(schedule, timedelta):
+                interval = schedule.total_seconds()
+            elif isinstance(schedule, (int, float)):
+                interval = float(schedule)
+            else:
+                log.warning("inprocess_beat_unsupported_schedule", entry=entry_name)
+                continue
+            entries.append({
+                "name": entry_name,
+                "task": entry["task"],
+                "interval": interval,
+                "next_run": time.monotonic() + interval,
+            })
+        if not entries:
+            return
+        log.info("inprocess_beat_started", entries=[e["name"] for e in entries])
+        while not self._beat_stop.wait(timeout=_BEAT_TICK_SECS):
+            now = time.monotonic()
+            for entry in entries:
+                if now < entry["next_run"]:
+                    continue
+                entry["next_run"] = now + entry["interval"]
+                try:
+                    self.submit_by_name(entry["task"])
+                except Exception as exc:
+                    log.error(
+                        "inprocess_beat_dispatch_failed",
+                        task=entry["task"],
+                        error=str(exc),
+                    )
 
     def _route_queue(self, task_name: str, explicit: str | None = None) -> str:
         if explicit:
@@ -218,11 +291,13 @@ def start_inprocess_worker(cfg: Settings | None = None) -> InProcessWorker:
     with _worker_lock:
         if _worker is not None:
             return _worker
+        _import_task_modules()
         _worker = InProcessWorker(settings)
         log.info(
             "inprocess_worker_started",
             default_workers=settings.queue.default_workers,
             gpu_workers=settings.queue.gpu_workers,
+            beat=settings.queue.inprocess_beat,
         )
         return _worker
 

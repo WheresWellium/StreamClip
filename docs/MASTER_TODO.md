@@ -109,7 +109,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 4.14 | **Prod compose gaps** (Docker self-host path): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues (GAP T56) | 🟡 | S |
 | 4.15 | **Alembic `upgrade head` on desktop sidecar startup** — ✅ in `desktop_sidecar/run.py` | 🟢 | S |
 | 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
-| 4.17 | **Full in-process parity**: route remaining direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault) through `core/task_runner.py` | 🟡 | M |
+| 4.17 | **Full in-process parity**: ✅ all direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault, CLI) routed through `core/task_dispatch.py` / `task_runner`; in-process Beat loop fires scheduled publishes + cleanup (`queue.inprocess_beat`, only while app runs — see BETA_KNOWN_ISSUES) | 🟢 | M |
 | 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; BFF routes moved to `web/app/_api_bff/` | 🟢 | L |
 | 4.18 | **Production desktop config profile** — `%LOCALAPPDATA%/JetStream/` for DB, storage, workspace (dev uses `./workspace/` in `config/desktop.yaml`) | 🟡 | S |
 

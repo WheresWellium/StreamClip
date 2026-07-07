@@ -10,6 +10,7 @@ from celery import chain, group
 
 from core.celery_app import celery_app, publish_progress
 from core.config import get_settings
+from core import inprocess_worker as ipw_mod
 from core.inprocess_worker import InProcessWorker, start_inprocess_worker, stop_inprocess_worker
 from core.progress_bus import get_progress_bus, reset_progress_bus
 from core import task_runner
@@ -131,3 +132,65 @@ def test_task_runner_uses_celery_when_configured(monkeypatch):
     result = task_runner.apply_async(mock_sig, queue="default")
     assert result.id == "celery-id"
     mock_sig.apply_async.assert_called_once_with(queue="default")
+
+
+def test_task_runner_delay_uses_celery_when_configured(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
+
+    mock_task = MagicMock()
+    mock_task.delay.return_value = MagicMock(id="celery-delay-id")
+
+    result = task_runner.delay(mock_task, "pj-1")
+    assert result.id == "celery-delay-id"
+    mock_task.delay.assert_called_once_with("pj-1")
+
+
+def test_inprocess_beat_fires_schedule_entries(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(ipw_mod, "_BEAT_TICK_SECS", 0.05)
+
+    fired: list[float] = []
+
+    @celery_app.task(name="tests.inprocess.beat_tick")
+    def beat_tick() -> None:
+        fired.append(time.time())
+
+    monkeypatch.setattr(
+        celery_app.conf,
+        "beat_schedule",
+        {"test-tick": {"task": "tests.inprocess.beat_tick", "schedule": 0.1}},
+    )
+
+    worker = InProcessWorker(cfg)
+    try:
+        deadline = time.time() + 5
+        while time.time() < deadline and not fired:
+            time.sleep(0.05)
+        assert fired, "beat entry never fired in-process"
+    finally:
+        worker.shutdown()
+
+
+def test_inprocess_beat_disabled_by_config(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "inprocess_beat", False)
+
+    worker = InProcessWorker(cfg)
+    try:
+        assert worker._beat_thread is None
+    finally:
+        worker.shutdown()
+
+
+def test_start_worker_registers_task_modules(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "inprocess_beat", False)
+
+    start_inprocess_worker(cfg)
+    for name in (
+        "core.tasks.publish_tasks.publish_to_platform",
+        "core.tasks.vault_tasks.copy_clip_to_vault",
+        "core.tasks.notify_tasks.send_bug_report_email",
+    ):
+        assert name in celery_app.tasks

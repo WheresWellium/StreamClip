@@ -126,11 +126,14 @@ class FakeVaultRepo:
 
 
 class FakeCeleryTask:
+    """Stands in for the dispatch seam — records dispatched publish job ids."""
+
     def __init__(self) -> None:
         self.delayed: list[str] = []
 
-    def delay(self, publish_job_id: str) -> None:
-        self.delayed.append(publish_job_id)
+    def dispatch(self, task, *, args=(), kwargs=None, queue=None, cfg=None):
+        self.delayed.append(args[0])
+        return SimpleNamespace(id=f"task-{len(self.delayed)}")
 
 
 @pytest.fixture
@@ -142,7 +145,7 @@ def env(monkeypatch):
     async def fake_notify(db, job, *, event, cfg):
         notified.append(event)
 
-    monkeypatch.setattr(service_mod, "publish_to_platform", celery)
+    monkeypatch.setattr(service_mod, "dispatch_task", celery.dispatch)
     monkeypatch.setattr(service_mod, "notify_publish_event", fake_notify)
 
     svc = DistributionService.__new__(DistributionService)

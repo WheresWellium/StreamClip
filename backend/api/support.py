@@ -2,8 +2,9 @@
 StreamClip — Support API
 
 POST /api/support/bug-reports — submit an in-app bug report. The row is
-persisted first, then an email notification is enqueued on the Celery
-``default`` queue (handler never blocks on SMTP).
+persisted first, then an email notification is enqueued on the ``default``
+queue via the dispatch seam (handler never blocks on SMTP; works in both
+Celery and in-process modes).
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from backend.db.repositories import BugReportRepository, JobRepository
 from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id, get_device_id
 from backend.middleware.rate_limit import rate_limit_request
+from core.task_dispatch import dispatch_task
 from core.tasks.notify_tasks import send_bug_report_email
 
 router = APIRouter(prefix="/api/support", tags=["support"])
@@ -51,5 +53,5 @@ async def submit_bug_report(
     )
     await db.commit()
 
-    send_bug_report_email.apply_async(args=[report.id], queue="default")
+    dispatch_task(send_bug_report_email, args=(report.id,), queue="default")
     return BugReportOut.model_validate(report)

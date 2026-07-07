@@ -111,6 +111,21 @@ def test_deliver_clip_webhook_events():
     assert send.call_args.kwargs["event"] == "clip.failed"
 
 
+def test_deliver_clip_webhook_user_url():
+    cfg = WebhookConfig(enabled=False, url="", secret="", timeout_secs=5, max_retries=1)
+    with patch("core.webhooks.deliver_webhook", return_value=True) as send:
+        ok = deliver_clip_webhook(
+            job_id="j1",
+            clip_id="c1",
+            status="done",
+            cfg=cfg,
+            user_webhook_url="https://user-hook",
+            user_webhook_secret="sec",
+        )
+    assert ok is True
+    assert send.call_args.kwargs["url"] == "https://user-hook"
+
+
 def test_deliver_publish_webhook_optional_fields():
     cfg = WebhookConfig(enabled=False, url="", secret="", timeout_secs=5, max_retries=1)
     with patch("core.webhooks.deliver_webhook", return_value=True) as send:

@@ -1,104 +1,105 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-07-01 (revision 4 — modularity + distribution audit)
+**Last run:** 2026-07-06 (revision 6 — main gaps closed)
 
 ## Executive summary
 
-The **clip pipeline and distribution plane are production-shaped**: modular `core/` services, registry-based platforms, and a clean web stack (actions → `distributionApi` → `DistributionService`). The largest gaps are **stale documentation** (prior register still listed social publish and asset vault as roadmap) and **minor API surface duplication** (job-scoped vs hub-scoped publish endpoints). **No Vercel AI SDK** — LLM uses native Ollama/OpenAI/Anthropic clients in Python; migration is not warranted.
+The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-to-end**. The **95% line-coverage gate is green** again (95.06%). P0/P1 UX blockers from the gap pass are resolved: `ClipEditor` compiles, SSE reconnect preserves `Last-Event-Id`, audio ingest is meta-gated, template profanity round-trips, and header nav is deduplicated. Remaining work is **110% stretch** (100% lines, hot-path branches, Playwright smoke) plus **doc polish** (README layout, GPU queue narrative).
 
 ## Technical gaps
 
 | ID | Claim | Status | Sev | Fix | Evidence |
 |----|-------|--------|-----|-----|----------|
-| T1–T39 | (prior revisions) | **Fixed** | — | — | See revision 3b |
-| T40 | Social distribution shipped | **Fixed** | P1 | doc | `core/distribution/`, `backend/api/distribution.py`, `web/app/distribution/` |
-| T41 | Clip Vault shipped | **Fixed** | P1 | doc | `core/vault/service.py`, `backend/api/vault.py`, `/vault` |
-| T42 | Asset vault API | **Implemented** | P2 | doc | `backend/api/assets.py` — list/create/delete; embedding UI open |
-| T43 | `.env.example` distribution keys | **Fixed** | P1 | code | `STREAMCLIP_DISTRIBUTION__*` added to `.env.example` |
-| T44 | `schemas.py` publish stub label | **Fixed** | P2 | code | Comment updated — publish is live, TikTok upload stubbed by flag |
-| T45 | Celery `vault_tasks` routing | **Fixed** | P2 | code | Explicit `core.tasks.vault_tasks.*` → `default` in `celery_app.py` |
-| T46 | Dead `jobsApi.publishClip` client | **Fixed** | P2 | code | Removed from `web/lib/api/client.ts`; web uses `distributionApi.publish` |
-| T47 | `PRODUCTION.md` distribution env | **Fixed** | P1 | doc | `deploy/PRODUCTION.md` §1.3 now lists `STREAMCLIP_DISTRIBUTION__*` + links the runbook |
-| T48 | README roadmap stale | **Fixed** | P1 | doc | README roadmap updated for vault, publish, webhooks |
-| T49 | Job-scoped publish API overlap | Partial | P2 | defer | `POST /api/jobs/{id}/clips/{id}/publish` duplicates hub `POST /api/distribution/publish`; batch-publish still job-scoped |
-| T50 | TikTok upload | **Fixed** | P2 | code | Inbox-flow upload implemented (`upload_video_file`); flag off pending TikTok app approval |
-| T51 | Stripe billing | **Removed** | P2 | code | Lemon Squeezy is the sole provider; license chain wired end-to-end (see MASTER_TODO 2a) |
-| T52 | OpenAPI type drift | **Fixed** | P2 | code | `web/lib/api/openapi.ts` regenerated; `approval_status` literal union from backend schema |
+| T1–T52 | (prior revisions) | Mostly **Fixed** | — | — | See revision 4 |
+| T53 | Coverage gate `fail_under=95` | **Fixed** | P1 | code | Full suite 2026-07-06: **95.06%**; `notify_tasks`, `transcript_io`, `subtitle_import` at 100% |
+| T54 | README project layout | **Stale** | P2 | doc | README lists `core/ingest.py` + 4 API modules + migration `0001` only; repo has `core/ingest/` package (8 modules), 14 routers, migrations `0001`–`0009` |
+| T55 | Export codec default | **Fixed** | P2 | code | `ExportConfig.codec` default `libx264` matches `config.yaml` / README (`core/config.py:135`) |
+| T56 | GPU queue isolation | **Fixed** | P2 | code | `worker` queues now `${STREAMCLIP_WORKER_QUEUES:-default,gpu}`; set `default` with `--profile gpu` for isolation |
+| T57 | Reframe `auto` preset | **Fixed** | P2 | doc | README preset table says "clip emotion heuristics"; matches `core/reframe.py` |
+| T58 | Phase 2–4 backend features | **Fixed** | — | — | Profanity, words endpoint, waveform, `caption_words_per_group`, audio slate — verified in pipeline + API |
+| T59 | License/commerce chain | **Fixed** | — | — | Lemon Squeezy webhook, email task, activation audit, admin revoke, perpetual JWT |
+| T60 | `gpu-worker` volume parity | **Fixed** | P2 | both | `gpu-worker` mounts `./config:/app/config:ro` (`docker-compose.yml`) |
 
 ## UX gaps
 
 | ID | Journey / control | Status | Sev | Fix | Evidence |
 |----|-------------------|--------|-----|-----|----------|
-| U1–U12 | (prior revisions) | Mostly **Fixed** | — | — | See revision 3b |
-| U13 | Distribution journeys | **Implemented** | — | — | `clip-destinations-drawer.tsx`, `vault-destinations-drawer.tsx`, `/distribution` |
-| U14 | Pro gate messaging | **Fixed** | P2 | code | `requireDistributionSession()` in `web/lib/distribution/access.ts` |
-| U15 | Asset vault UI | Partial | P2 | defer | API exists; no dedicated `/assets` management page |
-| U16 | Playwright full upload e2e | Partial | P2 | defer | `web/package.json` `test:e2e`; smoke only |
+| U1–U16 | (prior revisions) | Mostly **Fixed** | — | — | See revision 4 |
+| U17 | Audio upload without feature gate | **Fixed** | P1 | code | `/api/meta` exposes `features.audio_ingest`; create form + `DirectUpload` restrict audio MIME when off |
+| U18 | `ClipEditor` safe zones compile error | **Fixed** | P0 | code | `showSafeZones` state; `npm run typecheck` green |
+| U19 | Words-per-group editor control | **Fixed** | P1 | code | Slider in Style section; saves `caption_words_per_group` |
+| U20 | API docs nav | **Fixed** | P1 | code | Header link to `/docs` (FastAPI OpenAPI UI) |
+| U21 | `JobCard` nested `<button>` in `<Link>` | **Fixed** | P1 | code | Card uses `role="link"` + router; title edit stops propagation |
+| U22 | Duplicate "Account" in header | **Fixed** | P2 | code | Settings vs Profile/Sign in labels in `header-nav.tsx` |
+| U23 | SSE reconnect / `Last-Event-Id` | **Fixed** | P1 | code | `use-job-progress.ts` keeps EventSource on transient errors; polling after 20s fallback |
+| U24 | SSE disconnect not surfaced | **Fixed** | P2 | code | `LiveProgress` amber banner for `reconnecting` / `polling` |
+| U25 | `CreateJobRequest` fields not in form | Partial | P2 | defer | `asset_pack_id`, `profanity_mode` have no UI mapping |
+| U26 | Save template omits profanity | **Fixed** | P2 | code | Template save/apply includes `profanity_filter` in `create-job-form.tsx` |
+| U27 | Playwright full journey | Partial | P2 | defer | `E2E_RUN=1` smoke not green — blocks 110% gate |
+| U28 | Phase 3 UX (bug report, privacy, checklist) | **Fixed** | — | — | Wired in layout + settings hub |
 
 ## Modularity & duplication register
 
 | Area | Finding | Severity | Recommendation |
 |------|---------|----------|----------------|
-| Publish routing | Two entry points: `jobs.py` (`publish_clip`, `batch_publish`) and `distribution.py` (`publish`, `schedule`) — both delegate to `DistributionService` | P2 | Keep batch on jobs router; consider deprecating single-clip jobs publish (unused by web) |
-| Schedule endpoint | `POST /schedule` is thin wrapper over `publish_now(..., scheduled_at=...)` | OK | Intentional REST surface for schedule UX |
-| Web auth pattern | Repeated `getAccessToken` + `hasDistributionAccess` in actions | **Fixed** | `requireDistributionSession()` helper |
-| Skills overlap | `streamclip` (comprehensive) vs `streamclip-development` (quick-start index) vs `streamclip-social-distribution` | OK | Hierarchy intentional; development skill points to siblings |
-| `core/` vs `backend/` | Pipeline + distribution in `core/`; HTTP + repos in `backend/` | OK | Matches skill conventions; Celery uses `backend.db.session` |
-| Platform extension | `core/distribution/registry.py` + adapter pattern (`youtube.py`, `tiktok.py`) | OK | Add Instagram via new adapter + `PLATFORMS_V1` entry |
-| Inline import | `core/vault/service.py` lazy-imports `copy_clip_to_vault` | P2 | Documented circular-dep avoidance; acceptable |
+| Publish routing | Job-scoped vs hub publish endpoints both delegate to `DistributionService` | P2 | Keep batch on jobs router; deprecate single-clip jobs publish when safe |
+| `core/ingest.py` shim | Legacy re-export alongside `core/ingest/` package | P2 | README should document package; shim kept for imports |
+| Coverage vs velocity | Prior notify/ingest modules under-tested | **Fixed** | Batch 5–6 tests + notify/transcript/ingest gaps; ratchet toward 100% next |
 
 ## Creator-platform gaps (mastery trajectory)
 
 | ID | Capability | Status | Priority |
 |----|------------|--------|----------|
-| C1 | Multi-vertical profiles | **Shipped** | — |
-| C2 | Peak + chat discovery | **Shipped** | — |
-| C3 | Post-gen editor (trim, restyle) | **Shipped** | — | `web/components/clips/clip-editor.tsx` — trim, reframe, captions, aspect ratio per clip |
-| C4 | Splice / merge clips | Partial | P1 | `jobs.py` splice endpoint exists |
-| C5 | Asset vault API | **Shipped** | — | UI management open |
-| C6 | Social publish | **Shipped** | — | YouTube live; TikTok flag-gated |
-| C7 | Batch ZIP export | **Shipped** | — | T33 |
-| C8 | Per-clip webhooks | **Shipped** | — | `deliver_clip_webhook` in `core/tasks/pipeline_tasks.py` |
-| C9 | Channel style learning | **Shipped** | — | `core/style_learning.py` implemented + wired |
+| C1–C9 | (prior) | **Shipped** | — |
+| C10 | Timeline editor (waveform + trim + safe zones) | **Shipped** | — | `trim-timeline.tsx`, `safe-zone-overlay.tsx`, waveform API |
+| C11 | Transcript word editor | **Shipped** | — | `transcript-edit-panel.tsx`, GET words |
+| C12 | Profanity filter (job + captions) | **Shipped** | — | `core/profanity.py`, create-job checkbox |
+| C13 | Audio-to-clip (v2 SKU) | **Shipped** | — | `audio_slate.py`, `features.audio_ingest` gate |
 
-## AI / LLM layer assessment
+## 110% coverage gate (beta blocker)
 
-| Item | Status |
-|------|--------|
-| Vercel AI SDK (`ai` package) | **Not used** — `web/package.json` has no `ai` dependency |
-| Python LLM | `core/virality.py` — native `ollama`, `openai`, `anthropic` clients via `_build_client()` |
-| Discovery vs post-hoc | Correct: `core/highlights.py` sets `llm_virality=0.0` at discovery; `run_virality_scores` + `ensemble_with_virality()` post-hoc |
-| AI SDK migration | **Not recommended** — Python pipeline owns LLM; no streaming chat UI; migration adds dep without clear win |
+| Milestone | Target | Current (2026-07-06) |
+|-----------|--------|----------------------|
+| Line coverage | `fail_under = 100` (stretch) / **95** (active) | **95.06%** — active gate **green** |
+| Hot-path branches | ≥85% on pipeline_tasks, sse, distribution, job_service | Not verified |
+| Playwright smoke | `E2E_RUN=1` happy path | Not started |
+| Web build | `npx next build` | **Green** |
 
-## Resolved since revision 3b (2026-07-01)
+See `docs/BETA_GO_LIVE.md`, `docs/BETA_TESTER_PLAN.md` §1.
 
-- T40–T48 — Documentation and modularity fixes from modularity audit
-- T45 — Explicit Celery route for `vault_tasks`
-- T46 — Removed dead `jobsApi.publishClip` client method
-- U14 — Consolidated distribution Pro gate via `requireDistributionSession()`
+## Resolved since revision 5 (2026-07-06)
+
+- T53 — Coverage gate restored via batch 5–6 tests (`notify_tasks`, `transcript_io`, `ingest/service`, `virality`, `transcribe`, `subtitle_import`, `twitch_chat`)
+- T55 — Export codec Pydantic default aligned to `libx264`
+- T60 — `gpu-worker` `./config` mount
+- U22–U24 — Header nav, SSE reconnect UX, disconnect banner
+- U26 — Template profanity save/restore
+- Test fix — audio ingest gate tested at `UploadService.init_upload` (not `create_job`)
 
 ## Intentional deferrals (roadmap)
 
 - Speaker diarization
-- Instagram Reels platform adapter
-- TikTok live upload (Content Posting API + flag)
-- Stripe billing enforcement
+- Instagram Reels adapter
+- TikTok live upload (flag-gated)
 - Full Playwright upload → clips e2e
 - yt-dlp subtitle reuse for Whisper
-- Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish` after API consumers migrate to hub
-- Asset vault management UI page
-- Deep learning highlight models (autoencoder / DENAN)
+- Deprecate job-scoped single-clip publish endpoint
+- Asset vault dedicated management page (API exists; `/settings/assets` partial)
+- README full layout refresh
+- `asset_pack_id` / `profanity_mode` create-job form fields
+- Hot-path branch coverage measurement + ratchet to 100% line coverage
 
 ## Verification commands
 
 ```bash
-python -c "from backend.main import app"
-cd web && npm run build
-pytest tests/test_celery_publish.py tests/test_publish_notify.py -q
+docker compose exec -T api python -m pytest tests/ -q --cov=backend --cov=core
+cd web && npm run typecheck && npx next build
+docker compose exec -T api python -c "from backend.main import app"
+powershell -File scripts/verify_stack.ps1
 ```
 
 ## How to re-run
 
 Invoke skill: **`streamclip-gap-analysis`** (`.cursor/skills/streamclip-gap-analysis/SKILL.md`)
 
-See also: `docs/CREATOR_PLATFORM.md`, `docs/TECHNICAL_DESIGN.md`, `docs/distribution-runbook.md`
+See also: `docs/PERFORMANCE.md`, `docs/TECHNICAL_DESIGN.md`, `docs/BETA_GO_LIVE.md`

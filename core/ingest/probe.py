@@ -6,13 +6,14 @@ import json
 import subprocess
 from pathlib import Path
 
+from core.ffmpeg_bins import ffprobe_bin
 from core.models import VideoMeta
 
 
 def probe_video(path: Path, *, url: str | None = None) -> VideoMeta:
     """Extract metadata via ffprobe."""
     cmd = [
-        "ffprobe", "-v", "quiet",
+        ffprobe_bin(), "-v", "quiet",
         "-print_format", "json",
         "-show_format", "-show_streams",
         str(path),
@@ -23,7 +24,15 @@ def probe_video(path: Path, *, url: str | None = None) -> VideoMeta:
     fmt = data.get("format", {})
     streams = data.get("streams", [])
 
-    video_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
+    # Skip attached pictures (e.g. MP3 album art) — they are not real video.
+    video_stream = next(
+        (
+            s for s in streams
+            if s.get("codec_type") == "video"
+            and not s.get("disposition", {}).get("attached_pic")
+        ),
+        {},
+    )
     audio_stream = next((s for s in streams if s.get("codec_type") == "audio"), None)
 
     fps_raw = video_stream.get("r_frame_rate", "30/1")

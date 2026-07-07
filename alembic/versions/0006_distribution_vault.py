@@ -5,6 +5,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
+from backend.db.types import add_column, alter_column, create_foreign_key, json_server_default
+
 revision = "0006_distribution_vault"
 down_revision = "0005_device_identity"
 branch_labels = None
@@ -12,6 +14,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     op.create_table(
         "vault_clips",
         sa.Column("id", sa.String(32), primary_key=True),
@@ -46,7 +49,12 @@ def upgrade() -> None:
         sa.Column("storage_key", sa.String(512), nullable=True),
         sa.Column("thumb_storage_key", sa.String(512), nullable=True),
         sa.Column("status", sa.String(16), nullable=False, server_default="copying"),
-        sa.Column("metadata_json", sa.JSON(), nullable=False, server_default="{}"),
+        sa.Column(
+            "metadata_json",
+            sa.JSON(),
+            nullable=False,
+            server_default=json_server_default("{}", bind),
+        ),
         sa.Column(
             "saved_at",
             sa.DateTime(timezone=True),
@@ -71,13 +79,18 @@ def upgrade() -> None:
         ),
     )
 
-    op.alter_column("publish_jobs", "clip_id", existing_type=sa.String(32), nullable=True)
-    op.add_column("publish_jobs", sa.Column("vault_clip_id", sa.String(32), nullable=True))
-    op.add_column("publish_jobs", sa.Column("external_url", sa.Text(), nullable=True))
-    op.add_column("publish_jobs", sa.Column("idempotency_key", sa.String(64), nullable=True))
-    op.add_column("publish_jobs", sa.Column("attempt_count", sa.Integer(), nullable=False, server_default="0"))
-    op.add_column("publish_jobs", sa.Column("last_error_code", sa.String(64), nullable=True))
-    op.create_foreign_key(
+    alter_column(bind, "publish_jobs", "clip_id", existing_type=sa.String(32), nullable=True)
+    add_column(bind, "publish_jobs", sa.Column("vault_clip_id", sa.String(32), nullable=True))
+    add_column(bind, "publish_jobs", sa.Column("external_url", sa.Text(), nullable=True))
+    add_column(bind, "publish_jobs", sa.Column("idempotency_key", sa.String(64), nullable=True))
+    add_column(
+        bind,
+        "publish_jobs",
+        sa.Column("attempt_count", sa.Integer(), nullable=False, server_default="0"),
+    )
+    add_column(bind, "publish_jobs", sa.Column("last_error_code", sa.String(64), nullable=True))
+    create_foreign_key(
+        bind,
         "fk_publish_jobs_vault_clip_id",
         "publish_jobs",
         "vault_clips",

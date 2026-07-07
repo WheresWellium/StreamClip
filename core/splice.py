@@ -10,6 +10,7 @@ import structlog
 
 from core.config import Settings
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
+from core.ffmpeg_bins import ffmpeg_bin
 from core.storage import Storage
 
 log = structlog.get_logger(__name__)
@@ -30,7 +31,7 @@ def splice_clip_files(
 
     if transition == "crossfade" and len(input_paths) == 2:
         cmd = [
-            "ffmpeg", "-y",
+            ffmpeg_bin(), "-y",
             "-i", str(input_paths[0]),
             "-i", str(input_paths[1]),
             "-filter_complex",
@@ -47,7 +48,7 @@ def splice_clip_files(
                 fh.write(f"file '{p.resolve()}'\n")
             list_path = Path(fh.name)
         cmd = [
-            "ffmpeg", "-y",
+            ffmpeg_bin(), "-y",
             "-f", "concat", "-safe", "0",
             "-i", str(list_path),
             "-c", "copy",

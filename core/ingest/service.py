@@ -9,11 +9,15 @@ from pathlib import Path
 import structlog
 
 from core.config import Settings
+from core.errors import IngestError
+from core.ingest.audio_slate import is_audio_only, render_audio_slate
 from core.ingest.classifier import resolve_tier
+from core.ingest.probe import probe_video
 from core.ingest.resolvers.local import resolve_local
 from core.ingest.resolvers.storage import download_from_storage
 from core.ingest.resolvers.url import download_url
 from core.ingest.types import IngestRequest, IngestResult, SourceKind
+from core.ingest.url_normalize import normalize_source_url
 from core.models import VideoMeta
 from core.storage import Storage, job_key, make_storage
 
@@ -51,6 +55,8 @@ class IngestService:
         defer_upload = self.cfg.ingest.defer_source_upload
         file_size_bytes: int | None = None
 
+        audio_source = False
+
         if kind == SourceKind.UPLOAD:
             assert request.storage_key
             if on_message:
@@ -67,11 +73,26 @@ class IngestService:
             if file_size_bytes is None and local_path.exists():
                 file_size_bytes = local_path.stat().st_size
 
+            # Phase 4 — audio-to-clip: render a slate video around
+            # audio-only uploads so downstream stages see normal video.
+            if is_audio_only(meta):
+                if not self.cfg.features.audio_ingest:
+                    raise IngestError(
+                        "Audio ingest disabled",
+                        user_message="Audio uploads require the audio-to-clip add-on.",
+                    )
+                audio_source = True
+                meta = self._slate_from_audio(request.job_id, local_path, meta, on_message)
+                # Archive the rendered slate as the job source so other
+                # workers re-download video, not the raw audio upload.
+                storage_key = job_key(request.job_id, "source", CANONICAL_SOURCE_NAME)
+                if on_message:
+                    on_message("Uploading rendered source")
+                self.storage.upload(storage_key, local_path, content_type="video/mp4")
+
         elif kind == SourceKind.URL:
             assert request.source_url
-            url = request.source_url
-            if url.startswith("twitch.tv") or url.startswith("www."):
-                url = f"https://{url.removeprefix('www.')}"
+            url = normalize_source_url(request.source_url)
 
             pre_tier = resolve_tier(source_kind=kind, url=url)
             if on_message:
@@ -108,10 +129,14 @@ class IngestService:
 
         tier = resolve_tier(
             source_kind=kind,
-            url=request.source_url,
+            url=url if kind == SourceKind.URL else request.source_url,
             duration_secs=meta.duration,
         )
         hints = self._pipeline_hints(tier)
+        if audio_source:
+            # Slate frames carry no motion — optical flow is pure waste.
+            hints["skip_optical_flow"] = True
+            hints["audio_source"] = True
 
         log.info(
             "ingest_complete",
@@ -134,6 +159,39 @@ class IngestService:
         )
         return result
 
+    def _slate_from_audio(
+        self,
+        job_id: str,
+        local_path: Path,
+        meta: VideoMeta,
+        on_message: Callable[[str], None] | None,
+    ) -> VideoMeta:
+        """Replace an audio-only source with a rendered slate video in place."""
+        if on_message:
+            on_message("Rendering audio slate video")
+        audio_path = local_path.with_name("source_audio" + (local_path.suffix or ".bin"))
+        local_path.rename(audio_path)
+        try:
+            render_audio_slate(audio_path, local_path, self.cfg)
+        except Exception as exc:
+            audio_path.rename(local_path)  # restore for debuggability
+            raise IngestError(
+                f"Audio slate render failed for job {job_id}",
+                user_message="Could not convert the audio file into a video source.",
+            ) from exc
+        finally:
+            if local_path.exists() and audio_path.exists():
+                audio_path.unlink(missing_ok=True)
+
+        slate_meta = probe_video(local_path)
+        return VideoMeta(
+            **{
+                **vars(slate_meta),
+                "title": meta.title,
+                "url": meta.url,
+            },
+        )
+
     @staticmethod
     def _materialize_to_workspace(src: Path, dest: Path) -> None:
         """Copy cached download into job workspace (hardlink if same volume)."""
@@ -141,7 +199,10 @@ class IngestService:
         if dest.exists():
             return
         try:
-            src.link(dest)  # hardlink when possible
+            if hasattr(src, "link_to"):
+                src.link_to(dest)
+            else:
+                src.link(dest)  # pragma: no cover — legacy Python
         except (OSError, AttributeError):
             shutil.copy2(src, dest)
 

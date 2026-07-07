@@ -26,6 +26,7 @@ import structlog
 
 from core.config import Settings, OverlayConfig
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
+from core.ffmpeg_bins import ffmpeg_bin, ffprobe_bin
 from core.models import ClipCandidate, OverlayAsset
 
 log = structlog.get_logger(__name__)
@@ -313,7 +314,7 @@ def _add_sfx(
         f"[0:a][sfx]amix=inputs=2:duration=first:dropout_transition=1[aout]"
     )
     cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_bin(), "-y",
         "-i", str(input_video),
         "-i", str(sfx_path),
         "-filter_complex", filter_complex,
@@ -461,7 +462,7 @@ def apply_overlays(
         intermediate = output_path
 
     cmd = [
-        "ffmpeg", "-y", *inputs,
+        ffmpeg_bin(), "-y", *inputs,
         "-filter_complex", filter_complex,
         "-map", f"[{last_label}]",
         "-map", "0:a?",
@@ -499,7 +500,7 @@ def apply_overlays(
 
 def _probe_duration(clip_path: Path) -> float:
     cmd = [
-        "ffprobe", "-v", "quiet", "-print_format", "json",
+        ffprobe_bin(), "-v", "quiet", "-print_format", "json",
         "-show_format", str(clip_path),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)

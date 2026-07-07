@@ -1,0 +1,170 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+import { ClipCard } from "@/components/clips/clip-card";
+import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
+import { SpliceClipsToolbar } from "@/components/clips/splice-clips-toolbar";
+import { LiveClipFeed } from "@/components/jobs/live-clip-feed";
+import { LegendBadge } from "@/components/ui/legend-badge";
+import type { ClipOut } from "@/lib/api/types";
+import { legendForStatus } from "@/lib/help/legends";
+import {
+  isJobNotFound,
+  loadJobPageContext,
+  type JobPageContext,
+} from "@/lib/jobs/load-job-page-client";
+import { getEffectiveJobTitle } from "@/lib/jobs/title";
+import { statusColors } from "@/lib/utils/format";
+
+export function JobClipsPageClient() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const jobId = params.id;
+  const [ctx, setCtx] = useState<JobPageContext | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadJobPageContext(jobId)
+      .then((data) => {
+        if (!cancelled) setCtx(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (isJobNotFound(err)) {
+          router.replace("/jobs");
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to load job");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, router]);
+
+  if (error) {
+    return (
+      <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        {error}
+      </div>
+    );
+  }
+
+  if (!ctx) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">Loading clips…</div>
+    );
+  }
+
+  const {
+    job,
+    captionStyleOptions,
+    reframePresetOptions,
+    aspectRatioCatalog,
+    hasDistribution,
+  } = ctx;
+
+  const approvedClipCount = (job.clips as ClipOut[]).filter(
+    (c) => c.approval_status === "approved" && c.status === "done",
+  ).length;
+
+  const jobTitle = getEffectiveJobTitle(job);
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <Link
+          href="/jobs"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          All jobs
+        </Link>
+        <span className="text-muted-foreground/50" aria-hidden>
+          /
+        </span>
+        <Link
+          href={`/jobs/${job.id}`}
+          className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[200px]"
+        >
+          {jobTitle}
+        </Link>
+        <span className="text-muted-foreground/50" aria-hidden>
+          /
+        </span>
+        <span className="text-foreground font-medium">Clips</span>
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Clips
+            <span className="text-muted-foreground font-normal">
+              {" "}
+              · {jobTitle}
+            </span>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {job.clips.length} clips · approve and publish when ready
+          </p>
+        </div>
+        <LegendBadge
+          className={statusColors[job.status] ?? statusColors.queued}
+          tip={legendForStatus(job.status)}
+          tipLabel="Job status help"
+        >
+          {job.status}
+        </LegendBadge>
+      </div>
+
+      <LiveClipFeed
+        jobId={job.id}
+        jobStatus={job.status}
+        initialClipCount={job.clips.length}
+      />
+
+      {job.clips.length > 0 ? (
+        <>
+          <JobClipsToolbar
+            jobId={job.id}
+            clipCount={job.clips.length}
+            approvedClipCount={approvedClipCount}
+            jobStatus={job.status}
+            contentProfile={job.content_profile}
+            hasDistribution={hasDistribution}
+          />
+          <SpliceClipsToolbar
+            jobId={job.id}
+            clips={job.clips}
+            jobDone={job.status === "done"}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {job.clips.map((clip) => (
+              <ClipCard
+                key={clip.id}
+                clip={clip}
+                jobId={job.id}
+                jobDone={job.status === "done"}
+                sourceDurationSecs={job.source_duration_secs}
+                captionStyleOptions={captionStyleOptions}
+                reframePresetOptions={reframePresetOptions}
+                jobAspectRatio={job.aspect_ratio}
+                aspectRatioCatalog={aspectRatioCatalog}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-lg border border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+          No clips yet.{" "}
+          <Link href={`/jobs/${job.id}`} className="text-sky-400 hover:underline">
+            Return to job status
+          </Link>{" "}
+          to watch pipeline progress.
+        </div>
+      )}
+    </div>
+  );
+}

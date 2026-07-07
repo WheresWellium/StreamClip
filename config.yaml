@@ -71,6 +71,9 @@ caption:
   position_y_fraction: 0.72
   outline_width: 5
   shadow_depth: 3
+  profanity_filter: false      # censor profanity in captions + title/hook
+  profanity_mode: mask          # mask (f***) | bleep (•••) | omit (drop word)
+  # profanity_wordlist: config/profanity_en.txt  # optional custom list
 
 overlay:
   assets_dir: assets
@@ -97,9 +100,14 @@ ingest:
   fetch_subs_on_long: false      # fetched separately before transcribe
   defer_source_upload: true      # don't block pipeline on MinIO archival
   ytdlp_concurrent_fragments: 4
+  ytdlp_max_retries: 4
+  ytdlp_retry_base_delay_secs: 2.0
   short_skip_optical_flow: true # skip heavy CV on clips under 2 min
   medium_skip_optical_flow: false
   short_min_clip_duration: 5.0
+
+features:
+  audio_ingest: true             # v2 SKU: upload audio → slate video → clips
 
 auth:
   allow_anonymous: true

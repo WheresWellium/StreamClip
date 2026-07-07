@@ -32,15 +32,20 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from backend.db.types import PortableJSON
 
 
 # ─── Base ────────────────────────────────────────────────────────────────────
 
 class Base(DeclarativeBase):
     """Common base for all ORM models."""
-    type_annotation_map = {dict[str, Any]: JSONB}
+    type_annotation_map = {
+        dict[str, Any]: PortableJSON,
+        list[str]: PortableJSON,
+        list[float]: PortableJSON,
+    }
 
 
 def _ulid() -> str:
@@ -118,6 +123,11 @@ class User(Base, IDMixin, TimestampMixin):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # Privacy: opt-in to contribute anonymized job data for model improvement
+    data_contribution_opt_in: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false",
+    )
+
     # API integrations
     twitch_user_id: Mapped[str | None] = mapped_column(String(64), index=True)
 
@@ -183,6 +193,11 @@ class InstallLicense(Base, IDMixin, TimestampMixin):
     order_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     activation_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Master-identity linkage: set at activation (authed) or register (email match).
+    # Never used to delete users — soft-disable via users.is_active only.
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True,
+    )
 
 
 class Job(Base, IDMixin, TimestampMixin):
@@ -201,6 +216,7 @@ class Job(Base, IDMixin, TimestampMixin):
     source_url: Mapped[str | None] = mapped_column(Text)
     source_storage_key: Mapped[str | None] = mapped_column(String(512))  # if uploaded
     source_title: Mapped[str | None] = mapped_column(String(512))
+    display_title: Mapped[str | None] = mapped_column(String(512))
     source_duration_secs: Mapped[float | None] = mapped_column(Float)
     source_width: Mapped[int | None] = mapped_column(Integer)
     source_height: Mapped[int | None] = mapped_column(Integer)
@@ -451,3 +467,24 @@ class PublishJob(Base, IDMixin, TimestampMixin):
     last_error_code: Mapped[str | None] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(255), default="")
     description: Mapped[str] = mapped_column(Text, default="")
+
+
+class BugReport(Base, IDMixin, TimestampMixin):
+    """User-submitted bug report from the in-app form."""
+
+    __tablename__ = "bug_reports"
+
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True,
+    )
+    device_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("jobs.id", ondelete="SET NULL"), index=True, nullable=True,
+    )
+    categories: Mapped[list[str]] = mapped_column(JSON, default=list)
+    severity: Mapped[str] = mapped_column(String(16), default="medium")
+    environment: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), default="open", server_default="open",
+    )

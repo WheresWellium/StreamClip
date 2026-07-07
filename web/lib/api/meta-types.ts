@@ -33,6 +33,9 @@ export type StreamClipMeta = {
   reframe_presets: MetaOption[];
   aspect_ratios?: AspectRatioOption[];
   emotion_labels: string[];
+  features?: {
+    audio_ingest?: boolean;
+  };
 };
 
 export type JobTemplate = {

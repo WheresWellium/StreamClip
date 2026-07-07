@@ -14,14 +14,14 @@ export function BackToJobsLink() {
     <Tooltip>
       <TooltipTrigger asChild>
         <Link
-          href="/"
+          href="/jobs"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           All jobs
         </Link>
       </TooltipTrigger>
-      <TooltipContent>Return to the job list and create-job form.</TooltipContent>
+      <TooltipContent>Return to the job list.</TooltipContent>
     </Tooltip>
   );
 }

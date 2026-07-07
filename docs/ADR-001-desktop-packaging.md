@@ -1,6 +1,6 @@
 # ADR-001 — Windows desktop packaging: embedded runtime, not Docker
 
-**Status:** Proposed (accept before starting MASTER_TODO §4 work)
+**Status:** Accepted (2026-07-07)
 **Date:** 2026-07-02
 **Decides:** MASTER_TODO 4.0 · **Unblocks:** 4.1–4.13, §5 (macOS)
 

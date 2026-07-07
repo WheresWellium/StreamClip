@@ -6,10 +6,22 @@ test.describe("Jet Stream happy path", () => {
     "Set E2E_RUN=1 with stack running to execute",
   );
 
-  test("home page loads with jobs section", async ({ page }) => {
+  test("home page loads dashboard", async ({ page }) => {
     await page.goto("http://localhost:3000");
     await expect(page.getByText("Jet Stream")).toBeVisible();
-    await expect(page.getByText(/recent jobs/i)).toBeVisible();
+    await expect(page.getByRole("link", { name: /start a clip job/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /view all jobs/i })).toBeVisible();
+  });
+
+  test("jobs page loads", async ({ page }) => {
+    await page.goto("http://localhost:3000/jobs");
+    await expect(page.getByRole("heading", { name: "Jobs" })).toBeVisible();
+  });
+
+  test("new job form loads", async ({ page }) => {
+    await page.goto("http://localhost:3000/jobs/new");
+    await expect(page.getByRole("heading", { name: /new clip job/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /generate clips/i })).toBeVisible();
   });
 
   test("API health returns ok", async ({ request }) => {
@@ -41,8 +53,25 @@ test.describe("Jet Stream happy path", () => {
     expect(res.status()).toBe(422);
   });
 
-  test("create job form shows legend tooltips", async ({ page }) => {
-    await page.goto("http://localhost:3000");
-    await expect(page.getByRole("button", { name: /new job/i })).toBeVisible();
+  test("create job API accepts URL and returns 202", async ({ request }) => {
+    const res = await request.post("http://localhost:8000/api/jobs", {
+      headers: { "X-Device-Id": "e2e-device-0001" },
+      data: {
+        source_url: "https://example.com/sample-vod.mp4",
+        target_clips: 1,
+      },
+    });
+    expect(res.status()).toBe(202);
+    const body = await res.json();
+    expect(body.id).toBeTruthy();
+  });
+
+  test("list jobs returns array after create", async ({ request }) => {
+    const list = await request.get("http://localhost:8000/api/jobs", {
+      headers: { "X-Device-Id": "e2e-device-0001" },
+    });
+    expect(list.ok()).toBeTruthy();
+    const body = await list.json();
+    expect(Array.isArray(body.jobs)).toBeTruthy();
   });
 });

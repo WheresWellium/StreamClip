@@ -166,3 +166,20 @@ async def test_upload_service(storage):
         RequestScope(user_id=None, device_id=None),
     )
     assert resp.storage_key.startswith("uploads/anonymous/")
+
+
+@pytest.mark.asyncio
+async def test_upload_service_rejects_oversized(storage):
+    cfg = get_settings(reload=True)
+    us = UploadService(cfg, storage)
+    too_large = cfg.storage.max_upload_bytes + 1
+    with pytest.raises(StreamClipError) as exc:
+        await us.init_upload(
+            UploadInitRequest(
+                filename="huge.mp4",
+                content_type="video/mp4",
+                size_bytes=too_large,
+            ),
+            RequestScope(user_id=None, device_id="dev12345678901234567890123456789012"),
+        )
+    assert exc.value.code == "upload_too_large"

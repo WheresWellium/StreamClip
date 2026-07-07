@@ -27,6 +27,11 @@ def hash_license_key(license_key: str) -> str:
     return hashlib.sha256(license_key.strip().encode("utf-8")).hexdigest()
 
 
+# One-time purchases promise a perpetual entitlement (MASTER_TODO §8.6).
+# JWT requires a numeric exp, so "perpetual" is a 100-year horizon.
+PERPETUAL_DAYS = 36500
+
+
 def create_entitlement_token(
     *,
     tier: UserTier,
@@ -37,7 +42,7 @@ def create_entitlement_token(
 ) -> str:
     cfg = cfg or get_settings()
     now = datetime.now(timezone.utc)
-    exp = expires_at or (now + timedelta(days=365))
+    exp = expires_at or (now + timedelta(days=PERPETUAL_DAYS))
     payload = {
         "type": "entitlement",
         "tier": tier.value,
@@ -83,7 +88,11 @@ def activate_license_key(
     if len(key) < 16:
         raise ValueError("Invalid license key")
     key_hash = hash_license_key(key)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+    # entitlement_days == 0 → perpetual (one-time purchase product promise)
+    days = cfg.licensing.entitlement_days
+    expires_at = (
+        datetime.now(timezone.utc) + timedelta(days=days) if days > 0 else None
+    )
     token = create_entitlement_token(
         tier=tier,
         machine_id=machine_id,

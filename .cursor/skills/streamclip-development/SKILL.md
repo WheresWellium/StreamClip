@@ -67,6 +67,22 @@ cd web && npm install && npm run dev
 
 See `CONTRIBUTING.md` for debugging Next.js, OpenAPI type regen, and Playwright.
 
+## Desktop profile (ADR-001, no Docker)
+
+| Piece | Path / switch |
+|-------|---------------|
+| Config profile | `config/desktop.yaml` (or `STREAMCLIP_CONFIG=config/desktop.yaml`) |
+| DB | SQLite via aiosqlite; portable types in `backend/db/types.py` |
+| Queue | `STREAMCLIP_QUEUE__BACKEND=inprocess` → `core/inprocess_worker.py` |
+| Storage | Local files served at `/storage/{key}` (`backend/api/local_storage.py`) |
+| ffmpeg | `core/ffmpeg_bins.py` resolves `bin/ffmpeg/` then PATH |
+| Sidecar | `python -m desktop_sidecar` → FastAPI on `127.0.0.1:8765` (migrations auto-run) |
+| Static UI | `backend/static_ui.py` serves `static/ui/` when `web.serve_static: true` |
+
+Verify scripts (PowerShell, from repo root): `scripts/verify_desktop.ps1` aggregates
+`verify_desktop_db.ps1` + `verify_desktop_storage.ps1` + `verify_desktop_ffmpeg.ps1` +
+sidecar/static tests; `scripts/verify_inprocess.ps1` needs Docker running.
+
 ## Verification commands
 
 After backend changes:

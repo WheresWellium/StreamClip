@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api import assets, auth, commerce, devices, distribution, health, jobs, license, metrics, settings, templates, uploads, vault
+from backend.api import admin, assets, auth, commerce, devices, distribution, health, jobs, license, local_storage, metrics, settings, support, templates, uploads, vault
 from backend.observability import init_opentelemetry
 from core.config import get_settings
 from core.errors import StreamClipError
@@ -106,7 +106,18 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         log.warning("db_warm_failed", error=str(exc))
 
+    if cfg.queue.backend == "inprocess":
+        from core.inprocess_worker import start_inprocess_worker
+
+        start_inprocess_worker(cfg)
+        log.info("inprocess_worker_ready")
+
     yield
+
+    if cfg.queue.backend == "inprocess":
+        from core.inprocess_worker import stop_inprocess_worker
+
+        stop_inprocess_worker()
 
     log.info("app_shutdown")
     await engine.dispose()
@@ -160,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(jobs.router)
     app.include_router(uploads.router)
+    app.include_router(local_storage.router)
     app.include_router(templates.router)
     app.include_router(assets.router)
     app.include_router(settings.router)
@@ -168,8 +180,14 @@ def create_app() -> FastAPI:
     app.include_router(distribution.router)
     app.include_router(vault.router)
     app.include_router(devices.router)
+    app.include_router(support.router)
+    app.include_router(admin.router)
     if cfg.observability.enable_metrics:
         app.include_router(metrics.router)
+
+    from backend.static_ui import mount_static_ui
+
+    mount_static_ui(app, cfg)
 
     # ── Exception handlers ────────────────────────────────────────────────
     @app.exception_handler(StreamClipError)

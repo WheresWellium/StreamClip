@@ -62,7 +62,7 @@ export function DistributionOAuthToasts({ connected, error }: Props) {
       toast(msg.title, msg.description);
     }
 
-    router.replace("/distribution");
+    router.replace("/settings?section=distribution");
   }, [connected, error, toast, router]);
 
   return null;

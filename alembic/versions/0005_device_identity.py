@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
+
+from backend.db.types import add_column, create_foreign_key, json_server_default, portable_tier_enum
 
 revision = "0005_device_identity"
 down_revision = "0004_job_timing"
@@ -13,6 +14,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     op.create_table(
         "local_devices",
         sa.Column("id", sa.String(32), primary_key=True),
@@ -44,20 +46,23 @@ def upgrade() -> None:
     )
     op.create_index("ix_local_devices_claimed_by_user_id", "local_devices", ["claimed_by_user_id"])
 
-    op.add_column(
+    add_column(
+        bind,
         "jobs",
-        sa.Column(
-            "device_id",
-            sa.String(32),
-            sa.ForeignKey("local_devices.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
+        sa.Column("device_id", sa.String(32), nullable=True),
+    )
+    create_foreign_key(
+        bind,
+        "fk_jobs_device_id",
+        "jobs",
+        "local_devices",
+        ["device_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_index("ix_jobs_device_id", "jobs", ["device_id"])
 
-    user_tier_enum = postgresql.ENUM(
-        "free", "pro", "admin", name="user_tier", create_type=False,
-    )
+    user_tier_enum = portable_tier_enum(bind)
     op.create_table(
         "install_licenses",
         sa.Column("id", sa.String(32), primary_key=True),
@@ -88,7 +93,8 @@ def upgrade() -> None:
     op.create_index("ix_install_licenses_license_key_hash", "install_licenses", ["license_key_hash"], unique=True)
     op.create_index("ix_install_licenses_machine_id", "install_licenses", ["machine_id"])
 
-    op.add_column(
+    add_column(
+        bind,
         "clips",
         sa.Column(
             "approval_status",
@@ -124,7 +130,12 @@ def upgrade() -> None:
         sa.Column("access_token_enc", sa.Text(), nullable=True),
         sa.Column("refresh_token_enc", sa.Text(), nullable=True),
         sa.Column("token_expires_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("metadata_json", sa.JSON(), nullable=False, server_default="{}"),
+        sa.Column(
+            "metadata_json",
+            sa.JSON(),
+            nullable=False,
+            server_default=json_server_default("{}", bind),
+        ),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
     )
     op.create_index("ix_platform_connections_user_id", "platform_connections", ["user_id"])

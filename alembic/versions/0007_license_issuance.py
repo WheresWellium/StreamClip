@@ -5,6 +5,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
+from backend.db.types import add_column, alter_column
+
 revision = "0007_license_issuance"
 down_revision = "0006_distribution_vault"
 branch_labels = None
@@ -12,28 +14,26 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column("install_licenses", "machine_id", existing_type=sa.String(128), nullable=True)
-    op.alter_column("install_licenses", "entitlement_jwt", existing_type=sa.Text(), nullable=True)
-    op.alter_column(
+    bind = op.get_bind()
+    alter_column(bind, "install_licenses", "machine_id", existing_type=sa.String(128), nullable=True)
+    alter_column(bind, "install_licenses", "entitlement_jwt", existing_type=sa.Text(), nullable=True)
+    alter_column(
+        bind,
         "install_licenses",
         "activated_at",
         existing_type=sa.DateTime(timezone=True),
         nullable=True,
         server_default=None,
     )
-    op.add_column(
+    add_column(
+        bind,
         "install_licenses",
         sa.Column("status", sa.String(16), nullable=False, server_default="issued"),
     )
-    op.add_column(
-        "install_licenses",
-        sa.Column("order_id", sa.String(64), nullable=True),
-    )
-    op.add_column(
-        "install_licenses",
-        sa.Column("customer_email", sa.String(320), nullable=True),
-    )
-    op.add_column(
+    add_column(bind, "install_licenses", sa.Column("order_id", sa.String(64), nullable=True))
+    add_column(bind, "install_licenses", sa.Column("customer_email", sa.String(320), nullable=True))
+    add_column(
+        bind,
         "install_licenses",
         sa.Column("activation_count", sa.Integer(), nullable=False, server_default="0"),
     )

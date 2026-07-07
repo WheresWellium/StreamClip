@@ -1,83 +1,106 @@
-import { Suspense } from "react";
+import Link from "next/link";
+import { Film, List, Plus, Settings } from "lucide-react";
 
-import { AuthPanel } from "@/components/auth/auth-panel";
-import { BatchJobForm } from "@/components/jobs/batch-job-form";
-import { CreateJobForm } from "@/components/jobs/create-job-form";
-import { JobsList, JobsListSkeleton } from "@/components/jobs/jobs-list";
-import { metaApi, templatesApi } from "@/lib/api/client";
-import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
-import { getAccessToken } from "@/lib/auth/session";
-import { normalizeStreamClipMeta } from "@/lib/normalize-meta";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-function normalizeMeta(raw: Record<string, unknown>): StreamClipMeta {
-  return normalizeStreamClipMeta(raw);
-}
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ search?: string; status?: string }>;
-}) {
-  const token = await getAccessToken();
-  const sp = (await searchParams) ?? {};
-  const rawMeta = await metaApi.meta();
-  const meta = normalizeMeta(rawMeta);
-
-  let templates: JobTemplate[] = [];
-  if (token) {
-    try {
-      templates = await templatesApi.list(token);
-    } catch {
-      templates = [];
-    }
-  }
-
+export default function HomePage() {
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hero */}
-      <section className="text-center sm:text-left space-y-3 pt-1">
-        <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border border-sky-400/40 bg-sky-400/10 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-400 mb-1">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full bg-sky-400 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 bg-sky-400" />
-          </span>
+    <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
+      <section className="space-y-3 pt-1">
+        <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border border-sky-400/40 bg-sky-400/10 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-400">
           Jet Stream — AI clip pipeline
         </div>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
           Turn long-form video into{" "}
           <span className="text-sky-400">viral social clips</span>
         </h1>
-        <p className="text-muted-foreground max-w-xl text-sm">
-          Three steps: paste a source, pick your content type, generate. Subject
-          tracking, animated captions, and export presets are configured for you.
+        <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
+          One source in, vertical clips out. Each step lives on its own screen so
+          you are never staring at a wall of controls.
         </p>
       </section>
 
-      {/* Primary action — create job */}
-      <div id="create">
-        <CreateJobForm meta={meta} templates={templates} isAuthenticated={!!token} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="border-sky-400/25 bg-sky-400/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Plus className="h-4 w-4 text-sky-400" />
+              New job
+            </CardTitle>
+            <CardDescription>
+              Paste a Twitch, YouTube, or Kick URL — or upload a file directly.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild size="lg" className="w-full">
+              <Link href="/jobs/new">Start a clip job</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <List className="h-4 w-4 text-muted-foreground" />
+              Your jobs
+            </CardTitle>
+            <CardDescription>
+              Track pipeline progress, then open clips when rendering completes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" size="lg" className="w-full">
+              <Link href="/jobs">View all jobs</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
-      {!token && (
-        <div className="rounded-sm border border-amber-400/40 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-200/90">
-          Jobs on this device are anonymous.{" "}
-          <a href="/register" className="underline hover:text-amber-100">
-            Create an account
-          </a>{" "}
-          to keep them across browsers and enable templates.
-        </div>
-      )}
+      <Card className="border-frame/15">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">Workflow</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-3 text-sm">
+          <div className="space-y-1">
+            <p className="font-medium text-foreground">1 · Create</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Choose source and content type. Advanced crop and caption presets stay
+              tucked away until you need them.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium text-foreground">2 · Monitor</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              The job page shows live progress only — no clip grid competing for attention.
+            </p>
+          </div>
+          <div className="space-y-1 flex flex-col">
+            <p className="font-medium text-foreground flex items-center gap-1.5">
+              <Film className="h-3.5 w-3.5" />
+              3 · Review clips
+            </p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Approve, edit, and publish from a dedicated clips workspace.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Secondary flows */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <Suspense fallback={<JobsListSkeleton />}>
-          <JobsList searchParams={sp} />
-        </Suspense>
-        <aside className="space-y-4">
-          <AuthPanel isAuthenticated={!!token} />
-          <BatchJobForm />
-        </aside>
-      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        <Settings className="inline h-3.5 w-3.5 mr-1 align-text-bottom" />
+        Vault, distribution, and license settings live under{" "}
+        <Link href="/settings" className="text-sky-400 hover:underline">
+          Settings
+        </Link>
+        .
+      </p>
     </div>
   );
 }

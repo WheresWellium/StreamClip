@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from core.distribution.base import PublishResult
+from core.distribution.tiktok import TikTokAdapter
 from core.distribution.youtube import YouTubeShortsAdapter
 from core.tasks import publish_tasks as pt
 
@@ -161,6 +162,47 @@ def test_publish_success_youtube(mock_db_cm, tmp_path):
 
     assert out["status"] == "published"
     assert "youtube.com" in out["external_url"]
+    repo.mark_published.assert_awaited()
+
+
+def test_publish_success_tiktok(mock_db_cm, tmp_path):
+    job = _job(platform="tiktok")
+    connection = SimpleNamespace(id="conn-1")
+    clip = SimpleNamespace(final_storage_key="clips/f.mp4")
+
+    repo = MagicMock()
+    repo.claim_for_publish = AsyncMock(return_value=job)
+    repo.mark_published = AsyncMock()
+    repo.get = AsyncMock(return_value=job)
+
+    storage = MagicMock()
+    storage.exists.return_value = True
+    storage.download.side_effect = lambda key, dest, on_progress=None: dest.write_bytes(b"mp4")
+
+    mock_db_cm.get = AsyncMock(
+        side_effect=lambda model, pk: clip if pk == "clip-1" else connection,
+    )
+
+    adapter = MagicMock(spec=TikTokAdapter)
+    adapter.upload_video_file = AsyncMock(
+        return_value=PublishResult(
+            status="published",
+            external_url="https://tiktok.com/@u/video/123",
+            message="ok",
+        ),
+    )
+
+    with patch.object(pt, "make_storage", return_value=storage), \
+         patch.object(pt, "PublishJobRepository", return_value=repo), \
+         patch.object(pt, "ensure_fresh_credentials", new=AsyncMock(return_value=SimpleNamespace(access_token="tok"))), \
+         patch.object(pt, "build_adapter", new=AsyncMock(return_value=adapter)), \
+         patch.object(pt, "publish_job_progress"), \
+         patch.object(pt, "notify_publish_event", new=AsyncMock()), \
+         patch.object(pt, "record_publish_outcome"):
+        out = pt.publish_to_platform.run("pj-1")
+
+    assert out["status"] == "published"
+    assert "tiktok.com" in out["external_url"]
     repo.mark_published.assert_awaited()
 
 

@@ -8,8 +8,8 @@ import {
   getDistributionContextAction,
   publishClipAction,
   scheduleClipAction,
-} from "@/app/actions/distribution";
-import { saveToVaultAction } from "@/app/actions/vault";
+} from "@/lib/api/actions/distribution";
+import { saveToVaultAction } from "@/lib/api/actions/vault";
 import { ProGateModal } from "@/components/distribution/pro-gate-modal";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";

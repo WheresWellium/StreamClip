@@ -12,8 +12,11 @@ from core.config import get_settings
 from core.errors import IngestError
 from core.ingest.resolvers.url import (
     _build_ytdlp_cmd,
+    _is_hls_platform,
+    _is_transient_ytdlp_output,
     _max_height,
     _url_hash,
+    _user_message_from_ytdlp,
     download_url,
     fetch_subtitles_for_url,
 )
@@ -29,22 +32,61 @@ def test_url_hash_and_max_height():
     assert _max_height(ProcessingTier.LONG, cfg) == cfg.long_max_height
 
 
+def test_is_hls_platform():
+    assert _is_hls_platform("https://www.twitch.tv/videos/1")
+    assert _is_hls_platform("https://kick.com/video/abc")
+    assert not _is_hls_platform("https://example.com/v.mp4")
+
+
 def test_build_ytdlp_cmd_video_has_concurrent_fragments():
+    cfg = get_settings()
     cmd = _build_ytdlp_cmd(
-        "u", Path("o.mp4"), max_height=720, concurrent_fragments=4,
+        "https://example.com/v.mp4", Path("o.mp4"), cfg,
+        max_height=720, concurrent_fragments=4,
     )
     assert "--concurrent-fragments" in cmd
     assert "4" in cmd
     assert "--write-auto-subs" not in cmd
 
 
-def test_build_ytdlp_cmd_subs_only():
+def test_build_ytdlp_cmd_twitch_uses_hls_format_and_referer():
+    cfg = get_settings()
     cmd = _build_ytdlp_cmd(
-        "u", Path("o.mp4"), max_height=720, concurrent_fragments=4, subs_only=True,
+        "https://www.twitch.tv/videos/1", Path("o.mp4"), cfg,
+        max_height=1080, concurrent_fragments=4,
+    )
+    fmt_idx = cmd.index("--format") + 1
+    assert "ext=mp4" not in cmd[fmt_idx]
+    assert "--referer" in cmd
+    assert "twitch.tv" in cmd[cmd.index("--referer") + 1]
+
+
+def test_build_ytdlp_cmd_twitch_client_id_when_configured():
+    cfg = get_settings(reload=True)
+    cfg.twitch_client_id = "test-client-id"
+    cmd = _build_ytdlp_cmd(
+        "https://www.twitch.tv/videos/1", Path("o.mp4"), cfg,
+        max_height=720, concurrent_fragments=4,
+    )
+    assert "--extractor-args" in cmd
+    assert "client_id=test-client-id" in " ".join(cmd)
+
+
+def test_build_ytdlp_cmd_subs_only():
+    cfg = get_settings()
+    cmd = _build_ytdlp_cmd(
+        "https://example.com/v", Path("o.mp4"), cfg,
+        max_height=720, concurrent_fragments=4, subs_only=True,
     )
     assert "--write-auto-subs" in cmd
     assert "--skip-download" in cmd
     assert "--concurrent-fragments" not in cmd
+
+
+def test_transient_ytdlp_error_detection():
+    lines = ["ERROR: 'NoneType' object is not subscriptable"]
+    assert _is_transient_ytdlp_output(lines)
+    assert "temporary" in _user_message_from_ytdlp(lines, "https://www.twitch.tv/videos/1")
 
 
 def test_download_cache_hit(tmp_path, monkeypatch):
@@ -74,6 +116,7 @@ def test_download_cache_hit(tmp_path, monkeypatch):
 def test_download_ytdlp_success(tmp_path, monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg, "cache_dir", tmp_path)
+    cfg.ingest.ytdlp_max_retries = 1
     url = "https://example.com/v2"
     h = _url_hash(url)
     tmp = tmp_path / f"{h}.tmp.mp4"
@@ -104,19 +147,63 @@ def test_download_ytdlp_success(tmp_path, monkeypatch):
     assert was_cache_hit is False
 
 
+def test_download_ytdlp_retries_transient_failure(tmp_path, monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg, "cache_dir", tmp_path)
+    cfg.ingest.ytdlp_max_retries = 2
+    cfg.ingest.ytdlp_retry_base_delay_secs = 0.01
+    url = "https://www.twitch.tv/videos/99"
+    h = _url_hash(url)
+    tmp = tmp_path / f"{h}.tmp.mp4"
+    calls = {"n": 0}
+
+    class Proc:
+        def __init__(self):
+            calls["n"] += 1
+            self.returncode = 0 if calls["n"] >= 2 else 1
+            self.stdout = iter(
+                ["ERROR: 'NoneType' object is not subscriptable"]
+                if self.returncode != 0
+                else ["[download] 100.0%"],
+            )
+
+        def wait(self):
+            if self.returncode == 0:
+                tmp.write_bytes(b"data")
+
+    meta = VideoMeta(
+        path=tmp_path / f"{h}.mp4",
+        duration=2.0,
+        width=640,
+        height=360,
+        fps=30.0,
+        video_codec="h264", audio_codec="aac", size_bytes=1, has_audio=True,
+        title="t",
+        url=url,
+    )
+    with patch("core.ingest.resolvers.url.subprocess.Popen", side_effect=lambda *a, **k: Proc()):
+        with patch("core.ingest.resolvers.url.probe_video", return_value=meta):
+            out, was_cache_hit = download_url(url, cfg, tier=ProcessingTier.LONG)
+    assert calls["n"] == 2
+    assert was_cache_hit is False
+    assert out.duration == 2.0
+
+
 def test_download_ytdlp_fail():
     cfg = get_settings(reload=True)
+    cfg.ingest.ytdlp_max_retries = 1
 
     class Proc:
         returncode = 1
-        stdout = iter([])
+        stdout = iter(["ERROR: video unavailable"])
 
         def wait(self):
             pass
 
     with patch("core.ingest.resolvers.url.subprocess.Popen", return_value=Proc()):
-        with pytest.raises(IngestError):
+        with pytest.raises(IngestError) as exc_info:
             download_url("https://x", cfg, tier=ProcessingTier.SHORT)
+    assert "no longer available" in exc_info.value.user_message
 
 
 def test_fetch_subtitles_skipped_when_disabled(tmp_path, monkeypatch):

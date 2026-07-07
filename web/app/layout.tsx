@@ -5,6 +5,7 @@ import "./globals.css";
 import { ClientProviders } from "@/components/providers/client-providers";
 import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
 import { AuthExtras } from "@/components/auth/auth-extras";
+import { BugReportDialog } from "@/components/support/bug-report-dialog";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -60,8 +61,9 @@ export default function RootLayout({
                 </span>
                 Jet Stream
               </a>
-              <nav className="flex items-center gap-4 text-sm">
+              <nav className="flex items-center gap-2 text-sm">
                 <HeaderNavWrapper />
+                <BugReportDialog />
               </nav>
             </div>
           </header>

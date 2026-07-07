@@ -54,17 +54,17 @@ Give **every content creator** — gamers, IRL streamers, podcasters, educators,
 - Word-synced captions, idempotent render, webhooks (job + per-clip), metrics
 - Post-generation clip editor (trim, restyle, regenerate, aspect ratio)
 - `/api/meta` drives the create-job UI end to end
-- Asset vault API (management UI still open)
+- Asset vault end-to-end: API + management UI (`/settings/assets`) + overlay engine reads `Asset` DB rows
 - Batch export ZIP; multi-aspect export (9:16, 1:1, 4:5, 16:9, 2:3)
+- Desktop embedded runtime seam (ADR-001 §4.1–4.5): SQLite profile, in-process queue, local storage HTTP, bundled ffmpeg resolution; sidecar + static UI scaffolds
 - Social publish: YouTube Shorts live; TikTok inbox upload flag-gated
 - Channel-style learning from creator feedback (`core/style_learning.py`)
 - Licensing/commerce via Lemon Squeezy (Stripe removed)
 
 ### Next (high value)
 
-- Asset vault management UI; overlay engine reads `Asset` DB rows
 - E2E publish flow tests (Playwright)
-- Desktop packaging (see `docs/MASTER_TODO.md` §4)
+- Desktop packaging: Server Actions → API migration for static export, full PyInstaller bundle, Electron sidecar shell (see `docs/MASTER_TODO.md` §4.6–4.13)
 
 ### Later (scale & distribution)
 

@@ -11,12 +11,14 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from core.config import Settings, get_settings
 
@@ -29,19 +31,43 @@ _engine: AsyncEngine | None = None
 _sessionmaker: async_sessionmaker[AsyncSession] | None = None
 
 
+def _sqlite_engine_kwargs(db_url: str, *, echo: bool) -> dict:
+    return {
+        "url": db_url,
+        "echo": echo,
+        "poolclass": NullPool,
+        "connect_args": {"check_same_thread": False},
+        "future": True,
+    }
+
+
 def get_engine(cfg: Settings | None = None) -> AsyncEngine:
     global _engine
     if _engine is None:
         cfg = cfg or get_settings()
-        _engine = create_async_engine(
-            cfg.database.url,
-            echo=cfg.database.echo,
-            pool_size=cfg.database.pool_size,
-            max_overflow=cfg.database.max_overflow,
-            pool_pre_ping=cfg.database.pool_pre_ping,
-            future=True,
+        db = cfg.database
+        if db.is_sqlite:
+            _engine = create_async_engine(**_sqlite_engine_kwargs(db.url, echo=db.echo))
+            # SQLite does not enforce FK constraints unless pragma is enabled.
+            @event.listens_for(_engine.sync_engine, "connect")
+            def _sqlite_pragma(dbapi_conn, _connection_record) -> None:  # noqa: N803
+                cursor = dbapi_conn.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+        else:
+            _engine = create_async_engine(
+                db.url,
+                echo=db.echo,
+                pool_size=db.pool_size,
+                max_overflow=db.max_overflow,
+                pool_pre_ping=db.pool_pre_ping,
+                future=True,
+            )
+        log.info(
+            "db_engine_created",
+            dialect="sqlite" if db.is_sqlite else "postgresql",
+            url=db.url.split("@")[-1],
         )
-        log.info("db_engine_created", url=cfg.database.url.split("@")[-1])
     return _engine
 
 
@@ -95,7 +121,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 # ─── Sync engine (for Alembic migrations) ───────────────────────────────────
 
 def get_sync_engine_url() -> str:
-    """Alembic uses sync drivers — return the psycopg URL."""
+    """Alembic uses sync drivers — return the configured sync URL."""
     cfg = get_settings()
     return cfg.database.sync_url
 

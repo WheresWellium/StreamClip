@@ -31,6 +31,88 @@ from core.config import Settings
 log = structlog.get_logger(__name__)
 
 
+def _inprocess_progress(cfg: Settings) -> bool:
+    return cfg.queue.backend == "inprocess"
+
+
+async def _stream_memory_channel(
+    channel: str,
+    cfg: Settings,
+    *,
+    last_event_id: int | None = None,
+    heartbeat_secs: float = 15.0,
+    terminal_statuses: tuple[str, ...] = ("done", "error"),
+) -> AsyncGenerator[str, None]:
+    """SSE relay backed by the in-process progress bus."""
+    from core.progress_bus import get_progress_bus
+
+    bus = get_progress_bus(cfg)
+
+    def _after_cursor(event_id: int | None) -> bool:
+        if last_event_id is None or event_id is None:
+            return True
+        return int(event_id) > last_event_id
+
+    def _emit(payload: str, *, event: str, event_id: int | None = None) -> str:
+        return _format_sse(payload, event=event, event_id=event_id)
+
+    yield _format_sse("", retry=3000)
+
+    snapshot = bus.get_snapshot(channel)
+    if snapshot:
+        try:
+            data = json.loads(snapshot)
+            eid = data.get("event_id")
+            if _after_cursor(eid):
+                yield _emit(snapshot, event="progress", event_id=eid)
+            if data.get("status") in terminal_statuses:
+                yield _emit(snapshot, event=data["status"], event_id=eid)
+                return
+        except json.JSONDecodeError:
+            yield _emit(snapshot, event="progress")
+
+    queue = bus.subscribe(channel)
+    log.info("sse_memory_subscribed", channel=channel)
+
+    try:
+        last_heartbeat = asyncio.get_running_loop().time()
+        while True:
+            try:
+                payload = await asyncio.wait_for(queue.get(), timeout=1.0)
+            except asyncio.TimeoutError:
+                payload = None
+
+            now = asyncio.get_running_loop().time()
+            if payload:
+                try:
+                    data = json.loads(payload)
+                    status = data.get("status", "processing")
+                    eid = data.get("event_id")
+                except json.JSONDecodeError:
+                    status = "processing"
+                    eid = None
+
+                if _after_cursor(eid):
+                    yield _emit(payload, event="progress", event_id=eid)
+
+                if status in terminal_statuses:
+                    if _after_cursor(eid):
+                        yield _emit(payload, event=status, event_id=eid)
+                    log.info("sse_memory_terminated", channel=channel, status=status)
+                    return
+                last_heartbeat = now
+
+            elif now - last_heartbeat >= heartbeat_secs:
+                yield f": heartbeat {int(now)}\n\n"
+                last_heartbeat = now
+
+    except asyncio.CancelledError:
+        log.info("sse_memory_client_disconnected", channel=channel)
+        raise
+    finally:
+        bus.unsubscribe(channel, queue)
+
+
 # ─── Connection helper ───────────────────────────────────────────────────────
 
 _pool: aioredis.ConnectionPool | None = None
@@ -82,9 +164,17 @@ async def stream_publish_progress(
     heartbeat_secs: float = 15.0,
 ) -> AsyncGenerator[str, None]:
     """SSE relay for distribution publish jobs."""
-    r = await get_redis(cfg)
     prefix = cfg.redis.publish_pubsub_channel_prefix
     channel = f"{prefix}{publish_job_id}"
+
+    if _inprocess_progress(cfg):
+        async for frame in _stream_memory_channel(
+            channel, cfg, last_event_id=last_event_id, heartbeat_secs=heartbeat_secs,
+        ):
+            yield frame
+        return
+
+    r = await get_redis(cfg)
     snapshot_key = f"{channel}:latest"
 
     def _after_cursor(event_id: int | None) -> bool:
@@ -172,8 +262,16 @@ async def stream_job_progress(
     Closes when the job emits `status: done` or `status: error`,
     or when the client disconnects (caller will cancel the generator).
     """
-    r = await get_redis(cfg)
     channel = f"{cfg.redis.pubsub_channel_prefix}{job_id}"
+
+    if _inprocess_progress(cfg):
+        async for frame in _stream_memory_channel(
+            channel, cfg, last_event_id=last_event_id, heartbeat_secs=heartbeat_secs,
+        ):
+            yield frame
+        return
+
+    r = await get_redis(cfg)
     snapshot_key = f"{channel}:latest"
 
     def _after_cursor(event_id: int | None) -> bool:

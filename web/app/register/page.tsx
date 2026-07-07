@@ -1,13 +1,21 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-import { registerAction } from "@/app/actions/auth";
+import { registerAction } from "@/lib/api/actions/auth";
 import { AuthForm } from "@/components/auth/auth-form";
-import { getAccessToken } from "@/lib/auth/session";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 
-export default async function RegisterPage() {
-  const token = await getAccessToken();
-  if (token) redirect("/");
+export default function RegisterPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (getClientAccessToken()) {
+      router.replace("/");
+    }
+  }, [router]);
 
   return (
     <div className="max-w-md mx-auto space-y-6 py-8">

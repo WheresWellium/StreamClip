@@ -5,7 +5,7 @@ import { useActionState, useEffect } from "react";
 import {
   updateOAuthAppAction,
   type DistributionActionState,
-} from "@/app/actions/distribution";
+} from "@/lib/api/actions/distribution";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";

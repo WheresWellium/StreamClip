@@ -1,0 +1,59 @@
+import { ApiClientError, settingsApi, supportApi } from "@/lib/api/client";
+import {
+  ensureClientDeviceId,
+  getClientAccessToken,
+} from "@/lib/auth/client-session";
+
+export type BugReportInput = {
+  message: string;
+  categories: string[];
+  severity: "low" | "medium" | "high" | "critical";
+  jobId?: string | null;
+  environment?: Record<string, string>;
+};
+
+export async function submitBugReportAction(
+  input: BugReportInput,
+): Promise<{ ok: boolean; message?: string }> {
+  if (input.message.trim().length < 10) {
+    return { ok: false, message: "Please describe the issue (at least 10 characters)." };
+  }
+  if (input.categories.length === 0) {
+    return { ok: false, message: "Pick at least one category." };
+  }
+  try {
+    const token = getClientAccessToken();
+    const deviceId = ensureClientDeviceId();
+    await supportApi.submitBugReport(
+      {
+        message: input.message.trim(),
+        categories: input.categories,
+        severity: input.severity,
+        job_id: input.jobId ?? null,
+        environment: input.environment ?? null,
+      },
+      token,
+      deviceId,
+    );
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not submit the bug report." };
+  }
+}
+
+export async function updatePrivacyOptInAction(
+  optIn: boolean,
+): Promise<{ ok: boolean; optIn?: boolean; message?: string }> {
+  try {
+    const token = getClientAccessToken();
+    if (!token) {
+      return { ok: false, message: "Sign in to change privacy settings." };
+    }
+    const result = await settingsApi.updatePrivacy(optIn, token);
+    return { ok: true, optIn: result.data_contribution_opt_in };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not update privacy settings." };
+  }
+}

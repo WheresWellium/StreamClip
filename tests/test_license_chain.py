@@ -192,6 +192,16 @@ async def test_webhook_rejects_bad_signature(client, license_env):
     assert resp.status_code == 401
 
 
+async def test_webhook_rejects_invalid_json(client, license_env):
+    body = b"not-json"
+    resp = await client.post(
+        "/api/commerce/webhooks/lemon-squeezy",
+        content=body,
+        headers={"X-Signature": _sign(body)},
+    )
+    assert resp.status_code == 400
+
+
 async def test_order_created_issues_and_persists_key(client, license_env):
     body = json.dumps({
         "meta": {"event_name": "order_created"},
@@ -236,6 +246,17 @@ async def test_license_key_created_records_ls_key(client, license_env):
     )
     assert resp.status_code == 200
     assert FakeLicenseRepo.rows[0].license_key_hash == hash_license_key("LS-ABCD-EFGH-IJKL-MNOP")
+
+
+async def test_webhook_ignores_unknown_event(client, license_env):
+    body = json.dumps({"meta": {"event_name": "subscription_updated"}}).encode()
+    resp = await client.post(
+        "/api/commerce/webhooks/lemon-squeezy",
+        content=body,
+        headers={"X-Signature": _sign(body)},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ignored"
 
 
 # ─── Activation endpoint ─────────────────────────────────────────────────────

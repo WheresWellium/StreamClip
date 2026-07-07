@@ -9,7 +9,8 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
+from backend.db.types import drop_pg_enums, json_server_default, portable_json_type
 
 
 revision: str = "0001_initial"
@@ -19,6 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    json_type = portable_json_type(bind)
+
     # ── users ────────────────────────────────────────────────────────
     op.create_table(
         "users",
@@ -50,8 +54,8 @@ def upgrade() -> None:
         sa.Column("source_duration_secs", sa.Float),
         sa.Column("source_width", sa.Integer),
         sa.Column("source_height", sa.Integer),
-        sa.Column("config_snapshot", postgresql.JSONB, nullable=False,
-                  server_default=sa.text("'{}'::jsonb")),
+        sa.Column("config_snapshot", json_type, nullable=False,
+                  server_default=json_server_default("{}", bind)),
         sa.Column("status",
                   sa.Enum("queued", "ingesting", "transcribing", "detecting",
                           "processing", "done", "error", "cancelled",
@@ -80,10 +84,10 @@ def upgrade() -> None:
         sa.Column("storage_key", sa.String(512), nullable=False),
         sa.Column("sfx_storage_key", sa.String(512)),
         sa.Column("description", sa.Text, nullable=False),
-        sa.Column("tags", postgresql.JSONB, nullable=False,
-                  server_default=sa.text("'[]'::jsonb")),
+        sa.Column("tags", json_type, nullable=False,
+                  server_default=json_server_default("[]", bind)),
         sa.Column("default_duration_secs", sa.Float, nullable=False, server_default="2.5"),
-        sa.Column("embedding", postgresql.JSONB),
+        sa.Column("embedding", json_type),
         sa.Column("owner_id", sa.String(32),
                   sa.ForeignKey("users.id", ondelete="SET NULL")),
         sa.Column("is_public", sa.Boolean, nullable=False, server_default=sa.false()),
@@ -156,11 +160,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
     op.drop_table("clip_overlays")
     op.drop_table("clips")
     op.drop_table("assets")
     op.drop_table("jobs")
     op.drop_table("users")
-    op.execute("DROP TYPE IF EXISTS clip_status")
-    op.execute("DROP TYPE IF EXISTS job_status")
-    op.execute("DROP TYPE IF EXISTS user_tier")
+    drop_pg_enums(bind, "clip_status", "job_status", "user_tier")

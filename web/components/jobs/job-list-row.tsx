@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { EditableJobTitle } from "@/components/jobs/editable-job-title";
 import { Progress } from "@/components/ui/form";
 import { LegendBadge } from "@/components/ui/legend-badge";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -19,10 +20,12 @@ export function JobListRow({ job }: { job: JobListItem }) {
       className="group flex items-center gap-4 px-4 py-2.5 hover:bg-frame/5 transition-colors border-b border-frame/10 last:border-0"
     >
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-          <p className="text-sm font-medium truncate">
-            {job.source_title ?? "Untitled job"}
-          </p>
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap min-w-0">
+          <EditableJobTitle
+            jobId={job.id}
+            displayTitle={job.display_title}
+            sourceTitle={job.source_title}
+          />
           <LegendBadge
             className={statusColors[job.status] ?? statusColors.queued}
             tip={legendForStatus(job.status)}

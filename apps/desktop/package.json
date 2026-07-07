@@ -1,12 +1,13 @@
 {
   "name": "streamclip-desktop",
   "version": "1.0.0",
-  "description": "StreamClip desktop tray app — Docker lifecycle + browser launcher",
+  "description": "StreamClip desktop tray app — embedded sidecar + BrowserWindow UI",
   "main": "dist/main.js",
   "private": true,
   "scripts": {
     "build": "tsc",
     "start": "npm run build && electron .",
+    "start:sidecar-dev": "cd ../.. && python -m desktop_sidecar",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },

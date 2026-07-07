@@ -6,12 +6,18 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/form";
 import { uploadsApi } from "@/lib/api/client";
+import {
+  formatMaxUploadLabel,
+  validateVideoUploadSize,
+} from "@/lib/uploads/constants";
 import { formatBytes, cn } from "@/lib/utils/format";
 
 interface DirectUploadProps {
   onUploaded: (storageKey: string, filename: string) => void;
   onCleared: () => void;
   currentKey: string | null;
+  /** When false, restrict picker to video MIME types (audio ingest disabled server-side). */
+  allowAudio?: boolean;
 }
 
 /**
@@ -27,6 +33,7 @@ export function DirectUpload({
   onUploaded,
   onCleared,
   currentKey,
+  allowAudio = true,
 }: DirectUploadProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [progress, setProgress] = React.useState(0);
@@ -37,6 +44,14 @@ export function DirectUpload({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleFile = async (f: File) => {
+    const sizeError = validateVideoUploadSize(f.size);
+    if (sizeError) {
+      setFile(f);
+      setStatus("error");
+      setError(sizeError);
+      return;
+    }
+
     setFile(f);
     setStatus("uploading");
     setProgress(0);
@@ -100,7 +115,11 @@ export function DirectUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="video/mp4,video/quicktime,video/x-matroska"
+        accept={
+          allowAudio
+            ? "video/mp4,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/flac"
+            : "video/mp4,video/quicktime,video/x-matroska"
+        }
         className="absolute inset-0 cursor-pointer opacity-0"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
         disabled={status === "uploading"}
@@ -124,9 +143,14 @@ export function DirectUpload({
           </>
         ) : (
           <>
-            <p className="text-sm font-medium">Drop a video or click to browse</p>
+            <p className="text-sm font-medium">
+              Drop a {allowAudio ? "video or audio" : "video"} file, or click to browse
+            </p>
             <p className="text-xs text-muted-foreground">
-              MP4, MOV, MKV up to ~5 GB
+              {allowAudio
+                ? "MP4, MOV, MKV — or MP3, WAV, M4A — up to "
+                : "MP4, MOV, MKV — up to "}
+              {formatMaxUploadLabel()}
             </p>
           </>
         )}

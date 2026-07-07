@@ -1,0 +1,32 @@
+# Docs-only deploy — exclude app stack; keep all of docs/ + mkdocs config.
+# Whitelist-only ignores nested markdown; use explicit excludes instead.
+
+backend/
+core/
+web/
+apps/
+tests/
+alembic/
+scripts/
+deploy/
+config/
+site/
+.workspace/
+workspace/
+output/
+.venv/
+**/__pycache__/
+**/*.pyc
+**/.next/
+**/node_modules/
+*.egg-info/
+dist/
+build/
+.git/
+docker-compose*.yml
+Dockerfile*
+/requirements.txt
+openapi.json
+Makefile
+.coveragerc
+pyproject.toml

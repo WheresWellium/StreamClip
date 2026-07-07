@@ -36,6 +36,22 @@ export type ClipOut = components["schemas"]["ClipOut"] & {
   }>;
 };
 
+/** One caption word with clip-relative timing (GET .../clips/{id}/words). */
+export type ClipWord = {
+  index: number;
+  text: string;
+  start: number;
+  end: number;
+};
+
+export type ClipWords = {
+  clip_id: string;
+  words: ClipWord[];
+};
+
+/** Word-index → replacement text ("" removes the word). */
+export type TranscriptEdits = Record<string, string>;
+
 export type UploadInitRequest = components["schemas"]["UploadInitRequest"];
 export type UploadInitResponse = components["schemas"]["UploadInitResponse"];
 export type HealthResponse = components["schemas"]["HealthResponse"];
@@ -44,6 +60,22 @@ export type HealthResponse = components["schemas"]["HealthResponse"];
 export type StageDurations = Record<string, number>;
 
 /** SSE payload from GET /api/jobs/{id}/progress */
+export type ClipFeedEventName = "clip_discovered" | "clip_processing" | "clip_done";
+
+export type ClipFeedExtra = {
+  event: ClipFeedEventName;
+  clip_id: string;
+  rank: number;
+  title?: string | null;
+};
+
+export type ClipFeedItem = {
+  clip_id: string;
+  rank: number;
+  title: string | null;
+  feedStatus: "discovered" | "processing" | "done";
+};
+
 export type ProgressEvent = {
   job_id: string;
   stage: string;
@@ -56,6 +88,7 @@ export type ProgressEvent = {
   total_elapsed_secs?: number | null;
   eta_secs?: number | null;
   stage_durations?: StageDurations | null;
+  extra?: ClipFeedExtra | null;
 };
 
 /** FastAPI StreamClipError JSON body */

@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.schemas import (
     ClipFeedbackOut,
     ClipFeedbackRequest,
+    PrivacySettingsOut,
+    PrivacySettingsRequest,
     WebhookSettingsOut,
     WebhookSettingsRequest,
 )
@@ -62,6 +64,41 @@ async def update_webhook_settings(
     return WebhookSettingsOut(
         webhook_url=user.webhook_url if user else None,
         configured=bool(user and user.webhook_url),
+    )
+
+
+@router.get(
+    "/privacy",
+    response_model=PrivacySettingsOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def get_privacy_settings(
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PrivacySettingsOut:
+    user = await UserRepository(db).get(user_id)
+    if user is None:
+        raise StreamClipError("User not found")
+    return PrivacySettingsOut(
+        data_contribution_opt_in=user.data_contribution_opt_in,
+    )
+
+
+@router.put(
+    "/privacy",
+    response_model=PrivacySettingsOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_privacy_settings(
+    body: PrivacySettingsRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PrivacySettingsOut:
+    users = UserRepository(db)
+    await users.set_data_contribution_opt_in(user_id, body.data_contribution_opt_in)
+    await db.commit()
+    return PrivacySettingsOut(
+        data_contribution_opt_in=body.data_contribution_opt_in,
     )
 
 

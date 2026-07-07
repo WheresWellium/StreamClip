@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +13,11 @@ from backend.api.schemas import (
     LicenseActivateResponse,
     LicenseStatusOut,
 )
-from backend.db.repositories import InstallLicenseRepository
+from backend.db.repositories import InstallLicenseRepository, UserRepository
 from backend.db.session import get_db
+from backend.middleware.auth import get_current_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from backend.services.license_link import link_license_to_user
 from core.config import get_settings
 from core.errors import (
     ActivationLimitError,
@@ -29,6 +32,8 @@ from core.licensing import (
     verify_entitlement_token,
 )
 
+log = structlog.get_logger(__name__)
+
 router = APIRouter(prefix="/api/license", tags=["license"])
 
 
@@ -41,20 +46,33 @@ router = APIRouter(prefix="/api/license", tags=["license"])
 async def activate_license(
     body: LicenseActivateRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    user_id: Annotated[str | None, Depends(get_current_user_id)] = None,
 ) -> LicenseActivateResponse:
     """Activate a purchased key: verify it was issued by commerce, bind it
     to this machine, and return a signed entitlement JWT."""
     cfg = get_settings()
     repo = InstallLicenseRepository(db)
 
-    lic = await repo.get_by_key_hash(hash_license_key(body.license_key))
+    # Audit trail: every attempt is logged with the key-hash prefix and
+    # machine id — success or fail — for abuse investigation.
+    key_hash = hash_license_key(body.license_key)
+    audit = log.bind(hash_prefix=key_hash[:12], machine_id=body.machine_id)
+
+    lic = await repo.get_by_key_hash(key_hash)
     if lic is None:
+        audit.warning("license_activate_attempt", result="invalid_key")
         raise InvalidLicenseKeyError()
     if lic.status == "revoked":
+        audit.warning("license_activate_attempt", result="revoked")
         raise LicenseRevokedError()
 
     is_new_machine = lic.machine_id != body.machine_id
     if is_new_machine and (lic.activation_count or 0) >= cfg.licensing.max_activations:
+        audit.warning(
+            "license_activate_attempt",
+            result="activation_limit",
+            activation_count=lic.activation_count,
+        )
         raise ActivationLimitError()
 
     token, entitlement = activate_license_key(
@@ -70,7 +88,30 @@ async def activate_license(
         expires_at=entitlement.expires_at,
         count_activation=is_new_machine,
     )
+
+    # Phase 3a — bind license to the master user identity: prefer the
+    # authenticated user, fall back to a purchase-email match. Best-effort:
+    # linkage must never fail an otherwise valid activation.
+    try:
+        if user_id is not None:
+            await link_license_to_user(db, lic, user_id)
+        elif getattr(lic, "user_id", None) is None and lic.customer_email:
+            matched = await UserRepository(db).get_by_email(
+                lic.customer_email.strip().lower(),
+            )
+            if matched is not None:
+                await link_license_to_user(db, lic, matched.id)
+    except Exception as exc:  # noqa: BLE001 — auxiliary linkage only
+        log.warning("license_user_link_failed", license_id=lic.id, error=str(exc))
+
     await db.commit()
+    audit.info(
+        "license_activate_attempt",
+        result="success",
+        tier=entitlement.tier.value,
+        new_machine=is_new_machine,
+        linked_user=user_id or getattr(lic, "user_id", None),
+    )
     return LicenseActivateResponse(
         tier=entitlement.tier.value,
         expires_at=entitlement.expires_at,

@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { completeOnboardingAction } from "@/app/actions/onboarding";
+import { completeOnboardingAction } from "@/lib/api/actions/onboarding";
+import { markOnboardingComplete } from "@/lib/auth/client-session";
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { Button } from "@/components/ui/button";
 import { metaApi } from "@/lib/api/client";
@@ -41,9 +42,9 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
   }, []);
 
   const finish = async () => {
-    document.cookie = "onboarding_complete=1; path=/; max-age=31536000; samesite=lax";
+    markOnboardingComplete();
     await completeOnboardingAction();
-    router.push("/");
+    router.push("/settings?section=get-started");
     router.refresh();
   };
 
@@ -125,11 +126,14 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
             Sign in to sync jobs across devices, save templates, and configure webhooks.
             You can skip and stay anonymous on this device.
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => void finish()}>
               Skip for now
             </Button>
             <Button onClick={() => router.push("/register")}>Create account</Button>
+            <Button variant="secondary" onClick={() => router.push("/settings?section=get-started")}>
+              Open activation checklist
+            </Button>
           </div>
         </section>
       )}

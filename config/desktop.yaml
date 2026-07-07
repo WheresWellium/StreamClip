@@ -1,0 +1,32 @@
+# StreamClip desktop / single-machine profile (ADR-001 §4.1–4.2)
+# Embedded runtime: SQLite + in-process queue (no Docker, Celery, or Redis).
+#
+# Usage:
+#   set STREAMCLIP_CONFIG=config/desktop.yaml
+#   alembic upgrade head
+#   uvicorn backend.main:create_app --factory
+#
+# Override database path via env:
+#   set STREAMCLIP_DATABASE__URL=sqlite+aiosqlite:///C:/path/to/streamclip.db
+#   set STREAMCLIP_DATABASE__SYNC_URL=sqlite:///C:/path/to/streamclip.db
+
+database:
+  # Workspace-relative DB for dev; production desktop may use %LOCALAPPDATA%/JetStream/
+  url: sqlite+aiosqlite:///./workspace/streamclip.db
+  sync_url: sqlite:///./workspace/streamclip.db
+
+storage:
+  backend: local
+  local_root: workspace/storage
+
+queue:
+  backend: inprocess
+  default_workers: 2
+  gpu_workers: 1
+
+ffmpeg:
+  bin_dir: bin/ffmpeg
+
+web:
+  serve_static: true
+  static_dir: static/ui

@@ -8,7 +8,7 @@ goes out the door (no leaking internal columns, no accidental N+1 loads).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
@@ -19,6 +19,7 @@ from core.creator_options import (
     is_valid_content_profile,
     is_valid_reframe_preset,
 )
+from core.ingest.url_normalize import normalize_source_url
 
 
 # ─── Job ─────────────────────────────────────────────────────────────────────
@@ -42,6 +43,25 @@ class CreateJobRequest(BaseModel):
         description="Export aspect ratio (see /api/meta aspect_ratios).",
     )
     asset_pack_id: str | None = Field(None, description="User asset pack for overlays")
+    display_title: str | None = Field(
+        None,
+        max_length=512,
+        description="Optional user-facing job name (overrides ingest title in UI).",
+    )
+    profanity_filter: bool = Field(
+        False, description="Censor profanity in captions and clip title/hook.",
+    )
+    profanity_mode: Literal["mask", "bleep", "omit"] = Field(
+        "mask", description="How censored words render: mask (f***), bleep (•••), omit.",
+    )
+
+    @field_validator("display_title")
+    @classmethod
+    def _normalize_display_title(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        stripped = v.strip()
+        return stripped if stripped else None
 
     @field_validator("caption_style")
     @classmethod
@@ -76,9 +96,10 @@ class CreateJobRequest(BaseModel):
     def _validate_url(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("source_url must start with http:// or https://")
-        return v
+        try:
+            return normalize_source_url(v)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
 
 
 class JobError(BaseModel):
@@ -140,12 +161,40 @@ class ClipOut(BaseModel):
     publish_statuses: list[ClipPublishStatusOut] = Field(default_factory=list)
 
 
+class ClipWordOut(BaseModel):
+    """One caption word with clip-relative timing."""
+    index: int
+    text: str
+    start: float
+    end: float
+
+
+class ClipWordsOut(BaseModel):
+    """Word list used for caption rendering — basis for transcript_edits indices."""
+    clip_id: str
+    words: list[ClipWordOut]
+
+
+class UpdateJobRequest(BaseModel):
+    """Body for PATCH /api/jobs/{id}"""
+    display_title: str | None = Field(None, max_length=512)
+
+    @field_validator("display_title")
+    @classmethod
+    def _normalize_display_title(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        stripped = v.strip()
+        return stripped if stripped else None
+
+
 class JobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     source_url: str | None
     source_title: str | None
+    display_title: str | None = None
     source_duration_secs: float | None
     status: str
     progress: float
@@ -167,6 +216,7 @@ class JobListItem(BaseModel):
 
     id: str
     source_title: str | None
+    display_title: str | None = None
     source_duration_secs: float | None
     status: str
     progress: float
@@ -189,10 +239,39 @@ class RegenerateClipResponse(BaseModel):
 
 # ─── Uploads ─────────────────────────────────────────────────────────────────
 
+ALLOWED_VIDEO_UPLOAD_TYPES = (
+    "video/mp4",
+    "video/quicktime",
+    "video/x-matroska",
+    "video/webm",
+)
+
+# Phase 4 — audio-to-clip (gated by features.audio_ingest at the service layer)
+ALLOWED_AUDIO_UPLOAD_TYPES = (
+    "audio/mpeg",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/x-m4a",
+    "audio/aac",
+    "audio/ogg",
+    "audio/flac",
+)
+
+
 class UploadInitRequest(BaseModel):
     filename: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field("video/mp4", max_length=64)
     size_bytes: int | None = Field(None, ge=1)
+
+    @field_validator("content_type")
+    @classmethod
+    def _validate_content_type(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        if normalized not in ALLOWED_VIDEO_UPLOAD_TYPES + ALLOWED_AUDIO_UPLOAD_TYPES:
+            raise ValueError(f"Unsupported upload content_type: {v}")
+        return normalized
 
 
 class UploadInitResponse(BaseModel):
@@ -279,6 +358,70 @@ class ProgressEvent(BaseModel):
     total_elapsed_secs: float | None = None
     eta_secs: float | None = None
     stage_durations: dict[str, float] | None = None
+    extra: dict[str, Any] | None = None
+
+
+# ─── Support / bug reports ────────────────────────────────────────────────────
+
+BUG_REPORT_CATEGORIES = (
+    "ingest",
+    "transcription",
+    "captions",
+    "reframe",
+    "overlays",
+    "vault",
+    "distribution",
+    "license_billing",
+    "performance",
+    "ui",
+    "other",
+)
+
+
+class BugReportRequest(BaseModel):
+    """Body for POST /api/support/bug-reports"""
+    message: str = Field(..., min_length=10, max_length=5000)
+    categories: list[str] = Field(..., min_length=1, max_length=len(BUG_REPORT_CATEGORIES))
+    severity: Literal["low", "medium", "high", "critical"] = "medium"
+    job_id: str | None = Field(None, max_length=32)
+    environment: dict[str, str] | None = Field(
+        None, description="Client-collected context: app version, OS, browser.",
+    )
+
+    @field_validator("categories")
+    @classmethod
+    def _validate_categories(cls, v: list[str]) -> list[str]:
+        unknown = [c for c in v if c not in BUG_REPORT_CATEGORIES]
+        if unknown:
+            raise ValueError(f"Unknown categories: {unknown}")
+        return list(dict.fromkeys(v))  # dedupe, keep order
+
+    @field_validator("environment")
+    @classmethod
+    def _limit_environment(cls, v: dict[str, str] | None) -> dict[str, str] | None:
+        if v is not None and len(v) > 20:
+            raise ValueError("Too many environment entries")
+        return v
+
+
+class BugReportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    status: str
+    severity: str
+    categories: list[str]
+    created_at: datetime
+
+
+# ─── Privacy / data contribution ──────────────────────────────────────────────
+
+class PrivacySettingsOut(BaseModel):
+    data_contribution_opt_in: bool
+
+
+class PrivacySettingsRequest(BaseModel):
+    data_contribution_opt_in: bool
 
 
 # ─── Templates ────────────────────────────────────────────────────────────────
@@ -307,7 +450,34 @@ class UpdateClipRequest(BaseModel):
     reframe_preset: str | None = None
     aspect_ratio: str | None = None
     overlay_enabled: bool | None = None
+    transcript_edits: dict[str, str] | None = Field(
+        None,
+        description=(
+            "Word-level caption edits keyed by word index (from the clip words "
+            "endpoint). Empty string removes the word. Empty dict clears all edits."
+        ),
+    )
+    caption_words_per_group: int | None = Field(
+        None, ge=1, le=8,
+        description="Max words per on-screen caption line (phrase grouping).",
+    )
     rerender: bool = True
+
+    @field_validator("transcript_edits")
+    @classmethod
+    def _validate_transcript_edits(
+        cls, v: dict[str, str] | None,
+    ) -> dict[str, str] | None:
+        if v is None:
+            return v
+        if len(v) > 500:
+            raise ValueError("Too many transcript edits (max 500)")
+        for key, text in v.items():
+            if not key.isdigit():
+                raise ValueError(f"transcript_edits keys must be word indices: {key!r}")
+            if len(text) > 80:
+                raise ValueError("Edited word too long (max 80 chars)")
+        return v
 
     @field_validator("caption_style")
     @classmethod

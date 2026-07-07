@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { XCircle } from "lucide-react";
 
-import { cancelJobAction } from "@/app/actions/jobs";
+import { cancelJobAction } from "@/lib/api/actions/jobs";
 import { Button } from "@/components/ui/button";
 
 export function CancelJobButton({

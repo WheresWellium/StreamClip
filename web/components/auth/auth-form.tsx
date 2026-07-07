@@ -4,7 +4,7 @@ import { useFormStatus } from "react-dom";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import type { AuthActionState } from "@/app/actions/auth";
+import type { AuthActionState } from "@/lib/api/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { LabelWithTip } from "@/components/ui/help-tip";

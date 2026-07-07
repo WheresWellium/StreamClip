@@ -148,4 +148,7 @@ async def meta() -> dict:
             "hype", "rage", "funny", "clutch", "fail", "weird", "neutral",
         ],
         "onboarding_sample_url": cfg.onboarding.sample_url,
+        "features": {
+            "audio_ingest": cfg.features.audio_ingest,
+        },
     }

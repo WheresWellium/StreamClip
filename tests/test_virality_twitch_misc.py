@@ -28,6 +28,18 @@ def test_build_client_unknown(monkeypatch):
     with pytest.raises(ValueError):
         v._build_client(cfg.llm)
 
+def test_call_llm_ollama_uses_json_mode(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.llm, "provider", "ollama")
+    monkeypatch.setattr(cfg.llm, "num_predict", 512)
+    client = MagicMock()
+    client.chat.return_value = MagicMock(message=MagicMock(content='{"score": 1}'))
+    v._call_llm(client, cfg.llm, "p")
+    kwargs = client.chat.call_args.kwargs
+    assert kwargs.get("format") == "json"
+    assert kwargs["options"]["num_predict"] == 512
+
+
 def test_call_llm_anthropic(monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.llm, "provider", "anthropic")
@@ -53,9 +65,38 @@ def test_score_parallel_and_ensemble(monkeypatch):
          patch.object(v, "score_clip_virality", return_value=v.ViralityResult(1, Emotion.NEUTRAL, "", [])):
         out = v.score_clips_virality_parallel([("a", 0, 1), ("b", 1, 2)], cfg)
     assert len(out) == 2
+    assert v.score_clips_virality_parallel([], cfg) == []
     prof = get_profile("gaming")
     s = v.ensemble_with_virality(llm_score=50, audio_score=0.5, spectral_score=0.5, flow_score=0.5, chat_score=0.5, hcfg=cfg.highlight, skip_optical_flow=False, has_chat=True, profile=prof)
     assert 0 <= s <= 1
+
+
+def test_score_clip_virality_unknown_emotion(monkeypatch):
+    cfg = get_settings(reload=True)
+    client = MagicMock()
+    client.chat.return_value = MagicMock(
+        message=MagicMock(content='{"score": 50, "emotion": "not_real", "meme_keywords": [], "reason": "ok"}'),
+    )
+    r = v.score_clip_virality(text="x", start_secs=0, end_secs=1, cfg=cfg, client=client)
+    assert r.emotion == Emotion.NEUTRAL
+
+
+def test_ensemble_zero_weights_fallback(monkeypatch):
+    cfg = get_settings(reload=True)
+    hcfg = cfg.highlight
+    monkeypatch.setattr(hcfg, "weight_llm_virality", 0.0)
+    monkeypatch.setattr(hcfg, "weight_audio_energy", 0.0)
+    monkeypatch.setattr(hcfg, "weight_spectral_novelty", 0.0)
+    monkeypatch.setattr(hcfg, "weight_optical_flow", 0.0)
+    monkeypatch.setattr(hcfg, "weight_chat_spikes", 0.0)
+    score = v.ensemble_with_virality(
+        llm_score=80.0,
+        audio_score=0.5,
+        spectral_score=0.5,
+        flow_score=0.5,
+        hcfg=hcfg,
+    )
+    assert score == 0.0
 
 def test_events_from_gql_payload():
     data = {"data": {"video": {"comments": {"edges": [{"node": {"contentOffsetSeconds": 1, "message": {"fragments": [{"text": "hi"}]}}}], "pageInfo": {"hasNextPage": False}}}}}

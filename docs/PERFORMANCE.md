@@ -97,5 +97,5 @@ export:
 ## Related docs
 
 - [TECHNICAL_DESIGN.md](TECHNICAL_DESIGN.md) — architecture & SLO table
-- [GAP_ANALYSIS.md](GAP_ANALYSIS.md) — perf gaps tracked as T* items
+- `docs/GAP_ANALYSIS.md` (internal repo register, not on the public docs site) — perf gaps tracked as T* items
 - `.cursor/rules/performance-first.mdc` — agent coding rule

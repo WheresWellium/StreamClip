@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import time
 from collections.abc import Callable
 from pathlib import Path
+from urllib.parse import urlparse
 
 import structlog
 
@@ -14,10 +16,24 @@ from core.config import IngestConfig, Settings
 from core.errors import IngestError
 from core.ingest.probe import probe_video
 from core.ingest.types import ProcessingTier
+from core.ingest.url_normalize import normalize_source_url
 from core.models import VideoMeta
 from core.subtitle_import import find_subtitle_file
 
 log = structlog.get_logger(__name__)
+
+# yt-dlp / Twitch GraphQL flakes that usually succeed on retry.
+_TRANSIENT_YTDLP_MARKERS = (
+    "nonetype",
+    "subscriptable",
+    "keyerror('data')",
+    "keyerror: 'data'",
+    "extractor error",
+    "unable to download",
+    "http error 5",
+    "timed out",
+    "persistedquerynotfound",
+)
 
 
 def _url_hash(url: str) -> str:
@@ -32,15 +48,65 @@ def _max_height(tier: ProcessingTier, ingest_cfg: IngestConfig) -> int:
     return ingest_cfg.long_max_height
 
 
+def _is_hls_platform(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return any(
+        token in host
+        for token in ("twitch.tv", "kick.com", "tiktok.com")
+    )
+
+
+def _format_selector(max_height: int, *, hls: bool) -> str:
+    if hls:
+        # Twitch/Kick serve HLS — strict mp4/avc filters often fail format merge.
+        return (
+            f"bestvideo[height<={max_height}]+bestaudio/"
+            f"best[height<={max_height}]/"
+            f"best"
+        )
+    return (
+        f"bestvideo[height<={max_height}][ext=mp4][vcodec^=avc]"
+        f"+bestaudio[ext=m4a]/"
+        f"bestvideo[height<={max_height}][ext=mp4]"
+        f"+bestaudio/"
+        f"best[height<={max_height}][ext=mp4]/"
+        f"best[ext=mp4]"
+    )
+
+
+def _extractor_args(url: str, cfg: Settings) -> list[str]:
+    host = (urlparse(url).hostname or "").lower()
+    if "twitch" not in host:
+        return []
+    parts: list[str] = []
+    if cfg.twitch_client_id:
+        parts.append(f"client_id={cfg.twitch_client_id}")
+    if not parts:
+        return []
+    return ["--extractor-args", f"twitch:{';'.join(parts)}"]
+
+
+def _referer_for_url(url: str) -> list[str]:
+    host = (urlparse(url).hostname or "").lower()
+    if "twitch.tv" in host:
+        return ["--referer", "https://www.twitch.tv/"]
+    if "kick.com" in host:
+        return ["--referer", "https://kick.com/"]
+    return []
+
+
 def _build_ytdlp_cmd(
     url: str,
     output_path: Path,
+    cfg: Settings,
     *,
     max_height: int,
     concurrent_fragments: int,
     subs_only: bool = False,
 ) -> list[str]:
     cmd = ["yt-dlp", "--no-playlist"]
+    cmd.extend(_referer_for_url(url))
+    cmd.extend(_extractor_args(url, cfg))
     if subs_only:
         cmd.extend([
             "--skip-download",
@@ -49,16 +115,9 @@ def _build_ytdlp_cmd(
             "--output", str(output_path.with_suffix("")),
         ])
     else:
-        format_selector = (
-            f"bestvideo[height<={max_height}][ext=mp4][vcodec^=avc]"
-            f"+bestaudio[ext=m4a]/"
-            f"bestvideo[height<={max_height}][ext=mp4]"
-            f"+bestaudio/"
-            f"best[height<={max_height}][ext=mp4]/"
-            f"best[ext=mp4]"
-        )
+        hls = _is_hls_platform(url)
         cmd.extend([
-            "--format", format_selector,
+            "--format", _format_selector(max_height, hls=hls),
             "--merge-output-format", "mp4",
             "--progress",
             "--concurrent-fragments", str(concurrent_fragments),
@@ -68,17 +127,73 @@ def _build_ytdlp_cmd(
     return cmd
 
 
+def _is_transient_ytdlp_output(lines: list[str]) -> bool:
+    blob = " ".join(lines).lower()
+    return any(marker in blob for marker in _TRANSIENT_YTDLP_MARKERS)
+
+
+def _user_message_from_ytdlp(lines: list[str], url: str) -> str:
+    blob = " ".join(lines).lower()
+    if any(
+        phrase in blob
+        for phrase in ("video unavailable", "vod has expired", "has been deleted", "not found")
+    ):
+        return "This video is no longer available. Check that the URL is correct and public."
+    if "subscriber" in blob or "sub-only" in blob or "subscription" in blob:
+        return (
+            "This Twitch VOD requires a subscription. Use a public VOD or configure "
+            "Twitch credentials for subscriber-only content."
+        )
+    if "private" in blob or "login" in blob or "authentication" in blob:
+        return "This video is private or requires login."
+    if _is_hls_platform(url) and _is_transient_ytdlp_output(lines):
+        return (
+            "Twitch returned a temporary error while fetching the video. "
+            "Please try again in a moment."
+        )
+    return "Could not download the source video. Check the URL and try again."
+
+
+def _run_ytdlp(
+    cmd: list[str],
+    on_progress: Callable[[float], None] | None,
+) -> tuple[int, list[str]]:
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    lines: list[str] = []
+    for line in process.stdout or []:
+        stripped = line.strip()
+        lines.append(stripped)
+        if "[download]" in stripped and "%" in stripped:
+            try:
+                pct = float(stripped.split("%")[0].split()[-1]) / 100.0
+                if on_progress:
+                    on_progress(min(pct, 1.0))
+            except (ValueError, IndexError):
+                pass
+        log.debug("ytdlp", line=stripped)
+    process.wait()
+    return process.returncode or 0, lines
+
+
 def fetch_subtitles_for_url(url: str, cfg: Settings, *, tier: ProcessingTier) -> None:
     """Fetch auto-subs in a separate yt-dlp pass (does not block video download)."""
     ingest_cfg = cfg.ingest
     if tier != ProcessingTier.LONG or not ingest_cfg.fetch_subs_on_long:
         return
+    url = normalize_source_url(url)
     url_hash = _url_hash(url)
     if find_subtitle_file(cfg.cache_dir, url_hash) is not None:
         return
     output_base = cfg.cache_dir / url_hash
     cmd = _build_ytdlp_cmd(
-        url, output_base.with_suffix(".mp4"), max_height=720,
+        url, output_base.with_suffix(".mp4"), cfg,
+        max_height=720,
         concurrent_fragments=ingest_cfg.ytdlp_concurrent_fragments,
         subs_only=True,
     )
@@ -101,6 +216,7 @@ def download_url(
     on_progress: Callable[[float], None] | None = None,
 ) -> tuple[VideoMeta, bool]:
     """Download via yt-dlp with URL-hash cache. Returns (meta, was_cache_hit)."""
+    url = normalize_source_url(url)
     ingest_cfg = cfg.ingest
     url_hash = _url_hash(url)
     cached_path = cfg.cache_dir / f"{url_hash}.mp4"
@@ -120,36 +236,51 @@ def download_url(
     max_h = _max_height(tier, ingest_cfg)
     tmp_path = cfg.cache_dir / f"{url_hash}.tmp.mp4"
     cmd = _build_ytdlp_cmd(
-        url, tmp_path,
+        url, tmp_path, cfg,
         max_height=max_h,
         concurrent_fragments=ingest_cfg.ytdlp_concurrent_fragments,
     )
 
     log.info("ingest_download_start", url=url, tier=tier.value, max_height=max_h)
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
+    max_retries = ingest_cfg.ytdlp_max_retries
+    base_delay = ingest_cfg.ytdlp_retry_base_delay_secs
+    output_lines: list[str] = []
+    return_code = 1
 
-    for line in process.stdout or []:
-        line = line.strip()
-        if "[download]" in line and "%" in line:
-            try:
-                pct = float(line.split("%")[0].split()[-1]) / 100.0
-                if on_progress:
-                    on_progress(min(pct, 1.0))
-            except (ValueError, IndexError):
-                pass
-        log.debug("ytdlp", line=line)
+    for attempt in range(max_retries):
+        if attempt > 0:
+            delay = base_delay * (2 ** (attempt - 1))
+            log.warning(
+                "ingest_download_retry",
+                url=url,
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                delay_secs=delay,
+            )
+            time.sleep(delay)
+            if tmp_path.exists():
+                tmp_path.unlink(missing_ok=True)
 
-    process.wait()
-    if process.returncode != 0:
+        return_code, output_lines = _run_ytdlp(cmd, on_progress)
+        if return_code == 0:
+            break
+        transient = _is_transient_ytdlp_output(output_lines)
+        log.warning(
+            "ytdlp_failed",
+            url=url,
+            attempt=attempt + 1,
+            code=return_code,
+            transient=transient,
+            tail=output_lines[-8:],
+        )
+        if not transient:
+            break
+
+    if return_code != 0:
         raise IngestError(
-            f"yt-dlp failed with code {process.returncode} for URL: {url}",
-            user_message="Could not download the source video. Check the URL and try again.",
+            f"yt-dlp failed with code {return_code} for URL: {url}",
+            user_message=_user_message_from_ytdlp(output_lines, url),
+            context={"ytdlp_tail": output_lines[-12:]},
         )
 
     if not tmp_path.exists():

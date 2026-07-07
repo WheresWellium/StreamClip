@@ -18,11 +18,13 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.models import UserTier
+from backend.db.models import InstallLicense, UserTier
 from backend.db.repositories import InstallLicenseRepository
 from backend.db.session import get_db
+from core.celery_app import celery_app
 from core.commerce.lemon_squeezy import (
     generate_license_key,
     parse_order_event,
@@ -38,6 +40,43 @@ router = APIRouter(prefix="/api/commerce", tags=["commerce"])
 
 def _mask(key: str) -> str:
     return key[:10] + "…" if len(key) > 10 else "…"
+
+
+async def _issue_key_with_collision_retry(
+    db: AsyncSession,
+    repo: InstallLicenseRepository,
+    *,
+    order_id: str | None,
+    customer_email: str | None,
+    max_attempts: int = 3,
+) -> tuple[str, InstallLicense]:
+    """
+    Issue a locally-generated key, regenerating on the (astronomically rare)
+    SHA-256 hash collision with the unique index — free insurance.
+    """
+    last_exc: IntegrityError | None = None
+    for attempt in range(max_attempts):
+        license_key = generate_license_key()
+        try:
+            lic = await repo.create_issued(
+                license_key_hash=hash_license_key(license_key),
+                tier=UserTier.PRO,
+                order_id=order_id,
+                customer_email=customer_email,
+            )
+            return license_key, lic
+        except IntegrityError as exc:
+            last_exc = exc
+            await db.rollback()
+            log.warning(
+                "license_key_hash_collision_retry",
+                order_id=order_id,
+                attempt=attempt + 1,
+            )
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Could not issue a unique license key",
+    ) from last_exc
 
 
 @router.post("/webhooks/lemon-squeezy", status_code=status.HTTP_200_OK)
@@ -93,15 +132,32 @@ async def lemon_squeezy_webhook(
             if existing is not None:
                 log.info("license_already_issued", order_id=event["order_id"])
                 return {"status": "ok", "license_key": None}
-        license_key = generate_license_key()
-        await repo.create_issued(
-            license_key_hash=hash_license_key(license_key),
-            tier=UserTier.PRO,
+        license_key, _ = await _issue_key_with_collision_retry(
+            db,
+            repo,
             order_id=event["order_id"] or None,
             customer_email=event.get("customer_email"),
         )
         await db.commit()
         log.info("license_issued", order_id=event["order_id"], license_key_prefix=_mask(license_key))
+
+        # Automated delivery: email the key to the purchaser when SMTP is
+        # configured (MASTER_TODO §2.3). Fire-and-forget on the default queue.
+        customer_email = event.get("customer_email")
+        if customer_email:
+            try:
+                celery_app.send_task(
+                    "core.tasks.notify_tasks.send_license_key_email",
+                    args=[customer_email, license_key, event["order_id"] or None],
+                    queue="default",
+                )
+            except Exception as exc:  # noqa: BLE001 — delivery is best-effort
+                log.warning(
+                    "license_key_email_enqueue_failed",
+                    order_id=event["order_id"],
+                    error=str(exc),
+                )
+
         # Returned once so the store operator can deliver it (LS webhook log);
         # only the hash is stored server-side.
         return {"status": "ok", "license_key": license_key}

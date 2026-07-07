@@ -1160,6 +1160,24 @@ export interface components {
              */
             source_upload_key?: string | null;
             /**
+             * Display Title
+             * @description Optional user-facing job name (overrides ingest title in UI).
+             */
+            display_title?: string | null;
+            /**
+             * Profanity Filter
+             * @description Censor profanity in captions and clip title/hook.
+             * @default false
+             */
+            profanity_filter?: boolean;
+            /**
+             * Profanity Mode
+             * @description How censored words render: mask (f***), bleep (•••), omit.
+             * @default mask
+             * @enum {string}
+             */
+            profanity_mode?: "mask" | "bleep" | "omit";
+            /**
              * Target Clips
              * @default 5
              */
@@ -1231,6 +1249,8 @@ export interface components {
             id: string;
             /** Source Title */
             source_title: string | null;
+            /** Display Title */
+            display_title?: string | null;
             /** Source Duration Secs */
             source_duration_secs: number | null;
             /** Status */
@@ -1267,6 +1287,8 @@ export interface components {
             source_url: string | null;
             /** Source Title */
             source_title: string | null;
+            /** Display Title */
+            display_title?: string | null;
             /** Source Duration Secs */
             source_duration_secs: number | null;
             /** Status */

@@ -5,13 +5,14 @@ import * as React from "react";
 
 import { useToastSafe } from "@/components/providers/toast-provider";
 
-import { updateClipApprovalAction } from "@/app/actions/approval";
+import { updateClipApprovalAction } from "@/lib/api/actions/approval";
 import { ApprovalToggle, type ApprovalValue } from "@/components/clips/approval-toggle";
 import { ClipDestinationsDrawer } from "@/components/clips/clip-destinations-drawer";
 import { PublishStatusBadge } from "@/components/clips/publish-status-badge";
 import { ClipEditor } from "@/components/clips/clip-editor";
 import { ClipFeedbackButtons } from "@/components/clips/clip-feedback";
 import { RegenerateClipButton } from "@/components/clips/job-clips-toolbar";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/form";
 import { LegendBadge, LegendLabel } from "@/components/ui/legend-badge";
@@ -211,53 +212,7 @@ export function ClipCard({
           <PublishStatusBadge statuses={clip.publish_statuses} />
         )}
 
-        <SectionLegend
-          title="Scores"
-          tip="Signal breakdown for this clip. Virality is scored after creation."
-          className="pt-0.5"
-        />
-
-        {/* Score breakdown */}
-        <ScoreBreakdown clip={clip} />
-
-        {clip.overlays && clip.overlays.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {clip.overlays.map((ov) => (
-              <span
-                key={ov.id}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                title={`${ov.matched_keyword} @ ${ov.trigger_time_secs.toFixed(1)}s`}
-              >
-                {ov.matched_keyword || "overlay"}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {clip.llm_reason && (
-          <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2" title={clip.llm_reason}>
-            {clip.llm_reason}
-          </p>
-        )}
-
-        {clip.transcript_text && (
-          <div>
-            <button
-              type="button"
-              className="text-[10px] text-primary hover:underline"
-              onClick={() => setShowTranscript((v) => !v)}
-            >
-              {showTranscript ? "Hide transcript" : "Show transcript"}
-            </button>
-            {showTranscript && (
-              <p className="text-[10px] text-muted-foreground mt-1 max-h-24 overflow-y-auto leading-relaxed">
-                {clip.transcript_text}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           {clip.download_url && (
             <Button
               asChild
@@ -307,25 +262,73 @@ export function ClipCard({
           />
         )}
 
-        {canEdit && (
-          <>
-            <ClipEditor
-              clip={clip}
-              jobId={jobId}
-              sourceDurationSecs={sourceDurationSecs}
-              captionStyleOptions={captionOptions}
-              reframePresetOptions={reframeOptions}
-              jobAspectRatio={jobAspectRatio}
-              aspectRatioCatalog={aspectRatioCatalog}
-              disabled={isProcessing}
+        <CollapsibleSection
+          title="Scores & details"
+          summary={`Ensemble ${formatScore(clip.ensemble_score)} · ${clip.emotion}`}
+        >
+          <div className="space-y-3">
+            <SectionLegend
+              title="Scores"
+              tip="Signal breakdown for this clip. Virality is scored after creation."
+              className="pt-0"
             />
-            {clip.status === "done" && (
-              <>
-                <ClipFeedbackButtons clipId={clip.id} />
-                <RegenerateClipButton jobId={jobId} clipId={clip.id} />
-              </>
+            <ScoreBreakdown clip={clip} />
+            {clip.overlays && clip.overlays.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {clip.overlays.map((ov) => (
+                  <span
+                    key={ov.id}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                    title={`${ov.matched_keyword} @ ${ov.trigger_time_secs.toFixed(1)}s`}
+                  >
+                    {ov.matched_keyword || "overlay"}
+                  </span>
+                ))}
+              </div>
             )}
-          </>
+            {clip.llm_reason && (
+              <p className="text-xs text-muted-foreground leading-snug">{clip.llm_reason}</p>
+            )}
+            {clip.transcript_text && (
+              <div>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => setShowTranscript((v) => !v)}
+                >
+                  {showTranscript ? "Hide transcript" : "Show transcript"}
+                </button>
+                {showTranscript && (
+                  <p className="text-xs text-muted-foreground mt-1 max-h-32 overflow-y-auto leading-relaxed">
+                    {clip.transcript_text}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+
+        {canEdit && (
+          <CollapsibleSection title="Edit clip" summary="Boundaries, captions, re-render">
+            <div className="space-y-3">
+              <ClipEditor
+                clip={clip}
+                jobId={jobId}
+                sourceDurationSecs={sourceDurationSecs}
+                captionStyleOptions={captionOptions}
+                reframePresetOptions={reframeOptions}
+                jobAspectRatio={jobAspectRatio}
+                aspectRatioCatalog={aspectRatioCatalog}
+                disabled={isProcessing}
+              />
+              {clip.status === "done" && (
+                <>
+                  <ClipFeedbackButtons clipId={clip.id} />
+                  <RegenerateClipButton jobId={jobId} clipId={clip.id} />
+                </>
+              )}
+            </div>
+          </CollapsibleSection>
         )}
 
         {jobDone && clip.status === "error" && (

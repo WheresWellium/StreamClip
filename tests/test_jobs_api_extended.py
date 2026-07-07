@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from backend.db.models import Job
+from backend.db.session import get_sessionmaker
+
 
 @pytest.mark.asyncio
 async def test_create_list_get_job(client):
@@ -28,6 +31,69 @@ async def test_create_list_get_job(client):
     with patch("core.celery_app.celery_app.control.revoke"):
         delete = await client.delete(f"/api/jobs/{job_id}")
     assert delete.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_patch_job_display_title(client):
+    task = MagicMock(id="celery-patch")
+    with patch("backend.api.jobs.start_pipeline") as sp:
+        sp.apply_async.return_value = task
+        create = await client.post(
+            "/api/jobs",
+            json={
+                "source_url": "https://example.com/v.mp4",
+                "display_title": "My custom name",
+            },
+        )
+    assert create.status_code == 202
+    job_id = create.json()["id"]
+    assert create.json()["display_title"] == "My custom name"
+
+    update = await client.patch(
+        f"/api/jobs/{job_id}",
+        json={"display_title": "Renamed job"},
+    )
+    assert update.status_code == 200
+    assert update.json()["display_title"] == "Renamed job"
+    assert update.json()["source_title"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_job_snapshots_profanity_settings(client):
+    task = MagicMock(id="celery-prof")
+    with patch("backend.api.jobs.start_pipeline") as sp:
+        sp.apply_async.return_value = task
+        create = await client.post(
+            "/api/jobs",
+            json={
+                "source_url": "https://example.com/v.mp4",
+                "profanity_filter": True,
+                "profanity_mode": "bleep",
+            },
+        )
+    assert create.status_code == 202
+    job_id = create.json()["id"]
+
+    SessionMaker = get_sessionmaker()
+    async with SessionMaker() as session:
+        job = await session.get(Job, job_id)
+        assert job is not None
+        assert job.config_snapshot["profanity_filter"] is True
+        assert job.config_snapshot["profanity_mode"] == "bleep"
+
+
+@pytest.mark.asyncio
+async def test_clip_words_endpoint_missing_clip(client):
+    task = MagicMock(id="celery-words")
+    with patch("backend.api.jobs.start_pipeline") as sp:
+        sp.apply_async.return_value = task
+        create = await client.post(
+            "/api/jobs",
+            json={"source_url": "https://example.com/v.mp4"},
+        )
+    job_id = create.json()["id"]
+    resp = await client.get(f"/api/jobs/{job_id}/clips/nonexistent/words")
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

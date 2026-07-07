@@ -6,7 +6,7 @@ import * as React from "react";
 import {
   disconnectPlatformAction,
   startOAuthAction,
-} from "@/app/actions/distribution";
+} from "@/lib/api/actions/distribution";
 import { ProGateModal } from "@/components/distribution/pro-gate-modal";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,29 @@ export function DistributionConnections({
 
   const connByPlatform = Object.fromEntries(connections.map((c) => [c.platform, c]));
 
+  async function handleConnect(platformId: string) {
+    if (!hasPro) {
+      setProGateOpen(true);
+      return;
+    }
+    setConnecting(platformId);
+    try {
+      const result = await startOAuthAction(platformId);
+      if (result.url) {
+        window.location.href = result.url;
+        return;
+      }
+      if (result.error === "login_required") {
+        router.push("/login?next=/distribution");
+      } else if (result.error === "pro_required") {
+        router.push("/distribution?error=pro_required");
+      } else {
+        toast("Connect failed", result.error ?? "Could not start OAuth.");
+      }
+    } finally {
+      setConnecting(null);
+    }
+  }
   async function handleDisconnect(connectionId: string) {
     setDisconnecting(connectionId);
     try {
@@ -105,23 +128,15 @@ export function DistributionConnections({
                 {disconnecting === conn.id ? "Removing…" : "Disconnect"}
               </Button>
             ) : (
-              <form action={startOAuthAction.bind(null, p.id)}>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="w-full"
-                  disabled={!p.enabled || !hasPro || connecting === p.id}
-                  onClick={() => {
-                    if (!hasPro) {
-                      setProGateOpen(true);
-                    } else {
-                      setConnecting(p.id);
-                    }
-                  }}
-                >
-                  {connecting === p.id ? "Redirecting…" : hasPro ? "Connect" : "Connect (Pro)"}
-                </Button>
-              </form>
+              <Button
+                type="button"
+                size="sm"
+                className="w-full"
+                disabled={!p.enabled || connecting === p.id}
+                onClick={() => void handleConnect(p.id)}
+              >
+                {connecting === p.id ? "Redirecting…" : hasPro ? "Connect" : "Connect (Pro)"}
+              </Button>
             )}
           </div>
         );

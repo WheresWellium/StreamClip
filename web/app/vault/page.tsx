@@ -1,25 +1,44 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { VaultClipGrid } from "@/components/vault/vault-clip-grid";
+import { VaultClipsView } from "@/components/vault/vault-clips-view";
 import { vaultApi } from "@/lib/api/client";
-import { getAccessToken } from "@/lib/auth/session";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 
-export default async function VaultPage() {
-  const token = await getAccessToken();
-  if (!token) {
-    redirect("/login?next=/vault");
-  }
+export default function VaultPage() {
+  const router = useRouter();
+  const [clips, setClips] = useState<Awaited<ReturnType<typeof vaultApi.list>>>([]);
+  const [quota, setQuota] = useState({ used: 0, limit: 25 });
+  const [ready, setReady] = useState(false);
 
-  let clips: Awaited<ReturnType<typeof vaultApi.list>> = [];
-  let quota = { used: 0, limit: 25 };
-  try {
-    [clips, quota] = await Promise.all([
-      vaultApi.list(token),
-      vaultApi.quota(token),
-    ]);
-  } catch {
-    clips = [];
+  useEffect(() => {
+    const token = getClientAccessToken();
+    if (!token) {
+      router.replace("/login?next=/vault");
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([vaultApi.list(token), vaultApi.quota(token)])
+      .then(([list, q]) => {
+        if (!cancelled) {
+          setClips(list);
+          setQuota(q);
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  if (!ready) {
+    return <p className="text-sm text-muted-foreground text-center py-12">Loading vault…</p>;
   }
 
   return (
@@ -45,22 +64,16 @@ export default async function VaultPage() {
       {clips.length === 0 ? (
         <div className="glossy-surface rounded-lg border border-border/60 p-12 text-center space-y-4">
           <p className="text-muted-foreground">No saved clips yet.</p>
-          <ButtonLink href="/">Go to Jobs</ButtonLink>
+          <Link
+            href="/jobs"
+            className="inline-flex items-center justify-center rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
+          >
+            Go to Jobs
+          </Link>
         </div>
       ) : (
-        <VaultClipGrid clips={clips} />
+        <VaultClipsView clips={clips} />
       )}
     </main>
-  );
-}
-
-function ButtonLink({ href, children }: { href: string; children: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex items-center justify-center rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
-    >
-      {children}
-    </Link>
   );
 }

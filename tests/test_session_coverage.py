@@ -16,4 +16,5 @@ async def test_db_session_commits():
 
 
 def test_sync_engine_url():
-    assert "postgresql" in get_sync_engine_url()
+    url = get_sync_engine_url()
+    assert url.startswith("postgresql") or url.startswith("sqlite")

@@ -4,7 +4,7 @@ import { Check, Download, Pencil, Share2, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { removeVaultClipAction, renameVaultClipAction } from "@/app/actions/vault";
+import { removeVaultClipAction, renameVaultClipAction } from "@/lib/api/actions/vault";
 import { PublishStatusBadge } from "@/components/clips/publish-status-badge";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { VaultDestinationsDrawer } from "@/components/vault/vault-destinations-drawer";

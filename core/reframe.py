@@ -24,6 +24,7 @@ import structlog
 
 from core.config import Settings, ReframeConfig, ExportConfig, get_settings
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
+from core.ffmpeg_bins import ffmpeg_bin, ffprobe_bin
 from core.models import ClipCandidate
 
 log = structlog.get_logger(__name__)
@@ -223,7 +224,7 @@ def create_split_screen(
         inputs = ["-i", str(gameplay_path)]
 
     cmd = [
-        "ffmpeg", "-y", *inputs,
+        ffmpeg_bin(), "-y", *inputs,
         "-filter_complex", filter_complex,
         "-map", "[out]",
         "-map", "0:a?",
@@ -274,7 +275,7 @@ def _reframe_with_tracking(
         cap.release()
         log.info("reframe_scale_only", src=f"{src_w}x{src_h}", target=f"{tw}x{th}")
         cmd = [
-            "ffmpeg", "-y", "-i", str(input_path),
+            ffmpeg_bin(), "-y", "-i", str(input_path),
             "-vf", f"scale={tw}:{th},setsar=1",
             *video_encode_args(export_cfg),
             *audio_encode_args(export_cfg),
@@ -324,7 +325,7 @@ def _reframe_with_tracking(
     cap = cv2.VideoCapture(str(input_path))
 
     ffmpeg_in_cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_bin(), "-y",
         "-f", "rawvideo",
         "-vcodec", "rawvideo",
         "-s", f"{tw}x{th}",
@@ -433,7 +434,7 @@ def reframe(
             f"scale={tw}:{th},setsar=1"
         )
         cmd = [
-            "ffmpeg", "-y", "-i", str(input_path),
+            ffmpeg_bin(), "-y", "-i", str(input_path),
             "-vf", crop_expr,
             *video_encode_args(cfg.export),
             *audio_encode_args(cfg.export),

@@ -13,7 +13,13 @@
  * run on the server (typeof window === 'undefined') or the client.
  */
 
+import {
+  getClientAccessToken,
+  getClientDeviceId,
+} from "@/lib/auth/client-session";
+
 import type {
+  ClipWords,
   CreateJobRequest,
   Job,
   JobListResponse,
@@ -54,11 +60,13 @@ async function request<T>(
   if (!headers.has("Content-Type") && init?.body) {
     headers.set("Content-Type", "application/json");
   }
-  if (init?.authToken) {
-    headers.set("Authorization", `Bearer ${init.authToken}`);
+  const token = init?.authToken ?? (typeof window !== "undefined" ? getClientAccessToken() : undefined);
+  const deviceId = init?.deviceId ?? (typeof window !== "undefined" ? getClientDeviceId() : undefined);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
-  if (init?.deviceId) {
-    headers.set("X-Device-Id", init.deviceId);
+  if (deviceId) {
+    headers.set("X-Device-Id", deviceId);
   }
 
   const res = await fetch(`${apiBase()}${path}`, {
@@ -115,6 +123,19 @@ export const jobsApi = {
   create: (body: CreateJobRequest, authToken?: string, deviceId?: string) =>
     request<Job>("/api/jobs", {
       method: "POST",
+      body: JSON.stringify(body),
+      authToken,
+      deviceId,
+    }),
+
+  update: (
+    jobId: string,
+    body: { display_title?: string | null },
+    authToken?: string,
+    deviceId?: string,
+  ) =>
+    request<Job>(`/api/jobs/${jobId}`, {
+      method: "PATCH",
       body: JSON.stringify(body),
       authToken,
       deviceId,
@@ -193,6 +214,14 @@ export const jobsApi = {
       { method: "POST", authToken },
     ),
 
+  clipWords: (jobId: string, clipId: string, authToken?: string) =>
+    request<ClipWords>(`/api/jobs/${jobId}/clips/${clipId}/words`, {
+      authToken,
+    }),
+
+  waveform: (jobId: string, authToken?: string) =>
+    request<{ url: string }>(`/api/jobs/${jobId}/waveform`, { authToken }),
+
   clipsZipUrl: (jobId: string): string => `/api/jobs/${jobId}/clips.zip`,
 
   // SSE via same-origin BFF route (forwards auth cookies)
@@ -202,21 +231,24 @@ export const jobsApi = {
 // ─── Uploads ─────────────────────────────────────────────────────────────────
 
 export const uploadsApi = {
-  init: (body: UploadInitRequest, authToken?: string) =>
+  init: (body: UploadInitRequest, authToken?: string, deviceId?: string) =>
     request<UploadInitResponse>("/api/uploads/init", {
       method: "POST",
       body: JSON.stringify(body),
       authToken,
+      deviceId,
     }),
 
   /**
    * Upload a File directly to the presigned URL (browser only).
+   * Uses the server action for init so httpOnly device cookies reach the API.
    * Returns the storage_key to reference when creating a job.
    */
   uploadFile: async (
     file: File,
     onProgress?: (pct: number) => void,
     authToken?: string,
+    deviceId?: string,
   ): Promise<string> => {
     const init = await uploadsApi.init(
       {
@@ -225,6 +257,7 @@ export const uploadsApi = {
         size_bytes: file.size,
       },
       authToken,
+      deviceId,
     );
 
     return new Promise((resolve, reject) => {
@@ -299,6 +332,16 @@ export const settingsApi = {
     ),
   getWebhook: (authToken?: string) =>
     request<WebhookSettings>("/api/settings/webhook", { authToken }),
+  getPrivacy: (authToken?: string) =>
+    request<{ data_contribution_opt_in: boolean }>("/api/settings/privacy", {
+      authToken,
+    }),
+  updatePrivacy: (optIn: boolean, authToken?: string) =>
+    request<{ data_contribution_opt_in: boolean }>("/api/settings/privacy", {
+      method: "PUT",
+      body: JSON.stringify({ data_contribution_opt_in: optIn }),
+      authToken,
+    }),
   updateWebhook: (
     webhookUrl: string | null,
     webhookSecret: string | null,
@@ -538,5 +581,29 @@ export const vaultApi = {
     request<void>(`/api/vault/clips/${vaultClipId}`, {
       method: "DELETE",
       authToken,
+    }),
+};
+
+// ─── Support ─────────────────────────────────────────────────────────────────
+
+export type BugReportPayload = {
+  message: string;
+  categories: string[];
+  severity: "low" | "medium" | "high" | "critical";
+  job_id?: string | null;
+  environment?: Record<string, string> | null;
+};
+
+export const supportApi = {
+  submitBugReport: (
+    payload: BugReportPayload,
+    authToken?: string,
+    deviceId?: string,
+  ) =>
+    request<{ id: string; status: string }>("/api/support/bug-reports", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      authToken,
+      deviceId,
     }),
 };

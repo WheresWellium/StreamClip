@@ -236,7 +236,8 @@ def _call_llm(client: Any, cfg: LLMConfig, prompt: str) -> str:
         resp = client.chat(
             model=cfg.model,
             messages=[{"role": "user", "content": prompt}],
-            options={"temperature": cfg.temperature},
+            format="json",
+            options={"temperature": cfg.temperature, "num_predict": cfg.num_predict},
         )
         return resp.message.content.strip()
     if cfg.provider == "anthropic":

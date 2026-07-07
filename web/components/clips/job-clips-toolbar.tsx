@@ -4,8 +4,8 @@ import { Download, Loader2, RefreshCw, Send } from "lucide-react";
 import * as React from "react";
 import { useTransition } from "react";
 
-import { batchPublishClipsAction } from "@/app/actions/distribution";
-import { regenerateClipAction } from "@/app/actions/jobs";
+import { batchPublishClipsAction } from "@/lib/api/actions/distribution";
+import { regenerateClipAction } from "@/lib/api/actions/jobs";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { jobsApi } from "@/lib/api/client";

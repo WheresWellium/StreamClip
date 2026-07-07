@@ -218,9 +218,14 @@ export function LiveProgress({
   const state = useJobProgress(jobId, { enabled: !finished });
 
   const liveEvent: ProgressEvent | null =
-    state.status === "open" || state.status === "done"
-      ? state.lastEvent
-      : null;
+    "lastEvent" in state ? (state.lastEvent ?? null) : null;
+
+  const streamNotice =
+    state.status === "reconnecting"
+      ? "Reconnecting to progress stream…"
+      : state.status === "polling"
+        ? "Live stream unavailable — refreshing via API"
+        : null;
 
   const stage = liveEvent?.stage ?? initialStage;
   const message = liveEvent?.message ?? initialStage;
@@ -263,7 +268,7 @@ export function LiveProgress({
         <div className="flex items-center gap-2">
           <XCircle className="h-4 w-4 text-destructive shrink-0" />
           <span className="text-sm font-medium text-destructive">
-            Progress stream disconnected
+            Job failed
           </span>
         </div>
         <p className="text-xs text-destructive/80">{state.message}</p>
@@ -292,6 +297,11 @@ export function LiveProgress({
 
   return (
     <div className="glossy-surface p-4 space-y-4">
+      {streamNotice ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5">
+          {streamNotice}
+        </p>
+      ) : null}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           {icon}

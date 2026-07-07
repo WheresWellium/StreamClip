@@ -158,6 +158,19 @@ async def test_save_rejects_quota(env, monkeypatch):
         await env.svc.save_clip_from_job(user_id=USER, clip_id="clip-1")
 
 
+@pytest.mark.asyncio
+async def test_save_uses_free_tier_when_user_missing(env, monkeypatch):
+    monkeypatch.setattr(
+        vault_mod,
+        "get_tier_limits",
+        lambda tier: SimpleNamespace(max_vault_clips=0),
+    )
+    env.svc.db = FakeSession()
+    env.svc.job_repo.job = SimpleNamespace(id="job-1", owner_id="unknown-user")
+    with pytest.raises(VaultFullError):
+        await env.svc.save_clip_from_job(user_id="unknown-user", clip_id="clip-1")
+
+
 def test_presigned_urls_ready_only(env):
     ready = SimpleNamespace(
         storage_key="vault/v.mp4",

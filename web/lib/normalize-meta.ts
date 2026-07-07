@@ -54,5 +54,12 @@ export function normalizeStreamClipMeta(raw: Record<string, unknown>): StreamCli
     emotion_labels: Array.isArray(raw.emotion_labels)
       ? raw.emotion_labels.map(String)
       : [],
+    features:
+      raw.features && typeof raw.features === "object"
+        ? {
+            audio_ingest:
+              (raw.features as Record<string, unknown>).audio_ingest !== false,
+          }
+        : { audio_ingest: true },
   };
 }

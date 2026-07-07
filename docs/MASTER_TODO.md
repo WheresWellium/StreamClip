@@ -3,8 +3,12 @@
 **Living document — running list of everything left before packaging and distributing
 StreamClip as a Windows desktop executable, with a macOS port to follow.**
 
-Last updated: 2026-07-05 (coverage push: 79% → 82.7%, gate 82) · Owner: core team
+Last updated: 2026-07-07 (plan audit + desktop §4.1–4.5) · Owner: core team  
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
+
+**Desktop embedded runtime (ADR-001):** §4.1–4.5 ✅ · §4.6 scaffold ✅ · §4.7 + §4.7a static export ✅ · §4.13 Electron sidecar shell ✅ · Next: full PyInstaller ML bundle.
+
+**Cross-refs:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) · [`docs/BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · [`docs/GAP_ANALYSIS.md`](GAP_ANALYSIS.md) · [`docs/ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md)
 
 ---
 
@@ -13,13 +17,15 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 1.1 | ~~Commit the uncommitted diff~~ ✅ committed `7c32b2c` (temp scripts + coverage artifacts deleted, `.gitignore` tightened) | ✅ | — |
-| 1.2 | ~~Run `alembic upgrade head`~~ ✅ dev stack at `0007_license_issuance`. Rerun on any other deploy | ✅ | — |
+| 1.2 | ~~Run `alembic upgrade head`~~ ✅ through `0007_license_issuance` on dev stack. **Current head:** `0009_phase3_trust_ops` — rerun `alembic upgrade head` on every deploy | 🟡 | S |
 | 1.3 | ~~Fix anonymous-scope contract regression~~ ✅ `scope.py` now raises `StreamClipError(code="device_id_required")`; source validation moved before device upsert; test client sends `X-Device-Id` | ✅ | — |
 | 1.4 | ~~Regenerate `web/lib/api/openapi.ts`~~ ✅ regenerated (`988aaac`); fixed `uploads.py` dependency that broke schema generation; `approval_status` now a literal union | ✅ | — |
+| 1.5 | **Commit large in-flight diff** — desktop §4.1–4.5, gap closure, migrations `0008`–`0009`, verify scripts, web UX, coverage tests (`HEAD` still `faa88e1` with extensive unstaged changes) | 🔴 | S |
+| 1.6 | Regenerate `web/lib/api/openapi.ts` after recent API surface changes (`/storage`, trust-ops, admin/support routes) | 🟡 | S |
 
 ## 2. Incomplete features / stubs (full scaffold scan, 2026-07-01)
 
-### 2a. Monetization chain — broken end-to-end 🔴
+### 2a. Monetization chain
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
@@ -28,9 +34,9 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.3 | ~~Lemon Squeezy webhook never persists keys~~ ✅ webhook now fail-closed on missing secret, verifies signature, persists issued keys idempotently (`install_licenses.status="issued"`, order id + email recorded); handles LS-native `license_key_created` events. **Remaining:** automated key delivery email for the `order_created` fallback path (key currently surfaced once in webhook response / LS log) | 🟡 | S |
 | 2.4 | ~~License activation accepts any well-formed key~~ ✅ activation now requires a commerce-issued key (DB allowlist), rejects revoked keys, enforces `max_activations` across machine rebinds (migration `0007_license_issuance`) | ✅ | — |
 | 2.5 | ~~Pick ONE billing provider~~ ✅ Lemon Squeezy chosen; chain wired: purchase → webhook → persisted key → activation → entitlement JWT → tier. Covered by `tests/test_license_chain.py` | ✅ | — |
-| 2.6 | ~~`COMMERCIAL.md` promises Instagram Reels~~ ✅ promise cut (moved to roadmap wording); Stripe-based Cloud tier removed from the doc. Adapter itself stays on the roadmap (2.18) | ✅ | — |
-| 2.19 | ~~Queued/scheduled publishes uneditable~~ ✅ `PATCH /api/distribution/publish-jobs/{id}` (title/description; reschedule for scheduled jobs) + inline edit form in the queue; guarded once upload starts (409) | ✅ | — |
-| 2.20 | ~~Vault clips unrenamable~~ ✅ `PATCH /api/vault/clips/{id}` + inline rename in the vault grid | ✅ | — |
+| 2.6 | ~~`COMMERCIAL.md` promises Instagram Reels~~ ✅ promise cut (moved to roadmap wording); Stripe-based Cloud tier removed from the doc. Adapter itself stays on the roadmap (§2.22) | ✅ | — |
+| 2.7a | ~~Queued/scheduled publishes uneditable~~ ✅ `PATCH /api/distribution/publish-jobs/{id}` (title/description; reschedule for scheduled jobs) + inline edit form in the queue; guarded once upload starts (409) | ✅ | — |
+| 2.8a | ~~Vault clips unrenamable~~ ✅ `PATCH /api/vault/clips/{id}` + inline rename in the vault grid | ✅ | — |
 
 ### 2b. Scaffolded-but-unwired
 
@@ -39,12 +45,12 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.7 | ~~Asset vault unwired~~ ✅ end-to-end: overlay engine merges DB `Asset` rows with the filesystem manifest (`records_from_db_assets` in `core/overlay.py`, wired into `process_clip` with per-job download cache + failed-download degradation); `assetsApi` client methods + server actions; management UI at `/settings/assets` (upload GIF/PNG/MP4 via presigned PUT, semantic description, delete). Matcher re-indexes only when the asset set changes (GAP U15) | ✅ | — |
 | 2.8 | ~~Webhook settings unwired~~ ✅ `WebhookPanel` form on the settings page (get/save/remove via server actions); `settingsApi.getWebhook`/`updateWebhook` added | ✅ | — |
 | 2.9 | ~~Token refresh stub~~ ✅ BFF route `web/app/api/auth/refresh/route.ts` exchanges the httpOnly refresh cookie server-side and rotates both cookies; focus handler debounced to 5 min | ✅ | — |
-| 2.10 | `backend/cloud/tenant.py` multi-tenant stub — not imported anywhere; `docker-compose.cloud.yml` sets `STREAMCLIP_CLOUD_MODE`/`STRIPE_*` that **no code reads**. Remove or finish | 🟡 | L |
+| 2.10 | `backend/cloud/tenant.py` multi-tenant stub — header → context var only; not wired into routes. Covered by `tests/test_cloud_tenant.py`. `docker-compose.cloud.yml` sets env vars **no code reads**. Remove or finish | 🟡 | L |
 | 2.11 | ~~Onboarding wizard never calls onboarding-complete~~ ✅ `completeOnboardingAction` posts the device id server-side on finish | ✅ | — |
 | 2.12 | ~~Splice UI always sends `transition: "cut"`~~ ✅ transition picker (hard cut / crossfade) in the merge toolbar | ✅ | — |
 | 2.13 | ~~`lemon_squeezy_store_id` defined, never read~~ ✅ removed from config and `COMMERCIAL.md` | ✅ | — |
-| 2.14 | ~~License panel placeholder shows `STREAMCLIP-XXXX`~~ ✅ placeholder now `SCPRO-XXXX-XXXX-XXXX-XXXX` | ✅ | — |
-| 2.15 | ~~Duplicate job-scoped publish routes~~ ✅ single-clip route deprecated in OpenAPI (see 7.6); batch-publish intentionally stays job-scoped per GAP register | ✅ | — |
+| 2.14 | ~~Duplicate job-scoped publish routes~~ ✅ single-clip route deprecated in OpenAPI (see 7.6); batch-publish intentionally stays job-scoped per GAP register | ✅ | — |
+| 2.15 | Create-job UI missing **`asset_pack_id`** and **`profanity_mode`** fields (API + `CreateJobRequest` support them; GAP U25) | 🟡 | S |
 
 ### 2c. Roadmap features (not started)
 
@@ -55,6 +61,8 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.18 | Speaker diarization (`pyannote.audio` commented out in requirements) | 🟢 | L |
 | 2.19 | yt-dlp subtitle reuse (`fetch_subs_on_long` downloads subs; Whisper always re-runs) | 🟢 | M |
 | 2.20 | ~~UI design overhaul — "midnight terminal" system~~ ✅ midnight-green tokens + white hairline `--frame` border system, hard offset shadows, near-sharp radii; Space Grotesk (UI) + JetBrains Mono (labels/data); compact primitives (buttons h-8, inputs h-8, card p-4); help (?) icons removed — badges/labels/section headers now self-explain on hover; tooltips translucent (`bg-popover/70` + blur) | ✅ | — |
+| 2.21 | Live stream / OBS integration (CREATOR_PLATFORM Later) | 🟢 | L |
+| 2.22 | Instagram Reels adapter (CREATOR_PLATFORM, GAP_ANALYSIS deferral) | 🟢 | L |
 
 ### 2d. Verified fine (audit false alarms — no action)
 
@@ -67,43 +75,43 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` — gates (approval, readiness, duration, connection, duplicate in-flight), ownership 404s, idempotency conflict/replay, schedule vs immediate enqueue | ✅ | — |
-| 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` — publish 202/error envelope, retry/cancel status guards, owner-scoped 404s, vault list/quota/save/delete. Also fixed vault delete returning 500 instead of 404, and a cached-Redis-across-event-loops bug in `conftest.py` that poisoned full-suite runs | ✅ | — |
-| 3.3 | E2E publish flow (Playwright) — none exists; whole e2e suite gated on `E2E_RUN=1` | 🟡 | M |
-| 3.6 | ~~Zero-test surfaces~~ ✅ assets API, splice validation, vault service/tasks, publish task paths, licensing helpers, webhook delivery (`tests/test_splice_module.py`, `test_vault_*.py`, `test_publish_tasks_coverage.py`, `test_licensing_misc.py`, `test_webhooks_delivery.py`). **Remaining:** tenant middleware (blocked on 2.10) | 🟡 | S |
-| 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` now stubbed in the test — runs on hosts without worker deps | ✅ | — |
-| 3.5 | ~~Coverage gate `fail-under=100`~~ ✅ gate ratcheting — was 75 (78.5% actual), now **`fail_under=82`** (82.7% actual, 418 tests). **110% plan:** line coverage maxes at 100%; next milestones 85 → 90 → 95 → 100 (+ branch coverage on hot paths) | 🟡 | L |
-| 3.7 | **110% plan — next modules:** `core/tasks/pipeline_tasks.py` (86%), `backend/api/jobs.py`, `core/transcribe.py`, remaining `publish_tasks` TikTok path | 🟡 | M |
+| 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` | ✅ | — |
+| 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` | ✅ | — |
+| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; extend to upload → clips → approve → publish queue (`BETA_TESTER_PLAN` §1, `BETA_GO_LIVE` §2) | 🟡 | M |
+| 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` stubbed in test | ✅ | — |
+| 3.5 | Coverage gate ratchet — **`fail_under=95`** green (~95%). **110% plan:** 100% line + hot-path branches + Playwright smoke (`BETA_GO_LIVE` §1) | 🟡 | L |
+| 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3. **Remaining:** Playwright e2e (§3.3) | 🟡 | S |
+| 3.7 | **110% plan — next modules:** `core/tasks/pipeline_tasks.py` remaining ~76 lines, branch coverage on `backend/services/sse.py` + distribution OAuth + `job_service` | 🟡 | M |
+| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — required before Phase 0 invites (`BETA_GO_LIVE` §2, `BETA_TESTER_PLAN` §1) | 🟡 | S |
+| 3.9 | Desktop verify scripts in CI or release checklist: `verify_desktop_db.ps1`, `verify_inprocess.ps1`, `verify_desktop_storage.ps1`, `verify_desktop_ffmpeg.ps1` | 🟡 | S |
 
 ## 4. Windows desktop packaging (.exe)
 
-**Current state:** an Electron shell exists at `apps/desktop`, but it is a **Docker
-launcher** — `main.ts` requires Docker Desktop + `docker-compose.prod.yml`, which pulls
-`ghcr.io/streamclip/*` images that don't exist yet. `scripts/install.ps1` also assumes
-Docker Desktop. That is not a distributable .exe for end users.
+**Current state:** Electron shell at `apps/desktop` is still a **Docker launcher** (`docker-compose.prod.yml`, `ghcr.io/streamclip/*`). Embedded runtime seam is partially built (§4.1–4.5 ✅).
 
-**Decision required first (4.0):** Docker-in-desktop (bundle/require Docker, keep current
-shell) vs **embedded runtime** (recommended: SQLite + in-process queue + bundled Python
-sidecar, no Docker). Full rationale + implementation order:
-`docs/ADR-001-desktop-packaging.md` (proposed, awaiting sign-off). Everything below
-assumes embedded mode:
+**Decision (4.0):** ✅ **Accepted 2026-07-07** — embedded runtime (SQLite + in-process queue + bundled Python sidecar, no Docker). Rationale: `docs/ADR-001-desktop-packaging.md`.
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 4.1 | **Database**: SQLite (aiosqlite) profile for SQLAlchemy + Alembic; audit migrations for Postgres-only DDL (JSONB, server defaults) | 🔴 | M |
-| 4.2 | **Task queue**: Celery requires a broker (Redis). Options: (a) bundle a Redis-compatible sidecar (Memurai/redis-windows), (b) swap to in-process worker (threads/asyncio) behind the existing task interface, (c) SQLite-backed queue (huey). Decision needed — affects SSE progress relay too (Redis pub/sub) | 🔴 | L |
-| 4.3 | **Storage**: `LocalStorage` backend already exists ✅ — verify presigned-URL code paths degrade cleanly (`file://` URLs in web UI) | 🟡 | S |
+| 4.1 | **Database**: ✅ SQLite (aiosqlite) profile + portable Alembic migrations (`backend/db/types.py`, `config/desktop.yaml`) | 🟢 | M |
+| 4.2 | **Task queue**: ✅ In-process worker (`core/inprocess_worker.py`, `core/task_runner.py`, memory progress bus). Enable via `STREAMCLIP_QUEUE__BACKEND=inprocess` or `config/desktop.yaml` | 🟢 | L |
+| 4.3 | **Storage**: ✅ LocalStorage served via `/storage/{key}` (GET/PUT); Next.js rewrite proxies same-origin; `test_local_storage_http.py` | 🟢 | S |
 | 4.4 | **LLM**: Ollama optional — default desktop build to OpenAI/Anthropic API keys or bundled llama.cpp; degrade gracefully to score 0 (already does) | 🟡 | M |
-| 4.5 | **ffmpeg**: bundle `ffmpeg.exe`/`ffprobe.exe`, resolve via app dir not PATH | 🔴 | S |
-| 4.6 | **Python runtime**: PyInstaller/Nuitka build of FastAPI+worker. Torch (YOLO11/ultralytics) + CTranslate2 (faster-whisper) push bundle to multi-GB — consider ONNX export for YOLO and CPU-only torch wheel | 🔴 | L |
-| 4.7 | **Web UI**: replace Next.js server with static export served by FastAPI, or wrap in Tauri/Electron with the Python backend as a sidecar process | 🔴 | L |
-| 4.8 | **First-run experience**: model downloads (whisper, YOLO) with progress UI; workspace dir under `%LOCALAPPDATA%` | 🟡 | M |
-| 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; verify `scripts/verify_stack.ps1` covers desktop mode | 🟡 | M |
+| 4.5 | **ffmpeg**: ✅ `core/ffmpeg_bins.py` resolves bundled `bin/ffmpeg/` or PATH; all pipeline call sites use `ffmpeg_bin()` / `ffprobe_bin()` | 🟢 | S |
+| 4.6 | **Python runtime**: ✅ **Scaffold** — `desktop_sidecar/run.py`, PyInstaller spec, `build_sidecar.ps1`. **Remaining:** full ML bundle size (torch/whisper), CPU-only wheels, ONNX YOLO | 🟡 | L |
+| 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
+| 4.8 | **First-run experience**: model downloads (whisper, YOLO) with progress UI; workspace dir under `%LOCALAPPDATA%\JetStream` | 🟡 | M |
+| 4.9 | **Windows-isms audit**: path separators, long-path support, no POSIX shells in subprocess calls; extend verify scripts for desktop mode | 🟡 | M |
 | 4.10 | **Installer**: MSIX or Inno Setup; code signing certificate; auto-update strategy | 🟡 | M |
 | 4.11 | **GPU detection**: NVENC/CUDA optional; CPU fallback must be default-safe (prod compose has no GPU worker profile) | 🟡 | S |
 | 4.12 | **Licensing**: `/api/license/activate|status` exists — wire desktop activation UX (depends on 2.4/2.5) | 🟡 | M |
-| 4.13 | **Electron shell fixes**: auto-updater is a stub (publish config points at placeholder GitHub repo); tray icon is `nativeImage.createEmpty()` (invisible); `package.json` references non-existent `apps/desktop/assets/`; preload exposes no IPC for stack control | 🟡 | M |
-| 4.14 | **Prod compose gaps** (if Docker path chosen): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues | 🟡 | S |
+| 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
+| 4.14 | **Prod compose gaps** (Docker self-host path): no `STREAMCLIP_DISTRIBUTION__*` env vars, no `./assets` volume mount, single CPU worker on both queues (GAP T56) | 🟡 | S |
+| 4.15 | **Alembic `upgrade head` on desktop sidecar startup** — ✅ in `desktop_sidecar/run.py` | 🟢 | S |
+| 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
+| 4.17 | **Full in-process parity**: route remaining direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault) through `core/task_runner.py` | 🟡 | M |
+| 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; BFF routes moved to `web/app/_api_bff/` | 🟢 | L |
+| 4.18 | **Production desktop config profile** — `%LOCALAPPDATA%/JetStream/` for DB, storage, workspace (dev uses `./workspace/` in `config/desktop.yaml`) | 🟡 | S |
 
 ## 5. macOS port (after Windows)
 
@@ -114,26 +122,76 @@ assumes embedded mode:
 | 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper | 🔴 | M |
 | 5.4 | Paths: `~/Library/Application Support/StreamClip`; no `%LOCALAPPDATA%` | 🟢 | S |
 | 5.5 | Universal2 vs separate arm64/x86_64 builds decision | 🟢 | S |
-| 5.6 | Whatever queue decision made in 4.2 must be cross-platform (Memurai is Windows-only — favors in-process worker) | 🔴 | — |
+| 5.6 | In-process worker from 4.2 is cross-platform ✅ (no Memurai/Redis broker required on desktop) | 🟢 | — |
 
 ## 6. Docs / env hygiene
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 6.1 | ~~TECHNICAL_DESIGN.md stale (social publish "out of scope")~~ ✅ updated to Rev 4 (2026-07-01) | — | — |
-| 6.2 | ~~GAP_ANALYSIS.md stale rows~~ ✅ C3/C8/C9 marked shipped with evidence; T47 fixed at the source — `deploy/PRODUCTION.md` §1.3 now documents `STREAMCLIP_DISTRIBUTION__*` | ✅ | — |
-| 6.3 | ~~Desktop packaging ADR~~ ✅ `docs/ADR-001-desktop-packaging.md` — recommends embedded runtime (SQLite + in-process worker + PyInstaller sidecar, no Docker) with implementation order for §4. **Awaiting sign-off (4.0)** | ✅ | — |
-| 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed to `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*`; rate-limit opt-out now documented as dev-only (code default stays ON). `.env.production.example` keeps bare names — `docker-compose.prod.yml` maps them | ✅ | — |
-| 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ README roadmap checkboxes refreshed (webhooks/licensing shipped, Stripe row dropped), Windows venv activation noted; CREATOR_PLATFORM Now/Next/Later realigned with shipped features | ✅ | — |
-| 6.6 | ~~`docs/cloud-deploy.md` aspirational~~ ✅ prominent design-stage banner added (nothing implemented; Stripe removed; keep-or-delete per 2.10) | ✅ | — |
+| 6.1 | ~~TECHNICAL_DESIGN.md stale (social publish "out of scope")~~ ✅ updated to Rev 4 (2026-07-01) | ✅ | — |
+| 6.2 | ~~GAP_ANALYSIS.md stale rows~~ ✅ C3/C8/C9 marked shipped with evidence; T47 fixed at the source | ✅ | — |
+| 6.3 | ~~Desktop packaging ADR~~ ✅ `docs/ADR-001-desktop-packaging.md` — **Accepted 2026-07-07** | ✅ | — |
+| 6.4 | ~~`.env.example` env-var mismatches~~ ✅ commerce vars renamed; rate-limit opt-out documented as dev-only | ✅ | — |
+| 6.5 | ~~README + CREATOR_PLATFORM.md stale~~ ✅ partial refresh 2026-07-01. **Remaining:** README project layout (GAP T54), CREATOR_PLATFORM vault/desktop rows | 🟡 | S |
+| 6.6 | ~~`docs/cloud-deploy.md` aspirational~~ ✅ design-stage banner added (keep-or-delete per 2.10) | ✅ | — |
+| 6.7 | ~~README project layout~~ ✅ layout refreshed: `core/ingest/`, router list, migrations `0001`–`0009`, desktop paths (`desktop_sidecar/`, `packaging/`, `static/ui/`, `bin/ffmpeg/`, `config/desktop.yaml`) | ✅ | — |
+| 6.8 | ~~GPU queue narrative~~ ✅ `worker` queues now `${STREAMCLIP_WORKER_QUEUES:-default,gpu}` — set `default` with `--profile gpu` for true isolation; README ship checklist updated (GAP T56) | ✅ | — |
+| 6.9 | ~~Reframe `auto` preset~~ ✅ README table already says "clip emotion heuristics"; TDD has no LLM-picks wording (GAP T57 stale) | ✅ | — |
+| 6.10 | ~~`CREATOR_PLATFORM.md` sync~~ ✅ asset vault end-to-end + desktop §4.1–4.5 marked shipped; Next section updated to §4.6–4.13 | ✅ | — |
+| 6.11 | ~~`.cursor/skills/streamclip-development/SKILL.md`~~ ✅ desktop profile section added (SQLite, inprocess queue, sidecar, static UI, verify scripts) | ✅ | — |
+| 6.12 | ~~`docs/BETA_TESTER_PLAN.md` §2~~ ✅ hard blocker 4.0 marked accepted 2026-07-07 | ✅ | — |
 
 ## 7. Cleanup
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 7.1 | ~~Delete stray artifacts~~ ✅ verified clean 2026-07-02 — none of `.coverage`, `cov2.txt`, `coverage_term.txt`, `scripts/_fix_*.py` exist (removed in `7c32b2c`) | ✅ | — |
+| 7.1 | ~~Delete stray artifacts~~ ✅ verified clean 2026-07-02 | ✅ | — |
 | 7.2 | ~~`backend/api/vault.py` excessive blank lines~~ ✅ reformatted | ✅ | — |
-| 7.3 | ~~Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py`~~ ✅ retries only transient errors (`httpx.TransportError`, `ConnectionError`, `TimeoutError`, `StorageError`); claim released back to `pending` before retry so re-claim works; domain failures fail fast | ✅ | — |
-| 7.4 | ~~YouTube upload loads full file into memory~~ ✅ streams in 8 MB chunks (`_stream_file` async iterator in `youtube.py`) | ✅ | — |
+| 7.3 | ~~Narrow Celery `autoretry_for=(Exception,)` in `publish_tasks.py`~~ ✅ | ✅ | — |
+| 7.4 | ~~YouTube upload loads full file into memory~~ ✅ streams in 8 MB chunks | ✅ | — |
 | 7.5 | ~~Destinations drawer default tab~~ ✅ now defaults to `"publish"` | ✅ | — |
-| 7.6 | ~~Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish`~~ ✅ marked `deprecated=True` in OpenAPI with pointer to `/api/distribution/publish`; route kept for external consumers; `openapi.ts` regenerated (also closes 2.15 — batch-publish intentionally stays on the jobs router) | ✅ | — |
+| 7.6 | ~~Deprecate `POST /api/jobs/{id}/clips/{clip_id}/publish`~~ ✅ OpenAPI deprecated + pointer to `/api/distribution/publish` | ✅ | — |
+
+## 8. Beta tester program (gated on 110% coverage)
+
+**Canonical plan:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) — Phase 0 (Docker
+technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`). Do **not**
+invite external testers until §1 gate in that doc is green (100% line + hot-path branches +
+Playwright smoke + `verify_stack.ps1`).
+
+| # | Item | Sev | Effort |
+|---|------|-----|--------|
+| 8.1 | Hit 110% coverage gate (§3.5 → 100% line + §3.7 branches + §3.3 Playwright) | 🔴 | L |
+| 8.2 | ~~Write `docs/BETA_TESTER_QUICKSTART.md` at Phase 0 open~~ ✅ exists | ✅ | S |
+| 8.3 | Phase 0 cohort (5–10): Docker self-host, T0 flows in beta plan | 🟡 | M |
+| 8.4 | Phase 1: LS license email (2.3) + 20–40 creators + optional GHCR tags | 🟡 | M |
+| 8.5 | Phase 2: desktop closed beta (§4.6–4.8 minimum) — 50–100 testers | 🔴 | L |
+| 8.6 | Align commerce docs/code to one-time purchase (perpetual entitlement) before paid Phase 1 (`COMMERCIAL.md`, `core/licensing.py`, LS product config) | 🟡 | S |
+| 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — TikTok inbox-only, no Instagram, CPU fallback SLAs, SmartScreen unsigned desktop (beta kit item in `BETA_TESTER_PLAN` §4.2) | 🟢 | S |
+| 8.8 | **GHCR image build + publish workflow** — `ghcr.io/streamclip/*` referenced by `apps/desktop` / prod compose but images do not exist (`BETA_TESTER_PLAN` §5.1 Option A) | 🟡 | M |
+| 8.9 | **Beta launch ops** (`BETA_GO_LIVE` §2–§4): feedback channel (Discord/Discussions), clean VM verify, OAuth redirect URIs match `WEB_ORIGIN`, on-call rotation, changelog per wave | 🟡 | M |
+| 8.10 | Flip `docs/BETA_TESTER_PLAN.md` status **Draft → Active** when §8.1 gate is green | 🟡 | S |
+
+## 9. Self-host / ops (Docker path — parallel to desktop)
+
+| # | Item | Sev | Effort |
+|---|------|-----|--------|
+| 9.1 | **`/api/health/stack` deep probe** documented in beta flows (T0-1) — verify endpoint covers worker, beat, minio, redis, postgres | 🟢 | S |
+| 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers (`BETA_GO_LIVE` §3, `BETA_TESTER_PLAN` §7) | 🟢 | S |
+| 9.3 | **MkDocs internal docs site** — maintain `mkdocs.yml`, Vercel deploy, keep `GAP_ANALYSIS` / `MASTER_TODO` in `exclude_docs` (`docs/INTERNAL.md`) | 🟢 | S |
+
+---
+
+## Plan sync checklist (agents)
+
+When closing work from any plan doc, update **this file** and the source plan:
+
+| Source | Update MASTER_TODO when… |
+|--------|-------------------------|
+| `GAP_ANALYSIS.md` | New T/U/C gap or deferral changes |
+| `BETA_TESTER_PLAN.md` | Phase gates, kit contents, exit criteria |
+| `BETA_GO_LIVE.md` | Launch checklist items move |
+| `ADR-001-desktop-packaging.md` | Desktop implementation order advances |
+| `CREATOR_PLATFORM.md` | Roadmap Now/Next/Later shifts |
+
+Invoke skill: **streamclip-gap-analysis** for full doc/code drift audits.

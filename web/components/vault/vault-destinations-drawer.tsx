@@ -7,7 +7,7 @@ import {
   getDistributionContextAction,
   publishVaultClipAction,
   scheduleVaultClipAction,
-} from "@/app/actions/distribution";
+} from "@/lib/api/actions/distribution";
 import { ProGateModal } from "@/components/distribution/pro-gate-modal";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";

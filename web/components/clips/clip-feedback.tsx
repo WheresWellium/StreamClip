@@ -3,7 +3,7 @@
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import * as React from "react";
 
-import { submitClipFeedbackAction } from "@/app/actions/jobs";
+import { submitClipFeedbackAction } from "@/lib/api/actions/jobs";
 
 type Props = { clipId: string };
 

@@ -22,6 +22,28 @@ def test_publish_progress_clamps_values():
     assert published["progress"] == 1.0
 
 
+def test_publish_progress_nests_extra_payload():
+    mock_redis = MagicMock()
+    mock_redis.incr.return_value = 2
+    extra = {
+        "event": "clip_discovered",
+        "clip_id": "clip-1",
+        "rank": 0,
+        "title": "Big moment",
+    }
+    with patch("core.celery_app.get_redis", return_value=mock_redis):
+        publish_progress(
+            "job1",
+            stage="detecting",
+            progress=0.4,
+            message="Discovered clip 1",
+            extra=extra,
+        )
+    published = __import__("json").loads(mock_redis.publish.call_args[0][1])
+    assert published["extra"] == extra
+    assert "event" not in published
+
+
 def test_publish_job_progress_publishes_to_redis():
     mock_redis = MagicMock()
     mock_redis.incr.return_value = 1

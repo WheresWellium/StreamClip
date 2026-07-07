@@ -33,6 +33,7 @@ from backend.middleware.auth import (
     require_user_id,
 )
 from backend.services.auth_service import AuthService
+from backend.services.license_link import link_licenses_by_email
 from backend.middleware.rate_limit import rate_limit_request
 from backend.db.repositories import DeviceRepository
 from core.config import get_settings
@@ -57,6 +58,8 @@ async def register(
 ) -> AuthResponse:
     svc = _get_service(db)
     user = await svc.register(body.email, body.password, display_name=body.display_name)
+    # Phase 3a — claim any licenses purchased with this email
+    await link_licenses_by_email(db, user)
     await db.commit()
     cfg = get_settings()
     return AuthResponse(

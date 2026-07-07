@@ -43,6 +43,8 @@ class LLMConfig(BaseModel):
     max_retries: int = 3
     timeout_secs: int = 60
     parallel_workers: int = Field(4, ge=1, le=8)
+    # Ollama only — default num_predict is too low for virality JSON + reason text.
+    num_predict: int = Field(512, ge=64, le=4096)
 
 
 class HighlightConfig(BaseModel):
@@ -106,6 +108,9 @@ class CaptionConfig(BaseModel):
     refine_clip_transcript: bool = True
     min_word_probability: float = Field(0.25, ge=0.0, le=1.0)
     word_hold_secs: float = Field(0.06, ge=0.0, le=0.5)
+    profanity_filter: bool = False
+    profanity_mode: Literal["mask", "bleep", "omit"] = "mask"
+    profanity_wordlist: Path | None = None
 
     @field_validator("style")
     @classmethod
@@ -127,13 +132,26 @@ class OverlayConfig(BaseModel):
 
 
 class ExportConfig(BaseModel):
-    codec: Literal["libx264", "libx265", "h264_nvenc", "hevc_nvenc"] = "h264_nvenc"
+    codec: Literal["libx264", "libx265", "h264_nvenc", "hevc_nvenc"] = "libx264"
     crf: int = Field(17, ge=0, le=51)
     preset: Literal["ultrafast", "fast", "medium", "slow"] = "fast"
     fps: int = Field(60, ge=60, le=120)
     audio_bitrate: str = "256k"
     pixel_format: str = "yuv420p"
     two_pass: bool = False
+
+
+class FfmpegConfig(BaseModel):
+    """Desktop bundles ffmpeg under ``bin/ffmpeg/``; server uses PATH by default."""
+    bin_dir: Path | None = None
+    ffmpeg_path: Path | None = None
+    ffprobe_path: Path | None = None
+
+
+class WebUiConfig(BaseModel):
+    """Static export served by sidecar (ADR-001 §4.7)."""
+    serve_static: bool = False
+    static_dir: Path = Path("static/ui")
 
 
 class IngestConfig(BaseModel):
@@ -144,9 +162,16 @@ class IngestConfig(BaseModel):
     fetch_subs_on_long: bool = False
     defer_source_upload: bool = True
     ytdlp_concurrent_fragments: int = Field(4, ge=1, le=16)
+    ytdlp_max_retries: int = Field(4, ge=1, le=8)
+    ytdlp_retry_base_delay_secs: float = Field(2.0, ge=0.5, le=30.0)
     short_skip_optical_flow: bool = True
     medium_skip_optical_flow: bool = False
     short_min_clip_duration: float = Field(5.0, ge=3.0)
+
+
+class FeaturesConfig(BaseModel):
+    """Feature gates for SKU-tiered capabilities."""
+    audio_ingest: bool = True  # v2 SKU: audio-to-clip (podcast/VO sources)
 
 
 # ─── Infrastructure sub-configs ──────────────────────────────────────────────
@@ -161,6 +186,7 @@ class StorageConfig(BaseModel):
     secret_key: str = ""
     region: str = "us-east-1"
     presigned_expiry_secs: int = 3600
+    max_upload_bytes: int = Field(5 * 1024 ** 3, ge=1, description="Max direct upload size (5 GiB default)")
 
 
 class RedisConfig(BaseModel):
@@ -179,6 +205,10 @@ class DatabaseConfig(BaseModel):
     max_overflow: int = 10
     pool_pre_ping: bool = True
 
+    @property
+    def is_sqlite(self) -> bool:
+        return self.url.startswith("sqlite") or self.sync_url.startswith("sqlite")
+
 
 class CeleryConfig(BaseModel):
     broker_url: str = "redis://localhost:6379/1"
@@ -194,6 +224,13 @@ class CeleryConfig(BaseModel):
     task_soft_time_limit: int = 3300
     result_expires: int = 86400
     worker_max_tasks_per_child: int = 50
+
+
+class QueueConfig(BaseModel):
+    """Task execution backend — server uses Celery; desktop .exe uses inprocess (ADR-001)."""
+    backend: Literal["celery", "inprocess"] = "celery"
+    gpu_workers: int = Field(1, ge=1, le=2, description="In-process GPU slot count (desktop)")
+    default_workers: int = Field(2, ge=1, le=8, description="In-process CPU/IO pool size")
 
 
 class AuthConfig(BaseModel):
@@ -216,6 +253,8 @@ class LicensingConfig(BaseModel):
     license_file: Path = Path("workspace/.streamclip-license.json")
     offline_grace_days: int = Field(7, ge=1, le=30)
     max_activations: int = Field(3, ge=1, le=10)
+    # 0 = perpetual entitlement (one-time purchase); >0 = subscription days
+    entitlement_days: int = Field(0, ge=0, le=36500)
 
 
 class CommerceConfig(BaseModel):
@@ -295,12 +334,16 @@ class Settings(BaseSettings):
     caption: CaptionConfig = CaptionConfig()
     overlay: OverlayConfig = OverlayConfig()
     export: ExportConfig = ExportConfig()
+    ffmpeg: FfmpegConfig = FfmpegConfig()
+    web: WebUiConfig = WebUiConfig()
     ingest: IngestConfig = IngestConfig()
+    features: FeaturesConfig = FeaturesConfig()
 
     storage: StorageConfig = StorageConfig()
     redis: RedisConfig = RedisConfig()
     database: DatabaseConfig = DatabaseConfig()
     celery: CeleryConfig = CeleryConfig()
+    queue: QueueConfig = QueueConfig()
     auth: AuthConfig = AuthConfig()
     onboarding: OnboardingConfig = OnboardingConfig()
     licensing: LicensingConfig = LicensingConfig()

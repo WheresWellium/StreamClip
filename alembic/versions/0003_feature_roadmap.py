@@ -5,6 +5,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
+from backend.db.types import json_server_default
+
 revision = "0003_feature_roadmap"
 down_revision = "0002_clip_meme_keywords"
 branch_labels = None
@@ -12,12 +14,18 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     op.create_table(
         "job_templates",
         sa.Column("id", sa.String(32), primary_key=True),
         sa.Column("user_id", sa.String(32), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("name", sa.String(120), nullable=False),
-        sa.Column("config_json", sa.JSON(), nullable=False, server_default="{}"),
+        sa.Column(
+            "config_json",
+            sa.JSON(),
+            nullable=False,
+            server_default=json_server_default("{}", bind),
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -33,9 +41,25 @@ def upgrade() -> None:
     )
     op.create_index("ix_job_templates_user_id", "job_templates", ["user_id"])
 
-    op.add_column("clips", sa.Column("render_overrides", sa.JSON(), nullable=False, server_default="{}"))
+    op.add_column(
+        "clips",
+        sa.Column(
+            "render_overrides",
+            sa.JSON(),
+            nullable=False,
+            server_default=json_server_default("{}", bind),
+        ),
+    )
     op.add_column("clips", sa.Column("kind", sa.String(32), nullable=False, server_default="discovery"))
-    op.add_column("clips", sa.Column("parent_clip_ids", sa.JSON(), nullable=False, server_default="[]"))
+    op.add_column(
+        "clips",
+        sa.Column(
+            "parent_clip_ids",
+            sa.JSON(),
+            nullable=False,
+            server_default=json_server_default("[]", bind),
+        ),
+    )
 
     op.add_column("users", sa.Column("webhook_url", sa.String(512), nullable=True))
     op.add_column("users", sa.Column("webhook_secret", sa.String(255), nullable=True))

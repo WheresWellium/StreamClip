@@ -75,7 +75,7 @@ class Storage(ABC):
 # ─── Local filesystem (dev / single-user) ───────────────────────────────────
 
 class LocalStorage(Storage):
-    """Local filesystem backend. Presigned URLs return file:// for dev."""
+    """Local filesystem backend. Presigned URLs use the FastAPI ``/storage`` route."""
 
     def __init__(self, root: Path, public_base_url: str = "") -> None:
         self.root = Path(root)

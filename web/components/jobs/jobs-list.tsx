@@ -1,4 +1,8 @@
-import { Suspense } from "react";
+"use client";
+
+import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import {
   Card,
@@ -8,37 +12,54 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SectionLegend } from "@/components/ui/section-legend";
-import { JobListRow } from "@/components/jobs/job-list-row";
 import { JobsListFilters } from "@/components/jobs/jobs-list-filters";
+import { JobsListView } from "@/components/jobs/jobs-list-view";
 import { jobsApi } from "@/lib/api/client";
 import type { JobListItem } from "@/lib/api/types";
-import { getAccessToken, getDeviceId } from "@/lib/auth/session";
+import {
+  getClientAccessToken,
+  getClientDeviceId,
+} from "@/lib/auth/client-session";
 
-type Props = {
-  searchParams?: { search?: string; status?: string };
-};
+export function JobsList() {
+  const searchParams = useSearchParams();
+  const search = searchParams.get("search") ?? undefined;
+  const status = searchParams.get("status") ?? undefined;
+  const [jobs, setJobs] = useState<JobListItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export async function JobsList({ searchParams }: Props) {
-  let jobs: JobListItem[];
-  try {
-    const token = await getAccessToken();
-    const deviceId = await getDeviceId();
-    const data = await jobsApi.list(50, 0, token, {
-      search: searchParams?.search,
-      status: searchParams?.status,
-    }, deviceId);
-    jobs = data.jobs;
-  } catch (err) {
+  useEffect(() => {
+    let cancelled = false;
+    const token = getClientAccessToken();
+    const deviceId = getClientDeviceId();
+    void jobsApi
+      .list(50, 0, token, { search, status }, deviceId)
+      .then((data) => {
+        if (!cancelled) setJobs(data.jobs);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load jobs");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [search, status]);
+
+  if (error) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Recent jobs</CardTitle>
-          <CardDescription className="text-destructive">
-            {err instanceof Error ? err.message : "Failed to load jobs"}
-          </CardDescription>
+          <CardDescription className="text-destructive">{error}</CardDescription>
         </CardHeader>
       </Card>
     );
+  }
+
+  if (jobs === null) {
+    return <JobsListSkeleton />;
   }
 
   return (
@@ -53,7 +74,7 @@ export async function JobsList({ searchParams }: Props) {
           />
         </div>
         <CardDescription>
-          {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+          Pipeline runs newest first. Open a job for progress, then review clips when done.
         </CardDescription>
       </CardHeader>
       <Suspense fallback={null}>
@@ -64,15 +85,14 @@ export async function JobsList({ searchParams }: Props) {
           <div className="px-6 py-8 text-center space-y-2">
             <p className="text-sm text-muted-foreground">No jobs yet.</p>
             <p className="text-xs text-muted-foreground/80">
-              Paste a stream URL above or upload a video to create your first clip.
+              <Link href="/jobs/new" className="text-sky-400 hover:underline">
+                Create a job
+              </Link>{" "}
+              from a URL or upload to get started.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            {jobs.map((job) => (
-              <JobListRow key={job.id} job={job} />
-            ))}
-          </div>
+          <JobsListView jobs={jobs} />
         )}
       </CardContent>
     </Card>

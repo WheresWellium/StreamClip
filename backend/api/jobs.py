@@ -24,6 +24,7 @@ from backend.api.schemas import (
     BatchPublishClipsResponse,
     ClipApprovalRequest,
     ClipApprovalResponse,
+    ClipWordsOut,
     CreateJobRequest,
     JobListItem,
     JobListResponse,
@@ -35,6 +36,7 @@ from backend.api.schemas import (
     SpliceClipsRequest,
     SpliceClipsResponse,
     UpdateClipRequest,
+    UpdateJobRequest,
 )
 from backend.db.models import ApprovalStatus
 from backend.db.repositories import ClipRepository
@@ -56,7 +58,9 @@ from core.config import get_settings
 from core.distribution.errors import DuplicateInFlightError
 from core.distribution.service import DistributionService
 from core.errors import StreamClipError
+from core.ingest.waveform import waveform_storage_key
 from core.storage import make_storage
+from core.task_dispatch import dispatch_task
 from core.tasks.pipeline_tasks import process_clip, splice_clips, start_pipeline
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -87,8 +91,8 @@ async def create_job(
     job = await svc.create_job(body, scope)
     await db.commit()    # Flush the job row before Celery picks it up
 
-    # Hand off to Celery — apply_async returns immediately
-    task = start_pipeline.apply_async(args=[job.id])
+    # Hand off to worker — returns immediately
+    task = dispatch_task(start_pipeline, args=(job.id,))
     await svc.jobs.attach_celery_task(job.id, task.id)
     await db.commit()
 
@@ -112,7 +116,7 @@ async def create_jobs_batch(
     results: list[JobOut] = []
     for item in body.jobs:
         job = await svc.create_job(item, scope)
-        task = start_pipeline.apply_async(args=[job.id])
+        task = dispatch_task(start_pipeline, args=(job.id,))
         await svc.jobs.attach_celery_task(job.id, task.id)
         full = await svc.get_job(job.id, scope=scope)
         results.append(await svc.to_dto(full))
@@ -160,6 +164,24 @@ async def get_job(
 ) -> JobOut:
     svc = _get_service(db)
     job = await svc.get_job(job_id, scope=scope)
+    return await svc.to_dto(job)
+
+
+@router.patch(
+    "/{job_id}",
+    response_model=JobOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_job(
+    job_id: str,
+    body: UpdateJobRequest,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> JobOut:
+    """Update editable job fields (e.g. display title)."""
+    svc = _get_service(db)
+    job = await svc.update_job(job_id, body, scope=scope)
+    await db.commit()
     return await svc.to_dto(job)
 
 
@@ -224,7 +246,7 @@ async def regenerate_clip(
     svc = _get_service(db)
     await svc.regenerate_clip(job_id, clip_id, scope=scope)
     await db.commit()
-    process_clip.apply_async(args=[job_id, clip_id], kwargs={"force": True})
+    dispatch_task(process_clip, args=(job_id, clip_id), kwargs={"force": True})
     return RegenerateClipResponse(clip_id=clip_id, job_id=job_id, status="queued")
 
 
@@ -244,9 +266,51 @@ async def update_clip(
     await svc.update_clip(job_id, clip_id, body, scope=scope)
     await db.commit()
     if body.rerender:
-        process_clip.apply_async(args=[job_id, clip_id], kwargs={"force": True})
+        dispatch_task(process_clip, args=(job_id, clip_id), kwargs={"force": True})
     job = await svc.get_job(job_id, scope=scope)
     return await svc.to_dto(job)
+
+
+@router.get(
+    "/{job_id}/waveform",
+    dependencies=[Depends(rate_limit_request)],
+)
+async def get_job_waveform(
+    job_id: str,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Presigned URL for the source waveform PNG (timeline editor track)."""
+    svc = _get_service(db)
+    await svc.get_job(job_id, scope=scope)  # ownership check
+    cfg = get_settings()
+    storage = make_storage(cfg)
+    key = waveform_storage_key(job_id)
+    if not storage.exists(key):
+        raise StreamClipError(
+            "Waveform not available",
+            user_message="Waveform is not ready yet.",
+            code="waveform_not_ready",
+            http_status=404,
+        )
+    url = storage.presigned_get_url(key, expires_in=cfg.storage.presigned_expiry_secs)
+    return {"url": url}
+
+
+@router.get(
+    "/{job_id}/clips/{clip_id}/words",
+    response_model=ClipWordsOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def get_clip_words(
+    job_id: str,
+    clip_id: str,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ClipWordsOut:
+    """Caption word list for a clip — index basis for transcript_edits."""
+    svc = _get_service(db)
+    return await svc.get_clip_words(job_id, clip_id, scope=scope)
 
 
 @router.post(
@@ -269,7 +333,7 @@ async def splice_job_clips(
         transition=body.transition,
     )
     await db.commit()
-    splice_clips.apply_async(args=[job_id, clip.id])
+    dispatch_task(splice_clips, args=(job_id, clip.id))
     return SpliceClipsResponse(clip_id=clip.id, job_id=job_id, status="queued")
 
 

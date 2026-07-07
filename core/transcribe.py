@@ -21,6 +21,7 @@ from core.caption_timing import repair_word_timing
 from core.config import Settings, WhisperConfig
 from core.models import Transcript, TranscriptSegment, Word
 from core.storage import Storage, job_key, make_storage
+from core.transcript_io import load_transcript, save_transcript
 
 log = structlog.get_logger(__name__)
 
@@ -56,59 +57,9 @@ def _cache_path(video_path: Path, cache_dir: Path, model_size: str) -> Path:
     return cache_dir / f"transcript_{vhash}_{model_size}.json"
 
 
-def _save_transcript(transcript: Transcript, path: Path) -> None:
-    data = {
-        "language": transcript.language,
-        "duration": transcript.duration,
-        "source_path": str(transcript.source_path),
-        "segments": [
-            {
-                "id": s.id,
-                "text": s.text,
-                "start": s.start,
-                "end": s.end,
-                "speaker": s.speaker,
-                "words": [
-                    {"text": w.text, "start": w.start, "end": w.end, "probability": w.probability}
-                    for w in s.words
-                ],
-            }
-            for s in transcript.segments
-        ],
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, indent=2)
-
-
-def _load_transcript(path: Path) -> Transcript:
-    with open(path, encoding="utf-8") as fh:
-        data = json.load(fh)
-    segments = [
-        TranscriptSegment(
-            id=s["id"],
-            text=s["text"],
-            start=s["start"],
-            end=s["end"],
-            speaker=s.get("speaker"),
-            words=tuple(
-                Word(
-                    text=w["text"],
-                    start=w["start"],
-                    end=w["end"],
-                    probability=w["probability"],
-                )
-                for w in s.get("words", [])
-            ),
-        )
-        for s in data["segments"]
-    ]
-    return Transcript(
-        segments=segments,
-        language=data["language"],
-        duration=data["duration"],
-        source_path=Path(data["source_path"]),
-    )
+# JSON persistence shared with API-side consumers (no whisper dependency there).
+_save_transcript = save_transcript
+_load_transcript = load_transcript
 
 
 def save_transcript_json(transcript: Transcript, out_path: Path) -> Path:

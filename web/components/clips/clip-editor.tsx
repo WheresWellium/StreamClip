@@ -4,7 +4,10 @@ import { Loader2, Pencil, RotateCcw, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { updateClipAction } from "@/app/actions/jobs";
+import { updateClipAction } from "@/lib/api/actions/jobs";
+import { SafeZoneOverlay } from "@/components/clips/safe-zone-overlay";
+import { TranscriptEditPanel } from "@/components/clips/transcript-edit-panel";
+import { TrimTimeline } from "@/components/clips/trim-timeline";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Input, Label, Progress } from "@/components/ui/form";
@@ -14,7 +17,7 @@ import {
 } from "@/components/jobs/aspect-ratio-select";
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
 import { useJobProgress } from "@/lib/api/use-job-progress";
-import type { ClipOut } from "@/lib/api/types";
+import type { ClipOut, TranscriptEdits } from "@/lib/api/types";
 import type { AspectRatioOption, MetaOption } from "@/lib/api/meta-types";
 import { cn, formatDuration } from "@/lib/utils/format";
 
@@ -32,7 +35,28 @@ type EditorForm = {
   reframePreset: string;
   aspectRatio: string;
   overlayEnabled: boolean;
+  transcriptEdits: TranscriptEdits;
+  wordsPerGroup: number;
 };
+
+const DEFAULT_WORDS_PER_GROUP = 3;
+
+function readTranscriptEdits(overrides: Record<string, unknown>): TranscriptEdits {
+  const raw = overrides.transcript_edits;
+  if (!raw || typeof raw !== "object") return {};
+  const result: TranscriptEdits = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") result[key] = value;
+  }
+  return result;
+}
+
+function editsEqual(a: TranscriptEdits, b: TranscriptEdits): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((k) => a[k] === b[k]);
+}
 
 type Props = {
   clip: ClipOut;
@@ -83,6 +107,13 @@ function formFromClip(
       typeof overrides.overlay_enabled === "boolean"
         ? overrides.overlay_enabled
         : true,
+    transcriptEdits: readTranscriptEdits(overrides),
+    wordsPerGroup:
+      typeof overrides.caption_words_per_group === "number" &&
+      overrides.caption_words_per_group >= 1 &&
+      overrides.caption_words_per_group <= 8
+        ? overrides.caption_words_per_group
+        : DEFAULT_WORDS_PER_GROUP,
   };
 }
 
@@ -95,7 +126,9 @@ function formsEqual(a: EditorForm, b: EditorForm): boolean {
     a.captionStyle === b.captionStyle &&
     a.reframePreset === b.reframePreset &&
     a.aspectRatio === b.aspectRatio &&
-    a.overlayEnabled === b.overlayEnabled
+    a.overlayEnabled === b.overlayEnabled &&
+    editsEqual(a.transcriptEdits, b.transcriptEdits) &&
+    a.wordsPerGroup === b.wordsPerGroup
   );
 }
 
@@ -139,6 +172,7 @@ export function ClipEditor({
     () => clip.status === "processing",
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [showSafeZones, setShowSafeZones] = React.useState(false);
 
   const savedRef = React.useRef(
     formFromClip(clipExt, captionStyleOptions, reframePresetOptions, jobAspectRatio),
@@ -226,6 +260,8 @@ export function ClipEditor({
       reframe_preset: form.reframePreset,
       aspect_ratio: form.aspectRatio,
       overlay_enabled: form.overlayEnabled,
+      transcript_edits: form.transcriptEdits,
+      caption_words_per_group: form.wordsPerGroup,
       rerender: true,
     });
     setPending(false);
@@ -247,17 +283,10 @@ export function ClipEditor({
     sourceDurationSecs && sourceDurationSecs > 0
       ? sourceDurationSecs
       : Math.max(form.end + 60, 300);
-  const trimProgress = trimMax > 0 ? form.start / trimMax : 0;
-  const trimWidth = trimMax > 0 ? (form.end - form.start) / trimMax : 0;
-
   const liveStage =
-    jobProgress.status === "open" || jobProgress.status === "done"
-      ? jobProgress.lastEvent?.stage
-      : null;
+    "lastEvent" in jobProgress ? jobProgress.lastEvent?.stage ?? null : null;
   const liveMessage =
-    jobProgress.status === "open" || jobProgress.status === "done"
-      ? jobProgress.lastEvent?.message
-      : null;
+    "lastEvent" in jobProgress ? jobProgress.lastEvent?.message ?? null : null;
 
   return (
     <>
@@ -330,9 +359,24 @@ export function ClipEditor({
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
               {/* Preview */}
               <section className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Preview
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Preview
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSafeZones((v) => !v)}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                      showSafeZones
+                        ? "border-red-400/60 bg-red-400/10 text-red-300"
+                        : "border-border/60 text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-pressed={showSafeZones}
+                  >
+                    Safe zones
+                  </button>
+                </div>
                 <div
                   className="relative mx-auto rounded-lg overflow-hidden bg-black border border-border/60"
                   style={{
@@ -361,6 +405,7 @@ export function ClipEditor({
                       No preview yet
                     </div>
                   )}
+                  <SafeZoneOverlay visible={showSafeZones} />
                   {isDirty && (
                     <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-amber-950 text-[10px] px-2 py-1 text-center">
                       Showing last render — save to apply trim (
@@ -378,15 +423,22 @@ export function ClipEditor({
                     {formatDuration(form.end - form.start)}
                   </span>
                 </div>
-                <div className="relative h-2 rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 bg-sky-500/30 border-x border-sky-500/60"
-                    style={{
-                      left: `${trimProgress * 100}%`,
-                      width: `${Math.max(0, trimWidth * 100)}%`,
-                    }}
-                  />
-                </div>
+                <TrimTimeline
+                  jobId={jobId}
+                  maxSecs={trimMax}
+                  start={form.start}
+                  end={form.end}
+                  minClipSecs={MIN_CLIP_SECS}
+                  disabled={isProcessing}
+                  onChange={(s, e) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      start: Number(s.toFixed(2)),
+                      end: Number(e.toFixed(2)),
+                    }));
+                    setError(null);
+                  }}
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor={`start-${clip.id}`} className="text-xs">
@@ -469,6 +521,19 @@ export function ClipEditor({
                 </div>
               </section>
 
+              {/* Transcript & captions */}
+              <section className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Caption words
+                </Label>
+                <TranscriptEditPanel
+                  jobId={jobId}
+                  clipId={clip.id}
+                  edits={form.transcriptEdits}
+                  onChange={(edits) => patch("transcriptEdits", edits)}
+                />
+              </section>
+
               {/* Style */}
               <section className="space-y-4">
                 <AspectRatioSelect
@@ -495,6 +560,32 @@ export function ClipEditor({
                   aspectRatioId={form.aspectRatio}
                   aspectRatioCatalog={aspectRatioCatalog}
                 />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={`wpg-${clip.id}`} className="text-xs">
+                      Caption words per group
+                    </Label>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {form.wordsPerGroup}
+                    </span>
+                  </div>
+                  <input
+                    id={`wpg-${clip.id}`}
+                    type="range"
+                    min={1}
+                    max={8}
+                    step={1}
+                    value={form.wordsPerGroup}
+                    onChange={(e) =>
+                      patch("wordsPerGroup", Number(e.target.value))
+                    }
+                    className="w-full accent-sky-500"
+                    aria-label="Caption words per group"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Fewer words = punchier captions; more words = calmer pacing.
+                  </p>
+                </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="checkbox"
@@ -591,6 +682,14 @@ function ChangeSummary({
   }
   if (before.overlayEnabled !== after.overlayEnabled) {
     lines.push(after.overlayEnabled ? "Overlays on" : "Overlays off");
+  }
+  if (!editsEqual(before.transcriptEdits, after.transcriptEdits)) {
+    const count = Object.keys(after.transcriptEdits).length;
+    lines.push(
+      count === 0
+        ? "Caption edits cleared"
+        : `${count} caption word${count === 1 ? "" : "s"} edited`,
+    );
   }
   if (lines.length === 0) return null;
   return (

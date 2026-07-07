@@ -8,6 +8,7 @@ commands, and any future GraphQL or gRPC surface.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -15,11 +16,14 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
+    ALLOWED_AUDIO_UPLOAD_TYPES,
     BatchCreateJobRequest,
     BatchCreateJobResponse,
     ClipOut,
     ClipOverlayOut,
     ClipPublishStatusOut,
+    ClipWordOut,
+    ClipWordsOut,
     CreateJobRequest,
     JobOut,
     PublishClipRequest,
@@ -27,16 +31,19 @@ from backend.api.schemas import (
     SpliceClipsRequest,
     SpliceClipsResponse,
     UpdateClipRequest,
+    UpdateJobRequest,
     UploadInitRequest,
     UploadInitResponse,
 )
 from backend.db.models import Clip, ClipStatus, Job, JobStatus
 from backend.db.repositories import ClipRepository, DeviceRepository, JobRepository, PublishJobRepository, UserRepository
 from backend.middleware.scope import RequestScope
+from core.caption_timing import collect_words_for_window
 from core.config import Settings
 from core.billing import get_tier_limits
 from core.errors import InvalidSourceError, JobNotFoundError, QuotaExceededError, StreamClipError
 from core.storage import Storage, upload_key
+from core.transcript_io import load_persisted_job_transcript
 
 log = structlog.get_logger(__name__)
 
@@ -88,6 +95,8 @@ class JobService:
             "reframe_preset": request.reframe_preset,
             "content_profile": request.content_profile,
             "aspect_ratio": request.aspect_ratio,
+            "profanity_filter": request.profanity_filter,
+            "profanity_mode": request.profanity_mode,
             "whisper_model": self.cfg.whisper.model_size,
             "llm_provider": self.cfg.llm.provider,
             "llm_model": self.cfg.llm.model,
@@ -98,6 +107,7 @@ class JobService:
             device_id=device_id,
             source_url=request.source_url,
             source_storage_key=request.source_upload_key,
+            display_title=request.display_title,
             config_snapshot=config_snapshot,
             asset_pack_id=request.asset_pack_id,
             status=JobStatus.QUEUED,
@@ -157,6 +167,27 @@ class JobService:
             from core.celery_app import celery_app
             celery_app.control.revoke(job.celery_task_id, terminate=True)
         await self.jobs.cancel(job_id)
+
+    async def update_job(
+        self,
+        job_id: str,
+        body: UpdateJobRequest,
+        *,
+        scope: RequestScope,
+    ) -> Job:
+        job = await self.jobs.get_for_scope(
+            job_id,
+            owner_id=scope.user_id,
+            device_id=scope.device_id,
+            device_scoped=self.cfg.auth.device_scoped_anonymous,
+        )
+        if job is None:
+            raise JobNotFoundError(f"Job {job_id} not found")
+        updates = body.model_dump(exclude_unset=True)
+        if "display_title" in updates:
+            job.display_title = updates["display_title"]
+            await self.db.flush()
+        return await self.get_job(job_id, scope=scope)
 
     async def to_dto(self, job: Job) -> JobOut:
         """Convert ORM Job (with clips loaded) to JobOut with presigned URLs."""
@@ -255,6 +286,13 @@ class JobService:
             overrides["aspect_ratio"] = body.aspect_ratio
         if body.overlay_enabled is not None:
             overrides["overlay_enabled"] = body.overlay_enabled
+        if body.transcript_edits is not None:
+            if body.transcript_edits:
+                overrides["transcript_edits"] = body.transcript_edits
+            else:
+                overrides.pop("transcript_edits", None)
+        if body.caption_words_per_group is not None:
+            overrides["caption_words_per_group"] = body.caption_words_per_group
 
         start = body.start_secs if body.start_secs is not None else clip.start_secs
         end = body.end_secs if body.end_secs is not None else clip.end_secs
@@ -287,6 +325,58 @@ class JobService:
         if updated is None:
             raise StreamClipError("Clip not found")
         return updated
+
+    async def get_clip_words(
+        self,
+        job_id: str,
+        clip_id: str,
+        *,
+        scope: RequestScope,
+    ) -> ClipWordsOut:
+        """
+        Caption word list for a clip window — the index basis for
+        ``transcript_edits``. Mirrors the collection parameters used by
+        the caption renderer so indices line up exactly.
+        """
+        job = await self.get_job(job_id, scope=scope)
+        clip = next((c for c in job.clips if c.id == clip_id), None)
+        if clip is None:
+            exc = StreamClipError("Clip not found", user_message="Clip not found")
+            exc.code = "clip_not_found"
+            exc.http_status = 404
+            raise exc
+
+        try:
+            transcript = await asyncio.to_thread(
+                load_persisted_job_transcript, job_id, self.cfg, self.storage,
+            )
+        except FileNotFoundError:
+            exc = StreamClipError(
+                "Transcript not available",
+                user_message="Transcript is not ready yet — wait for transcription to finish.",
+            )
+            exc.code = "transcript_not_ready"
+            exc.http_status = 404
+            raise exc from None
+
+        min_prob = max(
+            self.cfg.caption.min_word_probability,
+            self.cfg.whisper.min_word_probability,
+        )
+        words = collect_words_for_window(
+            transcript,
+            clip.start_secs,
+            clip.end_secs,
+            rebase_to=0.0,
+            min_probability=min_prob,
+        )
+        return ClipWordsOut(
+            clip_id=clip_id,
+            words=[
+                ClipWordOut(index=i, text=w.text, start=w.start, end=w.end)
+                for i, w in enumerate(words)
+            ],
+        )
 
     async def splice_clips(
         self,
@@ -355,6 +445,25 @@ class UploadService:
         request: UploadInitRequest,
         scope: RequestScope,
     ) -> UploadInitResponse:
+        if (
+            request.content_type in ALLOWED_AUDIO_UPLOAD_TYPES
+            and not self.cfg.features.audio_ingest
+        ):
+            raise StreamClipError(
+                "Audio ingest is not enabled on this install",
+                user_message="Audio uploads require the audio-to-clip add-on.",
+                code="audio_ingest_disabled",
+                http_status=403,
+            )
+        if request.size_bytes is not None and request.size_bytes > self.cfg.storage.max_upload_bytes:
+            limit_gb = self.cfg.storage.max_upload_bytes / (1024 ** 3)
+            raise StreamClipError(
+                f"Upload exceeds {limit_gb:.0f} GB limit",
+                user_message=f"File is too large. Maximum upload size is {limit_gb:.0f} GB.",
+                code="upload_too_large",
+                http_status=413,
+            )
+
         upload_id = uuid.uuid4().hex
         owner = scope.user_id or scope.device_id or "anonymous"
 

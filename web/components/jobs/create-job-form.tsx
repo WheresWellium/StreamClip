@@ -23,7 +23,8 @@ import {
   createJobAction,
   saveTemplateAction,
   type CreateJobActionState,
-} from "@/app/actions/jobs";
+} from "@/lib/api/actions/jobs";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +43,7 @@ import {
 import { DirectUpload } from "@/components/upload/direct-upload";
 import { AspectRatioSelect } from "@/components/jobs/aspect-ratio-select";
 import { CreatorOptionCards } from "@/components/jobs/creator-option-cards";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { FORM_SECTION_LEGEND } from "@/lib/help/legends";
 import type { JobTemplate, MetaOption, StreamClipMeta } from "@/lib/api/meta-types";
 import { cn } from "@/lib/utils/format";
@@ -89,10 +91,12 @@ type Props = {
 };
 
 export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceUrl }: Props) {
+  const router = useRouter();
   const [state, formAction] = React.useActionState(createJobAction, INITIAL_STATE);
   const [mode, setMode] = React.useState<"url" | "upload">("url");
   const [uploadKey, setUploadKey] = React.useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [showOutputStyle, setShowOutputStyle] = React.useState(false);
   const [reframePreset, setReframePreset] = React.useState(
     meta.reframe_presets[0]?.id ?? "fps_game",
   );
@@ -103,8 +107,16 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
     meta.content_profiles[0]?.id ?? "gaming",
   );
   const [aspectRatio, setAspectRatio] = React.useState("9:16");
+  const audioIngestEnabled = meta.features?.audio_ingest !== false;
   const [targetClips, setTargetClips] = React.useState(5);
+  const [profanityFilter, setProfanityFilter] = React.useState(false);
   const [templateMsg, setTemplateMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (state.status === "ok" && state.jobId) {
+      router.push(`/jobs/${state.jobId}`);
+    }
+  }, [state.status, state.jobId, router]);
 
   const selectedProfile = meta.content_profiles.find((p) => p.id === contentProfile);
 
@@ -124,6 +136,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
     if (typeof c.caption_style === "string") setCaptionStyle(c.caption_style);
     if (typeof c.aspect_ratio === "string") setAspectRatio(c.aspect_ratio);
     if (typeof c.target_clips === "number") setTargetClips(c.target_clips);
+    if (typeof c.profanity_filter === "boolean") setProfanityFilter(c.profanity_filter);
   }
 
   async function handleSaveTemplate() {
@@ -134,6 +147,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
       caption_style: captionStyle,
       aspect_ratio: aspectRatio,
       target_clips: targetClips,
+      profanity_filter: profanityFilter,
     });
     setTemplateMsg(result.ok ? "Template saved" : result.message ?? "Could not save");
   }
@@ -202,6 +216,16 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
               })}
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="display_title">Job name (optional)</Label>
+              <Input
+                id="display_title"
+                name="display_title"
+                maxLength={512}
+                placeholder="e.g. Saturday stream highlights"
+              />
+            </div>
+
             {mode === "url" ? (
               <div className="space-y-1.5">
                 <Label htmlFor="source_url">Video URL</Label>
@@ -217,9 +241,18 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
               </div>
             ) : (
               <div className="space-y-1.5">
-                <Label>Upload (MP4 / MOV / MKV)</Label>
+                <Label>
+                  Upload video{audioIngestEnabled ? " or audio" : ""} (MP4 / MOV / MKV
+                  {audioIngestEnabled ? " / MP3 / WAV / M4A" : ""})
+                </Label>
+                {!audioIngestEnabled ? (
+                  <p className="text-xs text-muted-foreground">
+                    Audio-to-clip is disabled on this server — upload video only.
+                  </p>
+                ) : null}
                 <DirectUpload
                   currentKey={uploadKey}
+                  allowAudio={audioIngestEnabled}
                   onUploaded={(key) => setUploadKey(key)}
                   onCleared={() => setUploadKey(null)}
                 />
@@ -286,53 +319,64 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           <input type="hidden" name="reframe_preset" value={reframePreset} />
           <input type="hidden" name="caption_style" value={captionStyle} />
           <input type="hidden" name="aspect_ratio" value={aspectRatio} />
+          <input
+            type="hidden"
+            name="profanity_filter"
+            value={profanityFilter ? "on" : "off"}
+          />
 
-          {/* Step 3 — Output style (pre-configured by the content type) */}
-          <div className="space-y-5 border-l-2 border-frame/15 pl-4">
-            <div className="space-y-1">
-              <StepLabel
-                n={3}
-                title="Output style"
-                tip="Aspect ratio, cropping, and captions. Pre-configured by your content type — override anything."
-              />
+          {/* Step 3 — Output style (collapsed until expanded) */}
+          <CollapsibleSection
+            title="Output style"
+            summary={
+              selectedProfile
+                ? `${aspectRatio} · ${selectedProfile.label} defaults`
+                : `${aspectRatio} · tap to customize crop & captions`
+            }
+            open={showOutputStyle}
+            onOpenChange={setShowOutputStyle}
+            className="border-frame/20"
+          >
+            <div className="space-y-5">
               {selectedProfile && (
-                <p className="text-xs text-muted-foreground pl-[30px]">
-                  Configured for <span className="text-sky-400">{selectedProfile.label}</span> —
-                  change anything below.
+                <p className="text-xs text-muted-foreground">
+                  Pre-configured for{" "}
+                  <span className="text-sky-400">{selectedProfile.label}</span> — override
+                  anything below.
                 </p>
               )}
+
+              <AspectRatioSelect
+                value={aspectRatio}
+                onChange={setAspectRatio}
+                options={meta.aspect_ratios}
+              />
+
+              <CreatorOptionCards
+                title="Reframe preset"
+                tip={`How we crop landscape source into social-ready clips. ${REFRAME_PLATFORM_NOTE}`}
+                options={meta.reframe_presets}
+                value={reframePreset}
+                onChange={setReframePreset}
+                columns={2}
+                showAspectBadge
+                showPlatformChips
+                aspectRatioId={aspectRatio}
+                aspectRatioCatalog={meta.aspect_ratios}
+                recommendedId={selectedProfile?.recommended_reframe}
+              />
+
+              <CreatorOptionCards
+                title="Caption style"
+                tip="Burned-in text style on every clip. Choose No Captions if you add subtitles elsewhere."
+                options={meta.caption_styles}
+                value={captionStyle}
+                onChange={setCaptionStyle}
+                columns={2}
+                recommendedId={selectedProfile?.recommended_captions}
+              />
             </div>
-
-            <AspectRatioSelect
-              value={aspectRatio}
-              onChange={setAspectRatio}
-              options={meta.aspect_ratios}
-            />
-
-            <CreatorOptionCards
-              title="Reframe preset"
-              tip={`How we crop landscape source into social-ready clips. ${REFRAME_PLATFORM_NOTE}`}
-              options={meta.reframe_presets}
-              value={reframePreset}
-              onChange={setReframePreset}
-              columns={2}
-              showAspectBadge
-              showPlatformChips
-              aspectRatioId={aspectRatio}
-              aspectRatioCatalog={meta.aspect_ratios}
-              recommendedId={selectedProfile?.recommended_reframe}
-            />
-
-            <CreatorOptionCards
-              title="Caption style"
-              tip="Burned-in text style on every clip. Choose No Captions if you add subtitles elsewhere."
-              options={meta.caption_styles}
-              value={captionStyle}
-              onChange={setCaptionStyle}
-              columns={2}
-              recommendedId={selectedProfile?.recommended_captions}
-            />
-          </div>
+          </CollapsibleSection>
 
           {/* Clip count — collapsed by default */}
           <div className="space-y-3">
@@ -349,17 +393,33 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
             </button>
 
             {showAdvanced && (
-              <div className="p-3 rounded-sm glossy-surface-light space-y-1.5">
-                <Label htmlFor="target_clips">Clips to generate (1–20)</Label>
-                <Input
-                  id="target_clips"
-                  name="target_clips"
-                  type="number"
-                  value={targetClips}
-                  onChange={(e) => setTargetClips(Number(e.target.value))}
-                  min={1}
-                  max={20}
-                />
+              <div className="p-3 rounded-sm glossy-surface-light space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="target_clips">Clips to generate (1–20)</Label>
+                  <Input
+                    id="target_clips"
+                    name="target_clips"
+                    type="number"
+                    value={targetClips}
+                    onChange={(e) => setTargetClips(Number(e.target.value))}
+                    min={1}
+                    max={20}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={profanityFilter}
+                    onChange={(e) => setProfanityFilter(e.target.checked)}
+                    className="accent-sky-500"
+                  />
+                  <span>
+                    Filter profanity
+                    <span className="block text-xs text-muted-foreground">
+                      Censors swear words in captions and clip titles (f***)
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>

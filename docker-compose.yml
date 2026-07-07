@@ -27,6 +27,7 @@ x-api-volumes: &api-volumes
   - ./scripts:/app/scripts
   - ./tests:/app/tests
   - ./config.yaml:/app/config.yaml:ro
+  - ./config:/app/config:ro
 
 x-worker-volumes: &worker-volumes
   - ./workspace:/app/workspace
@@ -38,6 +39,7 @@ x-worker-volumes: &worker-volumes
   - ./scripts:/app/scripts
   - ./tests:/app/tests
   - ./config.yaml:/app/config.yaml:ro
+  - ./config:/app/config:ro
 
 x-python-volumes: &python-volumes
   - ./backend:/app/backend
@@ -45,6 +47,7 @@ x-python-volumes: &python-volumes
   - ./alembic:/app/alembic
   - ./scripts:/app/scripts
   - ./config.yaml:/app/config.yaml:ro
+  - ./config:/app/config:ro
 
 services:
 
@@ -160,6 +163,7 @@ services:
       STREAMCLIP_EXPORT__CODEC: libx264
       STREAMCLIP_LOG_JSON: "true"
       STREAMCLIP_OBSERVABILITY__ENABLE_METRICS: "true"
+      STREAMCLIP_QUEUE__BACKEND: ${STREAMCLIP_QUEUE__BACKEND:-celery}
     depends_on:
       postgres:
         condition: service_healthy
@@ -176,10 +180,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Binds both queues by default so the stack works without a GPU.
+    # With `--profile gpu`, set STREAMCLIP_WORKER_QUEUES=default so GPU tasks
+    # only run on gpu-worker (true queue isolation).
     command: >
       celery -A core.celery_app.celery_app worker
         --loglevel=info
-        --queues=default,gpu
+        --queues=${STREAMCLIP_WORKER_QUEUES:-default,gpu}
         --concurrency=4
         --max-tasks-per-child=50
     volumes: *worker-volumes
@@ -225,6 +232,7 @@ services:
       - ./alembic:/app/alembic
       - ./scripts:/app/scripts
       - ./config.yaml:/app/config.yaml:ro
+      - ./config:/app/config:ro
     environment:
       STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
       STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip

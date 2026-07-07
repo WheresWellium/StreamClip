@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import {
   Card,
@@ -8,20 +11,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { templatesApi } from "@/lib/api/client";
-import { getAccessToken } from "@/lib/auth/session";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 
-export default async function TemplatesSettingsPage() {
-  const token = await getAccessToken();
-  let templates: Array<{ id: string; name: string }> = [];
+export default function TemplatesSettingsPage() {
+  const [token, setToken] = useState<string | undefined>();
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
-  if (token) {
-    try {
-      const list = await templatesApi.list(token);
-      templates = list.map((t) => ({ id: t.id, name: t.name }));
-    } catch {
-      templates = [];
-    }
-  }
+  useEffect(() => {
+    const t = getClientAccessToken();
+    setToken(t);
+    if (!t) return;
+    void templatesApi
+      .list(t)
+      .then((list) => setTemplates(list.map((x) => ({ id: x.id, name: x.name }))))
+      .catch(() => setTemplates([]));
+  }, []);
 
   return (
     <div className="space-y-6 max-w-2xl">

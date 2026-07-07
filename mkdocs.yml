@@ -1,0 +1,91 @@
+# Jet Stream / StreamClip — public documentation site (Wellium)
+# Build: pip install -r docs/requirements.txt && python -m mkdocs build --strict
+# Dev:   python -m mkdocs serve -a 127.0.0.1:8001
+# Deploy: Vercel (vercel.json) — see README § Documentation
+
+site_name: Jet Stream Docs
+site_description: Wellium — self-hosted AI clip pipeline guides and architecture
+site_url: https://streamclip.vercel.app/
+repo_url: https://github.com/WheresWellium/streamclip
+repo_name: streamclip
+edit_uri: edit/master/docs/
+copyright: Copyright &copy; 2026 Wellium — FJ Cantwell II
+
+docs_dir: docs
+site_dir: site
+strict: true
+
+# Internal engineering registers — kept in-repo, never published (see docs/INTERNAL.md)
+exclude_docs: |
+  GAP_ANALYSIS.md
+  MASTER_TODO.md
+  INTERNAL.md
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Beta quickstart: BETA_TESTER_QUICKSTART.md
+      - Beta test plan: BETA_TESTER_PLAN.md
+      - Beta go-live: BETA_GO_LIVE.md
+  - Architecture:
+      - Technical design: TECHNICAL_DESIGN.md
+      - Creator platform: CREATOR_PLATFORM.md
+      - Performance: PERFORMANCE.md
+      - ADR-001 Desktop packaging: ADR-001-desktop-packaging.md
+  - Operations:
+      - Distribution runbook: distribution-runbook.md
+      - Cloud deploy (design): cloud-deploy.md
+  - Design:
+      - Figma links: design/FIGMA_LINKS.md
+
+extra:
+  generator: false

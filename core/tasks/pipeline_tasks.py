@@ -47,9 +47,11 @@ from core.eta import build_eta_context
 from core.highlights import find_highlights
 from core.ingest.service import IngestService, get_job_source_path
 from core.ingest.types import IngestRequest
+from core.ingest.waveform import ensure_job_waveform
 from core.models import ClipCandidate, Transcript
 from core.overlay import apply_overlays, records_from_db_assets
 from core.reframe import reframe
+from core.ffmpeg_bins import ffmpeg_bin
 from core.ffmpeg_utils import extract_segment, validate_output_duration
 from core.pipeline_metrics import (
     CLIP_RENDER_SECONDS,
@@ -58,11 +60,13 @@ from core.pipeline_metrics import (
     PIPELINE_STAGE_SECONDS,
     WEBHOOK_DELIVERIES,
 )
+from core.profanity import censor_text
 from core.progress_timing import ensure_pipeline_started, finalize_timing
 from core.storage import job_key, make_storage
 from core.transcribe import load_job_transcript, save_transcript_json, transcribe, transcribe_clip
 from core.twitch_chat import fetch_vod_chat
 from core.webhooks import deliver_job_webhook
+from core.task_runner import apply_async, delay
 from core.virality import (
     ClipScoringContext,
     ensemble_with_virality,
@@ -72,6 +76,12 @@ from core.virality import (
 
 log = structlog.get_logger(__name__)
 cfg = get_settings()
+
+# Boot-time caption defaults, captured before any per-job mutation of the
+# cfg singleton so jobs without a snapshot key reset instead of inheriting.
+_DEFAULT_PROFANITY_FILTER = cfg.caption.profanity_filter
+_DEFAULT_PROFANITY_MODE = cfg.caption.profanity_mode
+_DEFAULT_WORDS_PER_GROUP = cfg.caption.words_per_group
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -125,6 +135,13 @@ def _apply_clip_overrides(job: Any, clip: Any) -> None:
         cfg.overlay.enabled = bool(overrides["overlay_enabled"])
     if "aspect_ratio" in overrides:
         _apply_aspect_ratio(overrides["aspect_ratio"])
+    if "profanity_filter" in overrides:
+        cfg.caption.profanity_filter = bool(overrides["profanity_filter"])
+    if overrides.get("profanity_mode") in ("mask", "bleep", "omit"):
+        cfg.caption.profanity_mode = overrides["profanity_mode"]
+    wpg = overrides.get("caption_words_per_group")
+    if isinstance(wpg, int) and 1 <= wpg <= 8:
+        cfg.caption.words_per_group = wpg
 
 
 def _apply_job_config(job: Any) -> None:
@@ -138,6 +155,16 @@ def _apply_job_config(job: Any) -> None:
         cfg.reframe.preset = snap["reframe_preset"]
     if "whisper_model" in snap:
         cfg.whisper.model_size = snap["whisper_model"]
+    # Always apply: cfg is a per-process singleton — a missing key must reset
+    # to the boot-time default rather than inherit the previous job's setting.
+    cfg.caption.profanity_filter = bool(
+        snap.get("profanity_filter", _DEFAULT_PROFANITY_FILTER)
+    )
+    mode = snap.get("profanity_mode")
+    cfg.caption.profanity_mode = (
+        mode if mode in ("mask", "bleep", "omit") else _DEFAULT_PROFANITY_MODE
+    )
+    cfg.caption.words_per_group = _DEFAULT_WORDS_PER_GROUP
     # Always apply: cfg is a per-process singleton, so a missing key must
     # reset dimensions rather than inherit the previous job's target.
     _apply_aspect_ratio(snap.get("aspect_ratio", DEFAULT_ASPECT_RATIO))
@@ -171,6 +198,7 @@ def _pipeline_hints_from_job(job: Any) -> dict:
             "processing_tier",
             "has_chat_data",
             "content_profile",
+            "audio_source",
         )
         if k in snap
     }
@@ -206,7 +234,7 @@ def start_pipeline(self: ProgressTask, job_id: str) -> str:
         run_virality_scores.si(job_id),
         fan_out_clips.si(job_id),
     )
-    result = workflow.apply_async()
+    result = apply_async(workflow)
     log.info("pipeline_dispatched", job_id=job_id, chain_id=result.id)
     return job_id
 
@@ -318,7 +346,12 @@ def run_ingest(self: ProgressTask, job_id: str) -> str:
         and ingest_result.get("source_url")
         and storage_key
     ):
-        archive_source_to_storage.delay(job_id, storage_key)
+        delay(archive_source_to_storage, job_id, storage_key)
+
+    # Timeline editor waveform — one cheap showwavespic pass, never fatal.
+    source_path = get_job_source_path(cfg, job_id)
+    if source_path.exists():
+        ensure_job_waveform(job_id, source_path, cfg, make_storage(cfg))
 
     self.report(job_id, stage="ingested", progress=0.15, message="Source ready")
     return job_id
@@ -461,13 +494,19 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
 
             clip_ids: list[str] = []
             for rank, cand in enumerate(candidates):
+                clip_title, clip_hook = cand.llm_title, cand.llm_hook
+                if cfg.caption.profanity_filter:
+                    pmode = cfg.caption.profanity_mode
+                    pwl = cfg.caption.profanity_wordlist
+                    clip_title = censor_text(clip_title, pmode, wordlist_path=pwl)
+                    clip_hook = censor_text(clip_hook, pmode, wordlist_path=pwl)
                 clip = await clips_repo.create(
                     job_id=job_id,
                     rank=rank,
                     start_secs=cand.start,
                     end_secs=cand.end,
-                    title=cand.llm_title,
-                    hook=cand.llm_hook,
+                    title=clip_title,
+                    hook=clip_hook,
                     emotion=cand.emotion.value,
                     transcript_text=cand.text,
                     llm_reason=cand.llm_reason,
@@ -480,6 +519,18 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
                     duration_secs=cand.duration,
                 )
                 clip_ids.append(clip.id)
+                self.report(
+                    job_id,
+                    stage="detecting",
+                    progress=0.38 + 0.07 * ((rank + 1) / max(len(candidates), 1)),
+                    message=f"Discovered clip {rank + 1}",
+                    extra={
+                        "event": "clip_discovered",
+                        "clip_id": clip.id,
+                        "rank": rank,
+                        "title": clip_title,
+                    },
+                )
 
             await jobs.update_status(job_id, JobStatus.DETECTING,
                                      stage="detected", progress=0.45)
@@ -635,7 +686,7 @@ def fan_out_clips(self: ProgressTask, job_id: str) -> str:
 
     if not clip_ids:
         # No highlights — finalise empty
-        finalise_job.apply_async(args=[[], job_id])
+        apply_async(finalise_job.s([], job_id))
         return job_id
 
     # Group of parallel process_clip tasks, then a finalise callback
@@ -644,7 +695,7 @@ def fan_out_clips(self: ProgressTask, job_id: str) -> str:
         group(process_clip.s(job_id, cid) for cid in clip_ids),
         finalise_job.s(job_id),
     )
-    job_workflow.apply_async()
+    apply_async(job_workflow)
     return job_id
 
 
@@ -674,6 +725,18 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             if not force and clip.status == ClipStatus.DONE and clip.final_storage_key:
                 log.info("clip_skip_already_done", clip_id=clip_id, job_id=job_id)
                 CLIPS_PROCESSED.labels(status="skipped").inc()
+                self.report(
+                    job_id,
+                    stage=f"process/clip_{clip.rank:02d}",
+                    progress=0.85,
+                    message=f"Clip {clip.rank + 1} ready",
+                    extra={
+                        "event": "clip_done",
+                        "clip_id": clip_id,
+                        "rank": clip.rank,
+                        "title": clip.title,
+                    },
+                )
                 return {"clip_id": clip_id, "status": "done", "skipped": True}
 
             _apply_job_config(job)
@@ -681,12 +744,25 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 
             await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
 
+            slug = f"clip_{clip.rank:02d}"
+            self.report(
+                job_id,
+                stage=f"process/{slug}",
+                progress=0.52,
+                message=f"Rendering clip {clip.rank + 1}",
+                extra={
+                    "event": "clip_processing",
+                    "clip_id": clip_id,
+                    "rank": clip.rank,
+                    "title": clip.title,
+                },
+            )
+
             workspace = _local_workspace(job_id)
             local_source = _ensure_job_source(job_id, job.source_storage_key)
             storage = make_storage(cfg)
 
             # Local paths for this clip's stages
-            slug = f"clip_{clip.rank:02d}"
             raw_path       = workspace / f"{slug}_raw.mp4"
             vertical_path  = workspace / f"{slug}_vertical.mp4"
             captioned_path = workspace / f"{slug}_captioned.mp4"
@@ -714,8 +790,14 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             transcript = load_job_transcript(
                 job_id, cfg, storage=storage, source_path=local_source,
             )
+            overrides = getattr(clip, "render_overrides", None) or {}
+            raw_edits = overrides.get("transcript_edits")
+            transcript_edits = raw_edits if isinstance(raw_edits, dict) and raw_edits else None
             clip_transcript = None
-            if cfg.caption.refine_clip_transcript:
+            # Skip the per-clip Whisper refinement pass when user edits exist:
+            # edit indices are anchored to the job-transcript word list, and
+            # skipping keeps them aligned (and saves a GPU transcription).
+            if cfg.caption.refine_clip_transcript and transcript_edits is None:
                 try:
                     clip_transcript = transcribe_clip(raw_path, cfg)
                 except Exception as exc:
@@ -724,6 +806,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 vertical_path, captioned_path, transcript,
                 clip.start_secs, clip.end_secs, cfg, emotion=clip.emotion,
                 clip_transcript=clip_transcript,
+                transcript_edits=transcript_edits,
             )
             if clip_transcript is not None:
                 clip_tx_path = workspace / f"{slug}_transcript.json"
@@ -753,7 +836,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             # ── Generate thumbnail ──
             thumb_path = workspace / f"{slug}_thumb.jpg"
             subprocess.run([
-                "ffmpeg", "-y", "-i", str(final_path),
+                ffmpeg_bin(), "-y", "-i", str(final_path),
                 "-ss", "00:00:01", "-vframes", "1",
                 "-vf", "scale=540:-1",
                 str(thumb_path),
@@ -799,6 +882,19 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
 
             CLIP_RENDER_SECONDS.observe(render_secs)
             CLIPS_PROCESSED.labels(status="done").inc()
+
+            self.report(
+                job_id,
+                stage=f"process/{slug}",
+                progress=0.85,
+                message=f"Clip {clip.rank + 1} ready",
+                extra={
+                    "event": "clip_done",
+                    "clip_id": clip_id,
+                    "rank": clip.rank,
+                    "title": clip.title,
+                },
+            )
 
             from core.webhooks import deliver_clip_webhook
             user_webhook_url, user_webhook_secret = None, None
@@ -881,19 +977,25 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
                 )
             user_webhook_url = None
             user_webhook_secret = None
+            data_opt_in = False
             if job and job.owner_id:
                 owner = await users_repo.get(job.owner_id)
                 user_webhook_url, user_webhook_secret = _webhook_creds_from_owner(owner)
+                data_opt_in = bool(
+                    getattr(owner, "data_contribution_opt_in", False),
+                )
             return {
                 "job_id": job_id,
                 "done": done_count,
                 "errors": err_count,
                 "user_webhook_url": user_webhook_url,
                 "user_webhook_secret": user_webhook_secret,
+                "data_opt_in": data_opt_in,
             }
 
     summary = _safe_async(_do())
     terminal = "done" if summary.get("errors", 0) == 0 else "error"
+    data_opt_in = summary.pop("data_opt_in", False)
     JOBS_COMPLETED.labels(status=terminal).inc()
     publish_progress(
         job_id, stage="completed", progress=1.0,
@@ -911,6 +1013,14 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
             user_webhook_secret=summary.get("user_webhook_secret"),
         )
         WEBHOOK_DELIVERIES.labels(result="success" if ok else "failure").inc()
+    # Phase 3c — anonymized training export for opted-in owners (default
+    # queue via send_task; avoids importing notify_tasks → circular import).
+    if terminal == "done" and data_opt_in:
+        celery_app.send_task(
+            "core.tasks.notify_tasks.export_training_bundle",
+            args=[job_id],
+            queue="default",
+        )
     return summary
 
 
@@ -958,7 +1068,7 @@ def splice_clips(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
 
             thumb_path = workspace / f"splice_{clip.rank:02d}_thumb.jpg"
             subprocess.run([
-                "ffmpeg", "-y", "-i", str(final_path),
+                ffmpeg_bin(), "-y", "-i", str(final_path),
                 "-ss", "00:00:01", "-vframes", "1",
                 "-vf", "scale=540:-1",
                 str(thumb_path),

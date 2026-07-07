@@ -38,4 +38,7 @@ async def test_process_time_header(client):
 async def test_meta_endpoint(client):
     resp = await client.get("/api/meta")
     assert resp.status_code == 200
-    assert "caption_styles" in resp.json()
+    body = resp.json()
+    assert "caption_styles" in body
+    assert "features" in body
+    assert "audio_ingest" in body["features"]

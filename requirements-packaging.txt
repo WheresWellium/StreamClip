@@ -1,0 +1,2 @@
+# PyInstaller and other packaging-only deps (ADR-001 §4.6).
+pyinstaller>=6.11.0

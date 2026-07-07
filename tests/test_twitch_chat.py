@@ -60,6 +60,14 @@ def test_load_cached_chat(tmp_path):
     assert ev[0].text == "a"
 
 
+def test_load_cached_chat_skips_non_dict_entries(tmp_path):
+    p = tmp_path / "chat.json"
+    p.write_text(json.dumps(["skip", {"offset_secs": 2, "text": "ok"}]), encoding="utf-8")
+    ev = _load_cached_chat(p)
+    assert len(ev) == 1
+    assert ev[0].text == "ok"
+
+
 def test_save_cached_chat(tmp_path):
     p = tmp_path / "sub/chat.json"
     _save_cached_chat(p, [ChatEvent(0.0, "x")])

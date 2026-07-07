@@ -49,6 +49,14 @@ cd streamclip
 docker compose up --build
 ```
 
+**Windows (recommended):** start Docker Desktop first, then:
+
+```powershell
+.\scripts\start_local.ps1
+```
+
+Brings up compose, runs migrations, verifies health, prints URLs.
+
 That spins up the full stack:
 
 | Service | Port | URL |
@@ -137,7 +145,9 @@ streamclip/
 │   ├── models.py               # Frozen dataclasses (Transcript, ClipCandidate, …)
 │   ├── errors.py               # Domain exception hierarchy with HTTP mapping
 │   ├── storage.py              # Storage ABC (local / S3 / MinIO) + presigned URLs
-│   ├── ingest.py               # yt-dlp + ffprobe + hash-based caching
+│   ├── ingest/                 # Tier-aware download, URL cache, audio slate, waveform
+│   │   ├── service.py          # IngestService orchestrator
+│   │   └── resolvers/          # URL, storage upload, local file
 │   ├── transcribe.py           # faster-whisper with gaming hot-words
 │   ├── highlights.py           # Multi-signal ensemble + NMS + boundary snap
 │   ├── reframe.py              # YOLOv11 + ByteTrack + smoothed camera path
@@ -153,6 +163,8 @@ streamclip/
 │   │   ├── jobs.py             # POST/GET/DELETE /api/jobs + SSE progress
 │   │   ├── uploads.py          # POST /api/uploads/init (presigned PUT)
 │   │   ├── health.py           # /api/health + /api/meta
+│   │   ├── auth.py, license.py, commerce.py, settings.py, support.py
+│   │   ├── distribution.py, vault.py, assets.py, admin.py
 │   │   └── schemas.py          # Pydantic v2 wire models
 │   ├── db/
 │   │   ├── models.py           # SQLAlchemy 2.0 async ORM
@@ -193,11 +205,18 @@ streamclip/
 │
 ├── alembic/                    # DB migrations
 │   ├── env.py
-│   └── versions/
-│       └── 0001_initial.py
+│   └── versions/               # Alembic migrations (0001–0009+)
+│
+├── desktop_sidecar/            # Desktop FastAPI bootstrap (python -m desktop_sidecar)
+├── apps/desktop/               # Electron tray shell (spawns sidecar)
+├── packaging/                  # PyInstaller spec + desktop packaging docs
+├── static/ui/                  # Exported Next.js UI served by the sidecar
+├── bin/ffmpeg/                 # Bundled ffmpeg/ffprobe (desktop; falls back to PATH)
+├── scripts/                    # verify_desktop*.ps1, build_sidecar.ps1, start_local.ps1
 │
 ├── assets/                     # Asset vault (gifs, stickers, sfx)
 ├── config.yaml                 # Default pipeline config
+├── config/desktop.yaml         # Desktop profile (SQLite + inprocess queue + local storage)
 ├── pipeline.py                 # CLI entry point
 ├── requirements.txt
 ├── docker-compose.yml          # Full stack one-command up
@@ -275,7 +294,7 @@ STREAMCLIP_RATE_LIMIT__ENABLED=false        # disable rate limits locally
 | `moba` | 0.40 | 60 frames | 3%/frame | top 8% + bottom 22% | League, Dota |
 | `battle_royale` | 0.45 | 60 frames | 8%/frame | top 8% + bottom 15% | Fortnite, Warzone |
 | `irl` / `podcast` | 0.50 | 90 frames | 1–2%/frame | 0 | Talking head |
-| `auto` | — | — | — | — | LLM picks preset from emotion |
+| `auto` | — | — | — | — | Picks `fps_game` vs `irl` from clip emotion heuristics |
 
 ### Caption styles
 
@@ -313,12 +332,54 @@ The optical-flow signal is the heaviest CPU cost. Set `highlight.weight_optical_
 
 ## Documentation
 
+**Browseable site (MkDocs Material):**
+
+```bash
+pip install -r docs/requirements.txt
+python -m mkdocs serve -a 127.0.0.1:8001   # http://127.0.0.1:8001 (not the API port)
+python -m mkdocs build --strict
+```
+
+**Internal tracking (repo only, not published):** `docs/GAP_ANALYSIS.md` and `docs/MASTER_TODO.md` are excluded via `exclude_docs` in `mkdocs.yml` and omitted from nav — see [docs/INTERNAL.md](docs/INTERNAL.md).
+
 | Doc | Purpose |
 |-----|---------|
+| [docs/index.md](docs/index.md) | Docs home / nav entry |
 | [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Implementer-focused architecture |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Performance doctrine, SLIs, hot-path map |
-| [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) | Doc vs code gap register |
 | [docs/design/FIGMA_LINKS.md](docs/design/FIGMA_LINKS.md) | FigJam diagrams |
+
+### Deploy docs (Vercel — primary)
+
+Team: **wellium** (`WHERESWELLIUM`). `vercel.json` builds the static site (`pip install -r docs/requirements.txt` → `mkdocs build --strict` → `site/`).
+
+1. Push repo to GitHub, then [vercel.com](https://vercel.com) → **Add New Project** → import under team **wellium**.
+2. Framework preset: **Other** — do not override install/build/output (`vercel.json` owns them).
+3. Production domain (e.g. `jet-stream-docs.vercel.app`); set matching `site_url` in `mkdocs.yml` and redeploy.
+4. Optional CLI: `npx vercel link` (team wellium) → `npx vercel --prod`.
+
+Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should be **<1 MB**, not GB).
+
+**Monorepo note:** `ignoreCommand` skips doc deploys when only app/backend files change (saves ~30–60s per unrelated push).
+
+**Upload size (critical):** `.vercelignore` whitelists only `docs/`, `mkdocs.yml`, and config — without it, CLI uploads the full monorepo (~**5.9 GB** observed). Cancel stuck uploads and redeploy after pulling this file.
+
+**Expected build profile (MkDocs static, ~3 MB / 59 files):**
+
+| Phase | Cold | Cached |
+|-------|------|--------|
+| `pip install` (mkdocs-material) | ~25–45s | ~5–15s |
+| `mkdocs build --strict` | ~1–2s | ~1s |
+| Upload to CDN | ~2–5s | ~2–5s |
+| **Total** | **~30–55s** | **~10–20s** |
+
+No Jet Stream docs project exists on Vercel yet — first deploy creates metrics baseline.
+
+### Deploy docs (GitHub Pages — optional backup)
+
+`.github/workflows/docs.yml` builds and deploys on push to `main`/`master` when `docs/**` or `mkdocs.yml` changes.
+
+**Blocked until:** a Git remote is configured (`git remote add origin …`), the repo is pushed, and **Settings → Pages → GitHub Actions** is enabled. This workspace currently has **no git remote** (`git remote -v` is empty).
 
 ## Ship checklist
 
@@ -328,7 +389,7 @@ Before treating a build as production-ready:
 2. `docker compose exec api alembic upgrade head`
 3. `powershell -File scripts/verify_stack.ps1` — health + unit tests
 4. Set `STREAMCLIP_AUTH__SECRET_KEY`, disable `allow_anonymous` for multi-user hosts
-5. Optional GPU: `docker compose --profile gpu up -d`
+5. Optional GPU: `docker compose --profile gpu up -d` with `STREAMCLIP_WORKER_QUEUES=default` so GPU tasks run only on `gpu-worker` (without the env var, `worker` listens on `default,gpu` for CPU-only single-box dev)
 
 **Dev note:** `docker-compose.yml` bind-mounts `backend/`, `core/`, and `tests/` so local Python changes apply without rebuild. Production deploys must use `--build` without relying on mounts.
 

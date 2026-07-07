@@ -4,7 +4,7 @@ import { Loader2, Trash2, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { createAssetAction, removeAssetAction } from "@/app/actions/assets";
+import { createAssetAction, removeAssetAction } from "@/lib/api/actions/assets";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Input, Label } from "@/components/ui/form";

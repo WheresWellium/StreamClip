@@ -1,0 +1,55 @@
+# StreamClip default English profanity list (one word per line, # = comment).
+# Matched case-insensitively after stripping punctuation and basic leetspeak.
+# Extend or trim freely — set caption.profanity_wordlist in config.yaml to
+# point at a custom file.
+fuck
+fucking
+fucked
+fucker
+fuckers
+motherfucker
+motherfucking
+shit
+shitty
+shithead
+bullshit
+horseshit
+bitch
+bitches
+bitchy
+asshole
+assholes
+arsehole
+cunt
+cunts
+dick
+dickhead
+cock
+cocksucker
+pussy
+bastard
+bastards
+slut
+sluts
+whore
+whores
+nigger
+niggers
+nigga
+niggas
+faggot
+faggots
+fag
+retard
+retarded
+goddamn
+goddamnit
+damnit
+twat
+wanker
+prick
+douchebag
+jackass
+dumbass
+piss
+pissed

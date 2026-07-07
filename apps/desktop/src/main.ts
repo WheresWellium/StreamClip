@@ -1,49 +1,113 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage, shell } from "electron";
+import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell } from "electron";
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
 import { autoUpdater } from "electron-updater";
 
-const WEB_URL = process.env.STREAMCLIP_WEB_URL ?? "http://localhost:3000";
-const COMPOSE_FILE = process.env.STREAMCLIP_COMPOSE_FILE ?? "docker-compose.prod.yml";
+const SIDECAR_HOST = process.env.STREAMCLIP_SIDECAR_HOST ?? "127.0.0.1";
+const SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765");
+const WEB_URL = process.env.STREAMCLIP_WEB_URL ?? `http://${SIDECAR_HOST}:${SIDECAR_PORT}/`;
+
 const REPO_ROOT = path.resolve(__dirname, "../../..");
+const isDev = !app.isPackaged;
 
 let tray: Tray | null = null;
-let composeProc: ChildProcess | null = null;
+let mainWindow: BrowserWindow | null = null;
+let sidecarProc: ChildProcess | null = null;
 
-function runCompose(args: string[]): Promise<number> {
-  return new Promise((resolve) => {
-    const proc = spawn(
-      "docker",
-      ["compose", "-f", COMPOSE_FILE, ...args],
-      { cwd: REPO_ROOT, shell: process.platform === "win32" },
-    );
-    proc.on("close", (code) => resolve(code ?? 1));
+function sidecarCommand(): { cmd: string; args: string[]; cwd: string } {
+  if (isDev) {
+    return {
+      cmd: process.platform === "win32" ? "python" : "python3",
+      args: ["-m", "desktop_sidecar"],
+      cwd: REPO_ROOT,
+    };
+  }
+  const exeName = process.platform === "win32" ? "streamclip-sidecar.exe" : "streamclip-sidecar";
+  const exePath = path.join(process.resourcesPath, "sidecar", exeName);
+  return { cmd: exePath, args: [], cwd: path.dirname(exePath) };
+}
+
+function startSidecar(): void {
+  if (sidecarProc) return;
+  const { cmd, args, cwd } = sidecarCommand();
+  sidecarProc = spawn(cmd, args, {
+    cwd,
+    env: {
+      ...process.env,
+      STREAMCLIP_SIDECAR_HOST: SIDECAR_HOST,
+      STREAMCLIP_SIDECAR_PORT: String(SIDECAR_PORT),
+    },
+    stdio: "ignore",
+    shell: false,
+  });
+  sidecarProc.on("exit", (code) => {
+    console.log("sidecar exited", code);
+    sidecarProc = null;
   });
 }
 
-async function startStack(): Promise<void> {
-  if (composeProc) return;
-  const code = await runCompose(["up", "-d"]);
-  if (code !== 0) {
-    console.error("docker compose up failed", code);
+function stopSidecar(): void {
+  if (!sidecarProc) return;
+  sidecarProc.kill();
+  sidecarProc = null;
+}
+
+async function sidecarHealthy(): Promise<boolean> {
+  try {
+    const res = await fetch(`${WEB_URL}api/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
-async function stopStack(): Promise<void> {
-  await runCompose(["down"]);
-  composeProc = null;
+function trayIcon(): Electron.NativeImage {
+  const iconPath = path.join(__dirname, "../assets/tray-icon.png");
+  const img = nativeImage.createFromPath(iconPath);
+  if (!img.isEmpty()) return img;
+  // 16×16 solid fallback when asset missing
+  const dataUrl =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMElEQVQ4T2NkYGD4z0ABYBw1gGE0DBhGQ4NhNAwYRsOAYTQMGEbDgGE0DBhGwwBgNAwYRsOAYTQMgAEA0c0J8nQq8sQAAAAASUVORK5CYII=";
+  return nativeImage.createFromDataURL(dataUrl);
 }
 
-function openBrowser(): void {
-  void shell.openExternal(WEB_URL);
+function openWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    return;
+  }
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  void mainWindow.loadURL(WEB_URL);
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 function buildMenu(): Menu {
   return Menu.buildFromTemplate([
-    { label: "Open StreamClip", click: openBrowser },
+    { label: "Open StreamClip", click: openWindow },
     { type: "separator" },
-    { label: "Start Docker stack", click: () => void startStack() },
-    { label: "Stop Docker stack", click: () => void stopStack() },
+    {
+      label: "Start sidecar",
+      click: () => {
+        startSidecar();
+      },
+    },
+    {
+      label: "Stop sidecar",
+      click: () => {
+        stopSidecar();
+      },
+    },
     { type: "separator" },
     { label: "Check for updates", click: () => void autoUpdater.checkForUpdatesAndNotify() },
     { type: "separator" },
@@ -52,28 +116,44 @@ function buildMenu(): Menu {
 }
 
 function createTray(): void {
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
+  tray = new Tray(trayIcon());
   tray.setToolTip("StreamClip");
   tray.setContextMenu(buildMenu());
-  tray.on("double-click", openBrowser);
+  tray.on("double-click", openWindow);
 }
+
+ipcMain.handle("streamclip:sidecar-start", async () => {
+  startSidecar();
+  return { started: true };
+});
+
+ipcMain.handle("streamclip:sidecar-stop", async () => {
+  stopSidecar();
+  return { stopped: true };
+});
+
+ipcMain.handle("streamclip:sidecar-health", async () => {
+  const healthy = await sidecarHealthy();
+  return { healthy, url: WEB_URL };
+});
+
+ipcMain.handle("streamclip:version", () => app.getVersion());
 
 app.whenReady().then(() => {
   createTray();
-  void startStack();
-  openBrowser();
+  startSidecar();
+  openWindow();
 
   autoUpdater.autoDownload = false;
   autoUpdater.on("update-available", () => {
-    console.log("Update available (stub — configure publish in electron-builder)");
+    console.log("Update available (configure publish in electron-builder)");
   });
 });
 
-app.on("window-all-closed", (e: Event) => {
-  e.preventDefault();
+app.on("window-all-closed", () => {
+  // Tray app — keep running when the window is closed.
 });
 
 app.on("before-quit", () => {
-  void stopStack();
+  stopSidecar();
 });

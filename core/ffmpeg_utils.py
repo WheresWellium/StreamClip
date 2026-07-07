@@ -10,6 +10,7 @@ import structlog
 
 from core.config import ExportConfig
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
+from core.ffmpeg_bins import ffmpeg_bin, ffprobe_bin
 
 log = structlog.get_logger(__name__)
 
@@ -30,7 +31,7 @@ def extract_segment(
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_bin(), "-y",
         "-i", str(source),
         "-ss", str(start_secs),
         "-t", str(duration_secs),
@@ -49,7 +50,7 @@ def probe_duration(path: Path) -> float:
     try:
         result = subprocess.run(
             [
-                "ffprobe", "-v", "error",
+                ffprobe_bin(), "-v", "error",
                 "-show_entries", "format=duration",
                 "-of", "json",
                 str(path),

@@ -12,13 +12,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.middleware.device_id import normalize_device_id
 from backend.db.models import (
     Asset,
+    BugReport,
     Clip,
     ClipFeedback,
     ClipOverlay,
@@ -143,7 +144,9 @@ class JobRepository:
         if search:
             pattern = f"%{search}%"
             stmt = stmt.where(
-                (Job.source_title.ilike(pattern)) | (Job.source_url.ilike(pattern)),
+                (Job.display_title.ilike(pattern))
+                | (Job.source_title.ilike(pattern))
+                | (Job.source_url.ilike(pattern)),
             )
         stmt = stmt.limit(limit).offset(offset)
         result = await self.db.execute(stmt)
@@ -538,6 +541,12 @@ class UserRepository:
             user.webhook_secret = webhook_secret
             await self.db.flush()
 
+    async def set_data_contribution_opt_in(self, user_id: str, opted_in: bool) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.data_contribution_opt_in = opted_in
+            await self.db.flush()
+
     async def update_style_weights(self, user_id: str, weights: dict[str, Any]) -> None:
         user = await self.get(user_id)
         if user:
@@ -660,6 +669,51 @@ class InstallLicenseRepository:
             lic.activation_count = (lic.activation_count or 0) + 1
         await self.db.flush()
         return lic
+
+    async def get(self, license_id: str) -> InstallLicense | None:
+        return await self.db.get(InstallLicense, license_id)
+
+    async def revoke(self, lic: InstallLicense) -> InstallLicense:
+        """Revoked rows are kept so re-activation of the key fails."""
+        lic.status = "revoked"
+        await self.db.flush()
+        return lic
+
+    async def link_user(self, lic: InstallLicense, user_id: str) -> InstallLicense:
+        """Bind a license to its master user identity (idempotent)."""
+        if lic.user_id != user_id:
+            lic.user_id = user_id
+            await self.db.flush()
+        return lic
+
+    async def link_by_email(self, email: str, user_id: str) -> int:
+        """Link all unlinked licenses purchased with this email. Returns count."""
+        result = await self.db.execute(
+            select(InstallLicense).where(
+                func.lower(InstallLicense.customer_email) == email.strip().lower(),
+                InstallLicense.user_id.is_(None),
+            ),
+        )
+        licenses = list(result.scalars().all())
+        for lic in licenses:
+            lic.user_id = user_id
+        if licenses:
+            await self.db.flush()
+        return len(licenses)
+
+
+class BugReportRepository:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def create(self, **fields: Any) -> BugReport:
+        report = BugReport(**fields)
+        self.db.add(report)
+        await self.db.flush()
+        return report
+
+    async def get(self, report_id: str) -> BugReport | None:
+        return await self.db.get(BugReport, report_id)
 
 
 # ─── Distribution repositories ───────────────────────────────────────────────

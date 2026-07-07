@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   getWebhookSettingsAction,
   updateWebhookSettingsAction,
-} from "@/app/actions/settings";
+} from "@/lib/api/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import {

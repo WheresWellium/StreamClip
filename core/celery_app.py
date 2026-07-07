@@ -50,6 +50,7 @@ celery_app = Celery(
         "core.tasks.pipeline_tasks",
         "core.tasks.vault_tasks",
         "core.tasks.publish_tasks",
+        "core.tasks.notify_tasks",
     ],
 )
 
@@ -75,6 +76,7 @@ celery_app.conf.update(
         "core.tasks.pipeline_tasks.*":               {"queue": "default"},
         "core.tasks.publish_tasks.*":                {"queue": "default"},
         "core.tasks.vault_tasks.*":                  {"queue": "default"},
+        "core.tasks.notify_tasks.*":                 {"queue": "default"},
     },
 
     # Default queue
@@ -94,13 +96,21 @@ celery_app.conf.update(
 )
 
 
-# ─── Progress publisher (Redis pub/sub) ─────────────────────────────────────
+# ─── Progress publisher (Redis pub/sub or in-process bus) ─────────────────────
 
 _redis: redis.Redis | None = None
 
 
+def _use_memory_progress() -> bool:
+    return get_settings().queue.backend == "inprocess"
+
+
 def get_redis() -> redis.Redis:
     global _redis
+    if _use_memory_progress():
+        from core.progress_bus import get_progress_bus
+
+        return get_progress_bus().kv  # type: ignore[return-value]
     if _redis is None:
         _redis = redis.from_url(
             cfg.redis.url,
@@ -125,16 +135,31 @@ def publish_progress(
     The event is ALSO stored as the channel's latest snapshot so reconnecting
     clients can fetch the current state without waiting for the next publish.
     """
-    r = get_redis()
-    channel = f"{cfg.redis.pubsub_channel_prefix}{job_id}"
-    snapshot_key = f"{channel}:latest"
-
     timing_fields: dict[str, Any] = {}
     if not skip_timing and status == "processing":
         try:
-            timing_fields = record_stage_progress(r, job_id, stage=stage, cfg=cfg)
+            timing_fields = record_stage_progress(get_redis(), job_id, stage=stage, cfg=cfg)
         except Exception as exc:
             log.warning("progress_timing_failed", job_id=job_id, error=str(exc))
+
+    if _use_memory_progress():
+        from core.progress_bus import publish_job_channel
+
+        publish_job_channel(
+            cfg,
+            job_id,
+            stage=stage,
+            progress=progress,
+            message=message,
+            status=status,
+            extra=extra,
+            timing_fields=timing_fields,
+        )
+        return
+
+    r = get_redis()
+    channel = f"{cfg.redis.pubsub_channel_prefix}{job_id}"
+    snapshot_key = f"{channel}:latest"
 
     payload = {
         "job_id": job_id,
@@ -144,14 +169,14 @@ def publish_progress(
         "status": status,
         "ts": time.time(),
         **timing_fields,
-        **(extra or {}),
     }
+    if extra:
+        payload["extra"] = extra
     seq_key = f"{channel}:seq"
     event_id = r.incr(seq_key)
     r.expire(seq_key, cfg.redis.progress_ttl_secs)
     payload["event_id"] = event_id
     blob = json.dumps(payload)
-    # Set snapshot first (so subscribers that read post-publish see fresh state)
     r.set(snapshot_key, blob, ex=cfg.redis.progress_ttl_secs)
     r.publish(channel, blob)
 
@@ -166,6 +191,20 @@ def publish_job_progress(
     extra: dict[str, Any] | None = None,
 ) -> None:
     """Publish progress for a distribution publish job (SSE channel)."""
+    if _use_memory_progress():
+        from core.progress_bus import publish_publish_channel
+
+        publish_publish_channel(
+            cfg,
+            publish_job_id,
+            stage=stage,
+            progress=progress,
+            message=message,
+            status=status,
+            extra=extra,
+        )
+        return
+
     r = get_redis()
     prefix = cfg.redis.publish_pubsub_channel_prefix
     channel = f"{prefix}{publish_job_id}"

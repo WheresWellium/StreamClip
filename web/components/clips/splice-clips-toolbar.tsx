@@ -3,7 +3,7 @@
 import { Merge } from "lucide-react";
 import * as React from "react";
 
-import { spliceClipsAction } from "@/app/actions/jobs";
+import { spliceClipsAction } from "@/lib/api/actions/jobs";
 import { Button } from "@/components/ui/button";
 import type { ClipOut } from "@/lib/api/types";
 

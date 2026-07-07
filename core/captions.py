@@ -28,7 +28,9 @@ from core.caption_timing import (
 )
 from core.config import Settings, CaptionConfig
 from core.export_video import audio_encode_args, output_fps_args, video_encode_args
+from core.ffmpeg_bins import ffmpeg_bin, ffprobe_bin
 from core.models import Transcript, Word
+from core.profanity import censor_words
 
 log = structlog.get_logger(__name__)
 
@@ -286,6 +288,34 @@ def _is_gaming_term(text: str) -> bool:
     return text.upper().strip(".,!?") in _GAMING_TERMS
 
 
+# ─── Word post-processing ─────────────────────────────────────────────────────
+
+def apply_transcript_edits(
+    words: list[Word],
+    edits: dict[str, str] | None,
+) -> list[Word]:
+    """
+    Apply user word edits keyed by index into the collected caption word list.
+
+    An empty-string replacement removes the word; timing is never shifted.
+    Indices outside the list are ignored (transcript may have changed since
+    the edit was made).
+    """
+    if not edits:
+        return words
+    result: list[Word] = []
+    for i, w in enumerate(words):
+        replacement = edits.get(str(i))
+        if replacement is None:
+            result.append(w)
+            continue
+        text = replacement.strip()
+        if not text:
+            continue  # deleted word
+        result.append(Word(text=text, start=w.start, end=w.end, probability=w.probability))
+    return result
+
+
 # ─── Caption engine public API ─────────────────────────────────────────────────
 
 def generate_captions(
@@ -298,6 +328,7 @@ def generate_captions(
     emotion: str = "neutral",
     *,
     clip_transcript: Transcript | None = None,
+    transcript_edits: dict[str, str] | None = None,
 ) -> Path:
     """
     Burn animated captions into a video clip.
@@ -324,7 +355,7 @@ def generate_captions(
     # ── Probe clip dimensions ─────────────────────────────────────────────
     import json as _json
     probe = subprocess.run(
-        ["ffprobe", "-v", "quiet", "-print_format", "json",
+        [ffprobe_bin(), "-v", "quiet", "-print_format", "json",
          "-show_streams", str(clip_path)],
         capture_output=True, text=True, check=True,
     )
@@ -350,6 +381,13 @@ def generate_captions(
             clip_end,
             rebase_to=0.0,
             min_probability=min_prob,
+        )
+
+    # User word edits first, then the profanity filter so edits are covered too.
+    all_words = apply_transcript_edits(all_words, transcript_edits)
+    if ccfg.profanity_filter:
+        all_words = censor_words(
+            all_words, ccfg.profanity_mode, wordlist_path=ccfg.profanity_wordlist,
         )
 
     if not all_words:
@@ -411,7 +449,7 @@ def generate_captions(
     ass_filter = f"ass={ass_path_escaped}"
 
     cmd = [
-        "ffmpeg", "-y", "-i", str(clip_path),
+        ffmpeg_bin(), "-y", "-i", str(clip_path),
         "-vf", ass_filter,
         *video_encode_args(cfg.export, crf=16),
         "-c:a", "copy",

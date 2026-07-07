@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { authHeaders } from "@/lib/auth/credentials";
+import {
+  getClientAccessToken,
+  getClientDeviceId,
+  isDeviceClaimed,
+  markDeviceClaimed,
+} from "@/lib/auth/client-session";
 
 type Props = {
   deviceId: string;
@@ -26,9 +33,14 @@ export function ClaimDeviceModal({ deviceId }: Props) {
     setStatus("claiming");
     setErrorMessage(null);
     try {
+      const token = getClientAccessToken();
+      if (!token) throw new Error("Sign in required");
       const res = await fetch("/api/auth/claim-device", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(token, deviceId ?? getClientDeviceId()),
+        },
         body: JSON.stringify({ device_id: deviceId }),
       });
       if (!res.ok) {
@@ -40,7 +52,7 @@ export function ClaimDeviceModal({ deviceId }: Props) {
       const data = await res.json();
       setClaimed(data.jobs_claimed ?? 0);
       setStatus("done");
-      document.cookie = "device_claimed=1; path=/; max-age=31536000; samesite=lax";
+      markDeviceClaimed();
       router.refresh();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Claim failed");

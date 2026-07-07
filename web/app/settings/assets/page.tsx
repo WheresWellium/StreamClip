@@ -1,21 +1,33 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AssetVaultPanel } from "@/components/settings/asset-vault-panel";
 import { assetsApi } from "@/lib/api/client";
-import { getAccessToken } from "@/lib/auth/session";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 
-export default async function AssetsSettingsPage() {
-  const token = await getAccessToken();
-  if (!token) {
-    redirect("/login?next=/settings/assets");
-  }
+export default function AssetsSettingsPage() {
+  const router = useRouter();
+  const [assets, setAssets] = useState<Awaited<ReturnType<typeof assetsApi.list>>>([]);
+  const [ready, setReady] = useState(false);
 
-  let assets: Awaited<ReturnType<typeof assetsApi.list>> = [];
-  try {
-    assets = await assetsApi.list(token);
-  } catch {
-    assets = [];
+  useEffect(() => {
+    const token = getClientAccessToken();
+    if (!token) {
+      router.replace("/login?next=/settings/assets");
+      return;
+    }
+    void assetsApi
+      .list(token)
+      .then(setAssets)
+      .catch(() => setAssets([]))
+      .finally(() => setReady(true));
+  }, [router]);
+
+  if (!ready) {
+    return <p className="text-sm text-muted-foreground py-8">Loading assets…</p>;
   }
 
   return (

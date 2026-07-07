@@ -6,16 +6,24 @@ import { jobsApi } from "@/lib/api/client";
 import type { ProgressEvent } from "@/lib/api/types";
 
 type SSEState =
-  | { status: "connecting" }
+  | { status: "connecting"; lastEvent: ProgressEvent | null }
+  | { status: "reconnecting"; lastEvent: ProgressEvent | null }
   | { status: "open"; lastEvent: ProgressEvent | null }
+  | { status: "polling"; lastEvent: ProgressEvent | null }
   | { status: "done"; lastEvent: ProgressEvent }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; lastEvent?: ProgressEvent | null };
 
 const POLL_INTERVAL_MS = 4000;
+/** Fall back to REST polling only after SSE stays down this long. */
+const SSE_FALLBACK_MS = 20_000;
+
+function prevLastEvent(prev: SSEState): ProgressEvent | null {
+  return "lastEvent" in prev ? (prev.lastEvent ?? null) : null;
+}
 
 /**
  * Subscribe to job progress via same-origin BFF SSE route (auth cookies forwarded).
- * Falls back to polling GET /api/jobs/:id when SSE is unavailable.
+ * EventSource auto-reconnects with Last-Event-Id; polling is a last resort.
  */
 export function useJobProgress(
   jobId: string | null,
@@ -24,6 +32,7 @@ export function useJobProgress(
   const { enabled = true } = options;
   const [state, setState] = React.useState<SSEState>({
     status: "connecting",
+    lastEvent: null,
   });
 
   React.useEffect(() => {
@@ -31,25 +40,62 @@ export function useJobProgress(
 
     let closed = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let sawTerminal = false;
+
+    const clearFallback = () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
 
     const startPolling = () => {
-      if (pollTimer) return;
+      if (pollTimer || closed || sawTerminal) return;
+      setState((prev) =>
+        prev.status === "done" || prev.status === "error"
+          ? prev
+          : {
+              status: "polling",
+              lastEvent: prevLastEvent(prev),
+            },
+      );
       pollTimer = setInterval(async () => {
         try {
           const job = await jobsApi.get(jobId);
-          const terminal = job.status === "done" || job.status === "error" || job.status === "cancelled";
+          const terminal =
+            job.status === "done" ||
+            job.status === "error" ||
+            job.status === "cancelled";
           const event: ProgressEvent = {
             job_id: jobId,
             stage: job.current_stage,
             progress: job.progress,
             message: job.error_message ?? "",
-            status: job.status === "done" ? "done" : job.status === "error" ? "error" : "processing",
+            status:
+              job.status === "done" || job.status === "cancelled"
+                ? "done"
+                : job.status === "error"
+                  ? "error"
+                  : "processing",
             ts: Date.now() / 1000,
           };
-          setState({
-            status: terminal && job.status === "done" ? "done" : terminal ? "error" : "open",
-            lastEvent: event,
-          } as SSEState);
+          if (job.status === "done") {
+            sawTerminal = true;
+            setState({ status: "done", lastEvent: event });
+          } else if (job.status === "cancelled") {
+            sawTerminal = true;
+            setState({ status: "done", lastEvent: event });
+          } else if (job.status === "error") {
+            sawTerminal = true;
+            setState({
+              status: "error",
+              message: job.error_message || "Job failed",
+              lastEvent: event,
+            });
+          } else {
+            setState({ status: "polling", lastEvent: event });
+          }
           if (terminal && pollTimer) {
             clearInterval(pollTimer);
             pollTimer = null;
@@ -60,23 +106,50 @@ export function useJobProgress(
       }, POLL_INTERVAL_MS);
     };
 
+    const schedulePollingFallback = () => {
+      if (fallbackTimer || pollTimer || closed || sawTerminal) return;
+      fallbackTimer = setTimeout(() => {
+        fallbackTimer = null;
+        if (!closed && !sawTerminal) startPolling();
+      }, SSE_FALLBACK_MS);
+    };
+
     const bffUrl = `/api/jobs/${jobId}/progress`;
     const source = new EventSource(bffUrl);
 
     source.addEventListener("open", () => {
-      setState((prev) =>
-        prev.status === "open" ? prev : { status: "open", lastEvent: null },
-      );
+      clearFallback();
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      setState((prev) => ({
+        status: "open",
+        lastEvent: prevLastEvent(prev),
+      }));
     });
 
     const handleEvent = (event: MessageEvent, terminal = false) => {
       try {
         const data = JSON.parse(event.data) as ProgressEvent;
+        if (terminal || data.status === "done" || data.status === "error") {
+          sawTerminal = true;
+          clearFallback();
+        }
+        if (data.status === "error") {
+          setState({
+            status: "error",
+            message: data.message || "Pipeline error",
+            lastEvent: data,
+          });
+          source.close();
+          return;
+        }
         setState({
-          status: terminal && data.status === "done" ? "done" : "open",
+          status: terminal || data.status === "done" ? "done" : "open",
           lastEvent: data,
         });
-        if (terminal) {
+        if (terminal || data.status === "done") {
           source.close();
         }
       } catch (err) {
@@ -95,23 +168,34 @@ export function useJobProgress(
       if (ev.data) {
         try {
           const data = JSON.parse(ev.data) as ProgressEvent;
+          sawTerminal = true;
+          clearFallback();
           setState({
             status: "error",
             message: data.message || "Pipeline error",
+            lastEvent: data,
           });
         } catch {
-          setState({ status: "error", message: "Stream error" });
+          setState({ status: "error", message: "Stream error", lastEvent: null });
         }
         source.close();
-      } else if (source.readyState === EventSource.CLOSED) {
-        source.close();
-        if (!closed) startPolling();
+        return;
       }
+      // Transient disconnect — keep EventSource alive for auto-reconnect + Last-Event-Id.
+      setState((prev) => {
+        if (prev.status === "done" || prev.status === "error") return prev;
+        return {
+          status: "reconnecting",
+          lastEvent: "lastEvent" in prev ? prev.lastEvent : null,
+        };
+      });
+      schedulePollingFallback();
     });
 
     return () => {
       closed = true;
       source.close();
+      clearFallback();
       if (pollTimer) clearInterval(pollTimer);
     };
   }, [jobId, enabled]);

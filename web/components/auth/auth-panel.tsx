@@ -10,7 +10,7 @@ import {
   logoutAction,
   registerAction,
   type AuthActionState,
-} from "@/app/actions/auth";
+} from "@/lib/api/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { LabelWithTip } from "@/components/ui/help-tip";
@@ -29,6 +29,14 @@ function SubmitButton({ label }: { label: string }) {
 }
 
 function AuthPanelSignedIn() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logoutAction();
+    router.push("/");
+    router.refresh();
+  };
+
   return (
     <div className="glossy-surface p-4 flex items-center justify-between gap-4">
       <div>
@@ -37,12 +45,10 @@ function AuthPanelSignedIn() {
           Templates and webhooks are available in settings.
         </p>
       </div>
-      <form action={logoutAction}>
-        <Button type="submit" variant="outline" size="sm">
-          <LogOut className="h-3.5 w-3.5" />
-          Sign out
-        </Button>
-      </form>
+      <Button type="button" variant="outline" size="sm" onClick={() => void handleLogout()}>
+        <LogOut className="h-3.5 w-3.5" />
+        Sign out
+      </Button>
     </div>
   );
 }

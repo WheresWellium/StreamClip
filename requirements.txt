@@ -5,7 +5,7 @@
 
 # ── Core video / audio ───────────────────────────────────────────
 ffmpeg-python>=0.2.0
-yt-dlp>=2025.1.1
+yt-dlp>=2026.3.1
 
 # ── ASR / Transcription ──────────────────────────────────────────
 faster-whisper>=1.1.0
@@ -48,6 +48,7 @@ sse-starlette>=2.1.0
 # ── Database (async) ─────────────────────────────────────────────
 sqlalchemy>=2.0.30
 asyncpg>=0.29.0
+aiosqlite>=0.20.0
 psycopg[binary]>=3.2.0
 alembic>=1.13.0
 python-ulid>=2.7.0

@@ -409,7 +409,9 @@ class VaultClip(Base, IDMixin, TimestampMixin):
     publish_jobs: Mapped[list["PublishJob"]] = relationship(back_populates="vault_clip")
 
 
-class InstallOAuthApp(Base, TimestampMixin):
+class InstallOAuthApp(Base):
+    """BYO OAuth app credentials per platform (updated_at only — no created_at in schema)."""
+
     __tablename__ = "install_oauth_apps"
 
     platform: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -488,3 +490,18 @@ class BugReport(Base, IDMixin, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(16), default="open", server_default="open",
     )
+
+
+class PasswordResetToken(Base, IDMixin, TimestampMixin):
+    """Single-use password reset token (stores SHA-256 hash, not the raw secret)."""
+
+    __tablename__ = "password_reset_tokens"
+
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship()

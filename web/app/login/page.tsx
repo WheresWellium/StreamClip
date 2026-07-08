@@ -31,6 +31,10 @@ export default function LoginPage() {
         <Link href="/register" className="text-sky-400 hover:underline">
           Register
         </Link>
+        {" · "}
+        <Link href="/forgot-password" className="text-sky-400 hover:underline">
+          Forgot password?
+        </Link>
       </p>
     </div>
   );

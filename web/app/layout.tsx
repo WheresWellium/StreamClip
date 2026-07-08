@@ -6,7 +6,7 @@ import { ClientProviders } from "@/components/providers/client-providers";
 import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
 import { AuthExtras } from "@/components/auth/auth-extras";
 import { ModelWarmupBanner } from "@/components/onboarding/model-warmup-banner";
-import { BugReportDialog } from "@/components/support/bug-report-dialog";
+import { HeaderSupportActions } from "@/components/support/header-support-actions";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -64,7 +64,7 @@ export default function RootLayout({
               </a>
               <nav className="flex items-center gap-2 text-sm">
                 <HeaderNavWrapper />
-                <BugReportDialog />
+                <HeaderSupportActions />
               </nav>
             </div>
           </header>

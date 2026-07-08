@@ -103,6 +103,21 @@ def test_send_license_key_email_without_order_id():
     assert out["order_id"] == ""
 
 
+def test_send_password_reset_email_sent():
+    reset_url = "https://clip.example.com/reset-password?token=abc"
+    with patch.object(nt, "send_email", return_value=True) as send:
+        out = nt.send_password_reset_email("user@test.local", reset_url)
+    assert out["status"] == "sent"
+    assert out["recipient"] == "user@test.local"
+    assert reset_url in send.call_args.kwargs["body"]
+
+
+def test_send_password_reset_email_skipped_when_smtp_off():
+    with patch.object(nt, "send_email", return_value=False):
+        out = nt.send_password_reset_email("user@test.local", "https://x/reset")
+    assert out["status"] == "skipped"
+
+
 def test_export_training_bundle_skipped_when_no_opt_in():
     with patch.object(nt, "_safe_async", return_value=None):
         out = nt.export_training_bundle("job-x")
@@ -252,6 +267,63 @@ def test_smtp_settings_from_env(monkeypatch):
 def test_bug_report_recipient_from_env(monkeypatch):
     monkeypatch.setenv("BUG_REPORT_TO", "bugs@example.com")
     assert bug_report_recipient() == "bugs@example.com"
+
+
+def test_bug_report_email_status_queued(monkeypatch):
+    monkeypatch.setenv("SMTP_HOST", "smtp.test")
+    monkeypatch.setenv("BUG_REPORT_TO", "bugs@example.com")
+    from core.notify.email import bug_report_email_status
+
+    assert bug_report_email_status() == "queued"
+
+
+def test_bug_report_email_status_skipped_no_recipient(monkeypatch):
+    monkeypatch.setenv("SMTP_HOST", "smtp.test")
+    monkeypatch.delenv("BUG_REPORT_TO", raising=False)
+    from core.notify.email import bug_report_email_status
+
+    assert bug_report_email_status() == "skipped_no_recipient"
+
+
+def test_post_ops_webhook_success(monkeypatch):
+    monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://n8n.test/webhook/ops")
+    from core.notify import n8n_ops
+
+    class FakeResp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    with patch("urllib.request.urlopen", return_value=FakeResp()):
+        ok = n8n_ops.post_ops_webhook({"event": "beta_feedback", "message": "hi"})
+    assert ok is True
+
+
+def test_send_ops_webhook_task_posts_payload():
+    report = SimpleNamespace(
+        id="r1",
+        severity="low",
+        categories=["ui"],
+        message="help",
+        user_id=None,
+        device_id="dev",
+        job_id=None,
+        environment={"kind": "beta_feedback"},
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+    with patch.object(nt, "_safe_async", return_value=report), patch.object(
+        nt, "post_ops_webhook",
+        return_value=True,
+    ) as post:
+        out = nt.send_ops_webhook("r1", "beta_feedback")
+    assert out["status"] == "sent"
+    post.assert_called_once()
+    assert post.call_args[0][0]["event"] == "beta_feedback"
 
 
 def test_send_email_skips_empty_recipient():

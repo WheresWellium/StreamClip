@@ -77,16 +77,20 @@ async function request<T>(
   });
 
   if (!res.ok) {
-    let payload: { code?: string; message?: string } = {};
+    let payload: { code?: string; message?: string; detail?: unknown } = {};
     try {
       payload = await res.json();
     } catch {
       /* non-JSON error body */
     }
+    const detail =
+      typeof payload.detail === "string"
+        ? payload.detail
+        : undefined;
     throw new ApiClientError(
       res.status,
       payload.code ?? `http_${res.status}`,
-      payload.message ?? res.statusText,
+      payload.message ?? detail ?? res.statusText,
       payload,
     );
   }
@@ -329,6 +333,25 @@ export const devicesApi = {
       "/api/devices/onboarding-complete",
       { method: "POST", body: JSON.stringify({}), deviceId },
     ),
+};
+
+export const authApi = {
+  me: (authToken?: string) =>
+    request<{
+      id: string;
+      email: string;
+      display_name: string | null;
+      tier: string;
+      jobs_used_this_month: number;
+      minutes_processed_this_month: number;
+    }>("/api/auth/me", { authToken }),
+  claimDevice: (deviceId: string, authToken?: string) =>
+    request<{ device_id: string; jobs_claimed: number }>("/api/auth/claim-device", {
+      method: "POST",
+      body: JSON.stringify({ device_id: deviceId }),
+      authToken,
+      deviceId,
+    }),
 };
 
 export type WebhookSettings = {
@@ -636,16 +659,41 @@ export type BugReportPayload = {
   environment?: Record<string, string> | null;
 };
 
+export type BetaFeedbackPayload = {
+  message: string;
+  topic: "question" | "idea" | "help" | "other";
+  environment?: Record<string, string> | null;
+};
+
 export const supportApi = {
   submitBugReport: (
     payload: BugReportPayload,
     authToken?: string,
     deviceId?: string,
   ) =>
-    request<{ id: string; status: string }>("/api/support/bug-reports", {
+    request<{
+      id: string;
+      status: string;
+      email_notification: string;
+      ops_notification: string;
+    }>("/api/support/bug-reports", {
       method: "POST",
       body: JSON.stringify(payload),
       authToken,
       deviceId,
     }),
+  submitBetaFeedback: (
+    payload: BetaFeedbackPayload,
+    authToken?: string,
+    deviceId?: string,
+  ) =>
+    request<{ id: string; status: string; topic: string; ops_notification: string }>(
+      "/api/support/beta-feedback",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+        authToken,
+        deviceId,
+      },
+    ),
 };

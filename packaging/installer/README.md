@@ -16,7 +16,13 @@ cd C:\Users\locat\Projects\streamclip
 .\scripts\build_desktop_installer.ps1
 ```
 
-Output: `apps/desktop/release/StreamClip Setup <version>.exe`
+Output: `apps/desktop/release/StreamClip-Setup-win-x64.exe`
+
+Stable public download URL (after GitHub Release):
+
+`https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe`
+
+Docs landing page: `docs/BETA_DOWNLOAD.md` → https://streamclip.vercel.app/BETA_DOWNLOAD/
 
 Reuse existing sidecar/UI artifacts:
 

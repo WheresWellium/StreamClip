@@ -47,6 +47,7 @@ Tracked in MASTER §8.9, §8.11–§8.13, §8.19, §9.2:
 Tracked in MASTER §8.3, §8.10, §8.15:
 
 - 5–10 Phase 0 testers (≥2 NVIDIA GPU), invite email, staging Pro keys
+- Issue keys: `docker compose exec api python scripts/issue_beta_keys.py --csv cohort.csv` — see [BETA_OPS_PHASE0.md](BETA_OPS_PHASE0.md)
 - ~~Flip BETA_TESTER_PLAN Draft → Active~~ ✅ done (§8.10)
 
 ---
@@ -70,6 +71,7 @@ Kit includes:
 4. `docs/BETA_TESTER_PLAN.md` §4.3 flows (T0-1 … T0-6)
 5. `docs/BETA_KNOWN_ISSUES.md` + performance tolerance (+25% on `docs/PERFORMANCE.md` budgets)
 6. `docker-compose.yml` / `docker-compose.prod.yml` for dev and GHCR prod paths
+7. `docs/BETA_OPS_PHASE0.md` + `scripts/issue_beta_keys.py` + `scripts/list_support_reports.py` (operator)
 
 **Recommended run:** `docker compose up -d` on Windows 11, localhost UI at `:3000`, API at `:8000`.
 

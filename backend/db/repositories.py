@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.middleware.device_id import normalize_device_id
+from core.config import get_settings
 from backend.db.models import (
     Asset,
     BugReport,
@@ -30,6 +31,7 @@ from backend.db.models import (
     JobTemplate,
     InstallOAuthApp,
     LocalDevice,
+    PasswordResetToken,
     PlatformConnection,
     PublishJob,
     User,
@@ -553,6 +555,62 @@ class UserRepository:
             user.style_weights = weights
             await self.db.flush()
 
+    async def update_display_name(self, user_id: str, display_name: str) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.display_name = display_name
+            await self.db.flush()
+
+    async def update_password(self, user_id: str, hashed_password: str) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.hashed_password = hashed_password
+            await self.db.flush()
+
+
+# ─── Password reset repository ───────────────────────────────────────────────
+
+class PasswordResetRepository:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def create(self, **fields: Any) -> PasswordResetToken:
+        row = PasswordResetToken(**fields)
+        self.db.add(row)
+        await self.db.flush()
+        return row
+
+    async def get_valid_by_hash(self, token_hash: str) -> PasswordResetToken | None:
+        now = datetime.now(timezone.utc)
+        result = await self.db.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token_hash == token_hash,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > now,
+            ),
+        )
+        return result.scalar_one_or_none()
+
+    async def mark_used(self, token_id: str) -> None:
+        await self.db.execute(
+            update(PasswordResetToken)
+            .where(PasswordResetToken.id == token_id)
+            .values(used_at=datetime.now(timezone.utc)),
+        )
+        await self.db.flush()
+
+    async def invalidate_for_user(self, user_id: str) -> None:
+        now = datetime.now(timezone.utc)
+        await self.db.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.user_id == user_id,
+                PasswordResetToken.used_at.is_(None),
+            )
+            .values(used_at=now),
+        )
+        await self.db.flush()
+
 
 # ─── Device repository ───────────────────────────────────────────────────────
 
@@ -599,6 +657,16 @@ class DeviceRepository:
                 .values(owner_id=user_id, device_id=device_id),
             )
             count = legacy.rowcount or 0
+
+        # Local dev: recover anonymous jobs tied to a stale browser device id.
+        if count == 0:
+            if get_settings().environment == "development":
+                dev_claim = await self.db.execute(
+                    update(Job)
+                    .where(Job.owner_id.is_(None))
+                    .values(owner_id=user_id, device_id=device_id),
+                )
+                count = dev_claim.rowcount or 0
 
         await self.db.flush()
         return count
@@ -714,6 +782,12 @@ class BugReportRepository:
 
     async def get(self, report_id: str) -> BugReport | None:
         return await self.db.get(BugReport, report_id)
+
+    async def list_recent(self, *, limit: int = 50) -> list[BugReport]:
+        result = await self.db.execute(
+            select(BugReport).order_by(BugReport.created_at.desc()).limit(limit),
+        )
+        return list(result.scalars().all())
 
 
 # ─── Distribution repositories ───────────────────────────────────────────────

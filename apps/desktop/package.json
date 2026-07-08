@@ -38,8 +38,8 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "streamclip",
-      "repo": "streamclip",
+      "owner": "WheresWellium",
+      "repo": "StreamClip",
       "releaseType": "release"
     },
     "win": {
@@ -49,7 +49,7 @@
           "arch": ["x64"]
         }
       ],
-      "artifactName": "${productName} Setup ${version}.${ext}",
+      "artifactName": "StreamClip-Setup-win-x64.${ext}",
       "signAndEditExecutable": false
     },
     "nsis": {

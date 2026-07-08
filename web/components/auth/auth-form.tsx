@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -56,14 +57,44 @@ export function AuthForm({ mode, action }: Props) {
       />
       {mode === "register" && (
         <>
+          <LabelWithTip htmlFor="confirm_password" tip={AUTH_LEGEND.password} tipLabel="Confirm password">
+            Confirm password
+          </LabelWithTip>
+          <Input
+            id="confirm_password"
+            name="confirm_password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+          />
           <LabelWithTip htmlFor="display_name" tip={AUTH_LEGEND.displayName} tipLabel="Name">
             Display name
           </LabelWithTip>
           <Input id="display_name" name="display_name" />
         </>
       )}
+      {mode === "login" && (
+        <div className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              name="remember_me"
+              defaultChecked
+              className="accent-sky-500"
+            />
+            Remember me
+          </label>
+          <Link href="/forgot-password" className="text-xs text-sky-400 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+      )}
       {state.status === "error" && (
         <p className="text-xs text-destructive">{state.message}</p>
+      )}
+      {state.status === "ok" && state.message && (
+        <p className="text-xs text-emerald-400">{state.message}</p>
       )}
       <SubmitButton label={mode === "login" ? "Sign in" : "Create account"} />
     </form>

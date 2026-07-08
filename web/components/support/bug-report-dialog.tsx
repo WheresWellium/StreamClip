@@ -84,7 +84,17 @@ export function BugReportDialog() {
     }
     setOpen(false);
     reset();
-    toast("Bug report sent", "Thanks — we'll take a look.");
+    if (
+      result.emailNotification === "queued" ||
+      result.opsNotification === "queued"
+    ) {
+      toast("Bug report sent", "Thanks — we'll take a look.");
+    } else {
+      toast(
+        "Bug report saved locally",
+        "Team routing is not configured on this install yet.",
+      );
+    }
   }
 
   return (

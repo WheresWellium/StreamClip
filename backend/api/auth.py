@@ -16,11 +16,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
     AuthResponse,
+    ChangePasswordRequest,
     ClaimDeviceRequest,
     ClaimDeviceResponse,
+    ForgotPasswordRequest,
     LoginRequest,
+    MessageResponse,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
+    UpdateProfileRequest,
     UserOut,
 )
 from backend.db.session import get_db
@@ -38,12 +43,26 @@ from backend.middleware.rate_limit import rate_limit_request
 from backend.db.repositories import DeviceRepository
 from core.config import get_settings
 from core.errors import AuthError
+from core.tasks.notify_tasks import send_password_reset_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+_FORGOT_PASSWORD_MESSAGE = (
+    "If an account exists for that email, a reset link has been sent."
+)
 
 
 def _get_service(db: AsyncSession) -> AuthService:
     return AuthService(db, get_settings())
+
+
+def _auth_response(user, *, remember_me: bool = True) -> AuthResponse:
+    cfg = get_settings()
+    return AuthResponse(
+        access_token=create_access_token(user.id, cfg),
+        refresh_token=create_refresh_token(user.id, cfg, remember_me=remember_me),
+        user=UserOut.model_validate(user),
+    )
 
 
 @router.post(
@@ -61,12 +80,7 @@ async def register(
     # Phase 3a — claim any licenses purchased with this email
     await link_licenses_by_email(db, user)
     await db.commit()
-    cfg = get_settings()
-    return AuthResponse(
-        access_token=create_access_token(user.id, cfg),
-        refresh_token=create_refresh_token(user.id, cfg),
-        user=UserOut.model_validate(user),
-    )
+    return _auth_response(user, remember_me=True)
 
 
 @router.post(
@@ -80,12 +94,7 @@ async def login(
 ) -> AuthResponse:
     svc = _get_service(db)
     user = await svc.authenticate(body.email, body.password)
-    cfg = get_settings()
-    return AuthResponse(
-        access_token=create_access_token(user.id, cfg),
-        refresh_token=create_refresh_token(user.id, cfg),
-        user=UserOut.model_validate(user),
-    )
+    return _auth_response(user, remember_me=body.remember_me)
 
 
 @router.post(
@@ -105,13 +114,10 @@ async def refresh(
     if payload.get("type") != "refresh":
         raise AuthError("Invalid refresh token")
     user_id = payload["sub"]
+    remember_me = bool(payload.get("rem", True))
     svc = _get_service(db)
     user = await svc.get_active_user(user_id)
-    return AuthResponse(
-        access_token=create_access_token(user.id, cfg),
-        refresh_token=create_refresh_token(user.id, cfg),
-        user=UserOut.model_validate(user),
-    )
+    return _auth_response(user, remember_me=remember_me)
 
 
 @router.get(
@@ -126,6 +132,75 @@ async def me(
     svc = _get_service(db)
     user = await svc.get_active_user(user_id)
     return UserOut.model_validate(user)
+
+
+@router.patch(
+    "/me",
+    response_model=UserOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_me(
+    body: UpdateProfileRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserOut:
+    svc = _get_service(db)
+    user = await svc.update_profile(user_id, display_name=body.display_name)
+    await db.commit()
+    return UserOut.model_validate(user)
+
+
+@router.post(
+    "/change-password",
+    response_model=MessageResponse,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def change_password(
+    body: ChangePasswordRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    svc = _get_service(db)
+    await svc.change_password(user_id, body.current_password, body.new_password)
+    await db.commit()
+    return MessageResponse(message="Password updated")
+
+
+@router.post(
+    "/forgot-password",
+    response_model=MessageResponse,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    svc = _get_service(db)
+    result = await svc.create_password_reset(body.email)
+    if result is not None:
+        raw_token, user = result
+        await db.commit()
+        cfg = get_settings()
+        reset_url = (
+            f"{cfg.distribution.web_origin.rstrip('/')}/reset-password?token={raw_token}"
+        )
+        send_password_reset_email.delay(user.email, reset_url)
+    return MessageResponse(message=_FORGOT_PASSWORD_MESSAGE)
+
+
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    svc = _get_service(db)
+    await svc.reset_password(body.token, body.new_password)
+    await db.commit()
+    return MessageResponse(message="Password reset. You can sign in with your new password.")
 
 
 @router.post(

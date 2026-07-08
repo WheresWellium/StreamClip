@@ -242,6 +242,8 @@ class AuthConfig(BaseModel):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_days: int = 30
+    session_refresh_token_expire_hours: int = 24
+    password_reset_expire_minutes: int = 60
     allow_anonymous: bool = True
     device_scoped_anonymous: bool = True
 

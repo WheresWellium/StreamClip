@@ -17,17 +17,18 @@ import {
 } from "@/components/ui/card";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import type { LicenseStatus } from "@/lib/api/client";
-import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
+import { getLicenseMachineId } from "@/lib/license-machine-id";
 
 export function LicensePanel() {
   const { push: toast } = useToastSafe();
+  const [machineId] = useState(() => getLicenseMachineId());
   const [key, setKey] = useState("");
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = async () => {
-    const result = await getLicenseStatusAction(LICENSE_MACHINE_ID);
+    const result = await getLicenseStatusAction(machineId);
     if (result.status === "ok" && result.license) {
       setStatus(result.license);
     }
@@ -41,7 +42,7 @@ export function LicensePanel() {
   const activate = async () => {
     setLoading(true);
     setError(null);
-    const result = await activateLicenseAction(key, LICENSE_MACHINE_ID);
+    const result = await activateLicenseAction(key, machineId);
     setLoading(false);
     if (result.status === "error") {
       setError(result.message ?? "Activation failed. Try again.");
@@ -90,7 +91,7 @@ export function LicensePanel() {
             <dt className="text-muted-foreground">Expires</dt>
             <dd>{status.expires_at ?? "Never (perpetual)"}</dd>
             <dt className="text-muted-foreground">Machine</dt>
-            <dd className="font-mono text-xs truncate">{status.machine_id ?? LICENSE_MACHINE_ID}</dd>
+            <dd className="font-mono text-xs truncate">{status.machine_id ?? machineId}</dd>
           </dl>
         )}
       </CardContent>

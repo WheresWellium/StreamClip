@@ -51,14 +51,24 @@ def create_access_token(user_id: str, cfg: Settings | None = None) -> str:
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 
-def create_refresh_token(user_id: str, cfg: Settings | None = None) -> str:
+def create_refresh_token(
+    user_id: str,
+    cfg: Settings | None = None,
+    *,
+    remember_me: bool = True,
+) -> str:
     cfg = cfg or get_settings()
     now = datetime.now(timezone.utc)
+    if remember_me:
+        expiry = now + timedelta(days=cfg.auth.refresh_token_expire_days)
+    else:
+        expiry = now + timedelta(hours=cfg.auth.session_refresh_token_expire_hours)
     payload = {
         "sub": user_id,
         "iat": now,
-        "exp": now + timedelta(days=cfg.auth.refresh_token_expire_days),
+        "exp": expiry,
         "type": "refresh",
+        "rem": remember_me,
     }
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 

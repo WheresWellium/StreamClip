@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import {
   getClientRefreshToken,
+  getRememberMe,
   setAuthTokens,
   clearAuthTokens,
 } from "@/lib/auth/client-session";
@@ -36,7 +37,9 @@ export function TokenRefreshProvider({ children }: { children: React.ReactNode }
           return;
         }
         const data = await res.json();
-        setAuthTokens(data.access_token, data.refresh_token);
+        setAuthTokens(data.access_token, data.refresh_token, {
+          rememberMe: getRememberMe(),
+        });
       } catch {
         /* ignore transient network errors */
       }

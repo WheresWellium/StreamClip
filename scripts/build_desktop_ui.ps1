@@ -9,6 +9,9 @@ $webDir = Join-Path $root "web"
 $middleware = Join-Path $webDir "middleware.ts"
 $middlewareDev = Join-Path $webDir "middleware.dev.ts"
 $middlewareMoved = $false
+$apiDir = Join-Path $webDir "app\api"
+$apiStash = Join-Path $webDir "app\_api.desktop-stash"
+$apiMoved = $false
 
 Write-Host "Building static UI (NEXT_STATIC_EXPORT=1)..." -ForegroundColor Cyan
 Push-Location $webDir
@@ -22,8 +25,20 @@ if (Test-Path $middleware) {
     $middlewareMoved = $true
 }
 
+# BFF route handlers (SSE proxies) are not static-exportable; desktop UI hits FastAPI /api directly.
+if (Test-Path $apiDir) {
+    if (Test-Path $apiStash) { Remove-Item -Recurse -Force $apiStash }
+    Move-Item $apiDir $apiStash
+    $apiMoved = $true
+}
+
 npm run build
 $buildOk = $LASTEXITCODE -eq 0
+
+if ($apiMoved -and (Test-Path $apiStash)) {
+    if (Test-Path $apiDir) { Remove-Item -Recurse -Force $apiDir }
+    Move-Item $apiStash $apiDir
+}
 
 if ($middlewareMoved -and (Test-Path $middlewareDev)) {
     Move-Item $middlewareDev $middleware

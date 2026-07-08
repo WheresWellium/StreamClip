@@ -4,6 +4,7 @@ StreamClip — Admin API
 Operator-only endpoints. Requires an authenticated user with tier=admin.
 
 POST /api/admin/licenses/{license_id}/revoke — revoke an issued license.
+GET  /api/admin/bug-reports — list recent in-app bug reports.
 Revoked rows are retained so future activation attempts fail closed.
 """
 
@@ -16,8 +17,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.api.schemas import BugReportAdminOut
 from backend.db.models import InstallLicense, UserTier
-from backend.db.repositories import InstallLicenseRepository, UserRepository
+from backend.db.repositories import BugReportRepository, InstallLicenseRepository, UserRepository
 from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
 from backend.middleware.rate_limit import rate_limit_request
@@ -39,6 +41,22 @@ async def require_admin(
             detail="Admin access required",
         )
     return user_id
+
+
+@router.get(
+    "/bug-reports",
+    response_model=list[BugReportAdminOut],
+    dependencies=[Depends(rate_limit_request)],
+)
+async def list_bug_reports(
+    admin_id: Annotated[str, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = 50,
+) -> list[BugReportAdminOut]:
+    del admin_id
+    capped = min(max(limit, 1), 200)
+    reports = await BugReportRepository(db).list_recent(limit=capped)
+    return [BugReportAdminOut.model_validate(r) for r in reports]
 
 
 @router.post(

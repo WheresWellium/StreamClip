@@ -89,7 +89,10 @@ def test_bug_report_request_validation():
 
 @pytest.mark.asyncio
 async def test_submit_bug_report_creates_row_and_enqueues_email(client):
-    with patch("backend.api.support.send_bug_report_email") as task:
+    with patch("backend.api.support.ops_webhook_status", return_value="skipped_unconfigured"), patch(
+        "backend.api.support.bug_report_email_status",
+        return_value="queued",
+    ), patch("backend.api.support.send_bug_report_email") as task:
         task.apply_async.return_value = MagicMock(id="notify-1")
         resp = await client.post(
             "/api/support/bug-reports",
@@ -104,9 +107,75 @@ async def test_submit_bug_report_creates_row_and_enqueues_email(client):
     body = resp.json()
     assert body["status"] == "open"
     assert body["categories"] == ["vault", "ui"]
+    assert body["email_notification"] == "queued"
+    assert body["ops_notification"] == "skipped_unconfigured"
     task.apply_async.assert_called_once()
     args, kwargs = task.apply_async.call_args
     assert kwargs.get("queue") == "default"
+
+
+@pytest.mark.asyncio
+async def test_submit_bug_report_skips_email_when_smtp_unconfigured(client):
+    with patch("backend.api.support.send_bug_report_email") as email_task, patch(
+        "backend.api.support.send_ops_webhook",
+    ) as ops_task:
+        resp = await client.post(
+            "/api/support/bug-reports",
+            json={
+                "message": "The ingest step fails on every Twitch VOD I try.",
+                "categories": ["ingest"],
+                "severity": "high",
+            },
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["email_notification"] == "skipped_unconfigured"
+    assert body["ops_notification"] == "skipped_unconfigured"
+    email_task.apply_async.assert_not_called()
+    ops_task.apply_async.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_submit_bug_report_enqueues_ops_webhook(client):
+    with patch("backend.api.support.ops_webhook_status", return_value="queued"), patch(
+        "backend.api.support.bug_report_email_status",
+        return_value="skipped_unconfigured",
+    ), patch("backend.api.support.send_ops_webhook") as ops_task:
+        ops_task.apply_async.return_value = MagicMock(id="ops-1")
+        resp = await client.post(
+            "/api/support/bug-reports",
+            json={
+                "message": "Export button does nothing after approve.",
+                "categories": ["ui"],
+                "severity": "medium",
+            },
+        )
+    assert resp.status_code == 201
+    assert resp.json()["ops_notification"] == "queued"
+    ops_task.apply_async.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_submit_beta_feedback_creates_row_and_enqueues_ops(client):
+    with patch("backend.api.support.ops_webhook_status", return_value="queued"), patch(
+        "backend.api.support.send_ops_webhook",
+    ) as ops_task:
+        ops_task.apply_async.return_value = MagicMock(id="ops-2")
+        resp = await client.post(
+            "/api/support/beta-feedback",
+            json={
+                "message": "How do I connect YouTube Shorts during beta?",
+                "topic": "question",
+                "environment": {"page": "/settings"},
+            },
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["topic"] == "question"
+    assert body["ops_notification"] == "queued"
+    ops_task.apply_async.assert_called_once()
+    args, kwargs = ops_task.apply_async.call_args
+    assert args[0][1] == "beta_feedback"
 
 
 @pytest.mark.asyncio

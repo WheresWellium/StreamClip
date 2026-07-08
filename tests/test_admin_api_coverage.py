@@ -144,3 +144,31 @@ async def test_revoke_license_keeps_tier_when_other_active_license():
     UR.return_value.get.assert_not_called()
     db.commit.assert_called_once()
     assert result["status"] == "revoked"
+
+
+@pytest.mark.asyncio
+async def test_list_bug_reports_returns_recent():
+    from datetime import datetime, timezone
+
+    report = SimpleNamespace(
+        id="rpt-1",
+        status="open",
+        severity="high",
+        categories=["ui"],
+        message="Button stuck",
+        user_id="u1",
+        device_id="dev1",
+        job_id=None,
+        environment={"page": "/jobs"},
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    with patch.object(admin_mod, "BugReportRepository") as BR:
+        BR.return_value.list_recent = AsyncMock(return_value=[report])
+        result = await admin_mod.list_bug_reports(
+            admin_id="admin1",
+            db=object(),
+            limit=50,
+        )
+    assert len(result) == 1
+    assert result[0].id == "rpt-1"
+    assert result[0].message == "Button stuck"

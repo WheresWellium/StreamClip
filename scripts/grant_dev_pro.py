@@ -86,6 +86,7 @@ async def main() -> int:
         print(f"  Expires:     {entitlement.expires_at}")
         print()
         print("Paste the license key in Settings → License if the UI still shows Free.")
+        print("Web UI binds to your browser device id — re-activate there if MACHINE_ID differs.")
         return 0
 
 

@@ -20,6 +20,7 @@ ROUTED_TASK_NAMES = (
     "core.tasks.publish_tasks.process_due_scheduled_jobs",
     "core.tasks.vault_tasks.copy_clip_to_vault",
     "core.tasks.notify_tasks.send_bug_report_email",
+    "core.tasks.notify_tasks.send_ops_webhook",
     "core.tasks.notify_tasks.send_license_key_email",
     "core.tasks.notify_tasks.export_training_bundle",
 )

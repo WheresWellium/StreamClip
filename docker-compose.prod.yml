@@ -35,6 +35,16 @@ x-streamclip-distribution-env: &streamclip-distribution-env
   STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY:-}
   STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET:-}
 
+x-streamclip-smtp-env: &streamclip-smtp-env
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  BUG_REPORT_TO: ${BUG_REPORT_TO:-}
+  N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
+
 x-streamclip-worker-volumes: &streamclip-worker-volumes
   - workspace_data:/app/workspace
   - cache_data:/app/.cache
@@ -114,7 +124,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env]
       STREAMCLIP_ENVIRONMENT: production
       STREAMCLIP_AUTH__SECRET_KEY: ${STREAMCLIP_AUTH_SECRET_KEY:?set STREAMCLIP_AUTH_SECRET_KEY}
       STREAMCLIP_AUTH__ALLOW_ANONYMOUS: ${STREAMCLIP_AUTH_ALLOW_ANONYMOUS:-true}
@@ -147,7 +157,7 @@ services:
                --queues=$${STREAMCLIP_WORKER_QUEUES:-default,gpu}
                --concurrency=4"
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env]
       # Default is CPU-safe all-in-one (consumes both queues so GPU-routed tasks like
       # run_transcribe/process_clip still execute without a GPU worker). Operators
       # running an isolated `gpu-worker` (--profile gpu) should set this to "default"

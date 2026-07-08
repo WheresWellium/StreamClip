@@ -14,7 +14,12 @@ export type BugReportInput = {
 
 export async function submitBugReportAction(
   input: BugReportInput,
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<{
+  ok: boolean;
+  message?: string;
+  emailNotification?: string;
+  opsNotification?: string;
+}> {
   if (input.message.trim().length < 10) {
     return { ok: false, message: "Please describe the issue (at least 10 characters)." };
   }
@@ -24,7 +29,7 @@ export async function submitBugReportAction(
   try {
     const token = getClientAccessToken();
     const deviceId = ensureClientDeviceId();
-    await supportApi.submitBugReport(
+    const result = await supportApi.submitBugReport(
       {
         message: input.message.trim(),
         categories: input.categories,
@@ -35,10 +40,45 @@ export async function submitBugReportAction(
       token,
       deviceId,
     );
-    return { ok: true };
+    return {
+      ok: true,
+      emailNotification: result.email_notification,
+      opsNotification: result.ops_notification,
+    };
   } catch (err) {
     if (err instanceof ApiClientError) return { ok: false, message: err.message };
     return { ok: false, message: "Could not submit the bug report." };
+  }
+}
+
+export type BetaFeedbackInput = {
+  message: string;
+  topic: "question" | "idea" | "help" | "other";
+  environment?: Record<string, string>;
+};
+
+export async function submitBetaFeedbackAction(
+  input: BetaFeedbackInput,
+): Promise<{ ok: boolean; message?: string; opsNotification?: string }> {
+  if (input.message.trim().length < 10) {
+    return { ok: false, message: "Please write at least 10 characters." };
+  }
+  try {
+    const token = getClientAccessToken();
+    const deviceId = ensureClientDeviceId();
+    const result = await supportApi.submitBetaFeedback(
+      {
+        message: input.message.trim(),
+        topic: input.topic,
+        environment: input.environment ?? null,
+      },
+      token,
+      deviceId,
+    );
+    return { ok: true, opsNotification: result.ops_notification };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not send feedback." };
   }
 }
 

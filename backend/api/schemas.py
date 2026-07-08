@@ -292,6 +292,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    remember_me: bool = True
 
 
 class RefreshRequest(BaseModel):
@@ -314,6 +315,28 @@ class AuthResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class UpdateProfileRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=120)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=16, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class ClaimDeviceRequest(BaseModel):
@@ -411,6 +434,48 @@ class BugReportOut(BaseModel):
     status: str
     severity: str
     categories: list[str]
+    created_at: datetime
+    email_notification: str = "skipped_unconfigured"
+    ops_notification: str = "skipped_unconfigured"
+
+
+class BetaFeedbackRequest(BaseModel):
+    """Body for POST /api/support/beta-feedback"""
+
+    message: str = Field(..., min_length=10, max_length=5000)
+    topic: Literal["question", "idea", "help", "other"] = "help"
+    environment: dict[str, str] | None = None
+
+    @field_validator("environment")
+    @classmethod
+    def _limit_environment(cls, v: dict[str, str] | None) -> dict[str, str] | None:
+        if v is not None and len(v) > 20:
+            raise ValueError("Too many environment entries")
+        return v
+
+
+class BetaFeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    status: str
+    topic: str
+    created_at: datetime
+    ops_notification: str = "skipped_unconfigured"
+
+
+class BugReportAdminOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    status: str
+    severity: str
+    categories: list[str]
+    message: str
+    user_id: str | None
+    device_id: str | None
+    job_id: str | None
+    environment: dict[str, Any] | None
     created_at: datetime
 
 

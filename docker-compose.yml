@@ -172,6 +172,14 @@ services:
       # Do NOT reuse this key in production — generate a fresh one per .env.production.example.
       STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
       STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      BUG_REPORT_TO: ${BUG_REPORT_TO:-}
+      N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -220,6 +228,14 @@ services:
       # DEV-ONLY Fernet key — see api service for generation command. Do not reuse in prod.
       STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
       STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      BUG_REPORT_TO: ${BUG_REPORT_TO:-}
+      N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
     depends_on:
       api:
         condition: service_started

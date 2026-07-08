@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ApiClientError, authApi } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
-import { authHeaders } from "@/lib/auth/credentials";
 import {
   getClientAccessToken,
   getClientDeviceId,
-  isDeviceClaimed,
   markDeviceClaimed,
 } from "@/lib/auth/client-session";
 
@@ -34,28 +33,21 @@ export function ClaimDeviceModal({ deviceId }: Props) {
     setErrorMessage(null);
     try {
       const token = getClientAccessToken();
-      if (!token) throw new Error("Sign in required");
-      const res = await fetch("/api/auth/claim-device", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(token, deviceId ?? getClientDeviceId()),
-        },
-        body: JSON.stringify({ device_id: deviceId }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(
-          typeof payload.message === "string" ? payload.message : "Claim failed",
-        );
-      }
-      const data = await res.json();
+      if (!token) throw new Error("Sign in required — log in again, then retry.");
+      const resolvedDevice = deviceId ?? getClientDeviceId();
+      if (!resolvedDevice) throw new Error("Device ID missing — refresh the page and retry.");
+
+      const data = await authApi.claimDevice(resolvedDevice, token);
       setClaimed(data.jobs_claimed ?? 0);
       setStatus("done");
       markDeviceClaimed();
       router.refresh();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Claim failed");
+      if (err instanceof ApiClientError) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage(err instanceof Error ? err.message : "Claim failed");
+      }
       setStatus("error");
     }
   };
@@ -71,6 +63,11 @@ export function ClaimDeviceModal({ deviceId }: Props) {
         {status === "done" && (
           <p className="text-sm text-sky-400">
             Linked {claimed} job{claimed === 1 ? "" : "s"} to your account.
+            {claimed === 0 && (
+              <span className="block mt-1 text-muted-foreground">
+                No matching anonymous jobs were found for this device.
+              </span>
+            )}
           </p>
         )}
         {status === "error" && (
@@ -82,7 +79,7 @@ export function ClaimDeviceModal({ deviceId }: Props) {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Skip
           </Button>
-          <Button onClick={handleClaim} disabled={status === "claiming" || status === "done"}>
+          <Button onClick={() => void handleClaim()} disabled={status === "claiming" || status === "done"}>
             {status === "claiming" ? "Linking…" : status === "done" ? "Done" : "Link jobs"}
           </Button>
         </div>

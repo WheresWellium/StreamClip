@@ -59,6 +59,16 @@ def bug_report_recipient() -> str:
     return os.environ.get("BUG_REPORT_TO", "").strip()
 
 
+def bug_report_email_status() -> str:
+    """Whether a submitted bug report will trigger operator email notification."""
+    smtp = smtp_settings_from_env()
+    if not smtp.configured:
+        return "skipped_unconfigured"
+    if not bug_report_recipient():
+        return "skipped_no_recipient"
+    return "queued"
+
+
 def send_email(
     *,
     to: str,

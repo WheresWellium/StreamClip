@@ -21,6 +21,7 @@ exclude_docs: |
   MASTER_TODO.md
   INTERNAL.md
   OPS_N8N_SETUP.md
+  BETA_OPS_PHASE0.md
 
 theme:
   name: material

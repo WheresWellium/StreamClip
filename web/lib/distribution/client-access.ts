@@ -1,4 +1,4 @@
-import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
+import { getLicenseMachineId } from "@/lib/license-machine-id";
 import { getClientAuth } from "@/lib/auth/client-session";
 
 const PRO_TIERS = new Set(["pro", "admin"]);
@@ -45,7 +45,7 @@ export async function hasDistributionAccessClient(
 
   try {
     const res = await fetch(
-      `/api/license/status?machine_id=${encodeURIComponent(LICENSE_MACHINE_ID)}`,
+      `/api/license/status?machine_id=${encodeURIComponent(getLicenseMachineId())}`,
       { cache: "no-store" },
     );
     if (res.ok) {

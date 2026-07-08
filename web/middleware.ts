@@ -21,7 +21,8 @@ function isPublicPath(pathname: string): boolean {
 
 function setDeviceCookie(response: NextResponse, deviceId: string) {
   response.cookies.set(DEVICE_COOKIE, deviceId, {
-    httpOnly: true,
+    // Must be readable by client-session (document.cookie) so job + claim use one id.
+    httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",

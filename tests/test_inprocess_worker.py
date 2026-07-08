@@ -192,5 +192,6 @@ def test_start_worker_registers_task_modules(monkeypatch):
         "core.tasks.publish_tasks.publish_to_platform",
         "core.tasks.vault_tasks.copy_clip_to_vault",
         "core.tasks.notify_tasks.send_bug_report_email",
+        "core.tasks.notify_tasks.send_ops_webhook",
     ):
         assert name in celery_app.tasks

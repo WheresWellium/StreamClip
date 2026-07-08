@@ -17,7 +17,7 @@ import {
   getClientDeviceId,
 } from "@/lib/auth/client-session";
 import { hasDistributionAccess } from "@/lib/distribution/client-access";
-import { LICENSE_MACHINE_ID } from "@/lib/license-machine-id";
+import { getLicenseMachineId } from "@/lib/license-machine-id";
 
 type CheckItem = {
   id: string;
@@ -27,10 +27,10 @@ type CheckItem = {
   href?: string;
 };
 
-async function fetchLicenseActive(): Promise<boolean> {
+async function fetchLicenseActive(machineId: string): Promise<boolean> {
   try {
     const res = await fetch(
-      `/api/license/status?machine_id=${encodeURIComponent(LICENSE_MACHINE_ID)}`,
+      `/api/license/status?machine_id=${encodeURIComponent(machineId)}`,
       { cache: "no-store" },
     );
     if (!res.ok) return false;
@@ -50,7 +50,7 @@ export function ActivationChecklist() {
       const token = getClientAccessToken();
       const deviceId = getClientDeviceId();
       const signedIn = Boolean(token);
-      const licenseActive = await fetchLicenseActive();
+      const licenseActive = await fetchLicenseActive(getLicenseMachineId());
       const hasPro = token ? await hasDistributionAccess(token) : licenseActive;
 
       let oauthConfigured = false;

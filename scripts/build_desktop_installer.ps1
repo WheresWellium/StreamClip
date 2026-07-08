@@ -50,7 +50,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if (-not (Test-SigningConfigured)) {
     Write-Host ""
-    Write-Host "NOTE: CSC_LINK / CSC_KEY_PASSWORD not set — installer will be UNSIGNED." -ForegroundColor Yellow
+    Write-Host "NOTE: CSC_LINK / CSC_KEY_PASSWORD not set - installer will be UNSIGNED." -ForegroundColor Yellow
     Write-Host "      SmartScreen will warn on first run. See packaging/installer/README.md." -ForegroundColor Yellow
     $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
 }
@@ -74,9 +74,14 @@ $distOk = $LASTEXITCODE -eq 0
 Pop-Location
 if (-not $distOk) { exit $LASTEXITCODE }
 
-$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip Setup *.exe" -ErrorAction SilentlyContinue |
+$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
+if (-not $setup) {
+    $setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip Setup *.exe" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+}
 
 if ($setup) {
     $setupMB = [math]::Round($setup.Length / 1MB)

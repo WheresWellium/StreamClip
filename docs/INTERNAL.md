@@ -8,6 +8,8 @@ These files live in `docs/` for version control and agent workflows but are **ex
 | [MASTER_TODO.md](MASTER_TODO.md) | Engineering backlog and ship checklist | When closing or opening beta blockers |
 | [PLAN.md](../PLAN.md) | Short-lived execution tracker (repo root) | During multi-step agent plans |
 | [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) | Beta tester limitations and SLAs | Each beta wave |
+| [OPS_N8N_SETUP.md](OPS_N8N_SETUP.md) | n8n → Outlook routing for support forms | When webhook URL or inbox changes |
+| [BETA_OPS_PHASE0.md](BETA_OPS_PHASE0.md) | Phase 0 keys, support triage, invite template (no n8n) | Each beta wave |
 
 **Coverage gate:** canonical rules in [MASTER_TODO.md §3.10](MASTER_TODO.md); run `scripts/verify_coverage.ps1`.
 

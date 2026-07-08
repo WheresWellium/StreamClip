@@ -33,7 +33,7 @@ if ($cudaCheck -eq "cuda") {
 }
 
 Write-Host "Running PyInstaller one-dir build (may take several minutes)..." -ForegroundColor Cyan
-pyinstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
+python -m PyInstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $exe = "dist\streamclip-sidecar\streamclip-sidecar.exe"

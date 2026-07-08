@@ -17,6 +17,7 @@ from backend.db.session import db_session
 from core.celery_app import celery_app
 from core.config import get_settings
 from core.notify.email import bug_report_recipient, send_email
+from core.notify.n8n_ops import post_ops_webhook
 from core.storage import make_storage
 from core.tasks.pipeline_tasks import _safe_async
 
@@ -66,6 +67,47 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
     return {"status": "sent" if sent else "skipped", "report_id": report_id}
 
 
+def _ops_payload_from_report(report: BugReport, *, event: str) -> dict[str, object]:
+    return {
+        "event": event,
+        "id": report.id,
+        "severity": report.severity,
+        "categories": report.categories or [],
+        "message": report.message,
+        "user_id": report.user_id,
+        "device_id": report.device_id,
+        "job_id": report.job_id,
+        "environment": report.environment or {},
+        "created_at": report.created_at.isoformat(),
+        "app": "streamclip",
+    }
+
+
+@celery_app.task(
+    name="core.tasks.notify_tasks.send_ops_webhook",
+    max_retries=2,
+    default_retry_delay=30,
+)
+def send_ops_webhook(report_id: str, event: str) -> dict[str, str]:
+    """Forward a support row to the n8n ops webhook (Outlook routing lives in n8n)."""
+
+    async def _load() -> BugReport | None:
+        async with db_session() as db:
+            return await db.get(BugReport, report_id)
+
+    report = _safe_async(_load())
+    if report is None:
+        log.warning("ops_webhook_missing_row", report_id=report_id, event=event)
+        return {"status": "skipped", "reason": "not_found"}
+
+    sent = post_ops_webhook(_ops_payload_from_report(report, event=event))
+    return {
+        "status": "sent" if sent else "skipped",
+        "report_id": report_id,
+        "event": event,
+    }
+
+
 @celery_app.task(
     name="core.tasks.notify_tasks.send_license_key_email",
     max_retries=3,
@@ -92,6 +134,28 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "order_id": order_id or ""}
+
+
+@celery_app.task(
+    name="core.tasks.notify_tasks.send_password_reset_email",
+    max_retries=2,
+    default_retry_delay=30,
+)
+def send_password_reset_email(recipient: str, reset_url: str) -> dict[str, str]:
+    body = (
+        "You requested a password reset for your StreamClip account.\n"
+        "\n"
+        f"Reset your password:\n{reset_url}\n"
+        "\n"
+        "This link expires in one hour. If you did not request a reset, "
+        "you can ignore this email.\n"
+    )
+    sent = send_email(
+        to=recipient,
+        subject="Reset your StreamClip password",
+        body=body,
+    )
+    return {"status": "sent" if sent else "skipped", "recipient": recipient}
 
 
 def _anonymize_snapshot(snapshot: dict) -> dict:

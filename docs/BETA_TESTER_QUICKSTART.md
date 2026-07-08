@@ -1,6 +1,9 @@
 # StreamClip — Beta Quickstart (15 minutes)
 
-For **Phase 0 technical beta**: Docker on Windows 10/11. Full acceptance flows live in `docs/BETA_TESTER_PLAN.md` §4.3.
+!!! note "Creators installing the Windows app"
+    **No Docker required.** Use the [**Windows installer download**](BETA_DOWNLOAD.md) instead of this guide.
+
+For **Phase 0 technical beta (Docker self-host)**: Docker on Windows 10/11. Full acceptance flows live in `docs/BETA_TESTER_PLAN.md` §4.3.
 
 ---
 
@@ -95,6 +98,9 @@ Use `--profile gpu` with `STREAMCLIP_WORKER_QUEUES=default` for NVIDIA queue iso
 
 ## 8. When something breaks
 
+Use **Report a bug** in the app header (saved to local DB; email only if operator
+configured `SMTP_HOST` + `BUG_REPORT_TO` — see `.env.example`).
+
 Include in your report:
 
 1. Job id (or publish job id)
@@ -102,7 +108,8 @@ Include in your report:
 3. Last 50 lines: `docker compose logs api worker --tail 50`
 4. Result of `verify_stack.ps1`
 
-Post to the channel linked in your invite email.
+Post to the channel linked in your invite email (Discord / GitHub Discussions).
+Operators can list saved reports via `GET /api/admin/bug-reports` (admin account).
 
 ---
 

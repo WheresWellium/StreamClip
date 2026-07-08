@@ -6,7 +6,7 @@
 site_name: Jet Stream Docs
 site_description: Wellium — self-hosted AI clip pipeline guides and architecture
 site_url: https://streamclip.vercel.app/
-repo_url: https://github.com/WheresWellium/streamclip
+repo_url: https://github.com/WheresWellium/StreamClip
 repo_name: streamclip
 edit_uri: edit/master/docs/
 copyright: Copyright &copy; 2026 Wellium — FJ Cantwell II
@@ -20,6 +20,7 @@ exclude_docs: |
   GAP_ANALYSIS.md
   MASTER_TODO.md
   INTERNAL.md
+  OPS_N8N_SETUP.md
 
 theme:
   name: material
@@ -72,6 +73,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Download:
+      - Windows installer: BETA_DOWNLOAD.md
   - Getting started:
       - Beta quickstart: BETA_TESTER_QUICKSTART.md
       - Beta test plan: BETA_TESTER_PLAN.md

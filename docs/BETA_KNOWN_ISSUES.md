@@ -39,6 +39,8 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 
 ## Desktop `.exe` (Phase 2)
 
+<a id="desktop-exe-phase-2"></a>
+
 - **Unsigned builds** trigger Windows SmartScreen — click “More info → Run anyway” until code signing (MASTER_TODO §4.10)
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
 - Auto-update is a **stub** — manual reinstall until §4.10
@@ -46,7 +48,24 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 
 ## Reporting bugs
 
-Include: OS version, GPU model, `job_id`, relevant log snippet, steps to reproduce.  
-Post in the beta feedback channel named in your invite (Discord / GitHub Discussions).
+**In-app:** Header → **Beta feedback** (questions/ideas) or **Report a bug** (breakages).
+Both save to the local `bug_reports` table.
+
+**Operator routing (recommended):** Set `N8N_OPS_WEBHOOK_URL` on api + worker — n8n
+forwards to the studio Outlook inbox (address configured only in n8n). See internal
+`docs/OPS_N8N_SETUP.md`.
+
+**Legacy Docker SMTP:** Optional `SMTP_HOST` + `BUG_REPORT_TO` (see `.env.example`).
+
+```sql
+SELECT id, severity, categories, message, user_id, device_id, created_at
+FROM bug_reports ORDER BY created_at DESC LIMIT 50;
+```
+
+**Desktop `.exe` beta:** Bake `N8N_OPS_WEBHOOK_URL` into the operator build so
+creator installs forward to n8n without local SMTP. Admin list:
+`GET /api/admin/bug-reports` (admin account) or SQL below.
+
+Include: OS version, GPU model, `job_id`, relevant log snippet, steps to reproduce.
 
 See `docs/BETA_TESTER_PLAN.md` for acceptance flows T0 / T1 / T2.

@@ -18,7 +18,7 @@
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 Docker beta:** **Prepared, not open for invites** (2026-07-07). **§3.5 is GREEN** (95.40%, `verify_coverage.ps1`). **§3.8 clean-VM `verify_stack.ps1` has not been run** — that is the remaining blocker before first cohort. Ship kit via `scripts/prepare_beta_kit.ps1` or private repo access. Full 110% required before Phase 1 (MASTER §8.1).
+**Phase 0 creator beta:** **Open for invites** (2026-07-08). Download at [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) / https://streamclip.vercel.app/BETA_DOWNLOAD/ — **v1.0.0-beta.1** on [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.1). Docker self-host gates remain green for technical testers.
 
 ---
 
@@ -53,7 +53,9 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 ## 5. Phase 0 kit contents
 
-See MASTER §8.9. Ship via private link, encrypted zip, or:
+**Creators (primary):** [Download page](BETA_DOWNLOAD.md) on Vercel → `StreamClip-Setup-win-x64.exe` from GitHub Releases.
+
+**Docker self-host (technical beta):** ship via private link, encrypted zip, or:
 
 ```powershell
 .\scripts\prepare_beta_kit.ps1

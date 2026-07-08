@@ -18,7 +18,7 @@
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 creator beta:** **Open for invites** (2026-07-08). Download at [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) / https://streamclip.vercel.app/BETA_DOWNLOAD/ — **v1.0.0-beta.1** on [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.1). Docker self-host gates remain green for technical testers.
+**Phase 0 creator beta:** **Open for invites** (2026-07-08). Download at [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) / https://streamclip.vercel.app/BETA_DOWNLOAD/ — **v1.0.0-beta.2** on [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2). Docker self-host gates remain green for technical testers.
 
 ---
 

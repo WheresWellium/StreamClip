@@ -3,7 +3,7 @@
 **Turn long-form video into viral vertical shorts** — install once, no Docker, no terminal.
 
 !!! success "Current release"
-    **v1.0.0-beta.1** · Windows 64-bit · ~325 MB · [Release notes](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.1)
+    **v1.0.0-beta.2** · Windows 64-bit · ~325 MB · [Release notes](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
 
 <div class="grid cards" markdown>
 
@@ -23,7 +23,7 @@
 
 </div>
 
-Alternative link (pinned to this release): [StreamClip-Setup-win-x64.exe (v1.0.0-beta.1)](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.1/StreamClip-Setup-win-x64.exe)
+Alternative link (pinned to this release): [StreamClip-Setup-win-x64.exe (v1.0.0-beta.2)](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe)
 
 ---
 
@@ -70,7 +70,7 @@ Full acceptance flows: [Beta test plan](BETA_TESTER_PLAN.md) §4.3 (T0 flows).
 | SmartScreen blocks install | More info → Run anyway ([details](BETA_KNOWN_ISSUES.md)) |
 | App won't start | Reboot; ensure 10 GB+ disk free; check `%LOCALAPPDATA%\StreamClip\logs` |
 | Very slow clips | Enable NVIDIA GPU in Windows; close other GPU apps |
-| Download link 404 | Use the [pinned v1.0.0-beta.1 link](#download-streamclip-windows) above or [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases) |
+| Download link 404 | Use the [pinned v1.0.0-beta.2 link](#download-streamclip-windows) above or [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases) |
 
 Report bugs with: Windows version, GPU model, job id, and steps to reproduce. Channel is in your invite email.
 

@@ -1,6 +1,6 @@
 # Build Windows installer locally and optionally upload to GitHub Releases.
 param(
-    [string]$Version = "1.0.0-beta.1",
+    [string]$Version = "1.0.0-beta.2",
     [switch]$SkipBuild,
     [switch]$PublishOnly
 )

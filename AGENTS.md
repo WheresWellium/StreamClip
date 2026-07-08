@@ -8,6 +8,7 @@ Update via `agents-memory-updater` or when the user corrects standing behavior.
 - Prefer exact file paths and line numbers when citing code.
 - Minimize context bloat: trim user rules, disable unused MCP/plugins, use subagents for exploration.
 - Do not commit unless explicitly asked; use `gh` for GitHub PR/check work.
+- After shipping user-facing web/auth changes to `master`, always build and publish a new Windows desktop installer (`scripts/publish_desktop_release.ps1`) and bump `docs/BETA_DOWNLOAD.md`.
 - Coverage gate is authoritative via `scripts/verify_coverage.ps1` (Docker, `-m "not desktop"`).
 - Phase 0 beta invites require both `verify_coverage.ps1` (≥95%) and `verify_stack.ps1` passing.
 

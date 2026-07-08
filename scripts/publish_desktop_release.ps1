@@ -40,9 +40,14 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 
 $tag = "v$Version"
 Write-Host "Publishing release $tag ..." -ForegroundColor Cyan
+$releaseNotes = @"
+Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway.
+
+Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+"@
 gh release create $tag $installer `
     --title "StreamClip $tag" `
-    --notes "Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway."
+    --notes $releaseNotes
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Release failed. If tag exists, use: gh release upload $tag `"$installer`" --clobber" -ForegroundColor Yellow
     exit $LASTEXITCODE

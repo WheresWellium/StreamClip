@@ -16,7 +16,7 @@
 ## Next steps (ordered)
 
 1. Finish `publish_desktop_release.ps1 -Version 1.0.0-beta.2` (build + gh release)
-2. Push docs commit → Vercel `BETA_DOWNLOAD` shows beta.2 badge
+2. Vercel docs live at `streamclip-henna.vercel.app/BETA_DOWNLOAD/` (`streamclip.vercel.app` is a stale alias — do not share)
 3. Send waitlist the Vercel download URL
 
 ## Key paths

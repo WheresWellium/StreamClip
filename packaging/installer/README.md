@@ -22,7 +22,7 @@ Stable public download URL (after GitHub Release):
 
 `https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe`
 
-Docs landing page: `docs/BETA_DOWNLOAD.md` → https://streamclip.vercel.app/BETA_DOWNLOAD/
+Docs landing page: `docs/BETA_DOWNLOAD.md` → https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 
 Reuse existing sidecar/UI artifacts:
 

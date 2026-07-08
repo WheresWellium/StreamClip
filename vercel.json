@@ -3,6 +3,5 @@
   "framework": null,
   "installCommand": "python -m pip install --break-system-packages -r docs/requirements.txt",
   "buildCommand": "python -m mkdocs build --strict",
-  "outputDirectory": "site",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- docs mkdocs.yml vercel.json docs/requirements.txt .python-version .vercelignore"
+  "outputDirectory": "site"
 }

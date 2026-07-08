@@ -29,7 +29,7 @@ Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColo
 Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe"
 Write-Host ""
 Write-Host "Docs page:" -ForegroundColor Cyan
-Write-Host "  https://streamclip.vercel.app/BETA_DOWNLOAD/"
+Write-Host "  https://streamclip-henna.vercel.app/BETA_DOWNLOAD/"
 Write-Host ""
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {

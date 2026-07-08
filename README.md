@@ -355,12 +355,12 @@ Team: **wellium** (`WHERESWELLIUM`). `vercel.json` builds the static site (`pip 
 
 1. Push repo to GitHub, then [vercel.com](https://vercel.com) → **Add New Project** → import under team **wellium**.
 2. Framework preset: **Other** — do not override install/build/output (`vercel.json` owns them).
-3. Production domain (e.g. `jet-stream-docs.vercel.app`); set matching `site_url` in `mkdocs.yml` and redeploy.
+3. Production domain: **https://streamclip-henna.vercel.app/** — set matching `site_url` in `mkdocs.yml` and redeploy.
 4. Optional CLI: `npx vercel link` (team wellium) → `npx vercel --prod`.
 
 Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should be **<1 MB**, not GB).
 
-**Monorepo note:** `ignoreCommand` skips doc deploys when only app/backend files change (saves ~30–60s per unrelated push).
+**Monorepo note:** every push to `master` rebuilds docs (~7s). Use `.vercelignore` so uploads stay small.
 
 **Upload size (critical):** `.vercelignore` whitelists only `docs/`, `mkdocs.yml`, and config — without it, CLI uploads the full monorepo (~**5.9 GB** observed). Cancel stuck uploads and redeploy after pulling this file.
 

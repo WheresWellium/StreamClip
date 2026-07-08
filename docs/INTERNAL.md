@@ -23,3 +23,7 @@ python -m mkdocs build --strict
 ```
 
 Public site deploy: **Vercel** (`vercel.json` at repo root).
+
+**Production URL:** https://streamclip-henna.vercel.app/ (team **wellium**, project `streamclip`).
+
+**Do not use** `streamclip.vercel.app` — that alias is bound to an old unrelated deployment (blank French landing page). To reclaim it: remove the alias on the other Vercel project, then `npx vercel alias <deployment-url> streamclip.vercel.app` from this repo.

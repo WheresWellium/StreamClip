@@ -93,8 +93,8 @@ Hi {name},
 
 You're invited to the StreamClip Phase 0 beta.
 
-Install: https://streamclip.vercel.app/BETA_DOWNLOAD/
-Quickstart: https://streamclip.vercel.app/BETA_TESTER_QUICKSTART/
+Install: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+Quickstart: https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/
 
 Pro license key (Settings → License):
 {license_key}

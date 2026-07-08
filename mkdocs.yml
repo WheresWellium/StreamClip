@@ -5,7 +5,7 @@
 
 site_name: Jet Stream Docs
 site_description: Wellium — self-hosted AI clip pipeline guides and architecture
-site_url: https://streamclip.vercel.app/
+site_url: https://streamclip-henna.vercel.app/
 repo_url: https://github.com/WheresWellium/StreamClip
 repo_name: streamclip
 edit_uri: edit/master/docs/

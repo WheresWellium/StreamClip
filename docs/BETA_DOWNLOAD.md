@@ -5,25 +5,12 @@
 !!! success "Current release"
     **v1.0.0-beta.2** · Windows 64-bit · ~325 MB · [Release notes](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
 
-<div class="grid cards" markdown>
-
--   :material-download:{ .lg .middle } **Windows installer**
-
-    ---
-
-    One-click setup. Opens from your desktop or Start menu.
-
-    [:octicons-download-24: Download for Windows (64-bit)](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe){ .md-button .md-button--primary }
-
--   :material-shield-alert:{ .lg .middle } **First install**
-
-    ---
-
-    Windows SmartScreen may warn on unsigned beta builds. Click **More info → Run anyway**. See [known issues](BETA_KNOWN_ISSUES.md#desktop-exe-phase-2).
-
-</div>
+[:octicons-download-24: Download for Windows (64-bit)](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe){ .md-button .md-button--primary }
 
 Alternative link (pinned to this release): [StreamClip-Setup-win-x64.exe (v1.0.0-beta.2)](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe)
+
+!!! warning "First install — SmartScreen"
+    Windows may warn on unsigned beta builds. Click **More info → Run anyway**. See [known issues](BETA_KNOWN_ISSUES.md#desktop-exe-phase-2).
 
 ---
 

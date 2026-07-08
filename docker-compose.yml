@@ -331,6 +331,7 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./web:/app
+      - /app/node_modules
       - /app/.next
     depends_on:
       api:

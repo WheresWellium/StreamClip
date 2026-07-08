@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DistributionConnections } from "@/components/distribution/distribution-connections";
 import { DistributionOAuthToasts } from "@/components/distribution/distribution-oauth-toasts";
@@ -16,6 +16,9 @@ import {
 import { distributionApi } from "@/lib/api/client";
 import { getClientAccessToken } from "@/lib/auth/client-session";
 import { hasDistributionAccess } from "@/lib/distribution/client-access";
+import {
+  DISTRIBUTION_LOGIN_NEXT,
+} from "@/lib/distribution/routes";
 
 type Props = {
   oauthConnected?: string;
@@ -25,45 +28,47 @@ type Props = {
 export function DistributionSection({ oauthConnected, oauthError }: Props) {
   const [token, setToken] = useState<string | undefined>();
   const [hasPro, setHasPro] = useState(false);
-  const [platforms, setPlatforms] = useState<Awaited<ReturnType<typeof distributionApi.platforms>>>([]);
-  const [connections, setConnections] = useState<Awaited<ReturnType<typeof distributionApi.connections>>>([]);
-  const [publishJobs, setPublishJobs] = useState<Awaited<ReturnType<typeof distributionApi.publishJobs>>>([]);
+  const [platforms, setPlatforms] = useState<
+    Awaited<ReturnType<typeof distributionApi.platforms>>
+  >([]);
+  const [connections, setConnections] = useState<
+    Awaited<ReturnType<typeof distributionApi.connections>>
+  >([]);
+  const [publishJobs, setPublishJobs] = useState<
+    Awaited<ReturnType<typeof distributionApi.publishJobs>>
+  >([]);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const refetch = useCallback(async () => {
     const t = getClientAccessToken();
     setToken(t);
-    void (async () => {
-      const pro = await hasDistributionAccess(t);
-      let plats: typeof platforms = [];
-      let conns: typeof connections = [];
-      let jobs: typeof publishJobs = [];
-      if (t) {
-        try {
-          [plats, conns, jobs] = await Promise.all([
-            distributionApi.platforms(t),
-            distributionApi.connections(t),
-            distributionApi.publishJobs(t),
-          ]);
-        } catch {
-          plats = [];
-          conns = [];
-          jobs = [];
-        }
+    const pro = await hasDistributionAccess(t);
+    let plats: typeof platforms = [];
+    let conns: typeof connections = [];
+    let jobs: typeof publishJobs = [];
+    if (t) {
+      try {
+        [plats, conns, jobs] = await Promise.all([
+          distributionApi.platforms(t),
+          distributionApi.connections(t),
+          distributionApi.publishJobs(t),
+        ]);
+      } catch {
+        plats = [];
+        conns = [];
+        jobs = [];
       }
-      if (!cancelled) {
-        setHasPro(pro);
-        setPlatforms(plats);
-        setConnections(conns);
-        setPublishJobs(jobs);
-        setReady(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    }
+    setHasPro(pro);
+    setPlatforms(plats);
+    setConnections(conns);
+    setPublishJobs(jobs);
+    setReady(true);
   }, []);
+
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
 
   if (!ready) {
     return <p className="text-sm text-muted-foreground py-4">Loading distribution…</p>;
@@ -77,7 +82,7 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
           <CardDescription>Sign in to connect platforms and publish clips.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/login?next=/settings%3Fsection%3Ddistribution" className="text-sky-400 hover:underline text-sm">
+          <Link href={DISTRIBUTION_LOGIN_NEXT} className="text-sky-400 hover:underline text-sm">
             Sign in →
           </Link>
         </CardContent>
@@ -103,7 +108,11 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
         <CardHeader>
           <CardTitle>Connections</CardTitle>
           <CardDescription>
-            Link your creator accounts. Configure OAuth apps under Integrations first.
+            Link your creator accounts. Configure OAuth apps under{" "}
+            <Link href="/settings?section=integrations" className="text-sky-400 hover:underline">
+              Integrations
+            </Link>{" "}
+            first.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,6 +120,7 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
             platforms={platforms}
             connections={connections}
             hasPro={hasPro}
+            onRefresh={refetch}
           />
         </CardContent>
       </Card>
@@ -121,7 +131,7 @@ export function DistributionSection({ oauthConnected, oauthError }: Props) {
           <CardDescription>Scheduled and in-progress publishes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <DistributionQueue jobs={publishJobs} hasPro={hasPro} />
+          <DistributionQueue jobs={publishJobs} hasPro={hasPro} onRefresh={refetch} />
         </CardContent>
       </Card>
     </div>

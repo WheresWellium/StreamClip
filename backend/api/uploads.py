@@ -69,7 +69,14 @@ async def get_download_url(
     # Keys constructed by UploadService.init_upload use uploads/{user_or_device_id}/...
     if key.startswith("uploads/"):
         expected_owner = scope.user_id or scope.device_id
-        if expected_owner and not key.startswith(f"uploads/{expected_owner}/"):
+        if not expected_owner:
+            raise StreamClipError(
+                "Upload keys require an authenticated user or device scope",
+                user_message="Sign in or provide a device id to access uploaded files.",
+                code="access_denied",
+                http_status=403,
+            )
+        if not key.startswith(f"uploads/{expected_owner}/"):
             raise StreamClipError(
                 f"Storage key does not belong to this account (scope={expected_owner!r})",
                 user_message="You don't have access to this file.",

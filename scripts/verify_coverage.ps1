@@ -19,9 +19,13 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-docker compose exec -T api pytest tests/ -m "not desktop" -q `
-    --cov=backend --cov=core --cov-report=term-missing:skip-covered
+$covOutput = & docker compose exec -T api pytest tests/ -m "not desktop" -q `
+    --cov=backend --cov=core --cov-report=term-missing:skip-covered 2>&1
+$covText = ($covOutput | Out-String)
+$covOutput | ForEach-Object { Write-Host $_ }
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($covText -match 'FAIL Required test coverage of 95') { exit 1 }
+if ($covText -match '\d+ failed') { exit 1 }
 
 Write-Host ""
 Write-Host "Coverage gate passed (fail_under from .coveragerc)." -ForegroundColor Green

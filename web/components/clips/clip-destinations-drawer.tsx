@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import type { ClipOut } from "@/lib/api/types";
 import { cn } from "@/lib/utils/format";
+import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
 
 type Tab = "publish" | "schedule" | "vault";
 
@@ -100,7 +101,7 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
     try {
       const result = await publishClipAction(clip.id, platform, title, description);
       if (result.status === "ok") {
-        toast("Publish queued", "Track progress in Distribution.");
+        toast("Publish queued", "Track progress in Settings → Distribution.");
         onClose();
       } else {
         toast("Publish failed", result.message ?? "Could not publish.");
@@ -127,7 +128,7 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
         description,
       );
       if (result.status === "ok") {
-        toast("Scheduled", "Your clip will publish at the chosen time.");
+        toast("Scheduled", "View the publish queue in Settings → Distribution.");
         onClose();
       } else {
         toast("Schedule failed", result.message ?? "Could not schedule.");
@@ -230,7 +231,7 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
                 <div className="space-y-3 text-sm text-muted-foreground">
                   <p>Connect YouTube or TikTok in Distribution before publishing.</p>
                   <Button asChild variant="outline" className="w-full">
-                    <Link href="/distribution">Open Distribution</Link>
+                    <Link href={DISTRIBUTION_SETTINGS_HREF}>Open publish queue</Link>
                   </Button>
                 </div>
               ) : (

@@ -305,6 +305,92 @@ def test_publish_platform_rejected(mock_db_cm):
     assert out["status"] == "failed"
 
 
+def test_publish_pending_releases_claim(mock_db_cm):
+    job = _job(platform="tiktok")
+    connection = SimpleNamespace(id="conn-1")
+    clip = SimpleNamespace(final_storage_key="clips/f.mp4")
+
+    repo = MagicMock()
+    repo.claim_for_publish = AsyncMock(return_value=job)
+    repo.release_claim = AsyncMock()
+    repo.get = AsyncMock(return_value=job)
+
+    storage = MagicMock()
+    storage.exists.return_value = True
+    storage.download.side_effect = lambda key, dest, on_progress=None: dest.write_bytes(b"x")
+
+    mock_db_cm.get = AsyncMock(
+        side_effect=lambda model, pk: clip if pk == "clip-1" else connection,
+    )
+
+    adapter = MagicMock(spec=TikTokAdapter)
+    adapter.upload_video_file = AsyncMock(
+        return_value=PublishResult(
+            status="pending",
+            message="Upload still processing on platform",
+            external_url=None,
+        ),
+    )
+
+    pt.publish_to_platform.push_request(retries=3)
+    try:
+        with patch.object(pt, "make_storage", return_value=storage), \
+             patch.object(pt, "PublishJobRepository", return_value=repo), \
+             patch.object(pt, "ensure_fresh_credentials", new=AsyncMock(return_value=SimpleNamespace(access_token="tok"))), \
+             patch.object(pt, "build_adapter", new=AsyncMock(return_value=adapter)), \
+             patch.object(pt, "publish_job_progress"), \
+             patch.object(pt, "notify_publish_event", new=AsyncMock()), \
+             patch.object(pt, "record_publish_outcome"):
+            out = pt.publish_to_platform.run("pj-1")
+    finally:
+        pt.publish_to_platform.pop_request()
+
+    assert out["status"] == "pending"
+    repo.release_claim.assert_awaited()
+
+
+def test_publish_pending_schedules_celery_retry(mock_db_cm):
+    from celery.exceptions import Retry
+
+    job = _job(platform="tiktok")
+    connection = SimpleNamespace(id="conn-1")
+    clip = SimpleNamespace(final_storage_key="clips/f.mp4")
+
+    repo = MagicMock()
+    repo.claim_for_publish = AsyncMock(return_value=job)
+    repo.release_claim = AsyncMock()
+    repo.get = AsyncMock(return_value=job)
+
+    storage = MagicMock()
+    storage.exists.return_value = True
+    storage.download.side_effect = lambda key, dest, on_progress=None: dest.write_bytes(b"x")
+
+    mock_db_cm.get = AsyncMock(
+        side_effect=lambda model, pk: clip if pk == "clip-1" else connection,
+    )
+
+    adapter = MagicMock(spec=TikTokAdapter)
+    adapter.upload_video_file = AsyncMock(
+        return_value=PublishResult(status="pending", message="poll budget expired", external_url=None),
+    )
+
+    pt.publish_to_platform.push_request(retries=0)
+    try:
+        with patch.object(pt, "make_storage", return_value=storage), \
+             patch.object(pt, "PublishJobRepository", return_value=repo), \
+             patch.object(pt, "ensure_fresh_credentials", new=AsyncMock(return_value=SimpleNamespace(access_token="tok"))), \
+             patch.object(pt, "build_adapter", new=AsyncMock(return_value=adapter)), \
+             patch.object(pt, "publish_job_progress"), \
+             patch.object(pt, "notify_publish_event", new=AsyncMock()), \
+             patch.object(pt, "record_publish_outcome"):
+            with pytest.raises(Retry):
+                pt.publish_to_platform.run("pj-1")
+    finally:
+        pt.publish_to_platform.pop_request()
+
+    repo.release_claim.assert_awaited()
+
+
 def test_publish_fails_without_connection(mock_db_cm):
     job = _job()
     repo = MagicMock()

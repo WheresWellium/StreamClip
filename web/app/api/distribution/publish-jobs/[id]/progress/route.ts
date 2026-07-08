@@ -18,10 +18,24 @@ export async function GET(
   const lastEventId = request.headers.get("Last-Event-Id");
   if (lastEventId) headers["Last-Event-Id"] = lastEventId;
 
-  const upstream = await fetch(
-    `${API_BASE}/api/distribution/publish-jobs/${id}/progress`,
-    { headers, cache: "no-store" },
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(
+      `${API_BASE}/api/distribution/publish-jobs/${id}/progress`,
+      { headers, cache: "no-store", signal: controller.signal },
+    );
+  } catch {
+    clearTimeout(timeout);
+    return new Response(
+      JSON.stringify({ message: "Publish progress stream unavailable" }),
+      { status: 502, headers: { "Content-Type": "application/json" } },
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!upstream.ok || !upstream.body) {
     return new Response(

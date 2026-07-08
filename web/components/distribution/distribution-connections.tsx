@@ -10,6 +10,10 @@ import {
 import { ProGateModal } from "@/components/distribution/pro-gate-modal";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import {
+  DISTRIBUTION_LOGIN_NEXT,
+  DISTRIBUTION_SETTINGS_HREF,
+} from "@/lib/distribution/routes";
 
 type Platform = {
   id: string;
@@ -28,12 +32,14 @@ type Props = {
   platforms: Platform[];
   connections: Connection[];
   hasPro: boolean;
+  onRefresh?: () => void | Promise<void>;
 };
 
 export function DistributionConnections({
   platforms,
   connections,
   hasPro,
+  onRefresh,
 }: Props) {
   const router = useRouter();
   const { push: toast } = useToastSafe();
@@ -56,9 +62,9 @@ export function DistributionConnections({
         return;
       }
       if (result.error === "login_required") {
-        router.push("/login?next=/distribution");
+        router.push(DISTRIBUTION_LOGIN_NEXT);
       } else if (result.error === "pro_required") {
-        router.push("/distribution?error=pro_required");
+        router.push(`${DISTRIBUTION_SETTINGS_HREF}&error=pro_required`);
       } else {
         toast("Connect failed", result.error ?? "Could not start OAuth.");
       }
@@ -72,7 +78,8 @@ export function DistributionConnections({
       const result = await disconnectPlatformAction(connectionId);
       if (result.status === "ok") {
         toast("Disconnected", "Platform connection removed.");
-        router.refresh();
+        if (onRefresh) await onRefresh();
+        else router.refresh();
       } else {
         toast("Disconnect failed", result.message ?? "Could not remove connection.");
       }

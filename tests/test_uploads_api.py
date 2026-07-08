@@ -52,3 +52,29 @@ async def test_get_download_url(uploads_client, monkeypatch):
 
     assert resp.status_code == 200
     assert resp.json()["url"] == "https://minio/get/key"
+
+
+@pytest.fixture
+def anonymous_uploads_client(app, client):
+    scope = RequestScope(user_id=None, device_id=None)
+    app.dependency_overrides[get_request_scope] = lambda: scope
+    yield client
+    app.dependency_overrides.pop(get_request_scope, None)
+
+
+@pytest.mark.asyncio
+async def test_get_download_url_upload_key_requires_scope(anonymous_uploads_client):
+    resp = await anonymous_uploads_client.get(
+        "/api/uploads/url",
+        params={"key": "uploads/someone/clip.mp4"},
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_download_url_upload_key_wrong_owner(uploads_client):
+    resp = await uploads_client.get(
+        "/api/uploads/url",
+        params={"key": "uploads/other-device/clip.mp4"},
+    )
+    assert resp.status_code == 403

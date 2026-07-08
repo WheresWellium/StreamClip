@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect } from "react";
 
 import {
@@ -17,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { OAuthAppConfig } from "@/lib/api/client";
+import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
 
 const PLATFORM_LABELS: Record<string, string> = {
   youtube_shorts: "YouTube Shorts",
@@ -37,7 +39,10 @@ function PlatformOAuthForm({ app, hasPro }: { app: OAuthAppConfig; hasPro: boole
 
   useEffect(() => {
     if (state.status === "ok") {
-      toast("OAuth app saved", `${PLATFORM_LABELS[app.platform] ?? app.platform} credentials updated.`);
+      toast(
+        "OAuth app saved",
+        `${PLATFORM_LABELS[app.platform] ?? app.platform} credentials updated. Connect your account next.`,
+      );
     }
   }, [state.status, app.platform, toast]);
 
@@ -86,6 +91,15 @@ function PlatformOAuthForm({ app, hasPro }: { app: OAuthAppConfig; hasPro: boole
       <Button type="submit" size="sm" disabled={!hasPro}>
         Save {label} app
       </Button>
+      {app.configured && (
+        <p className="text-xs text-muted-foreground">
+          Next:{" "}
+          <Link href={DISTRIBUTION_SETTINGS_HREF} className="text-sky-400 hover:underline">
+            connect your {label} account
+          </Link>
+          .
+        </p>
+      )}
     </form>
   );
 }

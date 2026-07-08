@@ -26,7 +26,14 @@ export function usePublishProgress(publishJobId: string | null) {
       try {
         const data = JSON.parse(e.data) as PublishProgressEvent;
         setEvent(data);
-        if (data.status === "done" || data.status === "error") {
+        const terminalStatuses = new Set([
+          "done",
+          "error",
+          "published",
+          "pending",
+          "failed",
+        ]);
+        if (terminalStatuses.has(data.status)) {
           setTerminal(true);
           source.close();
         }

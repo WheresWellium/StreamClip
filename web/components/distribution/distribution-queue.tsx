@@ -1,7 +1,6 @@
 "use client";
 
 import { ExternalLink, Loader2, Pencil, RotateCcw, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import {
@@ -39,6 +38,7 @@ const STATUS_STYLES: Record<string, string> = {
 type Props = {
   jobs: PublishJob[];
   hasPro: boolean;
+  onRefresh?: () => void | Promise<void>;
 };
 
 function toDatetimeLocal(iso: string): string {
@@ -61,6 +61,7 @@ type PublishJobRowProps = {
   onCancel: (jobId: string) => void;
   onEditTitleChange: (v: string) => void;
   onEditScheduledAtChange: (v: string) => void;
+  onRefresh?: () => void | Promise<void>;
 };
 
 function PublishJobRow({
@@ -77,15 +78,15 @@ function PublishJobRow({
   onCancel,
   onEditTitleChange,
   onEditScheduledAtChange,
+  onRefresh,
 }: PublishJobRowProps) {
   const { event: liveEvent, terminal } = usePublishProgress(
     job.status === "publishing" ? job.id : null,
   );
-  const router = useRouter();
 
   React.useEffect(() => {
-    if (terminal) router.refresh();
-  }, [terminal, router]);
+    if (terminal) void onRefresh?.();
+  }, [terminal, onRefresh]);
 
   const platformLabel = PLATFORM_LABELS[job.platform] ?? job.platform;
   const statusClass = STATUS_STYLES[job.status] ?? "text-muted-foreground";
@@ -274,8 +275,7 @@ function PublishJobRow({
   );
 }
 
-export function DistributionQueue({ jobs, hasPro }: Props) {
-  const router = useRouter();
+export function DistributionQueue({ jobs, hasPro, onRefresh }: Props) {
   const { push: toast } = useToastSafe();
   const [tab, setTab] = React.useState<Tab>("queue");
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -293,7 +293,7 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
       const result = await retryPublishJobAction(jobId);
       if (result.status === "ok") {
         toast("Retry queued", "Upload will restart shortly.");
-        router.refresh();
+        if (onRefresh) await onRefresh();
       } else {
         toast("Retry failed", result.message ?? "Could not retry.");
       }
@@ -308,7 +308,7 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
       const result = await cancelPublishJobAction(jobId);
       if (result.status === "ok") {
         toast("Cancelled", "Publish job removed from queue.");
-        router.refresh();
+        if (onRefresh) await onRefresh();
       } else {
         toast("Cancel failed", result.message ?? "Could not cancel.");
       }
@@ -336,7 +336,7 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
       if (result.status === "ok") {
         toast("Updated", "Publish job updated.");
         setEditingId(null);
-        router.refresh();
+        if (onRefresh) await onRefresh();
       } else {
         toast("Update failed", result.message ?? "Could not update.");
       }
@@ -403,6 +403,7 @@ export function DistributionQueue({ jobs, hasPro }: Props) {
               onCancel={(id) => void handleCancel(id)}
               onEditTitleChange={setEditTitle}
               onEditScheduledAtChange={setEditScheduledAt}
+              onRefresh={onRefresh}
             />
           ))}
         </ul>

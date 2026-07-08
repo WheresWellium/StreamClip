@@ -91,3 +91,56 @@ async def test_revoke_license_success_commits_and_logs():
     assert result["license_id"] == "lic-2"
     assert result["status"] == "revoked"
     assert "note" in result  # JWT-invalidation known-limitation notice
+
+
+@pytest.mark.asyncio
+async def test_revoke_license_downgrades_tier_when_no_other_active():
+    lic = SimpleNamespace(
+        status="issued",
+        license_key_hash="abcdef0123456789",
+        user_id="user-1",
+        id="lic-3",
+    )
+    user = SimpleNamespace(tier=UserTier.PRO, id="user-1")
+    db = SimpleNamespace(
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: None)),
+    )
+    with patch.object(admin_mod, "InstallLicenseRepository") as ILR, patch.object(
+        admin_mod, "UserRepository"
+    ) as UR:
+        repo = ILR.return_value
+        repo.get = AsyncMock(return_value=lic)
+        repo.revoke = AsyncMock()
+        UR.return_value.get = AsyncMock(return_value=user)
+        result = await admin_mod.revoke_license("lic-3", admin_id="admin1", db=db)
+    assert user.tier == UserTier.FREE
+    db.commit.assert_called_once()
+    assert result["status"] == "revoked"
+
+
+@pytest.mark.asyncio
+async def test_revoke_license_keeps_tier_when_other_active_license():
+    lic = SimpleNamespace(
+        status="issued",
+        license_key_hash="abcdef0123456789",
+        user_id="user-2",
+        id="lic-4",
+    )
+    user = SimpleNamespace(tier=UserTier.PRO, id="user-2")
+    db = SimpleNamespace(
+        commit=AsyncMock(),
+        execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: "other-lic")),
+    )
+    with patch.object(admin_mod, "InstallLicenseRepository") as ILR, patch.object(
+        admin_mod, "UserRepository"
+    ) as UR:
+        repo = ILR.return_value
+        repo.get = AsyncMock(return_value=lic)
+        repo.revoke = AsyncMock()
+        UR.return_value.get = AsyncMock(return_value=user)
+        result = await admin_mod.revoke_license("lic-4", admin_id="admin1", db=db)
+    assert user.tier == UserTier.PRO
+    UR.return_value.get.assert_not_called()
+    db.commit.assert_called_once()
+    assert result["status"] == "revoked"

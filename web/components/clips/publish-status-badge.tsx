@@ -4,6 +4,7 @@ import { Archive, CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils/format";
+import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
 
 export type ClipPublishStatus = {
   platform: string;
@@ -114,7 +115,7 @@ export function PublishStatusBadge({ statuses, showVaultChip, className }: Props
           return (
             <Link
               key={`${row.platform}-${row.publish_job_id}`}
-              href="/distribution"
+              href={DISTRIBUTION_SETTINGS_HREF}
               className="hover:opacity-90"
             >
               {chip}

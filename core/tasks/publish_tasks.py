@@ -8,6 +8,7 @@ from pathlib import Path
 
 import httpx
 import structlog
+from celery.exceptions import Retry
 
 from backend.db.models import Clip, PlatformConnection, PublishJob, VaultClip
 from backend.db.repositories import PublishJobRepository
@@ -256,7 +257,24 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
             }
 
     try:
-        return _safe_async(_do())
+        outcome = _safe_async(_do())
+        if outcome.get("status") == "pending":
+            retries_left = self.request.retries < (self.max_retries or 0)
+            log.info(
+                "publish_task_pending_retry",
+                publish_job_id=publish_job_id,
+                attempt=self.request.retries + 1,
+                will_retry=retries_left,
+            )
+            if retries_left:
+                _report(
+                    publish_job_id,
+                    "retrying",
+                    0.85,
+                    "Upload pending on platform — rechecking shortly.",
+                )
+                raise self.retry(countdown=120)
+        return outcome
     except RETRYABLE_PUBLISH_ERRORS as exc:
         # Transient infra failure: return the claim to pending so the Celery
         # retry can re-claim it, and let autoretry_for handle the backoff.
@@ -280,6 +298,8 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
             raise
 
         _mark_failed_terminal(publish_job_id, exc, started_at)
+        raise
+    except Retry:
         raise
     except Exception as exc:
         log.exception("publish_task_failed", publish_job_id=publish_job_id, error=str(exc))

@@ -42,9 +42,11 @@ async def test_create_job_with_upload_key_and_device():
 @pytest.mark.asyncio
 async def test_create_job_quota_exceeded():
     svc, _, cfg, _ = _svc()
-    cfg.rate_limit.enabled = True
     user = SimpleNamespace(
-        id="u1", tier=UserTier.FREE, jobs_used_this_month=9999,
+        id="u1",
+        tier=UserTier.FREE,
+        jobs_used_this_month=9999,
+        minutes_processed_this_month=0.0,
     )
     svc.users.get = AsyncMock(return_value=user)
     svc.jobs.create = AsyncMock()
@@ -59,16 +61,49 @@ async def test_create_job_quota_exceeded():
 @pytest.mark.asyncio
 async def test_create_job_target_clips_quota():
     svc, _, cfg, _ = _svc()
-    cfg.rate_limit.enabled = True
-    user = SimpleNamespace(id="u1", tier=UserTier.FREE, jobs_used_this_month=0)
+    user = SimpleNamespace(
+        id="u1",
+        tier=UserTier.FREE,
+        jobs_used_this_month=0,
+        minutes_processed_this_month=0.0,
+    )
     svc.users.get = AsyncMock(return_value=user)
     svc.jobs.create = AsyncMock()
     scope = RequestScope(user_id="u1", device_id=None)
     with patch("backend.services.job_service.get_tier_limits") as limits:
-        limits.return_value = SimpleNamespace(max_jobs_per_month=100, max_target_clips=3)
+        limits.return_value = SimpleNamespace(
+            max_jobs_per_month=100,
+            max_target_clips=3,
+            max_minutes_per_month=0,
+        )
         with pytest.raises(QuotaExceededError):
             await svc.create_job(
                 CreateJobRequest(source_url="https://x", target_clips=10),
+                scope,
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_job_minutes_quota_exceeded():
+    svc, _, cfg, _ = _svc()
+    user = SimpleNamespace(
+        id="u1",
+        tier=UserTier.FREE,
+        jobs_used_this_month=0,
+        minutes_processed_this_month=120.0,
+    )
+    svc.users.get = AsyncMock(return_value=user)
+    svc.jobs.create = AsyncMock()
+    scope = RequestScope(user_id="u1", device_id=None)
+    with patch("backend.services.job_service.get_tier_limits") as limits:
+        limits.return_value = SimpleNamespace(
+            max_jobs_per_month=100,
+            max_target_clips=10,
+            max_minutes_per_month=60,
+        )
+        with pytest.raises(QuotaExceededError, match="minutes"):
+            await svc.create_job(
+                CreateJobRequest(source_url="https://example.com/v.mp4"),
                 scope,
             )
 

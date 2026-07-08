@@ -4,7 +4,7 @@ import { Download, Loader2, RefreshCw, Send } from "lucide-react";
 import * as React from "react";
 import { useTransition } from "react";
 
-import { batchPublishClipsAction } from "@/lib/api/actions/distribution";
+import { batchPublishClipsAction, getDistributionContextAction } from "@/lib/api/actions/distribution";
 import { regenerateClipAction } from "@/lib/api/actions/jobs";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,30 @@ export function JobClipsToolbar({
   const { push: toast } = useToastSafe();
   const [pending, startTransition] = useTransition();
   const [platform, setPlatform] = React.useState("youtube_shorts");
+  const [connectedPlatforms, setConnectedPlatforms] = React.useState<
+    { id: string; label: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    if (!hasDistribution) {
+      setConnectedPlatforms([]);
+      return;
+    }
+    let cancelled = false;
+    void getDistributionContextAction().then((ctx) => {
+      if (cancelled) return;
+      const connected = ctx.platforms.filter((p) => p.enabled && p.connected);
+      setConnectedPlatforms(connected.map((p) => ({ id: p.id, label: p.label })));
+      if (connected[0]) setPlatform(connected[0].id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasDistribution]);
+
   const ready = jobStatus === "done" && clipCount > 0;
-  const canBatchPublish = ready && approvedClipCount > 0 && hasDistribution;
+  const canBatchPublish =
+    ready && approvedClipCount > 0 && hasDistribution && connectedPlatforms.length > 0;
 
   function handleBatchPublish() {
     startTransition(async () => {
@@ -69,8 +91,11 @@ export function JobClipsToolbar({
                 className="h-7 rounded-sm border border-frame/20 bg-input px-2 text-xs"
                 aria-label="Publish platform"
               >
-                <option value="youtube_shorts">YouTube Shorts</option>
-                <option value="tiktok">TikTok</option>
+                {connectedPlatforms.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
               </select>
               <Button
                 type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import { Calendar, Loader2, Send } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 
 import {
@@ -13,6 +14,7 @@ import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { HelpTip } from "@/components/ui/help-tip";
+import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
 import type { VaultClip } from "@/lib/api/client";
 import { cn } from "@/lib/utils/format";
 
@@ -180,9 +182,12 @@ export function VaultDestinationsDrawer({ clip, open, onClose }: Props) {
               </Button>
             </div>
           ) : connectedPlatforms.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Connect YouTube or TikTok in Distribution before publishing.
-            </p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>Connect YouTube or TikTok before publishing from Vault.</p>
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <Link href={DISTRIBUTION_SETTINGS_HREF}>Open publish queue</Link>
+              </Button>
+            </div>
           ) : (
             <>
               <div className="space-y-2">

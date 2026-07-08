@@ -54,13 +54,18 @@ if (-not $SkipTests) {
     Write-Host ""
     if ($WithCoverage) {
         Write-Host "Running server-profile tests WITH coverage gate (MASTER_TODO 3.10)..." -ForegroundColor Cyan
-        docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" `
-            --cov=backend --cov=core --cov-report=term-missing:skip-covered
+        $covOutput = & docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" `
+            --cov=backend --cov=core --cov-report=term-missing:skip-covered 2>&1
+        $covText = ($covOutput | Out-String)
+        $covOutput | ForEach-Object { Write-Host $_ }
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($covText -match 'FAIL Required test coverage of 95') { exit 1 }
+        if ($covText -match '\d+ failed') { exit 1 }
     } else {
         Write-Host "Running server-profile unit tests in API container (desktop tests excluded, --no-cov)..." -ForegroundColor Cyan
         docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" --no-cov
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 if ($RunE2E) {

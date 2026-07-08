@@ -123,6 +123,22 @@ async def test_edit_unknown_job_404(client, publish_env):
     assert resp.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_edit_conflict_when_job_started_uploading(client, publish_env, monkeypatch):
+    FakePublishRepo.row.status = "scheduled"
+
+    async def race_update(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(FakePublishRepo, "update_editable", race_update)
+    resp = await client.patch(
+        "/api/distribution/publish-jobs/pj1",
+        json={"title": "Too late"},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "invalid_status"
+
+
 # ─── Vault rename ────────────────────────────────────────────────────────────
 
 def _vault_row() -> SimpleNamespace:

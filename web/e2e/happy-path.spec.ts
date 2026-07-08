@@ -85,4 +85,28 @@ test.describe("Jet Stream happy path", () => {
     const body = await list.json();
     expect(Array.isArray(body.jobs)).toBeTruthy();
   });
+
+  test("distribution publish validates without auth", async ({ request }) => {
+    const res = await request.post("http://localhost:8000/api/distribution/publish", {
+      data: { clip_id: "clip-1", platform: "youtube_shorts", title: "E2E" },
+    });
+    expect([401, 403]).toContain(res.status());
+  });
+
+  test("distribution schedule validates without auth", async ({ request }) => {
+    const res = await request.post("http://localhost:8000/api/distribution/schedule", {
+      data: {
+        clip_id: "clip-1",
+        platform: "youtube_shorts",
+        scheduled_at: "2030-06-01T12:00:00Z",
+        title: "E2E",
+      },
+    });
+    expect([401, 403]).toContain(res.status());
+  });
+
+  test("distribution platforms requires auth", async ({ request }) => {
+    const res = await request.get("http://localhost:8000/api/distribution/platforms");
+    expect([401, 403]).toContain(res.status());
+  });
 });

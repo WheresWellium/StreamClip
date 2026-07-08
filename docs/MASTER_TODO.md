@@ -77,12 +77,12 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 |---|------|-----|--------|
 | 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` | ✅ | — |
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` | ✅ | — |
-| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; extend to health → create job → list → batch publish validation (`BETA_TESTER_PLAN` §1, `BETA_GO_LIVE` §2) | 🟡 | M |
+| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; health → create job → list → batch publish + distribution auth validation (`web/e2e/happy-path.spec.ts`) | 🟡 | M |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` stubbed in test | ✅ | — |
-| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.01%** (2026-07-07) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
+| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.40%** (2026-07-07) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
 | 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3. **Remaining:** Playwright e2e (§3.3) | 🟡 | S |
-| 3.7 | **110% hot-path gaps** (2026-07-07 Docker `-m "not desktop"`): `pipeline_tasks.py` ~24 lines (96%), `sse.py` ~21 lines (90%), `job_service.py` ~1 line (99%), distribution OAuth helpers — branch cov not enabled yet | 🟡 | M |
-| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — required before Phase 0 invites (`BETA_GO_LIVE` §2, `BETA_TESTER_PLAN` §1); use `-WithCoverage` for pre-invite gate | 🟡 | S |
+| 3.7 | **110% hot-path gaps** — see checklist below; branch measurement via `scripts/verify_branch_coverage.ps1` (Phase 0 informational) | 🟡 | M |
+| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — runbook: `docs/CLEAN_VM_VERIFY.md`; required before Phase 0 invites | 🟡 | S |
 | 3.9 | Desktop verify scripts in CI or release checklist: `verify_desktop_db.ps1`, `verify_inprocess.ps1`, `verify_desktop_storage.ps1`, `verify_desktop_ffmpeg.ps1` | 🟡 | S |
 | 3.10 | **Coverage measurement (canonical)** — see subsection below | 🟡 | S |
 | 3.11 | **CI coverage job** — ✅ `.github/workflows/test.yml` runs Docker pytest + `fail_under=95` on PR/`main` (fails until §3.5 green) | 🟡 | S |
@@ -98,7 +98,31 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | E2E smoke | Playwright `E2E_RUN=1` | Optional (`verify_stack.ps1 -RunE2E`) | Required |
 | Stack verify | `verify_stack.ps1` | Required (tests default `--no-cov`; does **not** prove coverage %) | Required + `-WithCoverage` before invites |
 
-**Current measured line coverage (2026-07-07):** **95.01%** — **gate GREEN** (§3.5, `fail_under=95` reached; confirmed via `pytest` exit code and the "Required test coverage of 95.0% reached" message). Re-verify with `verify_coverage.ps1` before citing in release comms.
+**Current measured line coverage (2026-07-07):** **95.40%** (400 miss / 8699) — **gate GREEN**. Re-verify with `verify_coverage.ps1`.
+
+**110% progress (estimated composite ~91/110):**
+
+| Pillar | Target | Current | Remaining |
+|--------|--------|---------|-----------|
+| Line | 100% (Phase 1+) | **95.40%** | 400 stmts |
+| Hot-path branches | ≥85% | **~87%** on §3.7 modules via `verify_branch_coverage.ps1` | Phase 1: enforce `-FailUnderBranch 85` |
+| E2E smoke | §3.3 | health/jobs/create/list + distribution auth checks | OAuth E2E deferred |
+| Clean VM | §3.8 | `docs/CLEAN_VM_VERIFY.md` ready | **User must run on fresh VM** |
+
+**§3.7 hot-path line checklist (404 total miss; priority order):**
+
+| Module | Cover | Miss | Status |
+|--------|-------|------|--------|
+| `core/tasks/pipeline_tasks.py` | 99% | 3 | 🟡 duration mismatch + fail-path webhook |
+| `backend/services/sse.py` | 96%+ | ≤9 | 🟢 most paths covered (`test_coverage_hotpath_finish.py`) |
+| `core/tasks/publish_tasks.py` | 98% | 4 | 🟢 |
+| `backend/api/distribution.py` | 93%+ | ≤13 | 🟡 OAuth/edit edges |
+| `backend/db/repositories.py` | 95% | 31 | 🟡 cold query paths |
+| `core/inprocess_worker.py` | 83% | 32 | 🟡 desktop — partial waiver in Docker scope |
+
+**New test files (2026-07-07):** `test_coverage_hotpath_finish.py`, `test_coverage_tier_b_api.py`
+
+**Scripts:** `verify_coverage.ps1` (line gate, parses pytest cov fail text), `verify_branch_coverage.ps1` (branch measure), `verify_stack.ps1 -WithCoverage` (aligned with line gate)
 
 **Phase 0 invite rule:** `verify_stack.ps1` green **and** `verify_coverage.ps1` green (≥95% line). Stack-only verify is for local dev smoke, not beta clearance.
 

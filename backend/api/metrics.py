@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import structlog
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
@@ -20,6 +21,8 @@ from core.pipeline_metrics import (
     VAULT_SAVES_TOTAL,
     WEBHOOK_DELIVERIES,
 )
+
+log = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["observability"])
 REQUESTS_TOTAL = Counter(
@@ -73,6 +76,14 @@ async def metrics(request: Request, db: AsyncSession = Depends(get_db)) -> Respo
         # No key configured outside dev: restrict to loopback only.
         client_host = getattr(request.client, "host", "") or ""
         if client_host not in ("127.0.0.1", "::1", "localhost"):
+            log.warning(
+                "metrics_loopback_only",
+                client_host=client_host,
+                hint=(
+                    "Prometheus in Docker cannot scrape via loopback. "
+                    "Set STREAMCLIP_OBSERVABILITY__METRICS_API_KEY for bridge-network access."
+                ),
+            )
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content={"code": "forbidden", "message": "Metrics endpoint is restricted. Set STREAMCLIP_OBSERVABILITY__METRICS_API_KEY to enable external access."},

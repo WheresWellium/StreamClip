@@ -218,7 +218,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 **Canonical plan:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) — Phase 0 (Docker
 technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`).
 
-**Phase 0 status (2026-07-07):** **Prepared, not cleared for invites.** Kit/docs/scripts ready; **§3.5 coverage gate is now GREEN** (95.01% last full Docker run, confirmed via `verify_coverage.ps1`). Still blocked on **§3.8 clean-VM `verify_stack.ps1`** (not yet run on a clean Windows 11 VM) before first external invite. Full **110%** row (§3.10) required before Phase 1.
+**Phase 0 status (2026-07-07):** **Prepared, not cleared for invites.** Kit/docs/scripts ready; **§3.5 coverage gate is GREEN** (95.40% last full Docker run, `verify_coverage.ps1`). Still blocked on **§3.8 clean-VM `verify_stack.ps1`** (not yet run on a clean Windows 11 VM) before first external invite. Full **110%** row (§3.10) required before Phase 1.
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
@@ -230,7 +230,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | 8.6 | ~~Align commerce docs/code to one-time purchase~~ ✅ `COMMERCIAL.md` now states one-time purchase / perpetual entitlement, activation limits, offline grace; code already matched (`entitlement_days: 0` → perpetual). **Remaining:** confirm LS product config (dashboard, not repo) | 🟢 | S |
 | 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — keep current for TikTok inbox-only, no Instagram, CPU SLAs, SmartScreen unsigned desktop | 🟢 | S |
 | 8.8 | **GHCR image build + publish workflow** — ✅ `.github/workflows/images.yml` (api/worker/web on `v*` tags or manual dispatch). **Remaining:** repo owner must match `ghcr.io/streamclip/*` in prod compose (or set image prefix var) + first tagged release to publish | 🟡 | S |
-| 8.9 | **Beta kit prep** — private repo link or encrypted zip with quickstart, `.env.example`, `verify_stack.ps1`, known issues, T0 flows (`BETA_GO_LIVE` §5) | 🟡 | S |
+| 8.9 | **Beta kit prep** — `scripts/prepare_beta_kit.ps1` → `dist/streamclip-beta-kit-*.zip` (quickstart, env examples, verify scripts, compose) | 🟢 | S |
 | 8.10 | ~~Flip `docs/BETA_TESTER_PLAN.md` Draft → Active~~ ✅ plan doc **Active** 2026-07-07 (≠ beta invites open — see §3.5) | ✅ | S |
 | 8.11 | **Feedback channel** — Discord `#beta-bugs` or GitHub Discussions + pinned template (job id, GPU, logs, steps) | 🟡 | S |
 | 8.12 | **On-call rotation** — named for first 72h post-invite (P0 = pipeline stuck, auth broken, data loss) | 🟡 | S |

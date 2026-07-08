@@ -11,14 +11,14 @@
 
 | Gate | Target | Verify | Status |
 |------|--------|--------|--------|
-| Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | `.\scripts\verify_coverage.ps1` or `verify_stack.ps1 -WithCoverage` | 🟢 95.01% — gate GREEN (§3.5, 2026-07-07) |
-| Hot-path branches | ≥85% hot paths (Phase 1+) | §3.7; enable `branch = True` when ready | 🟡 not measured yet |
+| Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | `.\scripts\verify_coverage.ps1` or `verify_stack.ps1 -WithCoverage` | 🟢 95.40% — gate GREEN (§3.5, 2026-07-07) |
+| Hot-path branches | ≥85% hot paths (Phase 1+) | `scripts/verify_branch_coverage.ps1` | 🟡 ~87% measured (informational Phase 0) |
 | Playwright smoke | `E2E_RUN=1` | `.\scripts\verify_stack.ps1 -RunE2E` | ✅ optional |
 | Stack verify | Windows + Docker | `.\scripts\verify_stack.ps1` | ✅ required |
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 Docker beta:** **Prepared, not open for invites** (2026-07-07). **§3.5 is now GREEN** (95.01%, `verify_coverage.ps1` confirmed) but **§3.8 clean-VM `verify_stack.ps1` has not been run** — that is the remaining blocker before first cohort. Full 110% required before Phase 1 (MASTER §8.1).
+**Phase 0 Docker beta:** **Prepared, not open for invites** (2026-07-07). **§3.5 is GREEN** (95.40%, `verify_coverage.ps1`). **§3.8 clean-VM `verify_stack.ps1` has not been run** — that is the remaining blocker before first cohort. Ship kit via `scripts/prepare_beta_kit.ps1` or private repo access. Full 110% required before Phase 1 (MASTER §8.1).
 
 ---
 
@@ -53,13 +53,21 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 ## 5. Phase 0 kit contents
 
-See MASTER §8.9. Ship via private link or encrypted zip:
+See MASTER §8.9. Ship via private link, encrypted zip, or:
+
+```powershell
+.\scripts\prepare_beta_kit.ps1
+# → dist/streamclip-beta-kit-<commit>-<timestamp>.zip
+```
+
+Kit includes:
 
 1. `docs/BETA_TESTER_QUICKSTART.md`
-2. `.env.example` (MinIO + Ollama + distribution BYO OAuth)
-3. `scripts/verify_stack.ps1`
+2. `.env.example` and `.env.production.example` (MinIO + Ollama + distribution BYO OAuth)
+3. `scripts/verify_stack.ps1` and `scripts/verify_coverage.ps1`
 4. `docs/BETA_TESTER_PLAN.md` §4.3 flows (T0-1 … T0-6)
 5. `docs/BETA_KNOWN_ISSUES.md` + performance tolerance (+25% on `docs/PERFORMANCE.md` budgets)
+6. `docker-compose.yml` / `docker-compose.prod.yml` for dev and GHCR prod paths
 
 **Recommended run:** `docker compose up -d` on Windows 11, localhost UI at `:3000`, API at `:8000`.
 

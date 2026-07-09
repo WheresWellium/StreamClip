@@ -109,6 +109,18 @@ Replace:
 
 H+0 checklist: [BETA_GO_LIVE.md §7](BETA_GO_LIVE.md#7-launch-day-hour-0).
 
+### Follow-up: BETA TEST INFO (post-invite)
+
+After the initial invite, send a doc-link follow-up (no license keys in body):
+
+```powershell
+# cohort.csv: email,name (gitignored)
+python scripts/send_beta_test_info_emails.py --csv cohort.csv          # prepare dist/phase0-beta-test-info/
+python scripts/send_beta_test_info_emails.py --csv cohort.csv --send   # requires SMTP_* on api/worker
+```
+
+Subject defaults to **BETA TEST INFO**. Requires `SMTP_HOST` + auth (see §5 SMTP).
+
 ---
 
 ## 6. After first replies

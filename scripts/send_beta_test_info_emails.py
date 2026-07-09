@@ -1,22 +1,27 @@
 """Send Phase 0 beta test info emails to the cohort (subject: BETA TEST INFO).
 
+The repo is **private** (Option B, 2026-07-09), so the beta `.zip` built by
+``scripts/build_beta_zip.py`` is the *only* way testers get StreamClip — it is
+attached directly to this email. No GitHub link, no phantom "repo link in
+your invite" promise: the attachment IS the invite.
+
 Uses **existing** license keys from a keys CSV (from ``issue_beta_keys.py`` output).
 Does **not** issue or regenerate keys — pass the same ``keys.csv`` / ``tmp/beta-keys.csv``
 from the original cohort issuance (e.g. ``beta-phase0-regen-001..005``).
 
-Email body mirrors the henna getting-started flow (index + quickstart):
-  Get StreamClip → Quickstart → paste license key → run locally.
-
 Prepares gitignored bodies under dist/phase0-beta-test-info/emails/ and optionally
-sends via SMTP (same env vars as core.notify.email).
+sends via SMTP (same env vars as core.notify.email) with the zip attached.
 
 Usage (repo root):
+
+  # Build the attachment first (once per release):
+  python scripts/build_beta_zip.py
 
   # Prepare bodies (requires existing keys CSV — never re-issue keys):
   python scripts/send_beta_test_info_emails.py --csv cohort.csv \\
       --keys-csv dist/phase0-invite-pack/keys.csv
 
-  # Send when SMTP_* env vars are set:
+  # Send when SMTP_* env vars are set (attaches dist/StreamClip-beta.zip):
   python scripts/send_beta_test_info_emails.py --csv cohort.csv \\
       --keys-csv tmp/beta-keys.csv --send
 
@@ -43,21 +48,25 @@ from core.notify.email import send_email, smtp_settings_from_env  # noqa: E402
 HENNA_BASE = "https://streamclip-henna.vercel.app"
 DEFAULT_SUBJECT = "BETA TEST INFO"
 DEFAULT_OUT_DIR = REPO_ROOT / "dist" / "phase0-beta-test-info"
+DEFAULT_ZIP_PATH = REPO_ROOT / "dist" / "StreamClip-beta.zip"
 DEFAULT_KEYS_CANDIDATES = (
     REPO_ROOT / "dist" / "phase0-invite-pack" / "keys.csv",
     REPO_ROOT / "tmp" / "beta-keys.csv",
 )
 
-# Aligned with docs/index.md tip + prepare_invite_pack.ps1 + BETA_TESTER_QUICKSTART short version.
+# Aligned with docs/index.md tip + BETA_TESTER_QUICKSTART short version.
+# The .zip is attached to this email — no GitHub link, no "check your invite
+# for a link" circularity. Quickstart/plan/known-issues stay on the public
+# henna docs site since those pages carry no source code.
 BODY_TEMPLATE = """\
 Hi {name},
 
 You're in — welcome to the StreamClip Phase 0 beta.
 
-Getting started (same flow as the docs site — no GitHub account needed):
+Getting started (no GitHub account needed):
 
-1. Get StreamClip — pick Windows or Mac:
-   {henna_base}/BETA_DOWNLOAD/
+1. The StreamClip beta files are attached to this email as a .zip.
+   Extract it to any folder (e.g. C:\\StreamClip or ~/StreamClip).
 
 2. Quickstart — install to your first clip (~15 min):
    {henna_base}/BETA_TESTER_QUICKSTART/
@@ -69,7 +78,7 @@ This key gives you full access to every feature. No feature gates.
 
 The short path:
 - Install Docker Desktop (free) and keep it running
-- Extract the beta .zip from your invite (or use your private repo link)
+- Extract the attached .zip to any folder
 - Run the one start command from the quickstart
 - Open http://localhost:3000
 - Paste a public video link and wait for clips
@@ -267,6 +276,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Output directory for prepared bodies",
     )
     parser.add_argument(
+        "--zip-path",
+        type=Path,
+        default=DEFAULT_ZIP_PATH,
+        help=(
+            "Beta .zip to attach (build with scripts/build_beta_zip.py). "
+            f"Default: {DEFAULT_ZIP_PATH.relative_to(REPO_ROOT)}"
+        ),
+    )
+    parser.add_argument(
         "--send",
         action="store_true",
         help="Send via SMTP (requires SMTP_HOST and related env vars)",
@@ -328,6 +346,13 @@ def main(argv: list[str] | None = None) -> int:
         print("Pass --send to deliver via SMTP.", file=sys.stderr)
         return 0
 
+    if not args.zip_path.is_file():
+        print(f"Beta zip not found: {args.zip_path}", file=sys.stderr)
+        print("Build it first: python scripts/build_beta_zip.py", file=sys.stderr)
+        return 1
+    zip_mb = args.zip_path.stat().st_size / (1024 * 1024)
+    print(f"Attaching {args.zip_path} ({zip_mb:.1f} MB) to every email", file=sys.stderr)
+
     smtp = smtp_settings_from_env()
     if not smtp.configured:
         print("SMTP not configured (set SMTP_HOST, etc.). Bodies saved only.", file=sys.stderr)
@@ -337,7 +362,13 @@ def main(argv: list[str] | None = None) -> int:
     failed: list[str] = []
     for member, _path in written:
         body = _render_body(member, henna_base=henna_base)
-        ok = send_email(to=member.email, subject=subject, body=body, settings=smtp)
+        ok = send_email(
+            to=member.email,
+            subject=subject,
+            body=body,
+            settings=smtp,
+            attachments=[args.zip_path],
+        )
         if ok:
             sent += 1
             print(f"SENT {member.email}", file=sys.stderr)

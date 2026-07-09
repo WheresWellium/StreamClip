@@ -47,22 +47,44 @@ def test_build_cohort_fails_when_key_missing(tmp_path: Path) -> None:
         sender._build_cohort(cohort, keys)
 
 
-def test_render_body_includes_henna_flow_and_license_key() -> None:
+def test_render_body_includes_attached_zip_flow_and_license_key() -> None:
     member = sender.CohortMember(
         email="t@example.com",
         name="Tester",
         license_key="SCPRO-AAAA-BBBB-CCCC-DDDD",
     )
     body = sender._render_body(member, henna_base="https://streamclip-henna.vercel.app")
-    assert "BETA_DOWNLOAD/" in body
+    assert "attached" in body
     assert "BETA_TESTER_QUICKSTART/" in body
     assert "SCPRO-AAAA-BBBB-CCCC-DDDD" in body
     assert "http://localhost:3000" in body
     assert "Docker Desktop" in body
+    # No GitHub links — repo stays private (Option B, 2026-07-09).
+    assert "github.com" not in body.lower()
 
 
 def test_main_exits_when_keys_csv_missing(tmp_path: Path) -> None:
     cohort = tmp_path / "cohort.csv"
     cohort.write_text("email,name\nt@example.com,T\n", encoding="utf-8")
     code = sender.main(["--csv", str(cohort), "--keys-csv", str(tmp_path / "missing.csv")])
+    assert code == 1
+
+
+def test_main_exits_when_send_requested_but_zip_missing(tmp_path: Path) -> None:
+    cohort = tmp_path / "cohort.csv"
+    cohort.write_text("email,name\nt@example.com,T\n", encoding="utf-8")
+    keys = tmp_path / "keys.csv"
+    keys.write_text(
+        "email,license_key,order_id,tier\nt@example.com,SCPRO-AAAA-BBBB-CCCC-DDDD,order-1,admin\n",
+        encoding="utf-8",
+    )
+    code = sender.main(
+        [
+            "--csv", str(cohort),
+            "--keys-csv", str(keys),
+            "--out-dir", str(tmp_path / "out"),
+            "--zip-path", str(tmp_path / "nonexistent.zip"),
+            "--send",
+        ],
+    )
     assert code == 1

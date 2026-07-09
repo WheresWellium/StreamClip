@@ -1,0 +1,72 @@
+# Download static ffmpeg + ffprobe Windows binaries for desktop sidecar bundling.
+# Places ffmpeg.exe and ffprobe.exe in bin/ffmpeg/ (required by PyInstaller spec).
+#
+# Source: BtbN/FFmpeg-Builds (GPL static build, no external DLL dependencies).
+# Run once before scripts/build_sidecar.ps1 (or scripts/build_desktop_installer.ps1).
+#
+# Usage:
+#   .\scripts\download_ffmpeg_windows.ps1
+#   .\scripts\download_ffmpeg_windows.ps1 -Force   # re-download even if binaries exist
+param(
+    [switch]$Force
+)
+
+$ErrorActionPreference = "Stop"
+$root = Split-Path -Parent $PSScriptRoot
+$dest = Join-Path $root "bin\ffmpeg"
+
+$ffmpegExe  = Join-Path $dest "ffmpeg.exe"
+$ffprobeExe = Join-Path $dest "ffprobe.exe"
+
+if (-not $Force -and (Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe)) {
+    Write-Host "ffmpeg binaries already present in bin\ffmpeg\ (use -Force to re-download)." -ForegroundColor Green
+    exit 0
+}
+
+$zipUrl  = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+$zipPath = Join-Path $env:TEMP "ffmpeg-win64.zip"
+$extractDir = Join-Path $env:TEMP "ffmpeg-win64-extract"
+
+Write-Host "Downloading ffmpeg (GPL static build for Windows x64)..." -ForegroundColor Cyan
+Write-Host "  URL: $zipUrl"
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$progressPreferencePrev = $ProgressPreference
+$ProgressPreference = "SilentlyContinue"   # dramatically speeds up Invoke-WebRequest
+try {
+    Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+} finally {
+    $ProgressPreference = $progressPreferencePrev
+}
+
+Write-Host "Extracting..."
+if (Test-Path $extractDir) { Remove-Item -Recurse -Force $extractDir }
+Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+# BtbN zip layout: ffmpeg-master-latest-win64-gpl/bin/{ffmpeg,ffprobe,ffplay}.exe
+$binDir = Get-ChildItem $extractDir -Directory | Select-Object -First 1
+if (-not $binDir) {
+    Write-Host "Unexpected zip layout — no top-level directory found." -ForegroundColor Red
+    exit 1
+}
+$srcBin = Join-Path $binDir.FullName "bin"
+
+if (-not (Test-Path (Join-Path $srcBin "ffmpeg.exe"))) {
+    Write-Host "Unexpected zip layout — bin\ffmpeg.exe not found under $($binDir.FullName)." -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
+
+Copy-Item (Join-Path $srcBin "ffmpeg.exe")  $ffmpegExe  -Force
+Copy-Item (Join-Path $srcBin "ffprobe.exe") $ffprobeExe -Force
+
+# Clean up temp files
+Remove-Item -Recurse -Force $extractDir -ErrorAction SilentlyContinue
+Remove-Item -Force $zipPath -ErrorAction SilentlyContinue
+
+$ffmpegVer = & $ffmpegExe -version 2>&1 | Select-Object -First 1
+Write-Host ""
+Write-Host "ffmpeg ready in bin\ffmpeg\" -ForegroundColor Green
+Write-Host "  $ffmpegVer"
+Write-Host "  $(& $ffprobeExe -version 2>&1 | Select-Object -First 1)"

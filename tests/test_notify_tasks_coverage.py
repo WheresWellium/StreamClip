@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from core.notify import ops_webhook
 from core.notify.email import SMTPSettings, bug_report_recipient, send_email, smtp_settings_from_env
 from core.tasks import notify_tasks as nt
 
@@ -286,8 +287,8 @@ def test_bug_report_email_status_skipped_no_recipient(monkeypatch):
 
 
 def test_post_ops_webhook_success(monkeypatch):
-    monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://n8n.test/webhook/ops")
-    from core.notify import n8n_ops
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://hooks.test/webhook/ops")
+    from core.notify import ops_webhook
 
     class FakeResp:
         status = 200
@@ -299,7 +300,7 @@ def test_post_ops_webhook_success(monkeypatch):
             return False
 
     with patch("urllib.request.urlopen", return_value=FakeResp()):
-        ok = n8n_ops.post_ops_webhook({"event": "beta_feedback", "message": "hi"})
+        ok = ops_webhook.post_ops_webhook({"event": "beta_feedback", "message": "hi"})
     assert ok is True
 
 
@@ -324,6 +325,96 @@ def test_send_ops_webhook_task_posts_payload():
     assert out["status"] == "sent"
     post.assert_called_once()
     assert post.call_args[0][0]["event"] == "beta_feedback"
+
+
+def test_send_job_failed_ops_alert_posts_payload():
+    with patch.object(nt, "post_ops_webhook", return_value=True) as post:
+        out = nt.send_job_failed_ops_alert("job-1", done_count=2, error_count=1)
+    assert out["status"] == "sent"
+    assert out["event"] == "job_failed"
+    post.assert_called_once()
+    payload = post.call_args[0][0]
+    assert payload["job_id"] == "job-1"
+    assert payload["error_count"] == 1
+
+
+def test_ops_webhook_reads_legacy_n8n_env(monkeypatch):
+    monkeypatch.delenv("OPS_WEBHOOK_URL", raising=False)
+    monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://legacy.test/hook")
+    from core.notify import ops_webhook
+
+    assert ops_webhook.ops_webhook_url() == "https://legacy.test/hook"
+
+
+def test_ops_webhook_status_queued_when_configured(monkeypatch):
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://hooks.test/webhook/ops")
+    from core.notify import ops_webhook
+
+    assert ops_webhook.ops_webhook_status() == "queued"
+
+
+def test_post_ops_webhook_skipped_when_unconfigured(monkeypatch):
+    monkeypatch.delenv("OPS_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("N8N_OPS_WEBHOOK_URL", raising=False)
+    from core.notify import ops_webhook
+
+    assert ops_webhook.post_ops_webhook({"event": "bug_report"}) is False
+
+
+def test_post_ops_webhook_bad_status(monkeypatch):
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://hooks.test/webhook/ops")
+    from core.notify import ops_webhook
+
+    class FakeResp:
+        status = 503
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    with patch("urllib.request.urlopen", return_value=FakeResp()), patch(
+        "core.notify.ops_webhook.time.sleep",
+    ):
+        ok = ops_webhook.post_ops_webhook({"event": "bug_report"})
+    assert ok is False
+
+
+def test_post_ops_webhook_network_error(monkeypatch):
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://hooks.test/webhook/ops")
+    from core.notify import ops_webhook
+    import urllib.error
+
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=urllib.error.URLError("offline"),
+    ), patch("core.notify.ops_webhook.time.sleep"):
+        ok = ops_webhook.post_ops_webhook({"event": "bug_report"}, max_retries=2)
+    assert ok is False
+
+
+def test_ops_webhook_url_prefers_primary_over_legacy(monkeypatch):
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://primary.test/hook")
+    monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://legacy.test/hook")
+    assert ops_webhook.ops_webhook_url() == "https://primary.test/hook"
+
+
+def test_ops_webhook_status_skipped_when_unconfigured(monkeypatch):
+    monkeypatch.delenv("OPS_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("N8N_OPS_WEBHOOK_URL", raising=False)
+    assert ops_webhook.ops_webhook_status() == "skipped_unconfigured"
+
+
+def test_post_ops_webhook_timeout_error(monkeypatch):
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://hooks.test/webhook/ops")
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=TimeoutError("slow"),
+    ), patch("core.notify.ops_webhook.time.sleep") as sleep:
+        ok = ops_webhook.post_ops_webhook({"event": "job_failed"}, max_retries=2)
+    assert ok is False
+    assert sleep.call_count == 2
 
 
 def test_send_email_skips_empty_recipient():

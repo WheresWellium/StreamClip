@@ -24,7 +24,9 @@ STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY=<Fernet key>
 STREAMCLIP_DISTRIBUTION__WEB_ORIGIN=https://your-app.example.com
 ```
 
-`docker-compose.yml` (local dev) already sets a hardcoded DEV-ONLY key + `WEB_ORIGIN=http://localhost:3000`
+`docker-compose.yml` reads `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` and
+`STREAMCLIP_DISTRIBUTION__WEB_ORIGIN` from `.env` (see `.env.example`). Generate a
+local Fernet key before starting the stack; never commit a real key.
 on `api`/`worker`/`gpu-worker` so OAuth connections work out of the box locally — never reuse that key
 in production; generate a fresh one per the command above.
 
@@ -70,10 +72,15 @@ celery -A core.celery_app beat --loglevel=info
 
 Beat schedule entry: `process_due_scheduled_jobs` every 60 seconds (see `core/celery_app.py`).
 
-### Verify worker health
+**Docker Compose:** the `beat` service in `docker-compose.yml` runs the command above. Confirm with `docker compose ps` (beat Up) or `docker compose logs beat --tail 40`.
 
+**Desktop / in-process:** there is no separate Beat container. With `queue.inprocess_beat`, an internal loop polls due posts every 60s **only while the app is running** (overdue jobs catch up on next launch). See [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md).
+
+### Verify worker / Beat health
+
+- Docker: `docker compose ps` — `worker` and `beat` Up
 - `GET /metrics` — check `streamclip_celery_tasks_in_progress`
-- Distribution → Queue tab — pending jobs should move to publishing within seconds
+- Distribution → Queue tab — scheduled jobs should move to pending/publishing within ~60s of `scheduled_at`
 - Logs: `publish_completed`, `publish_task_failed`, `publish_webhook_sent`
 
 ## OAuth setup
@@ -90,6 +97,41 @@ Beat schedule entry: `process_due_scheduled_jobs` every 60 seconds (see `core/ce
 ### Cloud (managed)
 
 Set client credentials via environment / secrets manager. Users connect without BYO wizard.
+
+### OAuth redirect URI checklist
+
+`STREAMCLIP_DISTRIBUTION__WEB_ORIGIN` must equal the browser origin users hit (scheme + host + port, **no** trailing slash). Redirects are built in `core/distribution/credentials.py` as:
+
+```text
+{WEB_ORIGIN}/api/distribution/oauth/{platform}/callback
+```
+
+Platform ids are **`youtube_shorts`** and **`tiktok`** (not `youtube`).
+
+**Copy-paste — local Docker (default compose):**
+
+| Console field | Exact value |
+|---------------|-------------|
+| `WEB_ORIGIN` | `http://localhost:3000` |
+| Google → Authorized redirect URI | `http://localhost:3000/api/distribution/oauth/youtube_shorts/callback` |
+| TikTok → Redirect URI | `http://localhost:3000/api/distribution/oauth/tiktok/callback` |
+
+**Copy-paste — production (replace host):**
+
+| Console field | Exact value |
+|---------------|-------------|
+| `WEB_ORIGIN` | `https://clip.example.com` |
+| Google → Authorized redirect URI | `https://clip.example.com/api/distribution/oauth/youtube_shorts/callback` |
+| TikTok → Redirect URI | `https://clip.example.com/api/distribution/oauth/tiktok/callback` |
+
+Operator checklist:
+
+- [ ] Set `STREAMCLIP_DISTRIBUTION__WEB_ORIGIN` on **api** and **worker** (same value)
+- [ ] Paste the matching YouTube URI into Google Cloud OAuth client (Authorized redirect URIs)
+- [ ] Paste the matching TikTok URI into the TikTok developer app (if enabling TikTok)
+- [ ] No trailing slash on `WEB_ORIGIN`; no `/api` prefix on `WEB_ORIGIN` itself
+- [ ] Caddy/proxy forwards `/api/*` to the API so the callback hits FastAPI, not Next.js alone
+- [ ] After change: reconnect platform in **Distribution → Connections** (old tokens stay valid; new OAuth needs the new URI)
 
 ## Publish webhooks
 

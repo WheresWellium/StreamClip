@@ -42,6 +42,9 @@ llm:
   base_url: http://localhost:11434
   timeout_secs: 30
 
+rate_limit:
+  enabled: false
+
 web:
   serve_static: true
   static_dir: static/ui

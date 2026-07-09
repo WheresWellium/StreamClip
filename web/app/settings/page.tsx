@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { AdminLicensePanel } from "@/components/settings/admin-license-panel";
+import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { ActivationChecklist } from "@/components/settings/activation-checklist";
 import { DistributionSection } from "@/components/settings/distribution-section";
@@ -12,6 +14,7 @@ import { OAuthSetupWizard } from "@/components/settings/oauth-setup-wizard";
 import { PrivacyPanel } from "@/components/settings/privacy-panel";
 import { WebhookPanel } from "@/components/settings/webhook-panel";
 import {
+  authApi,
   distributionApi,
   settingsApi,
   type OAuthAppConfig,
@@ -47,6 +50,7 @@ type SettingsSection =
   | "license"
   | "distribution"
   | "integrations"
+  | "api"
   | "privacy"
   | "advanced";
 
@@ -66,6 +70,7 @@ function SettingsPageContent() {
 
   const [token, setToken] = useState<string | undefined>();
   const [hasPro, setHasPro] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [oauthApps, setOauthApps] = useState(DEFAULT_OAUTH_APPS);
   const [privacyOptIn, setPrivacyOptIn] = useState(false);
   const [ready, setReady] = useState(false);
@@ -76,10 +81,17 @@ function SettingsPageContent() {
     setToken(t);
     void (async () => {
       let pro = false;
+      let admin = false;
       let apps = DEFAULT_OAUTH_APPS;
       let optIn = false;
       if (t) {
         pro = await hasDistributionAccess(t);
+        try {
+          const me = await authApi.me(t);
+          admin = me.tier === "admin";
+        } catch {
+          admin = false;
+        }
         if (pro) {
           try {
             apps = await distributionApi.oauthApps(t);
@@ -98,6 +110,7 @@ function SettingsPageContent() {
       }
       if (!cancelled) {
         setHasPro(pro);
+        setIsAdmin(admin);
         setOauthApps(apps);
         setPrivacyOptIn(optIn);
         setReady(true);
@@ -146,6 +159,10 @@ function SettingsPageContent() {
     );
   }
 
+  if (section === "api") {
+    return <ApiDocsPanel />;
+  }
+
   if (section === "privacy") {
     return <PrivacyPanel isAuthenticated={!!token} initialOptIn={privacyOptIn} />;
   }
@@ -153,6 +170,18 @@ function SettingsPageContent() {
   if (section === "advanced") {
     return (
       <div className="space-y-6">
+        {isAdmin && token && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin — license revoke</CardTitle>
+              <CardDescription>Operator tools (admin tier only).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AdminLicensePanel />
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Retention</CardTitle>
@@ -190,6 +219,10 @@ function SettingsPageContent() {
         </Card>
 
         <p className="text-sm">
+          <Link href="/settings?section=api" className="text-sky-400 hover:underline">
+            API reference →
+          </Link>
+          {" · "}
           <Link href="/settings/templates" className="text-sky-400 hover:underline">
             Manage job templates →
           </Link>

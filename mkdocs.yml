@@ -20,8 +20,11 @@ exclude_docs: |
   GAP_ANALYSIS.md
   MASTER_TODO.md
   INTERNAL.md
-  OPS_N8N_SETUP.md
+  OPS_ALERTING.md
   BETA_OPS_PHASE0.md
+  BETA_GO_LIVE.md
+  BETA_ON_CALL.md
+  BETA_INVITE_PACK.md
   SESSION_STATE.md
   AGENT_COORDINATION.md
   .agent-lock.example.json
@@ -83,7 +86,15 @@ nav:
   - Getting started:
       - Beta quickstart: BETA_TESTER_QUICKSTART.md
       - Beta test plan: BETA_TESTER_PLAN.md
-      - Beta go-live: BETA_GO_LIVE.md
+      - Known issues: BETA_KNOWN_ISSUES.md
+  - Tutorials:
+      - Install (Docker): tutorials/TUTORIAL_INSTALL.md
+      - First job: tutorials/TUTORIAL_FIRST_JOB.md
+      - Edit & approve: tutorials/TUTORIAL_EDIT_APPROVE.md
+      - Publish to YouTube: tutorials/TUTORIAL_PUBLISH_YOUTUBE.md
+      - Clip Vault: tutorials/TUTORIAL_VAULT.md
+      - GPU setup: tutorials/TUTORIAL_GPU_SETUP.md
+      - Troubleshooting: tutorials/TUTORIAL_TROUBLESHOOTING.md
   - Architecture:
       - Technical design: TECHNICAL_DESIGN.md
       - Creator platform: CREATOR_PLATFORM.md

@@ -32,12 +32,13 @@ Reuse existing sidecar/UI artifacts:
 .\scripts\build_desktop_installer.ps1 -SkipUi -SkipSidecar
 ```
 
-## Code signing (production)
+## Code signing — operator checklist (§4.10)
 
 Unsigned builds trigger **Windows SmartScreen** (“Windows protected your PC”).
 Beta testers can click **More info → Run anyway** (`docs/BETA_KNOWN_ISSUES.md`).
+**Do not invent or commit certificates** — purchase from a Microsoft-trusted CA when ready.
 
-Local dev builds without a certificate should set:
+### Local unsigned (default)
 
 ```powershell
 $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
@@ -46,29 +47,73 @@ $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
 (`build_desktop_installer.ps1` sets this automatically when `CSC_LINK` is unset — avoids
 electron-builder winCodeSign symlink errors on Windows without Developer Mode.)
 
-For production, purchase an **EV code-signing certificate** (recommended for immediate
-SmartScreen reputation) or a standard Authenticode cert from a Microsoft-trusted CA.
+`apps/desktop/package.json` sets `win.signAndEditExecutable: false` so unsigned local
+builds work without Developer Mode. For signed production releases, set it to `true`
+when `CSC_LINK` is configured.
 
-`package.json` sets `win.signAndEditExecutable: false` so unsigned local builds work
-on Windows without Developer Mode (avoids electron-builder winCodeSign symlink errors).
-For signed production releases, set it to `true` when `CSC_LINK` is configured.
-
-Set before `build_desktop_installer.ps1`:
+### Env vars (required for signing)
 
 | Variable | Purpose |
 |----------|---------|
-| `CSC_LINK` | Path to `.pfx` certificate file |
+| `CSC_LINK` | Path to `.pfx` (local) **or** base64-encoded PFX (CI secret) |
 | `CSC_KEY_PASSWORD` | PFX password |
+| `SIGNTOOL` | Optional path to `signtool.exe` (auto-discovered from Windows SDK) |
+| `SIGN_TIMESTAMP_URL` | Optional; default `http://timestamp.digicert.com` |
 
-electron-builder signs the Electron app, NSIS installer, and bundled binaries when these
-are set. Optional manual re-sign of the sidecar exe alone:
+Purchase an **EV code-signing certificate** (recommended for immediate SmartScreen
+reputation) or a standard Authenticode cert. Export as `.pfx` with a strong password.
+Never commit the PFX or password to the repo.
+
+### Sign locally
 
 ```powershell
-$env:SIGNTOOL = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
-.\scripts\sign_windows_artifact.ps1 -Path dist\streamclip-sidecar\streamclip-sidecar.exe
+# electron-builder signs app + NSIS when CSC_* are set:
+$env:CSC_LINK = "C:\secure\streamclip-ev.pfx"
+$env:CSC_KEY_PASSWORD = "<pfx-password>"
+.\scripts\build_desktop_installer.ps1
+
+# Optional manual re-sign of a single PE (sidecar, Setup exe, etc.):
+.\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\StreamClip-Setup-win-x64.exe
 ```
 
-Timestamp server defaults to DigiCert; override with `SIGN_TIMESTAMP_URL`.
+### Verify signature
+
+```powershell
+# After Windows SDK install (signtool on PATH or set SIGNTOOL):
+signtool verify /pa /v apps\desktop\release\StreamClip-Setup-win-x64.exe
+```
+
+Expect: successful Authenticode chain, publisher matching your cert subject, and a
+valid timestamp. `/pa` uses the default Authenticode verification policy.
+
+### SmartScreen notes
+
+- **Unsigned:** SmartScreen warning is expected; document “More info → Run anyway” for beta.
+- **Standard OV cert:** reputation builds over time with download volume; early installs may still warn.
+- **EV cert:** typically establishes reputation faster (hardware token / cloud HSM depending on CA).
+- Signing alone does not remove SmartScreen forever — keep the same publisher identity across releases.
+
+### CI secrets (GitHub Actions)
+
+`.github/workflows/desktop-release.yml` builds **unsigned** unless both secrets exist:
+
+| GitHub Actions secret | Maps to |
+|-----------------------|---------|
+| `WINDOWS_CSC_LINK` | `CSC_LINK` (base64 of the `.pfx` file, or a path if you stage the file in the job) |
+| `WINDOWS_CSC_KEY_PASSWORD` | `CSC_KEY_PASSWORD` |
+
+When both are set, the workflow exports them and **omits**
+`CSC_IDENTITY_AUTO_DISCOVERY=false` so electron-builder signs. When either is missing,
+the job stays unsigned (current beta path). No placeholder certs in the repo.
+
+Encode a PFX for the secret (operator machine, not committed):
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\secure\streamclip-ev.pfx")) |
+  Set-Clipboard
+```
+
+Paste into repo **Settings → Secrets and variables → Actions → `WINDOWS_CSC_LINK`**.
 
 ## Auto-update
 

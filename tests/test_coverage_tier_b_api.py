@@ -151,3 +151,70 @@ async def test_main_lifespan_inprocess_worker(monkeypatch):
                                 pass
                             start.assert_called_once()
                             stop.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_dispatches_reset_email(app, client, monkeypatch):
+    user = SimpleNamespace(email="reset@test.local")
+
+    class FakeAuthService:
+        def __init__(self, db, cfg) -> None:
+            pass
+
+        async def create_password_reset(self, email: str):
+            return ("raw-reset-token", user)
+
+    monkeypatch.setattr("backend.api.auth.AuthService", FakeAuthService)
+
+    async def fake_db():
+        session = AsyncMock()
+        session.commit = AsyncMock()
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    cfg = get_settings(reload=True)
+    cfg.distribution.web_origin = "http://localhost:3000"
+    try:
+        with patch("backend.api.auth.get_settings", return_value=cfg):
+            with patch("backend.api.auth.dispatch_task") as dispatch:
+                resp = await client.post(
+                    "/api/auth/forgot-password",
+                    json={"email": user.email},
+                )
+        assert resp.status_code == 200
+        dispatch.assert_called_once()
+        args = dispatch.call_args.kwargs["args"]
+        assert args[0] == user.email
+        assert "raw-reset-token" in args[1]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_reset_password_endpoint_commits(app, client, monkeypatch):
+    class FakeAuthService:
+        def __init__(self, db, cfg) -> None:
+            pass
+
+        async def reset_password(self, token: str, new_password: str):
+            return SimpleNamespace(email="reset@test.local")
+
+    monkeypatch.setattr("backend.api.auth.AuthService", FakeAuthService)
+
+    async def fake_db():
+        session = AsyncMock()
+        session.commit = AsyncMock()
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        resp = await client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": "valid-reset-token-value",
+                "new_password": "newpassword123",
+            },
+        )
+        assert resp.status_code == 200
+    finally:
+        app.dependency_overrides.pop(get_db, None)

@@ -219,7 +219,12 @@ async def download_job_clips_zip(
         data = svc.build_clips_zip(job)
     except ValueError as exc:
         from core.errors import StreamClipError
-        raise StreamClipError(str(exc), user_message=str(exc)) from exc
+        raise StreamClipError(
+            "No finished clips available for download",
+            user_message="No finished clips are ready to download yet.",
+            code="clips_not_ready",
+            http_status=400,
+        ) from exc
     filename = f"streamclip-{job_id[:8]}-clips.zip"
     return Response(
         content=data,

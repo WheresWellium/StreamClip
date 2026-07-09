@@ -1,5 +1,14 @@
 /** Parse FastAPI / BFF error bodies for user-visible messages. */
 
+const INTERNAL_MESSAGE_RE =
+  /traceback|file "|ytdlp|ffmpeg|\.py:|\\|[A-Z]:\\|Exception:|Error:/i;
+
+export function isLikelyInternalErrorMessage(message: string): boolean {
+  const text = message.trim();
+  if (!text) return true;
+  return text.length > 280 || INTERNAL_MESSAGE_RE.test(text);
+}
+
 export function readApiErrorMessage(
   payload: unknown,
   fallback = "Request failed",
@@ -8,12 +17,14 @@ export function readApiErrorMessage(
   const body = payload as Record<string, unknown>;
 
   if (typeof body.message === "string" && body.message.trim()) {
-    return body.message;
+    const msg = body.message.trim();
+    return isLikelyInternalErrorMessage(msg) ? fallback : msg;
   }
 
   const detail = body.detail;
   if (typeof detail === "string" && detail.trim()) {
-    return detail;
+    const msg = detail.trim();
+    return isLikelyInternalErrorMessage(msg) ? fallback : msg;
   }
   if (Array.isArray(detail)) {
     const parts = detail

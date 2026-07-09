@@ -591,6 +591,14 @@ class PasswordResetRepository:
         )
         return result.scalar_one_or_none()
 
+    async def delete_by_hash(self, token_hash: str) -> None:
+        """Remove any token with this hash (cross-user collision guard)."""
+        from sqlalchemy import delete as _delete
+        await self.db.execute(
+            _delete(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash),
+        )
+        await self.db.flush()
+
     async def mark_used(self, token_id: str) -> None:
         await self.db.execute(
             update(PasswordResetToken)
@@ -600,14 +608,20 @@ class PasswordResetRepository:
         await self.db.flush()
 
     async def invalidate_for_user(self, user_id: str) -> None:
-        now = datetime.now(timezone.utc)
+        """Delete ALL reset tokens for this user (pending and used).
+
+        The unique index on token_hash is unconditional — it covers used rows
+        too. Keeping used rows would cause a UniqueViolationError when the same
+        raw token is issued again (e.g. in tests, or if the hash space collides).
+        Purging all past tokens on each new request is safe: the workflow is
+        always generate → email → click → mark used, and an old used token is
+        worthless anyway.
+        """
+        from sqlalchemy import delete as _delete
         await self.db.execute(
-            update(PasswordResetToken)
-            .where(
+            _delete(PasswordResetToken).where(
                 PasswordResetToken.user_id == user_id,
-                PasswordResetToken.used_at.is_(None),
-            )
-            .values(used_at=now),
+            ),
         )
         await self.db.flush()
 
@@ -696,6 +710,18 @@ class InstallLicenseRepository:
     async def get_by_order_id(self, order_id: str) -> InstallLicense | None:
         result = await self.db.execute(
             select(InstallLicense).where(InstallLicense.order_id == order_id).limit(1),
+        )
+        return result.scalar_one_or_none()
+
+    async def get_activated_by_machine_id(self, machine_id: str) -> InstallLicense | None:
+        result = await self.db.execute(
+            select(InstallLicense)
+            .where(
+                InstallLicense.machine_id == machine_id,
+                InstallLicense.status == "activated",
+            )
+            .order_by(InstallLicense.activated_at.desc())
+            .limit(1),
         )
         return result.scalar_one_or_none()
 

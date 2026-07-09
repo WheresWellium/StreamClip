@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { ClipOut } from "@/lib/api/types";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 import type { AspectRatioOption, MetaOption } from "@/lib/api/meta-types";
 import { CAPTION_STYLE_IDS, REFRAME_PRESET_IDS } from "@/lib/creator-option-ids";
 import { CLIP_SCORE_LEGEND, legendForEmotion } from "@/lib/help/legends";
@@ -207,7 +208,7 @@ export function ClipCard({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Play this vertical clip in the browser with sound.
+                  Play this clip in the browser with sound.
                 </TooltipContent>
               </Tooltip>
             )}
@@ -398,7 +399,7 @@ export function ClipCard({
 
         {jobDone && clip.status === "error" && (
           <p className="text-[10px] text-destructive">
-            {clip.error_message ?? "Render failed"}
+            {userFacingErrorMessage(clip.error_message, null, "Render failed")}
           </p>
         )}
       </div>

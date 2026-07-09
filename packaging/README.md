@@ -44,7 +44,8 @@ as needed. `config/desktop.yaml` keeps its dev-relative defaults.
 |----------|----------|
 | `STREAMCLIP_DESKTOP_DATA_DIR` set (any mode) | that path |
 | Frozen, Windows | `%LOCALAPPDATA%\StreamClip` |
-| Frozen, no `LOCALAPPDATA` | `~/.streamclip` |
+| Frozen, macOS | `~/Library/Application Support/StreamClip` |
+| Frozen, other / no `LOCALAPPDATA` | `~/.streamclip` |
 | Dev (not frozen, no override) | none — dev-relative `./workspace/` |
 
 Explicit `STREAMCLIP_DATABASE__URL` / `STREAMCLIP_STORAGE__LOCAL_ROOT` /

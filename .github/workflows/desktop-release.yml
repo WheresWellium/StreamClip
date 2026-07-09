@@ -12,6 +12,10 @@ on:
         description: "Release version (e.g. 1.0.0-beta.1)"
         required: false
         default: "1.0.0-beta.1"
+      require_signed:
+        description: "Fail if WINDOWS_CSC_* secrets missing (EV signing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,7 +53,19 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            apps/desktop/package-lock.json
+
+      - name: Desktop signing preflight
+        shell: pwsh
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+          STREAMCLIP_REQUIRE_SIGNED_INSTALLER: ${{ github.event.inputs.require_signed == true && '1' || '' }}
+        run: .\scripts\verify_desktop_signing_ready.ps1 @(
+          $(if ($env:STREAMCLIP_REQUIRE_SIGNED_INSTALLER -eq '1') { '-RequireSigning' })
+        )
 
       - name: Install Python packaging deps
         run: |
@@ -64,10 +80,15 @@ jobs:
         working-directory: apps/desktop
         run: npm ci
 
+      - name: Download ffmpeg Windows binaries
+        shell: pwsh
+        run: .\scripts\download_ffmpeg_windows.ps1
+
       - name: Build NSIS installer
         shell: pwsh
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
         run: .\scripts\build_desktop_installer.ps1
 
       - name: Verify installer exists
@@ -87,5 +108,53 @@ jobs:
             apps/desktop/release/latest.yml
           generate_release_notes: true
           draft: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  macos-installer:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install packaging deps
+        run: python3 -m pip install -r requirements-packaging.txt -q
+
+      - name: Build macOS DMG (arm64)
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          chmod +x scripts/build_desktop_installer_macos.sh scripts/notarize_macos_artifact.sh
+          ./scripts/build_desktop_installer_macos.sh --skip-ui
+
+      - name: Verify DMG artifact
+        run: |
+          chmod +x scripts/verify_desktop_installer_macos.sh
+          if [ -f apps/desktop/release/StreamClip-mac-arm64.dmg ]; then
+            ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+          else
+            echo "::error::DMG not produced — check PyInstaller sidecar + electron-builder logs"
+            exit 1
+          fi
+
+      - name: Upload macOS DMG to release (tag builds only)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: apps/desktop/release/StreamClip-mac-arm64.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

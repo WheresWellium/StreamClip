@@ -92,8 +92,7 @@ async def test_submit_bug_report_creates_row_and_enqueues_email(client):
     with patch("backend.api.support.ops_webhook_status", return_value="skipped_unconfigured"), patch(
         "backend.api.support.bug_report_email_status",
         return_value="queued",
-    ), patch("backend.api.support.send_bug_report_email") as task:
-        task.apply_async.return_value = MagicMock(id="notify-1")
+    ), patch("backend.api.support.dispatch_task") as dispatch:
         resp = await client.post(
             "/api/support/bug-reports",
             json={
@@ -109,9 +108,8 @@ async def test_submit_bug_report_creates_row_and_enqueues_email(client):
     assert body["categories"] == ["vault", "ui"]
     assert body["email_notification"] == "queued"
     assert body["ops_notification"] == "skipped_unconfigured"
-    task.apply_async.assert_called_once()
-    args, kwargs = task.apply_async.call_args
-    assert kwargs.get("queue") == "default"
+    dispatch.assert_called_once()
+    assert dispatch.call_args.kwargs.get("queue") == "default"
 
 
 @pytest.mark.asyncio
@@ -140,8 +138,7 @@ async def test_submit_bug_report_enqueues_ops_webhook(client):
     with patch("backend.api.support.ops_webhook_status", return_value="queued"), patch(
         "backend.api.support.bug_report_email_status",
         return_value="skipped_unconfigured",
-    ), patch("backend.api.support.send_ops_webhook") as ops_task:
-        ops_task.apply_async.return_value = MagicMock(id="ops-1")
+    ), patch("backend.api.support.dispatch_task") as dispatch:
         resp = await client.post(
             "/api/support/bug-reports",
             json={
@@ -152,15 +149,14 @@ async def test_submit_bug_report_enqueues_ops_webhook(client):
         )
     assert resp.status_code == 201
     assert resp.json()["ops_notification"] == "queued"
-    ops_task.apply_async.assert_called_once()
+    dispatch.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_submit_beta_feedback_creates_row_and_enqueues_ops(client):
     with patch("backend.api.support.ops_webhook_status", return_value="queued"), patch(
-        "backend.api.support.send_ops_webhook",
-    ) as ops_task:
-        ops_task.apply_async.return_value = MagicMock(id="ops-2")
+        "backend.api.support.dispatch_task",
+    ) as dispatch:
         resp = await client.post(
             "/api/support/beta-feedback",
             json={
@@ -173,9 +169,9 @@ async def test_submit_beta_feedback_creates_row_and_enqueues_ops(client):
     body = resp.json()
     assert body["topic"] == "question"
     assert body["ops_notification"] == "queued"
-    ops_task.apply_async.assert_called_once()
-    args, kwargs = ops_task.apply_async.call_args
-    assert args[0][1] == "beta_feedback"
+    dispatch.assert_called_once()
+    task_args = dispatch.call_args.kwargs["args"]
+    assert task_args[1] == "beta_feedback"
 
 
 @pytest.mark.asyncio
@@ -197,6 +193,44 @@ async def test_submit_bug_report_drops_unknown_job_id(client):
         report = await session.get(BugReport, resp.json()["id"])
         assert report is not None
         assert report.job_id is None  # stale id dropped, not stored
+
+
+@pytest.mark.asyncio
+async def test_submit_bug_report_response_includes_notification_fields(client):
+    with patch("backend.api.support.ops_webhook_status", return_value="skipped_unconfigured"), patch(
+        "backend.api.support.bug_report_email_status",
+        return_value="skipped_unconfigured",
+    ):
+        resp = await client.post(
+            "/api/support/bug-reports",
+            json={
+                "message": "Captions render behind the subject on every clip.",
+                "categories": ["captions"],
+                "severity": "low",
+            },
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["email_notification"] == "skipped_unconfigured"
+    assert body["ops_notification"] == "skipped_unconfigured"
+    assert "id" in body
+
+
+@pytest.mark.asyncio
+async def test_submit_beta_feedback_response_shape(client):
+    with patch("backend.api.support.ops_webhook_status", return_value="skipped_unconfigured"):
+        resp = await client.post(
+            "/api/support/beta-feedback",
+            json={
+                "message": "Can beta keys unlock distribution without signup?",
+                "topic": "question",
+            },
+        )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["topic"] == "question"
+    assert body["ops_notification"] == "skipped_unconfigured"
+    assert body["status"]
 
 
 # ─── Email notifier ───────────────────────────────────────────────────────────
@@ -257,6 +291,35 @@ async def test_privacy_settings_roundtrip(client):
 async def test_privacy_settings_requires_auth(client):
     resp = await client.get("/api/settings/privacy")
     assert resp.status_code == 401
+
+
+def test_feedback_environment_merges_extra():
+    from backend.api.schemas import BetaFeedbackRequest
+    from backend.api.support import _feedback_environment
+
+    body = BetaFeedbackRequest(
+        message="Need help connecting YouTube during beta testing.",
+        topic="help",
+        environment={"page": "/settings"},
+    )
+    env = _feedback_environment(body, {"wave": "phase0"})
+    assert env["wave"] == "phase0"
+    assert env["page"] == "/settings"
+    assert env["kind"] == "beta_feedback"
+
+
+def test_queue_support_notifications_bug_report_email():
+    from backend.api import support
+
+    with patch.object(support, "bug_report_email_status", return_value="queued"), patch.object(
+        support, "ops_webhook_status", return_value="skipped_unconfigured",
+    ), patch.object(support, "dispatch_task") as dispatch:
+        email_status, ops_status = support._queue_support_notifications(
+            "report-1", event="bug_report",
+        )
+    assert email_status == "queued"
+    assert ops_status == "skipped_unconfigured"
+    dispatch.assert_called_once()
 
 
 def test_anonymize_snapshot_strips_pii():

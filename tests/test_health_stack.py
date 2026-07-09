@@ -53,3 +53,73 @@ async def test_health_stack_worker_unreachable(client):
         hc.return_value.__enter__.return_value.get.side_effect = OSError("no flower")
         resp = await client.get("/api/health/stack")
     assert resp.json()["worker"] is False
+
+
+@pytest.mark.asyncio
+async def test_health_stack_darwin_reports_mps(client):
+    with patch("httpx.Client") as hc, patch(
+        "core.gpu_profile.is_darwin", return_value=True
+    ), patch("core.gpu_profile.mps_available", return_value=True):
+        hc.return_value.__enter__.return_value.get.return_value = MagicMock(is_success=True)
+        resp = await client.get("/api/health/stack")
+    body = resp.json()
+    assert body["checks"]["mps"] is True
+    assert body["checks"]["cuda"] is False
+    assert body["checks"]["nvenc"] is False
+
+
+@pytest.mark.asyncio
+async def test_health_stack_gpu_probe_exception(client):
+    with patch("httpx.Client") as hc, patch(
+        "core.gpu_profile.is_darwin", side_effect=RuntimeError("probe boom")
+    ):
+        hc.return_value.__enter__.return_value.get.return_value = MagicMock(is_success=True)
+        resp = await client.get("/api/health/stack")
+    body = resp.json()
+    assert body["checks"]["cuda"] is False
+    assert body["checks"]["nvenc"] is False
+    assert body["checks"]["mps"] is False
+
+
+@pytest.mark.asyncio
+async def test_health_inprocess_marks_redis_ok(client, monkeypatch):
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    resp = await client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json()["redis"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_stack_with_ollama_in_checks(client, monkeypatch):
+    """health_stack passes ollama check into the checks dict when provider=ollama."""
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.llm, "provider", "ollama")
+    with patch("httpx.Client") as hc:
+        inst = hc.return_value.__enter__.return_value
+        inst.get.return_value = MagicMock(is_success=True)
+        resp = await client.get("/api/health/stack")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "ollama" in body["checks"]
+
+
+@pytest.mark.asyncio
+async def test_health_all_ok_returns_ok_status(client, monkeypatch):
+    """When db, redis (inprocess), and storage all pass the status is 'ok'."""
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    with patch("backend.api.health.make_storage") as ms:
+        ms.return_value.list_prefix.return_value = []
+        resp = await client.get("/api/health")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["redis"] is True
+    assert body["storage"] is True
+    assert body["status"] == "ok"

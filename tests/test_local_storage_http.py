@@ -62,6 +62,40 @@ async def test_local_storage_put_requires_upload_query(local_storage_env):
 
 
 @pytest.mark.asyncio
+async def test_local_storage_image_content_types(local_storage_env):
+    _cfg, root = local_storage_env
+    app = create_app()
+    transport = ASGITransport(app=app)
+    cases = [
+        ("shot.jpg", b"jpeg", "image/jpeg"),
+        ("shot.png", b"png", "image/png"),
+        ("shot.webp", b"webp", "image/webp"),
+    ]
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        for name, payload, media in cases:
+            key = f"uploads/test/{name}"
+            put = await client.put(f"/storage/{key}?upload=1", content=payload)
+            assert put.status_code == 200
+            get = await client.get(f"/storage/{key}")
+            assert get.status_code == 200
+            assert media in get.headers.get("content-type", "")
+
+
+@pytest.mark.asyncio
+async def test_local_storage_put_oserror(local_storage_env, monkeypatch):
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    def boom(self, data):  # noqa: ANN001
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "write_bytes", boom)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.put("/storage/uploads/fail.bin?upload=1", content=b"x")
+    assert resp.status_code == 500
+
+
+@pytest.mark.asyncio
 async def test_local_storage_unavailable_when_not_local(monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.storage, "backend", "minio")

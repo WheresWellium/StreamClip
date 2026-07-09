@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Beta known issues
+    url: https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_KNOWN_ISSUES.md
+    about: Check current beta limitations before filing a duplicate
+  - name: Phase 0 quickstart
+    url: https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_TESTER_QUICKSTART.md
+    about: Docker self-host setup and verify_stack steps

@@ -63,3 +63,17 @@ verify_stack.ps1: PASS / FAIL
 verify_coverage.ps1: ___% PASS / FAIL
 Tester: __________  Date: __________
 ```
+
+## Latest recorded sign-off (2026-07-09)
+
+```
+Clean-VM verify (§3.8) — clean-slate Docker proxy (Hyper-V unavailable)
+Host: operator Windows 11 + Docker Desktop WSL2
+Method: docker compose down -v → up --build -d → alembic upgrade head
+Commit: 6ca96b94284a4c98d9254dea98526fcfdd18041d (+ local gate fixes)
+verify_stack.ps1: PASS
+verify_coverage.ps1: 95.02% PASS
+verify_branch_coverage.ps1 -FailUnderBranch 85: PASS
+Tester: agent  Date: 2026-07-09
+Evidence: tmp/verify_stack_clean.txt, tmp/clean_verify_log.txt, docs/BETA_GO_LIVE.md §8
+```

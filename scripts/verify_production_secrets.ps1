@@ -78,6 +78,22 @@ if (-not $vars["STREAMCLIP_OBSERVABILITY__METRICS_API_KEY"]) {
     $warnings += "STREAMCLIP_OBSERVABILITY__METRICS_API_KEY unset - /metrics loopback-only in production"
 }
 
+if (-not $vars["OPS_WEBHOOK_URL"]) {
+    $warnings += "OPS_WEBHOOK_URL unset - no Discord/Slack/agent inbox for bug_report / job_failed / stack_degraded (docs/OPS_ALERTING.md)"
+}
+
+if (-not $vars["STREAMCLIP_OBSERVABILITY__SENTRY_DSN"]) {
+    $warnings += "STREAMCLIP_OBSERVABILITY__SENTRY_DSN unset - API/worker crashes will not appear in Sentry"
+}
+
+if (-not $vars["WINDOWS_CSC_LINK"] -and -not $vars["CSC_LINK"]) {
+    $warnings += "WINDOWS_CSC_LINK / CSC_LINK unset - desktop installer will be UNSIGNED (§4.10)"
+}
+
+if (-not $vars["MACOS_CSC_NAME"] -and -not $vars["APPLE_ID"]) {
+    $warnings += "MACOS_CSC_NAME / APPLE_ID unset - macOS DMG will be unsigned and not notarized (§5)"
+}
+
 if ($vars["STREAMCLIP_AUTH_ALLOW_ANONYMOUS"] -eq "true") {
     $warnings += "STREAMCLIP_AUTH_ALLOW_ANONYMOUS=true - fine for beta; set false for locked-down installs"
 }

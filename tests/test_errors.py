@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from core.errors import (
     IngestError,
     InvalidSourceError,
@@ -32,8 +34,15 @@ def test_llm_unavailable_is_retryable():
     assert err.is_retryable is True
 
 
-def test_error_to_dict_shape():
-    err = StreamClipError("boom", user_message="Boom")
-    d = err.to_dict()
+def test_publish_failure_message():
+    from core.errors import StreamClipError, publish_failure_message
+
+    assert "Publish failed" in publish_failure_message(RuntimeError("yt-dlp boom"))
+    err = StreamClipError("x", user_message="OAuth expired.", code="auth_failed")
+    assert publish_failure_message(err) == "OAuth expired."
+    err = StreamClipError("boom", user_message="Boom", context={"secret": True})
+    with patch("core.errors.expose_error_context", return_value=False):
+        d = err.to_dict()
     assert d["code"] == "streamclip_error"
     assert d["message"] == "Boom"
+    assert "context" not in d

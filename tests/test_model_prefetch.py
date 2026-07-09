@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 import time
-from unittest.mock import patch
+import types
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -61,6 +63,34 @@ def test_prefetch_missing_dependency_is_skipped():
     assert "ultralytics" in snap["yolo"]["detail"]
 
 
+def test_load_whisper_invokes_faster_whisper():
+    cfg = get_settings(reload=True)
+    with patch("faster_whisper.WhisperModel") as cls:
+        detail = mp._load_whisper(cfg)
+    cls.assert_called_once()
+    assert "faster-whisper" in detail
+
+
+def test_load_yolo_invokes_ultralytics():
+    cfg = get_settings(reload=True)
+    fake = types.ModuleType("ultralytics")
+    fake.YOLO = MagicMock(return_value=object())
+    with patch.dict(sys.modules, {"ultralytics": fake}):
+        detail = mp._load_yolo(cfg)
+    fake.YOLO.assert_called_once_with("yolo11n.pt")
+    assert detail == "yolo11n"
+
+
+def test_load_embedder_invokes_sentence_transformers():
+    cfg = get_settings(reload=True)
+    fake = types.ModuleType("sentence_transformers")
+    fake.SentenceTransformer = MagicMock(return_value=object())
+    with patch.dict(sys.modules, {"sentence_transformers": fake}):
+        detail = mp._load_embedder(cfg)
+    fake.SentenceTransformer.assert_called_once_with("all-MiniLM-L6-v2")
+    assert detail == "all-MiniLM-L6-v2"
+
+
 def test_start_prefetch_is_idempotent_while_running():
     started = {"n": 0}
 
@@ -102,3 +132,22 @@ async def test_health_models_endpoint_reports_progress():
     body = resp.json()
     assert body["ready"] is True
     assert body["models"]["whisper"]["state"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_health_models_ready_when_all_failed():
+    with patch.object(
+        mp,
+        "_LOADERS",
+        {"bad": lambda cfg: (_ for _ in ()).throw(RuntimeError("boom"))},
+    ):
+        mp.start_prefetch(get_settings())
+        _wait_done()
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/health/models")
+    body = resp.json()
+    assert body["ready"] is True
+    assert body["models"]["bad"]["state"] == "failed"

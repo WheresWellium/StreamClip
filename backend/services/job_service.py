@@ -171,10 +171,13 @@ class JobService:
         )
         if job is None:
             raise JobNotFoundError(f"Job {job_id} not found")
-        if job.celery_task_id:
-            # Revoke the Celery task
+        if job.celery_task_id and self.cfg.queue.backend != "inprocess":
+            # Revoke via broker — skipped in desktop/inprocess mode (no broker)
             from core.celery_app import celery_app
-            celery_app.control.revoke(job.celery_task_id, terminate=True)
+            try:
+                celery_app.control.revoke(job.celery_task_id, terminate=True)
+            except Exception:
+                log.warning("celery_revoke_failed", task_id=job.celery_task_id)
         await self.jobs.cancel(job_id)
 
     async def update_job(
@@ -454,16 +457,6 @@ class UploadService:
         request: UploadInitRequest,
         scope: RequestScope,
     ) -> UploadInitResponse:
-        if (
-            request.content_type in ALLOWED_AUDIO_UPLOAD_TYPES
-            and not self.cfg.features.audio_ingest
-        ):
-            raise StreamClipError(
-                "Audio ingest is not enabled on this install",
-                user_message="Audio uploads require the audio-to-clip add-on.",
-                code="audio_ingest_disabled",
-                http_status=403,
-            )
         if request.size_bytes is not None and request.size_bytes > self.cfg.storage.max_upload_bytes:
             limit_gb = self.cfg.storage.max_upload_bytes / (1024 ** 3)
             raise StreamClipError(

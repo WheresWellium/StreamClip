@@ -27,6 +27,7 @@ from backend.db.repositories import (
     UserRepository,
     VaultClipRepository,
 )
+from backend.db.models import ClipStatus
 from core.config import get_settings
 from core.distribution.tokens import encrypt_secret, generate_token_key
 
@@ -307,3 +308,252 @@ async def test_install_license_repository(db):
     by_order = await lic_repo.get_by_order_id(issued.order_id)
     assert by_order is not None
     await lic_repo.get_active()
+
+
+@pytest.mark.asyncio
+async def test_password_reset_repository_create_and_lookup(db):
+    import hashlib as _hashlib
+    import secrets as _secrets
+    from backend.db.repositories import PasswordResetRepository
+
+    users = UserRepository(db)
+    user = await users.create(
+        email=f"reset{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    repo = PasswordResetRepository(db)
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    raw = _secrets.token_hex(32)
+    token_hash = _hashlib.sha256(raw.encode()).hexdigest()
+    row = await repo.create(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires,
+    )
+    # get_valid_by_hash returns the row
+    found = await repo.get_valid_by_hash(token_hash)
+    assert found is not None
+    assert found.id == row.id
+    # expired hash returns None
+    expired_hash = _hashlib.sha256(b"expired").hexdigest()
+    await repo.create(
+        user_id=user.id,
+        token_hash=expired_hash,
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+    assert await repo.get_valid_by_hash(expired_hash) is None
+
+
+@pytest.mark.asyncio
+async def test_password_reset_invalidate_deletes_user_tokens(db):
+    from backend.db.repositories import PasswordResetRepository
+
+    users = UserRepository(db)
+    user = await users.create(
+        email=f"inv{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    repo = PasswordResetRepository(db)
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    await repo.create(
+        user_id=user.id,
+        token_hash="b" * 64,
+        expires_at=expires,
+    )
+    await repo.invalidate_for_user(user.id)
+    row = await repo.get_valid_by_hash("b" * 64)
+    assert row is None
+
+
+@pytest.mark.asyncio
+async def test_job_repo_scope_and_count(db):
+    from backend.db.models import JobStatus
+    users = UserRepository(db)
+    jobs = JobRepository(db)
+    user = await users.create(
+        email=f"scope{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    j = await jobs.create(owner_id=user.id, status=JobStatus.QUEUED, source_url="https://t.tv/v/1")
+    # get_for_scope — owner match
+    assert await jobs.get_for_scope(j.id, owner_id=user.id) is not None
+    # get_for_scope — wrong owner
+    assert await jobs.get_for_scope(j.id, owner_id="wrong-id") is None
+    # count_active
+    count = await jobs.count_active()
+    assert count >= 1
+    # list_expired — j is not expired (created_at is now); expect empty or list
+    expired = await jobs.list_expired(datetime.now(timezone.utc) - timedelta(hours=1))
+    assert isinstance(expired, list)
+    # cancel
+    await jobs.cancel(j.id)
+    cancelled = await jobs.get(j.id)
+    assert cancelled.status == JobStatus.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_job_repo_list_for_scope_device_and_search(db):
+    import secrets as _secrets
+    from backend.db.models import JobStatus
+    from backend.middleware.device_id import normalize_device_id
+    devices = DeviceRepository(db)
+    jobs = JobRepository(db)
+    raw_dev = f"scope-dev-{_secrets.token_hex(4)}"
+    dev = normalize_device_id(raw_dev)
+    await devices.upsert(dev)
+    await db.flush()
+    j = await jobs.create(
+        owner_id=None, device_id=dev, status=JobStatus.DONE, source_url="https://x.com/v/unique-xyz",
+        display_title="unique-xyz-title",
+    )
+    # device-scoped list
+    listed = await jobs.list_for_scope(owner_id=None, device_id=dev)
+    assert any(x.id == j.id for x in listed)
+    # search filter
+    found = await jobs.list_for_scope(owner_id=None, device_id=dev, search="unique-xyz-title")
+    assert any(x.id == j.id for x in found)
+    notfound = await jobs.list_for_scope(owner_id=None, device_id=dev, search="zzznomatch")
+    assert not any(x.id == j.id for x in notfound)
+    # status filter
+    done_list = await jobs.list_for_scope(owner_id=None, device_id=dev, status=JobStatus.DONE)
+    assert any(x.id == j.id for x in done_list)
+
+
+@pytest.mark.asyncio
+async def test_job_repo_delete(db):
+    from backend.db.models import JobStatus
+    users = UserRepository(db)
+    jobs = JobRepository(db)
+    user = await users.create(
+        email=f"del{datetime.now().timestamp()}@test.local",
+        hashed_password="x", tier=UserTier.FREE,
+    )
+    j = await jobs.create(owner_id=user.id, status=JobStatus.DONE, source_url="https://t.tv/v/del")
+    await jobs.delete(j.id)
+    await db.flush()
+    assert await jobs.get(j.id) is None
+    # delete non-existent — should not raise
+    await jobs.delete("nonexistent-id")
+
+
+@pytest.mark.asyncio
+async def test_user_repo_profile_updates(db):
+    users = UserRepository(db)
+    user = await users.create(
+        email=f"profile{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    await users.update_display_name(user.id, "TestDisplayName")
+    await users.update_style_weights(user.id, {"weight_audio_energy": 0.5})
+    await users.increment_minutes_processed(user.id, 12.5)
+    await users.update_webhook(user.id, webhook_url="https://hook.test/x", webhook_secret="s")
+    u = await users.get(user.id)
+    assert u.display_name == "TestDisplayName"
+    assert u.style_weights == {"weight_audio_energy": 0.5}
+    assert u.minutes_processed_this_month >= 12.5
+    assert u.webhook_url == "https://hook.test/x"
+    # update_display_name for non-existent — should not raise
+    await users.update_display_name("nonexistent", "X")
+
+
+@pytest.mark.asyncio
+async def test_license_link_by_email(db):
+    lic_repo = InstallLicenseRepository(db)
+    email = f"link{datetime.now().timestamp()}@test.local"
+    users = UserRepository(db)
+    user = await users.create(email=email, hashed_password="x", tier=UserTier.FREE)
+    issued = await lic_repo.create_issued(
+        license_key_hash=f"lhash-{datetime.now().timestamp()}",
+        order_id=f"lord-{datetime.now().timestamp()}",
+        customer_email=email,
+        tier=UserTier.PRO,
+    )
+    count = await lic_repo.link_by_email(email, user.id)
+    assert count == 1
+    linked = await lic_repo.get(issued.id)
+    assert linked.user_id == user.id
+    # second call: already linked — count 0
+    assert await lic_repo.link_by_email(email, user.id) == 0
+
+
+@pytest.mark.asyncio
+async def test_clip_repo_clear_overlays_and_reset(db):
+    from backend.db.models import ClipStatus, JobStatus
+    users = UserRepository(db)
+    jobs = JobRepository(db)
+    clips = ClipRepository(db)
+    user = await users.create(
+        email=f"clip{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    job = await jobs.create(owner_id=user.id, status=JobStatus.DONE, source_url="https://t.tv/v/c")
+    clip = await clips.create(
+        job_id=job.id,
+        start_secs=0.0, end_secs=10.0, rank=1, ensemble_score=0.5,
+        status=ClipStatus.DONE,
+    )
+    # add_overlay with valid fields
+    await clips.add_overlay(clip.id, trigger_time_secs=0.5, duration_secs=3.0)
+    c_with = await clips.get(clip.id, with_overlays=True)
+    assert len(c_with.overlays) == 1
+    # clear_overlays removes them
+    await clips.clear_overlays(clip.id)
+    # verify via direct query instead of ORM reload to avoid greenlet issue
+    from sqlalchemy import select as _select
+    from backend.db.models import ClipOverlay as _CO
+    res = await db.execute(_select(_CO).where(_CO.clip_id == clip.id))
+    assert list(res.scalars().all()) == []
+    # reset_for_regenerate resets status
+    await clips.reset_for_regenerate(clip.id)
+    reset = await clips.get(clip.id)
+    assert reset.status == ClipStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_clip_repo_rerank_and_boundaries(db):
+    from backend.db.models import ClipStatus, JobStatus
+    users = UserRepository(db)
+    jobs = JobRepository(db)
+    clips = ClipRepository(db)
+    user = await users.create(
+        email=f"rerank{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    job = await jobs.create(owner_id=user.id, status=JobStatus.DONE, source_url="https://t.tv/v/r")
+    c1 = await clips.create(job_id=job.id, start_secs=0.0, end_secs=5.0, rank=2, ensemble_score=0.3, status=ClipStatus.PENDING)
+    c2 = await clips.create(job_id=job.id, start_secs=5.0, end_secs=10.0, rank=1, ensemble_score=0.8, status=ClipStatus.PENDING)
+    await clips.rerank_by_ensemble(job.id)
+    ranked = await clips.list_for_job(job.id)
+    assert ranked[0].ensemble_score >= ranked[-1].ensemble_score
+    # update_boundaries
+    await clips.update_boundaries(c1.id, start_secs=1.0, end_secs=6.0)
+    updated = await clips.get(c1.id)
+    assert updated.start_secs == 1.0
+
+
+@pytest.mark.asyncio
+async def test_password_reset_mark_used(db):
+    from backend.db.repositories import PasswordResetRepository
+    from backend.services.auth_service import _hash_reset_token
+
+    users = UserRepository(db)
+    user = await users.create(
+        email=f"used{datetime.now().timestamp()}@test.local",
+        hashed_password="x",
+        tier=UserTier.FREE,
+    )
+    repo = PasswordResetRepository(db)
+    raw = "mark-used-token-value"
+    row = await repo.create(
+        user_id=user.id,
+        token_hash=_hash_reset_token(raw),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    await repo.mark_used(row.id)
+    assert await repo.get_valid_by_hash(_hash_reset_token(raw)) is None

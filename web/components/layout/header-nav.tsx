@@ -19,8 +19,7 @@ const LINKS = [
   { href: "/jobs", label: "Jobs", tip: "All pipeline runs and progress." },
   { href: "/jobs/new", label: "New job", tip: "Create a clip job from URL or upload." },
   { href: "/vault", label: "Vault", tip: "Saved clips — publish or schedule later." },
-  { href: "/settings", label: "Settings", tip: "Profile, license, distribution, and integrations." },
-  { href: "/docs", label: "API", tip: "OpenAPI interactive docs (FastAPI /docs)." },
+  { href: "/settings", label: "Settings", tip: "Profile, license, distribution, API, and integrations." },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -29,7 +28,6 @@ function isActive(pathname: string, href: string) {
   if (href === "/settings") {
     return pathname === "/settings" || pathname.startsWith("/settings/") || pathname === "/distribution";
   }
-  if (href === "/docs") return pathname === "/docs" || pathname.startsWith("/docs/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

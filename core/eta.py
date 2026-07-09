@@ -40,7 +40,11 @@ def canonical_stage(stage: str) -> str:
 def is_gpu_profile(cfg: Settings) -> bool:
     device = str(cfg.whisper.device).lower()
     codec = str(cfg.export.codec).lower()
-    return device in ("cuda", "auto") or "nvenc" in codec
+    return (
+        device in ("cuda", "auto", "mps")
+        or "nvenc" in codec
+        or "videotoolbox" in codec
+    )
 
 
 def processing_profile(cfg: Settings) -> str:

@@ -3,6 +3,10 @@
 #
 # api and worker share the root Dockerfile (same deps; different command in
 # compose), so worker is tagged from the api build without a second build.
+#
+# First publish + STREAMCLIP_IMAGE_PREFIX: see deploy/PRODUCTION.md §8.
+# Images land at ghcr.io/<github.repository_owner>/{api,worker,web}:<tag>
+# — set STREAMCLIP_IMAGE_PREFIX in .env.production if owner ≠ streamclip.
 name: images
 
 on:

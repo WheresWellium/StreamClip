@@ -21,7 +21,7 @@ from core.distribution.notify import notify_publish_event, record_publish_outcom
 from core.distribution.registry import build_adapter
 from core.distribution.tiktok import TikTokAdapter
 from core.distribution.youtube import YouTubeShortsAdapter
-from core.errors import StorageError
+from core.errors import StorageError, publish_failure_message
 from core.storage import make_storage
 from core.task_runner import delay
 from core.tasks.pipeline_tasks import _safe_async
@@ -308,12 +308,14 @@ def publish_to_platform(self, publish_job_id: str) -> dict[str, str]:
 
 
 def _mark_failed_terminal(publish_job_id: str, exc: Exception, started_at: float) -> None:
+    safe_message = publish_failure_message(exc)
+
     async def _fail() -> None:
         async with db_session() as db:
             repo = PublishJobRepository(db)
             await repo.mark_failed(
                 publish_job_id,
-                message=str(exc)[:500],
+                message=safe_message[:500],
                 error_code="WORKER_ERROR",
             )
             job = await repo.get(publish_job_id)
@@ -331,7 +333,7 @@ def _mark_failed_terminal(publish_job_id: str, exc: Exception, started_at: float
         publish_job_id,
         stage="error",
         progress=0.0,
-        message=str(exc)[:200],
+        message=safe_message[:200],
         status="error",
     )
 

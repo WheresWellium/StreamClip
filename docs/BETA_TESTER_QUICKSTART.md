@@ -1,6 +1,25 @@
 # StreamClip Beta — Quickstart Guide
 
-Welcome to the StreamClip beta. This guide walks you through everything from first install to your first published clip. Most people are running in under 15 minutes.
+Welcome to the StreamClip beta. This guide takes you from **zero to your first short clip**. Most people finish setup in about **15 minutes**.
+
+---
+
+## The short version
+
+1. Install **Docker Desktop** (free) and make sure it is running
+2. Open the StreamClip folder from your invite and run **one start command**
+3. Open **http://localhost:3000** in your browser
+4. Paste a **public video link** and wait for clips to appear
+5. Paste your **license key** in **Settings → License** (from your invite email)
+
+**Two ways to run StreamClip**
+
+| Way | Best for | Notes |
+|-----|----------|-------|
+| **Docker** (recommended) | Windows and Mac testers | Full features; steps below |
+| **Windows installer (.exe)** | No Docker | [Download the installer](BETA_DOWNLOAD.md#one-click-installers) — Windows may show a security warning; click **More info → Run anyway** |
+
+You do **not** need a GitHub account, Python, or coding experience for either path.
 
 ---
 
@@ -14,7 +33,16 @@ Welcome to the StreamClip beta. This guide walks you through everything from fir
 - On Windows: NVIDIA GPU recommended (CPU-only works but is much slower)
 - On Mac: CPU-only is expected (no NVIDIA / NVENC) — allow longer job times
 - The beta package (`.zip`) or private repo link from your invite email
-- Your license key from the same invite email
+- Your license key from the same invite email (looks like `SCPRO-XXXX-XXXX-XXXX-XXXX`)
+
+**Simple words**
+
+| Term | What it means |
+|------|----------------|
+| Docker | Free app that runs StreamClip locally |
+| License key | Unlock code from your invite email |
+| Job | One video you are processing |
+| Clip | One short video cut from that job |
 
 **You do not need:**
 
@@ -22,8 +50,7 @@ Welcome to the StreamClip beta. This guide walks you through everything from fir
 - Python or Node.js installed
 - An Apple Developer account (Mac)
 - Any cloud subscription
-
-Shorter OS-specific install: [Get StreamClip](BETA_DOWNLOAD.md).
+- To understand programming or the command line (copy/paste the commands we give you)
 
 ---
 
@@ -73,47 +100,54 @@ Replace `<LINK_FROM_INVITE_EMAIL>` with the exact URL from your email. If you're
 
 ---
 
-## Step 3 — Configure (one command)
+## Step 3 — Start StreamClip (one command)
 
-`cd` into your StreamClip folder, then:
+`cd` into your StreamClip folder, then run the **primary install script**:
 
 === "Windows"
 
     ```powershell
-    Copy-Item .env.example .env
+    .\scripts\start_local.ps1
     ```
+
+    This creates `.env` from `.env.example` if needed, starts Docker, runs migrations, and calls `verify_stack.ps1` automatically.
 
 === "macOS"
 
+    Manual equivalent (Docker does not ship PowerShell by default):
+
     ```bash
-    cp .env.example .env
+    cp .env.example .env    # skip if .env exists
+    docker compose up -d --build
+    docker compose exec -T api alembic upgrade head
     ```
 
-The defaults work for local beta — no API keys or accounts required to start.
+    Or, if [PowerShell Core](https://github.com/PowerShell/PowerShell) is installed:
 
----
+    ```bash
+    pwsh -File ./scripts/start_local.ps1
+    ```
 
-## Step 4 — Start StreamClip
-
-```bash
-docker compose up -d
-```
-
-(The same command works in PowerShell and Terminal.)
+The defaults work for local beta — **no API keys or account required** to start.
 
 The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 minutes on a good connection (Mac may take a bit longer). After that, starts take about 30–60 seconds.
 
+!!! tip "Step-by-step install"
+    See the [Install tutorial](tutorials/TUTORIAL_INSTALL.md) for numbered steps and platform notes.
+
 ---
 
-## Step 5 — Confirm everything is running
+## Step 4 — Confirm everything is running
 
 === "Windows"
+
+    `start_local.ps1` already runs verify. To re-check:
 
     ```powershell
     .\scripts\verify_stack.ps1
     ```
 
-    All checks should be green. If any fail, **stop here** and post the output in the beta channel from your invite email before creating jobs.
+    All checks should be green. If any fail, **stop here** and use **Report a bug** in the app header (or reply to your invite email) with the script output before creating jobs.
 
 === "macOS"
 
@@ -132,28 +166,28 @@ You can also open these links to confirm:
 
 ---
 
-## Step 6 — Create your account and log in
+## Step 5 — Account (optional)
 
 1. Open [http://localhost:3000](http://localhost:3000)
-2. Click **Sign up** and create an account with your email and a password
-3. Log in — check **Remember me** to stay signed in between sessions
+2. **Sign up** is optional for local Phase 0 testing — the stack works without an account for pipeline flows
+3. Create an account when you want persisted settings, vault ownership, or distribution OAuth tied to a user
 
 !!! tip "Forgot your password?"
     Use the **Forgot password?** link on the login page. A reset link will be sent to your email if SMTP is configured by the operator. For local installs, your operator can reset it manually.
 
 ---
 
-## Step 7 — Activate your license key
+## Step 6 — Activate your license key (optional)
 
 1. Go to **Settings → License**
-2. Paste the license key from your invite email (format: `SCBETA-...`)
+2. Paste the license key from your invite email (format: `SCPRO-…` with dashes)
 3. Click **Activate** — a confirmation shows your features are unlocked
 
-Your beta key gives you **full access to every feature** — no paywalls, no feature gates.
+Your beta key gives you **full access to every feature** — no paywalls, no feature gates. Skip this step if your invite is for technical pipeline testing only (T0-1 … T0-4).
 
 ---
 
-## Step 8 — Your first clip
+## Step 7 — Your first clip
 
 1. Click **New job** on the home screen
 2. Paste any **public** video URL:
@@ -174,7 +208,7 @@ Your beta key gives you **full access to every feature** — no paywalls, no fea
 
 ---
 
-## Step 9 — Approve clips and publish
+## Step 8 — Approve clips and publish
 
 1. Open a finished clip → review the preview
 2. Click **Approve** on clips you want to keep
@@ -186,9 +220,12 @@ Your beta key gives you **full access to every feature** — no paywalls, no fea
 !!! info "TikTok"
     TikTok direct publish is inbox-only during beta (waiting on app audit). Your clip will be saved to TikTok drafts — complete the post inside the TikTok app.
 
+!!! tip "Scheduled publishes"
+    Docker: keep the `beat` service up (`docker compose ps`). Desktop installer: scheduled posts only fire while the app is running — see [BETA_KNOWN_ISSUES](BETA_KNOWN_ISSUES.md). Details: [distribution-runbook — Celery worker and Beat](distribution-runbook.md#celery-worker-and-beat).
+
 ---
 
-## Step 10 — Stop StreamClip when done
+## Step 9 — Stop StreamClip when done
 
 ```bash
 docker compose down
@@ -207,7 +244,7 @@ No. You only need Docker Desktop and the beta package from your invite email. On
 Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run StreamClip.
 
 **My license key isn't working. What format should it be?**
-The key from your beta invite starts with `SCBETA-` or similar and includes dashes. Paste the entire string. If it still fails, check that your device ID shows in Settings → License and reply to your invite email.
+The key from your beta invite starts with `SCPRO-` (four hex groups with dashes). Paste the entire string. If it still fails, check that your device ID shows in Settings → License and reply to your invite email.
 
 **What features does my beta key unlock?**
 Everything — full access, no limits. Your beta key is equivalent to the highest tier.
@@ -246,7 +283,8 @@ Use **Report a bug** or **Beta feedback** in the app header (top bar). Every sub
 
 | Task | Command / Location |
 |------|--------------------|
-| Start StreamClip | `docker compose up -d` |
+| Start StreamClip (Windows) | `.\scripts\start_local.ps1` |
+| Start StreamClip (Mac manual) | `docker compose up -d` |
 | Stop StreamClip | `docker compose down` |
 | Check health (Windows) | `.\scripts\verify_stack.ps1` |
 | Check health (Mac) | `docker compose ps` + `curl -s http://localhost:8000/api/health` |
@@ -259,4 +297,4 @@ Use **Report a bug** or **Beta feedback** in the app header (top bar). Every sub
 
 ---
 
-*Phase 0 beta · [Known issues](BETA_KNOWN_ISSUES.md) · [Full test plan](BETA_TESTER_PLAN.md) · Questions? Reply to your invite email.*
+*Phase 0 beta · [Tutorials](tutorials/TUTORIAL_INSTALL.md) · [Known issues](BETA_KNOWN_ISSUES.md) · [Full test plan](BETA_TESTER_PLAN.md) · Questions? Reply to your invite email.*

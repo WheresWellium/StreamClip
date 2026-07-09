@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse
 from backend.api import admin, assets, auth, commerce, devices, distribution, health, jobs, license, local_storage, metrics, settings, support, templates, uploads, vault
 from backend.observability import init_opentelemetry
 from core.config import get_settings
-from core.errors import StreamClipError
+from core.errors import StreamClipError, sanitize_user_message
 
 
 # ─── Structured logging ──────────────────────────────────────────────────────
@@ -142,12 +142,15 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     cfg = get_settings()
 
+    # Desktop sidecar keeps OpenAPI enabled for Settings → API (local-only).
+    api_docs = cfg.environment != "production" or cfg.queue.backend == "inprocess"
+
     app = FastAPI(
         title="StreamClip API",
         description="AI-powered gaming clip pipeline",
         version="1.0.0",
-        docs_url="/docs" if cfg.environment != "production" else None,
-        redoc_url="/redoc" if cfg.environment != "production" else None,
+        docs_url="/docs" if api_docs else None,
+        redoc_url="/redoc" if api_docs else None,
         lifespan=lifespan,
     )
 
@@ -222,6 +225,46 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={"code": "validation_error", "errors": exc.errors()},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        detail = exc.detail
+        if isinstance(detail, str):
+            message = sanitize_user_message(
+                detail,
+                fallback="Request could not be completed.",
+            )
+        elif isinstance(detail, list):
+            message = "Validation failed."
+        else:
+            message = "Request could not be completed."
+        log.warning(
+            "http_exception",
+            status=exc.status_code,
+            path=request.url.path,
+            detail_type=type(detail).__name__,
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"code": f"http_{exc.status_code}", "message": message},
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        log.exception(
+            "unhandled_exception",
+            path=request.url.path,
+            error_type=type(exc).__name__,
+        )
+        message = (
+            str(exc)
+            if cfg.environment == "development"
+            else "An unexpected error occurred. Try again or report a bug."
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"code": "internal_error", "message": message},
         )
 
     return app

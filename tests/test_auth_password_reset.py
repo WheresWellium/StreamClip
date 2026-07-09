@@ -11,6 +11,8 @@ from backend.middleware.auth import decode_token
 from core.config import get_settings
 
 
+
+
 def _unique_email() -> str:
     return f"auth-{uuid.uuid4().hex[:10]}@example.com"
 
@@ -27,14 +29,14 @@ async def _register(client, email: str | None = None, password: str = "password1
 
 @pytest.mark.asyncio
 async def test_forgot_password_always_returns_generic_message(client):
-    with patch("backend.api.auth.send_password_reset_email") as email_task:
+    with patch("backend.api.auth.dispatch_task") as dispatch:
         resp = await client.post(
             "/api/auth/forgot-password",
             json={"email": "nobody-here@example.com"},
         )
     assert resp.status_code == 200
     assert "account exists" in resp.json()["message"].lower()
-    email_task.delay.assert_not_called()
+    dispatch.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -46,17 +48,19 @@ async def test_forgot_password_enqueues_email_for_known_user(client):
     with patch(
         "backend.services.auth_service.secrets.token_urlsafe",
         return_value=fixed_token,
-    ), patch("backend.api.auth.send_password_reset_email") as email_task:
+    ), patch("backend.api.auth.dispatch_task") as dispatch:
         resp = await client.post(
             "/api/auth/forgot-password",
             json={"email": email},
         )
 
     assert resp.status_code == 200
-    email_task.delay.assert_called_once()
-    args = email_task.delay.call_args[0]
-    assert args[0] == email
-    assert fixed_token in args[1]
+    dispatch.assert_called_once()
+    called_task = dispatch.call_args[0][0]
+    assert called_task.__name__ == "send_password_reset_email"
+    email_args = dispatch.call_args.kwargs["args"]
+    assert email_args[0] == email
+    assert fixed_token in email_args[1]
 
 
 @pytest.mark.asyncio
@@ -70,7 +74,7 @@ async def test_reset_password_and_login_with_new_password(client):
     with patch(
         "backend.services.auth_service.secrets.token_urlsafe",
         return_value=fixed_token,
-    ), patch("backend.api.auth.send_password_reset_email"):
+    ), patch("backend.api.auth.dispatch_task"):
         await client.post("/api/auth/forgot-password", json={"email": email})
 
     reset = await client.post(

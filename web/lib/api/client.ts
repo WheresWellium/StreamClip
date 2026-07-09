@@ -17,6 +17,7 @@ import {
   getClientAccessToken,
   getClientDeviceId,
 } from "@/lib/auth/client-session";
+import { readApiErrorMessage } from "@/lib/api/read-api-error";
 
 import type {
   ClipWords,
@@ -90,7 +91,7 @@ async function request<T>(
     throw new ApiClientError(
       res.status,
       payload.code ?? `http_${res.status}`,
-      payload.message ?? detail ?? res.statusText,
+      readApiErrorMessage(payload, detail ?? res.statusText),
       payload,
     );
   }
@@ -304,6 +305,14 @@ export interface ModelsHealthResponse {
 
 export const metaApi = {
   health: () => request<Record<string, unknown>>("/api/health"),
+  stackHealth: () =>
+    request<{
+      status: string;
+      version: string;
+      environment: string;
+      checks: Record<string, boolean>;
+      worker?: boolean | null;
+    }>("/api/health/stack"),
   modelsHealth: () => request<ModelsHealthResponse>("/api/health/models"),
   meta: () => request<Record<string, unknown>>("/api/meta"),
 };

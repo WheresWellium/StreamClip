@@ -210,21 +210,18 @@ async def test_update_clip_not_found_and_clears_transcript_edits():
 
 
 @pytest.mark.asyncio
-async def test_upload_init_audio_disabled():
-    from backend.api.schemas import UploadInitRequest
-    from backend.services.job_service import UploadService
-
-    svc = UploadService(get_settings(), MagicMock())
-    cfg = svc.cfg
+async def test_upload_init_audio_disabled(client):
+    """Audio gate lives on POST /api/uploads/init (see test_audio_ingest.py)."""
+    cfg = get_settings()
     old = cfg.features.audio_ingest
     cfg.features.audio_ingest = False
     try:
-        with pytest.raises(StreamClipError) as exc:
-            await svc.init_upload(
-                UploadInitRequest(filename="pod.mp3", content_type="audio/mpeg"),
-                RequestScope(user_id="u1", device_id=None),
-            )
-        assert exc.value.code == "audio_ingest_disabled"
+        resp = await client.post(
+            "/api/uploads/init",
+            json={"filename": "pod.mp3", "content_type": "audio/mpeg"},
+        )
+        assert resp.status_code == 403
+        assert resp.json()["code"] == "audio_ingest_disabled"
     finally:
         cfg.features.audio_ingest = old
 

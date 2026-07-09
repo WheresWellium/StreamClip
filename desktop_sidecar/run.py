@@ -36,21 +36,26 @@ def app_root() -> Path:
 
 
 def desktop_data_dir() -> Path | None:
-    """Per-user data dir for packaged installs (MASTER_TODO §4.18).
+    """Per-user data dir for packaged installs (MASTER_TODO §4.18 / §5.4).
 
     Resolution order:
       1. ``STREAMCLIP_DESKTOP_DATA_DIR`` env override (any platform, incl. dev)
-      2. When frozen (PyInstaller): ``%LOCALAPPDATA%\\StreamClip``,
-         falling back to ``~/.streamclip`` where LOCALAPPDATA is unset
+      2. When frozen (PyInstaller):
+         - Windows: ``%LOCALAPPDATA%\\StreamClip``
+         - macOS: ``~/Library/Application Support/StreamClip``
+         - else / missing LOCALAPPDATA: ``~/.streamclip``
       3. Dev (not frozen, no override): ``None`` — config defaults apply
     """
     override = os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR")
     if override:
         return Path(override)
     if getattr(sys, "frozen", False):
-        local_app_data = os.environ.get("LOCALAPPDATA")
-        if local_app_data:
-            return Path(local_app_data) / APP_DATA_DIR_NAME
+        if sys.platform == "darwin":
+            return Path.home() / "Library" / "Application Support" / APP_DATA_DIR_NAME
+        if sys.platform == "win32":
+            local_app_data = os.environ.get("LOCALAPPDATA")
+            if local_app_data:
+                return Path(local_app_data) / APP_DATA_DIR_NAME
         return Path.home() / ".streamclip"
     return None
 

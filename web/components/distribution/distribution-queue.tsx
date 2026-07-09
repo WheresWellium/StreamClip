@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { PublishJob } from "@/lib/api/client";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 import { cn } from "@/lib/utils/format";
 
 type Tab = "queue" | "activity";
@@ -130,7 +131,11 @@ function PublishJobRow({
 
       {job.error_message && job.status === "failed" && (
         <p className="text-xs text-destructive/90 line-clamp-2">
-          {job.error_message}
+          {userFacingErrorMessage(
+            job.error_message,
+            job.last_error_code,
+            "Publish failed.",
+          )}
         </p>
       )}
 

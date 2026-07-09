@@ -1,0 +1,95 @@
+name: Beta bug report
+description: Phase 0 / closed-beta bug — include job id, GPU, logs, and steps to reproduce
+title: "[beta] "
+labels: ["beta", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping StreamClip beta. Fill every section you can — **job id** and **steps** matter most.
+        Prefer in-app **Report a bug** / **Beta feedback** when the stack is up; use this issue when the app cannot submit or you need a public thread.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Match Phase 0 on-call (docs/BETA_ON_CALL.md)
+      options:
+        - "P0 — pipeline stuck / auth broken / data loss / stack won't start"
+        - "P1 — publish/OAuth flake, single-tester GPU, install blocked"
+        - "P2 — UX, docs, slow CPU jobs, known-issue confirmation"
+      default: 1
+    validations:
+      required: true
+
+  - type: input
+    id: job_id
+    attributes:
+      label: Job ID
+      description: From the job detail URL or UI (e.g. `a1b2c3d4-...`). Use `n/a` if not a pipeline job.
+      placeholder: "n/a or UUID"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gpu
+    attributes:
+      label: GPU / compute
+      options:
+        - "NVIDIA (CUDA / NVENC) — profile gpu"
+        - "CPU only (no NVIDIA)"
+        - "Unknown / N/A (auth, install, docs)"
+      default: 1
+    validations:
+      required: true
+
+  - type: input
+    id: os_env
+    attributes:
+      label: OS and install path
+      description: e.g. Windows 11 + Docker Desktop, Ubuntu 22.04 + docker compose.prod, desktop installer
+      placeholder: "Windows 11 · Docker Desktop · docker compose"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a clean state if possible
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs actual
+      placeholder: |
+        Expected:
+        Actual:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / evidence
+      description: Paste relevant `docker compose logs` tails, `/api/health/stack` JSON, or screenshot links. Redact secrets and license keys.
+      render: shell
+      placeholder: |
+        docker compose logs worker --tail 80
+        # paste output here
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before filing
+      options:
+        - label: I checked docs/BETA_KNOWN_ISSUES.md for this wave
+        - label: I redacted secrets (keys, tokens, `.env`) from logs

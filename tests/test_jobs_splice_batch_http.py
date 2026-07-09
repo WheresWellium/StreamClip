@@ -133,3 +133,100 @@ async def test_batch_publish_no_clips_400(jobs_client):
 
     app.dependency_overrides.pop(require_distribution_access, None)
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_batch_publish_skips_unknown_clip_ids(jobs_client):
+    clip = SimpleNamespace(
+        id="c1",
+        job_id="job-1",
+        approval_status="approved",
+        final_storage_key="k",
+        status="done",
+        title="T",
+        hook="H",
+    )
+    job = SimpleNamespace(id="job-1", clips=[clip])
+    publish_job = SimpleNamespace(
+        id="pj-1",
+        clip_id="c1",
+        vault_clip_id=None,
+        platform="youtube_shorts",
+        status="pending",
+        scheduled_at=None,
+        published_at=None,
+        external_id=None,
+        external_url=None,
+        title="T",
+        error_message=None,
+        last_error_code=None,
+        created_at=datetime.now(timezone.utc),
+    )
+
+    class FakeDist:
+        def __init__(self, db, cfg) -> None:
+            pass
+
+        async def publish_now(self, **kwargs):
+            return publish_job
+
+    svc = MagicMock()
+    svc.get_job = AsyncMock(return_value=job)
+    app = jobs_client.app
+    app.dependency_overrides[require_distribution_access] = lambda: USER
+    app.dependency_overrides[require_user_id] = lambda: USER
+
+    with patch.object(jobs_api, "_get_service", return_value=svc), \
+         patch.object(jobs_api, "DistributionService", FakeDist):
+        resp = await jobs_client.client.post(
+            "/api/jobs/job-1/clips/batch-publish",
+            json={"platform": "youtube_shorts", "clip_ids": ["c1", "missing"]},
+        )
+
+    app.dependency_overrides.pop(require_distribution_access, None)
+    app.dependency_overrides.pop(require_user_id, None)
+    assert resp.status_code == 202, resp.text
+    body = resp.json()
+    assert len(body["jobs"]) == 1
+    assert body["skipped"] == 1
+
+
+@pytest.mark.asyncio
+async def test_batch_publish_skips_duplicate_in_flight(jobs_client):
+    from core.distribution.errors import DuplicateInFlightError
+
+    clip = SimpleNamespace(
+        id="c1",
+        job_id="job-1",
+        approval_status="approved",
+        final_storage_key="k",
+        status="done",
+        title="T",
+        hook="H",
+    )
+    job = SimpleNamespace(id="job-1", clips=[clip])
+
+    class FakeDist:
+        def __init__(self, db, cfg) -> None:
+            pass
+
+        async def publish_now(self, **kwargs):
+            raise DuplicateInFlightError("already publishing")
+
+    svc = MagicMock()
+    svc.get_job = AsyncMock(return_value=job)
+    app = jobs_client.app
+    app.dependency_overrides[require_distribution_access] = lambda: USER
+    app.dependency_overrides[require_user_id] = lambda: USER
+
+    with patch.object(jobs_api, "_get_service", return_value=svc), \
+         patch.object(jobs_api, "DistributionService", FakeDist):
+        resp = await jobs_client.client.post(
+            "/api/jobs/job-1/clips/batch-publish",
+            json={"platform": "youtube_shorts", "clip_ids": ["c1"]},
+        )
+
+    app.dependency_overrides.pop(require_distribution_access, None)
+    app.dependency_overrides.pop(require_user_id, None)
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "batch_empty"

@@ -43,7 +43,8 @@ x-streamclip-smtp-env: &streamclip-smtp-env
   SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-  N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
+  OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+  STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
 
 x-streamclip-worker-volumes: &streamclip-worker-volumes
   - workspace_data:/app/workspace
@@ -206,9 +207,11 @@ services:
     image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/worker:${STREAMCLIP_VERSION:-latest}
     command: celery -A core.celery_app.celery_app beat --loglevel=info
     environment:
-      <<: *streamclip-redis-env
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-smtp-env]
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 

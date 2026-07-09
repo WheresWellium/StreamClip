@@ -18,8 +18,8 @@ if (-not (Test-DockerRunning)) {
     Write-Host "  1. Start Docker Desktop and wait until it shows 'Running'"
     Write-Host "  2. Re-run: .\scripts\start_local.ps1"
     Write-Host ""
-    Write-Host "The .exe installer (Phase 2) is not built yet — ADR-001 embedded runtime."
     Write-Host "Phase 0 local testing uses Docker: docs/BETA_TESTER_QUICKSTART.md"
+    Write-Host "Optional Windows .exe (unsigned beta): docs/BETA_DOWNLOAD.md"
     exit 1
 }
 

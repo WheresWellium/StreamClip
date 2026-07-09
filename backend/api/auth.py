@@ -43,6 +43,7 @@ from backend.middleware.rate_limit import rate_limit_request
 from backend.db.repositories import DeviceRepository
 from core.config import get_settings
 from core.errors import AuthError
+from core.task_dispatch import dispatch_task
 from core.tasks.notify_tasks import send_password_reset_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -184,7 +185,7 @@ async def forgot_password(
         reset_url = (
             f"{cfg.distribution.web_origin.rstrip('/')}/reset-password?token={raw_token}"
         )
-        send_password_reset_email.delay(user.email, reset_url)
+        dispatch_task(send_password_reset_email, args=(user.email, reset_url), queue="default")
     return MessageResponse(message=_FORGOT_PASSWORD_MESSAGE)
 
 

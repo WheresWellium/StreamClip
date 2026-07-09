@@ -1,36 +1,39 @@
-# Session state (compaction anchor)
+﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-08 (Windows+Mac Docker docs + macOS scaffold)
+**Last updated:** 2026-07-09 (cohort keys regen + henna doc plain-language pass)
 
 ## Active chats
 
 | Branch | Task | Lock id | Notes |
 |--------|------|---------|-------|
-| `master` (local dirty) | macOS scaffold + beta docs | — | See `docs/AGENT_COORDINATION.md` |
+| `master` (local dirty) | Beta docs + cohort keys | — | |
 
 ## Current focus
 
-**Beta install docs:** `BETA_DOWNLOAD.md` + quickstart now cover **Windows and Mac Docker** (no Apple Dev account). One-click `.exe`/`.dmg` still “coming soon.”
+**This turn:**
+- Re-issued 5 admin keys (`beta-phase0-regen-001..005`) → `dist/phase0-invite-pack/`
+- Plain-language pass: `index.md`, `BETA_DOWNLOAD.md`, `BETA_TESTER_QUICKSTART.md`, `TUTORIAL_FIRST_JOB.md`
+- Fixed `prepare_invite_pack.ps1` null name lookup
 
-**Windows beta:** v1.0.0-beta.2 at `apps/desktop/release/StreamClip-Setup-win-x64.exe`. **Pending:** `gh release create`.
+## Cohort (private — keys in `tmp/beta-keys.csv`, do not commit)
 
-**macOS (§5) scaffold:** Application Support path, arm64 DMG config, build script — no DMG artifact yet.
+| Name | Email |
+|------|-------|
+| Wellium | wellium@pogistudios.com |
+| John Cantwell | johncantwell@odysseylogistics.com |
+| Brandon | greesbr@gmail.com |
+| Matt | matt@maius.com |
+| AJ | anthony.j.orsted@gmail.com |
 
-## Blockers
+## Next
 
-- `gh` not on PATH for Windows release publish
-- macOS DMG needs a Mac host
-
-## Next steps (ordered)
-
-1. Redeploy docs so Vercel shows Mac tab: `streamclip-henna.vercel.app/BETA_DOWNLOAD/`
-2. Publish Windows installer when `gh` available
-3. Mac host: `./scripts/build_desktop_installer_macos.sh`
-4. §5.1/5.2 ffmpeg VideoToolbox + arm64 ML
+1. Send invite bodies from `dist/phase0-invite-pack/emails/*.txt`
+2. `mkdocs build --strict` + deploy henna (Vercel)
+3. H+0 monitor support reports after sends
 
 ## Key paths
 
-- Download (users): `docs/BETA_DOWNLOAD.md` · Builders: `docs/MACOS_INSTALLER.md`
-- Mac build: `scripts/build_desktop_installer_macos.sh` · `packaging/installer/MACOS.md`
-- Win installer: `scripts/build_desktop_installer.ps1`
+- Keys log: `tmp/beta-keys.csv` (gitignored)
+- Invite pack: `dist/phase0-invite-pack/`
+- Public docs: https://streamclip-henna.vercel.app/

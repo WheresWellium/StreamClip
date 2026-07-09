@@ -36,10 +36,17 @@ def parse_order_event(payload: dict[str, Any]) -> dict[str, Any]:
 
     license_key = str(attrs.get("key") or "") if event_name == "license_key_created" else ""
     order_id = attrs.get("order_id") if event_name == "license_key_created" else data.get("id")
+    variant_id = ""
+    first_item = attrs.get("first_order_item")
+    if isinstance(first_item, dict):
+        variant_id = str(first_item.get("variant_id") or "")
+    if not variant_id:
+        variant_id = str(attrs.get("variant_id") or "")
 
     return {
         "event_name": event_name,
         "order_id": str(order_id or ""),
+        "variant_id": variant_id,
         "customer_email": attrs.get("user_email") or attrs.get("customer_email"),
         "product_name": attrs.get("first_order_item", {}).get("product_name")
         if isinstance(attrs.get("first_order_item"), dict)

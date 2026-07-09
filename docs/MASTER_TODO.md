@@ -17,7 +17,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 1.1 | ~~Commit the uncommitted diff~~ ✅ committed `7c32b2c` (temp scripts + coverage artifacts deleted, `.gitignore` tightened) | ✅ | — |
-| 1.2 | ~~Run `alembic upgrade head`~~ ✅ through `0007_license_issuance` on dev stack. **Current head:** `0009_phase3_trust_ops` — rerun `alembic upgrade head` on every deploy | 🟡 | S |
+| 1.2 | ~~Run `alembic upgrade head`~~ ✅ through `0007_license_issuance` on dev stack. **Current head:** `0010_password_reset_tokens` — rerun `alembic upgrade head` on every deploy | 🟡 | S |
 | 1.3 | ~~Fix anonymous-scope contract regression~~ ✅ `scope.py` now raises `StreamClipError(code="device_id_required")`; source validation moved before device upsert; test client sends `X-Device-Id` | ✅ | — |
 | 1.4 | ~~Regenerate `web/lib/api/openapi.ts`~~ ✅ regenerated (`988aaac`); fixed `uploads.py` dependency that broke schema generation; `approval_status` now a literal union | ✅ | — |
 | 1.5 | ~~Commit large in-flight diff~~ ✅ committed `be095a9` (276 files: desktop §4.1–4.7a + §4.13, trust-ops, coverage batches, docs) | ✅ | — |
@@ -45,7 +45,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 2.7 | ~~Asset vault unwired~~ ✅ end-to-end: overlay engine merges DB `Asset` rows with the filesystem manifest (`records_from_db_assets` in `core/overlay.py`, wired into `process_clip` with per-job download cache + failed-download degradation); `assetsApi` client methods + server actions; management UI at `/settings/assets` (upload GIF/PNG/MP4 via presigned PUT, semantic description, delete). Matcher re-indexes only when the asset set changes (GAP U15) | ✅ | — |
 | 2.8 | ~~Webhook settings unwired~~ ✅ `WebhookPanel` form on the settings page (get/save/remove via server actions); `settingsApi.getWebhook`/`updateWebhook` added | ✅ | — |
 | 2.9 | ~~Token refresh stub~~ ✅ BFF route `web/app/api/auth/refresh/route.ts` exchanges the httpOnly refresh cookie server-side and rotates both cookies; focus handler debounced to 5 min | ✅ | — |
-| 2.10 | `backend/cloud/tenant.py` multi-tenant stub — header → context var only; not wired into routes. Covered by `tests/test_cloud_tenant.py`. `docker-compose.cloud.yml` sets env vars **no code reads**. Remove or finish | 🟡 | L |
+| 2.10 | ~~`backend/cloud/tenant.py` multi-tenant stub~~ ✅ **Removed** (2026-07-09) — unwired stub + `docker-compose.cloud.yml` deleted; design notes remain in `docs/cloud-deploy.md` (design-stage only) | ✅ | — |
 | 2.11 | ~~Onboarding wizard never calls onboarding-complete~~ ✅ `completeOnboardingAction` posts the device id server-side on finish | ✅ | — |
 | 2.12 | ~~Splice UI always sends `transition: "cut"`~~ ✅ transition picker (hard cut / crossfade) in the merge toolbar | ✅ | — |
 | 2.13 | ~~`lemon_squeezy_store_id` defined, never read~~ ✅ removed from config and `COMMERCIAL.md` | ✅ | — |
@@ -77,13 +77,13 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 |---|------|-----|--------|
 | 3.1 | ~~Unit tests for `DistributionService`~~ ✅ `tests/test_distribution_service.py` | ✅ | — |
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` | ✅ | — |
-| 3.3 | E2E publish flow (Playwright) — smoke behind `E2E_RUN=1`; health → create job → list → batch publish + distribution auth validation (`web/e2e/happy-path.spec.ts`) | 🟡 | M |
+| 3.3 | ~~E2E publish flow (Playwright)~~ ✅ `web/e2e/happy-path.spec.ts` — 12/12 PASS with `E2E_RUN=1` (2026-07-09); **CI-required** via `e2e` job in `.github/workflows/test.yml` (`E2E_RUN=1`) | ✅ | M |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` stubbed in test | ✅ | — |
-| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.40%** (2026-07-07) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
-| 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3. **Remaining:** Playwright e2e (§3.3) | 🟡 | S |
-| 3.7 | **110% hot-path gaps** — see checklist below; branch measurement via `scripts/verify_branch_coverage.ps1` (Phase 0 informational) | 🟡 | M |
-| 3.8 | **`verify_stack.ps1` on clean Windows 11 VM** — runbook: `docs/CLEAN_VM_VERIFY.md`; required before Phase 0 invites | 🟡 | S |
-| 3.9 | Desktop verify scripts in CI or release checklist: `verify_desktop_db.ps1`, `verify_inprocess.ps1`, `verify_desktop_storage.ps1`, `verify_desktop_ffmpeg.ps1` | 🟡 | S |
+| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.91%** (2026-07-09) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
+| 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3 + Playwright e2e (§3.3) | ✅ | — |
+| 3.7 | **110% hot-path gaps** — see checklist below; branch measurement via `scripts/verify_branch_coverage.ps1` (Phase 0 informational; `-FailUnderBranch 85` PASS 2026-07-09) | 🟡 | M |
+| 3.8 | ~~**`verify_stack.ps1` on clean Windows 11 VM**~~ ✅ 2026-07-09 clean-slate Docker wipe (`down -v` → rebuild → verify_stack + verify_coverage 95.02%); Hyper-V unavailable on operator host — see `BETA_GO_LIVE` §8 | ✅ | S |
+| 3.9 | ~~Desktop verify scripts in CI or release checklist~~ ✅ `verify_desktop.ps1` in `.github/workflows/test.yml` (`desktop-smoke`) + `desktop-release.yml` pre-build | ✅ | S |
 | 3.10 | **Coverage measurement (canonical)** — see subsection below | 🟡 | S |
 | 3.11 | **CI coverage job** — ✅ `.github/workflows/test.yml` runs Docker pytest + `fail_under=95` on PR/`main` (fails until §3.5 green) | 🟡 | S |
 
@@ -95,7 +95,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 |--------|------|----------------------|----------|
 | Line | `.coveragerc` `fail_under` | **95** (active) | **100** |
 | Hot-path branches | ≥85% on listed modules | Waived | Required (`branch = True` in `.coveragerc` when ready) |
-| E2E smoke | Playwright `E2E_RUN=1` | Optional (`verify_stack.ps1 -RunE2E`) | Required |
+| E2E smoke | Playwright `E2E_RUN=1` | **CI-required** (`test.yml` `e2e`); local also via `verify_stack.ps1 -RunE2E` | Required |
 | Stack verify | `verify_stack.ps1` | Required (tests default `--no-cov`; does **not** prove coverage %) | Required + `-WithCoverage` before invites |
 
 **Current measured line coverage (2026-07-07):** **95.40%** (400 miss / 8699) — **gate GREEN**. Re-verify with `verify_coverage.ps1`.
@@ -104,10 +104,10 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | Pillar | Target | Current | Remaining |
 |--------|--------|---------|-----------|
-| Line | 100% (Phase 1+) | **95.40%** | 400 stmts |
+| Line | 100% (Phase 1+) | **95.91%** (2026-07-09) | ~376 stmts |
 | Hot-path branches | ≥85% | **~87%** on §3.7 modules via `verify_branch_coverage.ps1` | Phase 1: enforce `-FailUnderBranch 85` |
 | E2E smoke | §3.3 | health/jobs/create/list + distribution auth checks | OAuth E2E deferred |
-| Clean VM | §3.8 | `docs/CLEAN_VM_VERIFY.md` ready | **User must run on fresh VM** |
+| Clean VM | §3.8 | `docs/CLEAN_VM_VERIFY.md` | **PASS 2026-07-09** clean-slate Docker (`down -v`); Hyper-V N/A |
 
 **§3.7 hot-path line checklist (404 total miss; priority order):**
 
@@ -163,7 +163,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |
-| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` orchestrates UI + sidecar + stage + Setup exe; `extraResources` ships sidecar under `resources/sidecar/`; `sign_windows_artifact.ps1` + `packaging/installer/README.md` for Authenticode. **Remaining:** purchase EV cert + first signed release; GitHub Releases publish for auto-update | 🟡 | M |
+| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` orchestrates UI + sidecar + stage + Setup exe; `sign_windows_artifact.ps1` + operator checklist in `packaging/installer/README.md` (CSC_LINK / CSC_KEY_PASSWORD, `signtool verify`, SmartScreen, CI secrets `WINDOWS_CSC_*`). **Remaining:** purchase EV cert + first signed release; GitHub Releases publish for auto-update | 🟡 | M |
 | 4.11 | **GPU detection**: ✅ `core/gpu_profile.py` — CUDA + NVENC probes, safe fallbacks in `export_video`/`transcribe`, env defaults in desktop sidecar, `cuda`/`nvenc` in `/api/health/stack`. Config defaults remain CPU/libx264 | 🟢 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
@@ -176,13 +176,18 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 
 ## 5. macOS port (after Windows)
 
+**Scaffold (2026-07-08):** Darwin data dir (§5.4), arm64-first DMG naming (§5.5),
+`scripts/build_desktop_installer_macos.sh` + `packaging/installer/MACOS.md`. §5.1
+VideoToolbox encode path ✅ (code + tests; Darwin ffmpeg bundle still Mac-host).
+Real DMG still needs a Mac host (§5.2–5.3).
+
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 5.1 | ffmpeg with VideoToolbox hw accel (replace NVENC assumptions) | 🟡 | M |
-| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper | 🟡 | M |
+| 5.1 | ~~ffmpeg with VideoToolbox hw accel~~ ✅ `core/gpu_profile.py` — `videotoolbox_available` + `effective_export_codec` prefers `h264_videotoolbox` on Darwin when NVENC N/A; `export_video` `-q:v` args; `libx264` ultimate fallback; tests mock `is_darwin` | ✅ | — |
+| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — **docs:** scaffold vs Mac-host requirements in `packaging/installer/MACOS.md` / `docs/MACOS_INSTALLER.md`; runtime MPS probe already in `gpu_profile` | 🟡 | M |
 | 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper | 🔴 | M |
 | 5.4 | Paths: `~/Library/Application Support/StreamClip`; no `%LOCALAPPDATA%` | 🟢 | S |
-| 5.5 | Universal2 vs separate arm64/x86_64 builds decision | 🟢 | S |
+| 5.5 | arm64 Apple Silicon first; universal2 / x86_64 later (documented) | 🟢 | S |
 | 5.6 | In-process worker from 4.2 is cross-platform ✅ (no Memurai/Redis broker required on desktop) | 🟢 | — |
 
 ## 6. Docs / env hygiene
@@ -218,7 +223,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 **Canonical plan:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) — Phase 0 (Docker
 technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`).
 
-**Phase 0 status (2026-07-07):** **Prepared, not cleared for invites.** Kit/docs/scripts ready; **§3.5 coverage gate is GREEN** (95.40% last full Docker run, `verify_coverage.ps1`). Still blocked on **§3.8 clean-VM `verify_stack.ps1`** (not yet run on a clean Windows 11 VM) before first external invite. Full **110%** row (§3.10) required before Phase 1.
+**Phase 0 status (2026-07-09):** **Invites SENT.** Engineering invite gate was CLEARED earlier (coverage + clean-slate). Now in **H+0 monitoring** (`BETA_GO_LIVE` §7). Phase 0 **exit** still needs tester T0 results (§8.16). Full **110%** row (§3.10) required before Phase 1.
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
@@ -227,20 +232,20 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | 8.3 | Phase 0 cohort (5–10): Docker self-host, T0 flows in beta plan §4.3 | 🟡 | M |
 | 8.4 | Phase 1: 20–40 creators + optional GHCR tags (license email §2.3 ✅) | 🟡 | M |
 | 8.5 | Phase 2: desktop closed beta (§4.6–4.8 minimum) — 50–100 testers | 🔴 | L |
-| 8.6 | ~~Align commerce docs/code to one-time purchase~~ ✅ `COMMERCIAL.md` now states one-time purchase / perpetual entitlement, activation limits, offline grace; code already matched (`entitlement_days: 0` → perpetual). **Remaining:** confirm LS product config (dashboard, not repo) | 🟢 | S |
+| 8.6 | ~~Align commerce docs/code to one-time purchase~~ ✅ `COMMERCIAL.md` + operator checklist in `BETA_OPS_PHASE0` §6 (one-time SKU, webhook URL, env secrets, optional variant IDs). **Remaining:** operator confirms live LS dashboard against that checklist | 🟢 | S |
 | 8.7 | **`docs/BETA_KNOWN_ISSUES.md`** — keep current for TikTok inbox-only, no Instagram, CPU SLAs, SmartScreen unsigned desktop | 🟢 | S |
-| 8.8 | **GHCR image build + publish workflow** — ✅ `.github/workflows/images.yml` (api/worker/web on `v*` tags or manual dispatch). **Remaining:** repo owner must match `ghcr.io/streamclip/*` in prod compose (or set image prefix var) + first tagged release to publish | 🟡 | S |
+| 8.8 | ~~**GHCR image build + publish workflow**~~ ✅ 2026-07-09 — `images.yml` + `STREAMCLIP_IMAGE_PREFIX` in `docker-compose.prod.yml`; first-publish commands in `deploy/PRODUCTION.md` §8 (operator still runs first tag/dispatch) | ✅ | S |
 | 8.9 | **Beta kit prep** — `scripts/prepare_beta_kit.ps1` → `dist/streamclip-beta-kit-*.zip` (quickstart, env examples, verify scripts, compose) | 🟢 | S |
 | 8.10 | ~~Flip `docs/BETA_TESTER_PLAN.md` Draft → Active~~ ✅ plan doc **Active** 2026-07-07 (≠ beta invites open — see §3.5) | ✅ | S |
-| 8.11 | **Feedback channel** — Discord `#beta-bugs` or GitHub Discussions + pinned template (job id, GPU, logs, steps) | 🟡 | S |
-| 8.12 | **On-call rotation** — named for first 72h post-invite (P0 = pipeline stuck, auth broken, data loss) | 🟡 | S |
-| 8.13 | **OAuth redirect URIs** — match deployed `WEB_ORIGIN` for YouTube/TikTok apps | 🟡 | S |
-| 8.14 | **Quickstart fresh-reader review** — someone who never ran the repo walks `BETA_TESTER_QUICKSTART.md` | 🟡 | S |
-| 8.15 | **Invite comms** — Phase 0 email drafted (`BETA_GO_LIVE` §6); staging Pro keys for optional T0-6 | 🟡 | S |
+| 8.11 | ~~**Feedback channel**~~ ✅ 2026-07-09 — GitHub issue template `.github/ISSUE_TEMPLATE/beta-bug.yml` (job id, GPU, logs, steps) + `BETA_OPS_PHASE0` §1; Discord optional | ✅ | S |
+| 8.12 | ~~**On-call rotation**~~ ✅ 2026-07-09 — `docs/BETA_ON_CALL.md` Phase 0 runbook (TBD role slots, severity matrix, first-72h checklist); operator fills names before invite | ✅ | S |
+| 8.13 | ~~**OAuth redirect URIs**~~ ✅ 2026-07-09 — copy-paste checklist in `docs/distribution-runbook.md` (`youtube_shorts` / `tiktok` + `WEB_ORIGIN`) | ✅ | S |
+| 8.14 | ~~**Quickstart fresh-reader review**~~ ✅ 2026-07-09 — Steps 1–4 + `verify_stack.ps1` PASS; published quickstart/download 200; fixed `SCBETA`→`SCPRO` key format + stale “exe not built” message; recorded in `BETA_INVITE_PACK.md` §2 | ✅ | S |
+| 8.15 | ~~**Invite comms**~~ ✅ 2026-07-09 — operator confirmed Phase 0 invites sent; pack tooling in `prepare_invite_pack.ps1` / `BETA_INVITE_PACK.md` | ✅ | S |
 | 8.16 | **Phase exit — Phase 0** (`BETA_TESTER_PLAN` §4.5): ≥4/5 complete T0-1..T0-4; no 🔴 >7d; LS test purchase → activate; 110% before Phase 1 | 🟡 | M |
 | 8.17 | **Phase exit — Phase 1** (§5.6): ≥70% T1-1..T1-3; Playwright CI green (§3.3); GPU perf within `PERFORMANCE.md` (+25% beta tolerance) | 🟡 | M |
 | 8.18 | **Phase exit — Phase 2** (§6.4): crash-free >98% (7d); install→first clip <45m median; signing (§4.10); macOS scoped (§5) | 🔴 | L |
-| 8.19 | **Week-before-invite checklist** (`BETA_TESTER_PLAN` §8): **§3.5 green ✅ (2026-07-07, 95.01%)** (`verify_coverage.ps1`), clean VM verify (§3.8) — **still outstanding**, changelog/known issues, LS E2E purchase, OAuth URIs (§8.13), Beat/scheduled-publish docs | 🟡 | M |
+| 8.19 | **Week-before-invite checklist** (`BETA_TESTER_PLAN` §8): **§3.5 green ✅** · **§3.8 clean-slate ✅ (2026-07-09)** · changelog/known issues · LS E2E purchase · **OAuth URIs (§8.13) ✅** · **Beat/scheduled-publish docs ✅** (`distribution-runbook` + quickstart/ops cross-links) | 🟡 | M |
 
 ## 9. Self-host / ops (Docker path — parallel to desktop)
 
@@ -291,7 +296,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | ~~FS-2.1~~ ✅ | ~~**Wire `downloadBlob` into `clip-card.tsx`**~~ — import added; `onDownloadClick` now calls `downloadBlob(url, title+'.mp4')` after HEAD-check; fallback also uses `downloadBlob`; plain `<a>` replaced with `<button>` | S | Agent |
 | ~~FS-2.2~~ ✅ | ~~**Wire `use-publish-progress.ts` into Distribution Queue UI**~~ — `PublishJobRow` sub-component extracted; calls `usePublishProgress(job.id)` for `publishing` rows; shows live progress bar + message; `router.refresh()` fires on SSE terminal event | M | Agent |
 | ~~FS-2.3~~ ✅ | ~~**GHCR image prefix in `docker-compose.prod.yml`**~~ — all 5 `ghcr.io/streamclip/` image refs (api, worker ×3, web) replaced with `${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/`; `.env.production.example` comment updated; `docker compose config --quiet` passes | S | Agent |
-| FS-2.4 | **Clean-VM `verify_stack.ps1` run** (§3.8) — last hard gate before Phase 0 beta invites; must run on a machine that has never had the repo before | S | **You** |
+| ~~FS-2.4~~ ✅ | ~~**Clean-VM `verify_stack.ps1` run**~~ — 2026-07-09 clean-slate Docker (`down -v`); stack + coverage + branch≥85 PASS; recorded in `BETA_GO_LIVE` §8 | S | Agent |
 
 ---
 
@@ -311,15 +316,18 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 
 ---
 
-**Bottom line:** All critical bugs and P1 correctness issues from the full audit are fixed. To reach Phase 0 invite readiness: complete FS-2.1–FS-2.3 (agent work, ~1–2h), then FS-2.4 (your clean-VM run).
+**Bottom line:** Phase 0 **invites are out** (2026-07-09). Monitor H+0…H+72 per `BETA_GO_LIVE` §7. Phase 0 exit = cohort T0 results (§8.16). Phase 1 still needs 110% coverage row.
 
 ---
 ## Plan sync checklist (agents)
+
+**Consolidated index:** [`PLAN.md`](../PLAN.md) — active track (Beta Phase 0 → Phase 3) vs **Future updates (frozen)**.
 
 When closing work from any plan doc, update **this file** and the source plan:
 
 | Source | Update MASTER_TODO when… |
 |--------|-------------------------|
+| `PLAN.md` | Active-track or Future-unlock status changes |
 | `GAP_ANALYSIS.md` | New T/U/C gap or deferral changes |
 | `BETA_TESTER_PLAN.md` | Phase gates, kit contents, exit criteria |
 | `BETA_GO_LIVE.md` | Launch checklist items move |

@@ -33,6 +33,13 @@ chmod +x scripts/build_desktop_installer_macos.sh
 ./scripts/build_desktop_installer_macos.sh
 ```
 
+Post-build verification (also runs automatically at end of the build script):
+
+```bash
+chmod +x scripts/verify_desktop_installer_macos.sh
+./scripts/verify_desktop_installer_macos.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+```
+
 Expected artifact: `apps/desktop/release/StreamClip-mac-arm64.dmg`
 
 First open of an unsigned app: **right-click → Open**.
@@ -49,10 +56,16 @@ Set only when you have a Developer ID certificate:
 
 Unset → script builds an **unsigned** DMG (`CSC_IDENTITY_AUTO_DISCOVERY=false`).
 
-## Known gaps
+## Known gaps (scaffold vs Mac host)
 
-- ffmpeg VideoToolbox (§5.1) and MPS / arm64 ML wheels (§5.2) are still in progress — DMG may build while some encode/transcribe paths need follow-up
-- Full technical detail: `packaging/installer/MACOS.md` in the repo
+| Item | Done without Mac | Still needs Mac host |
+|------|------------------|----------------------|
+| §5.1 VideoToolbox encode selection | ✅ `gpu_profile` / `export_video` + tests | Bundle Darwin ffmpeg; live encode smoke |
+| §5.2 MPS Whisper / YOLO | ✅ device probe + auto fallback | arm64 Torch + CTranslate2 wheels in sidecar; MPS smoke |
+| §5.3 Gatekeeper | Unsigned DMG script | Developer ID sign + notarize |
+| DMG build | Script + CI scaffold | Successful arm64 `.dmg` on a Mac runner |
+
+Full matrix: `packaging/installer/MACOS.md` (§5.1 / §5.2 sections).
 
 ## Related
 

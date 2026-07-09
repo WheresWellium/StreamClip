@@ -98,7 +98,7 @@ GPU worker uses `h264_nvenc` and Whisper `float16` on CUDA. When running an isol
 
 ## 6. Webhooks
 
-Enable job-completion notifications for external automation (Discord bot, n8n, custom splice queue):
+Enable job-completion notifications for external automation (Discord bot, custom splice queue):
 
 ```yaml
 # config.yaml
@@ -121,3 +121,32 @@ Scrape `GET /metrics` and alert on:
 - `streamclip_jobs_completed_total{status="error"}` rate spike
 - `streamclip_clip_render_seconds` p95 > 600s on GPU deployments
 - `/api/health` `status != ok` for > 5 min
+
+## 8. GHCR images (`docker-compose.prod.yml`)
+
+Prod compose pulls prebuilt images via `${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}` (api, worker ×3, web). Workflow: [`.github/workflows/images.yml`](../.github/workflows/images.yml) — builds on `v*` tags or **workflow_dispatch**.
+
+Published tags are `ghcr.io/<github.repository_owner>/{api,worker,web}:<version>`. If your GitHub org/user is **not** `streamclip`, set the prefix to match:
+
+```bash
+# .env.production
+STREAMCLIP_IMAGE_PREFIX=ghcr.io/WheresWellium   # example: match repository owner
+STREAMCLIP_VERSION=1.0.0-beta.2                 # tag without leading v
+```
+
+**First publish (operator):**
+
+```bash
+# Option A — push a version tag (triggers images.yml)
+git tag v1.0.0-beta.3
+git push origin v1.0.0-beta.3
+
+# Option B — manual run from Actions → "images" → Run workflow
+#   version input e.g. 1.0.0-beta.3  (omit → sha-XXXXXXX)
+
+# Then on the host:
+docker compose -f docker-compose.prod.yml --env-file .env.production pull
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+Packages must be public (or the host logged in with a PAT that can `read:packages`). See `.env.production.example` for `STREAMCLIP_IMAGE_PREFIX`.

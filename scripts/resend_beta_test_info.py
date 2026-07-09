@@ -37,10 +37,17 @@ You're in — welcome to the StreamClip Phase 0 beta.
 
 Getting started (no GitHub account needed):
 
-1. Get StreamClip — pick Windows or Mac:
+1. Download and install:
    {henna_base}/BETA_DOWNLOAD/
 
-2. Quickstart — install to your first clip (~15 min):
+   Windows (no Docker): direct download link —
+   https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe
+   Windows may show "Windows protected your PC" — click More info → Run anyway. That's normal for an unsigned beta.
+
+   Mac: use Docker (the .dmg installer is not ready yet — do NOT run any .sh scripts)
+   Follow the macOS tab on the download page above.
+
+2. Quickstart — step by step (~15 min):
    {henna_base}/BETA_TESTER_QUICKSTART/
 
 3. Paste your license key in Settings → License after logging in:
@@ -48,10 +55,10 @@ Getting started (no GitHub account needed):
 
 This key gives you full access to every feature. No feature gates.
 
-The short path:
+The short path (Docker, Windows or Mac):
 - Install Docker Desktop (free) and keep it running
-- Extract the beta .zip from your invite (or use your private repo link)
-- Run the one start command from the quickstart
+- Extract the beta .zip from your invite email to any folder
+- Open a terminal in that folder and run the start command from the quickstart
 - Open http://localhost:3000
 - Paste a public video link and wait for clips
 

@@ -34,7 +34,7 @@ Both options are free. You do **not** need a GitHub account.
 
 If you prefer **not** to install Docker:
 
-1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)** (about 390 MB)
+1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe)** (about 390 MB)
 2. Run the installer
 
 **If Windows shows "Windows protected your PC"**
@@ -259,7 +259,7 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
+| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
 | macOS | `StreamClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
 **Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)

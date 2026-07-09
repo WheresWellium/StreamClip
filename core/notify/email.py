@@ -24,6 +24,7 @@ import smtplib
 import time
 from dataclasses import dataclass
 from email.message import EmailMessage
+from pathlib import Path
 
 import structlog
 
@@ -76,8 +77,14 @@ def send_email(
     body: str,
     settings: SMTPSettings | None = None,
     max_retries: int = 3,
+    attachments: list[Path] | None = None,
 ) -> bool:
-    """Send a plain-text email. Returns True on success, False otherwise."""
+    """Send a plain-text email, optionally with file attachments.
+
+    Returns True on success, False otherwise. Attachments are read fresh on
+    every retry attempt (cheap for the small beta-zip case; avoids holding
+    large buffers in memory across retries).
+    """
     smtp = settings or smtp_settings_from_env()
     if not smtp.configured:
         log.info("email_skipped_unconfigured", subject=subject)
@@ -91,6 +98,15 @@ def send_email(
     msg["To"] = to
     msg["Subject"] = subject
     msg.set_content(body)
+
+    for attachment_path in attachments or []:
+        data = attachment_path.read_bytes()
+        msg.add_attachment(
+            data,
+            maintype="application",
+            subtype="octet-stream",
+            filename=attachment_path.name,
+        )
 
     for attempt in range(max_retries):
         try:

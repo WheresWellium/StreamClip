@@ -259,6 +259,27 @@ def test_send_email_delivers_via_smtp():
     smtp.send_message.assert_called_once()
 
 
+def test_send_email_with_attachment_includes_file(tmp_path):
+    attachment = tmp_path / "StreamClip-beta.zip"
+    attachment.write_bytes(b"PK\x03\x04fake-zip-bytes")
+    settings = SMTPSettings(
+        host="smtp.example.com", port=587, user="u", password="p",
+        sender="noreply@example.com", starttls=True,
+    )
+    with patch("core.notify.email.smtplib.SMTP") as smtp_cls:
+        smtp = smtp_cls.return_value.__enter__.return_value
+        ok = send_email(
+            to="tester@example.com", subject="BETA TEST INFO", body="hello",
+            settings=settings, attachments=[attachment],
+        )
+    assert ok is True
+    smtp.send_message.assert_called_once()
+    sent_msg = smtp.send_message.call_args[0][0]
+    attachment_parts = [p for p in sent_msg.iter_attachments()]
+    assert len(attachment_parts) == 1
+    assert attachment_parts[0].get_filename() == "StreamClip-beta.zip"
+
+
 # ─── 3c. Data contribution opt-in ─────────────────────────────────────────────
 
 @pytest.mark.asyncio

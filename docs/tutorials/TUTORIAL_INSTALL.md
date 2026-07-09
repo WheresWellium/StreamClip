@@ -17,7 +17,7 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 | Accounts | **None required** to install or run | Same |
 
 !!! tip "No GitHub account needed"
-    Use the `.zip` from your invite email — [Get StreamClip](../BETA_DOWNLOAD.md).
+    The StreamClip files are attached directly to your invite email as a `.zip` — see [Get StreamClip](../BETA_DOWNLOAD.md).
 
 ## Step 1 — Install Docker Desktop
 
@@ -36,14 +36,14 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 
 ---
 
-## Step 2 — Get the StreamClip files
+## Step 2 — Extract the StreamClip files
 
-Extract the beta `.zip` from your invite email to a folder, for example:
+Find the `.zip` attached to your invite email (subject **BETA TEST INFO**) and extract it to a folder, for example:
 
 - Windows: `C:\StreamClip`
 - macOS: `~/StreamClip`
 
-If your invite included a private repo link, clone with Git. When unsure, reply to your invite email.
+No `git clone`, no GitHub sign-in, no downloads page — the attachment is everything you need.
 
 ---
 

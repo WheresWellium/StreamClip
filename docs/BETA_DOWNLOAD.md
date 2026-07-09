@@ -2,222 +2,173 @@
 
 **StreamClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
 
-**New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
+**New here?** Read this page top to bottom, or jump straight to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
 
 ---
 
-## Choose how you want to run it
+## Where your StreamClip files come from
 
-| Option | Who it's for | Difficulty |
-|--------|--------------|------------|
-| **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
-| **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
+The StreamClip beta files are **attached to your invite email as a `.zip`** — that email is the only place to get them. There is no public download link and no GitHub account needed.
 
-Both options are free. You do **not** need a GitHub account.
+If you don't see the attachment:
 
----
-
-## What's available right now
-
-| Path | Status | Who it's for |
-|------|--------|--------------|
-| **Docker self-host (Windows)** | ✅ Ready | Beta testers with Docker Desktop |
-| **Docker self-host (macOS)** | ✅ Ready | Beta testers on Apple Silicon or Intel Mac |
-| **Windows one-click installer (.exe)** | ✅ Ready (unsigned beta) | Creators who want no Docker — SmartScreen may warn |
-| **macOS one-click installer (.dmg)** | 🔜 Coming soon | General creators — scaffold in progress |
-
-**Phase 0 testers:** Docker is still the most complete path. The Windows `.exe` works well for quick trials without Docker.
+1. Check spam/junk for an email from **Wellium**, subject **BETA TEST INFO**
+2. Reply to that email and ask for it to be resent
+3. Do **not** search GitHub for a download — the repository is private and any link you find there will 404
 
 ---
 
-## Windows installer (no Docker)
+## How you run it: Docker (the only path today)
 
-If you prefer **not** to install Docker:
+Docker is currently the **one supported way** to run the StreamClip beta, on both Windows and Mac. It's free, well-tested, and gives you the full app.
 
-1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe)** (about 390 MB)
-2. Run the installer
+| | |
+|---|---|
+| **Works on** | Windows 10/11 and macOS 12+ |
+| **Time** | ~15 minutes first-time setup |
+| **Accounts needed** | None — no GitHub, no Docker Hub login |
 
-**If Windows shows "Windows protected your PC"**
-
-This is normal for an unsigned beta build. It does **not** mean the file is a virus.
-
-1. Click **More info**
-2. Click **Run anyway**
-3. Finish install and open StreamClip from the Start menu
-4. Sign up or log in, then paste your license key in **Settings → License**
-
-The desktop app runs everything locally. You still need your **license key** from your invite email.
+!!! note "No one-click installer yet"
+    A Windows `.exe` and macOS `.dmg` are in progress but not part of the beta distribution yet. Docker is the supported path for every Phase 0 tester regardless of OS.
 
 ---
 
-## Docker install (Windows and Mac)
-
-Pick your platform below.
-
----
-
-## Choose your platform
+## Step 1 — Install Docker Desktop
 
 === "Windows"
 
-    ### Requirements
+    1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/) — it's free
+    2. Run the installer, then open Docker Desktop
+    3. If prompted, enable **WSL 2** (recommended — just click through the prompt)
+    4. Wait until the little whale icon in your taskbar says **"Docker Desktop is running"**
 
-    - **Windows 10 or 11** (64-bit)
-    - **Docker Desktop** — [download](https://www.docker.com/products/docker-desktop/) (WSL2 backend)
-    - **16 GB RAM** minimum (32 GB recommended)
-    - **NVIDIA GPU** strongly recommended — CPU-only works but is much slower
+=== "macOS"
 
-    ### Step 1 — Get the beta package
+    1. Download **Docker Desktop for Mac** from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) — choose **Apple Silicon** (M1/M2/M3/M4) or **Intel** to match your Mac
+    2. Open the `.dmg` file, drag **Docker** into Applications, then launch it
+    3. Follow the first-run setup
+    4. Wait until the menu-bar whale icon says **"Docker Desktop is running"**
 
-    You should have received a `.zip` or a private repo link in your invite email. If you haven't:
+**Not sure which Mac chip you have?** Click the Apple menu → **About This Mac**. If it says "Apple M1/M2/M3/M4," pick Apple Silicon. If it says "Intel," pick Intel.
 
-    - Check spam for an email from Wellium
-    - Reply to your invite email and ask for the download link
+---
 
-    ### Step 2 — Extract and set up
+## Step 2 — Extract your StreamClip files
+
+1. Find the `.zip` attached to your invite email (subject **BETA TEST INFO**)
+2. Extract it to a folder you'll remember, for example:
+      - Windows: `C:\StreamClip`
+      - Mac: `~/StreamClip` (your home folder)
+
+That's it — no `git clone`, no GitHub sign-in.
+
+---
+
+## Step 3 — Start StreamClip
+
+=== "Windows"
+
+    Open **PowerShell**, then run:
 
     ```powershell
-    # Extract the beta zip to a folder, then:
-    cd streamclip
-    Copy-Item .env.example .env
+    cd C:\StreamClip
+    .\scripts\start_local.ps1
     ```
 
-    ### Step 3 — Start StreamClip
+    This one command creates your config file, starts Docker, sets up the database, and checks that everything is healthy — automatically.
 
-    ```powershell
-    docker compose up -d
+=== "macOS"
+
+    Open **Terminal**, then run:
+
+    ```bash
+    cd ~/StreamClip
+    cp .env.example .env
+    docker compose up -d --build
+    docker compose exec -T api alembic upgrade head
     ```
 
-    First run downloads Docker images — allow 5–10 minutes on a fast connection.
+**First run takes longer** — Docker downloads about 2–5 GB of images. Give it 5–15 minutes on a normal connection. Every time after that, starting up takes under a minute.
 
-    ### Step 4 — Verify it's running
+---
+
+## Step 4 — Confirm it's running
+
+=== "Windows"
+
+    `start_local.ps1` already checked this for you. To check again anytime:
 
     ```powershell
     .\scripts\verify_stack.ps1
     ```
 
-    This should exit with **all checks green**. If not, do not create jobs yet — post your output in the beta channel from your invite email.
-
-    Or open:
-
-    - **App:** [http://localhost:3000](http://localhost:3000)
-    - **API health:** [http://localhost:8000/api/health](http://localhost:8000/api/health)
+    You want to see **all checks green**. If something's red, don't create a job yet — use **Report a bug** in the app (Step 5) and paste the output.
 
 === "macOS"
-
-    ### Requirements
-
-    - **macOS 12+** (Apple Silicon M1/M2/M3/M4 preferred; Intel Mac works)
-    - **Docker Desktop for Mac** — [download](https://www.docker.com/products/docker-desktop/) (pick **Apple Silicon** or **Intel** to match your Mac)
-    - **16 GB RAM** minimum (32 GB recommended)
-    - **~20 GB free disk** for images + first-run models
-    - **No NVIDIA GPU on Mac** — clips run on CPU (slower). That is expected and supported.
-
-    **You do not need:** an Apple Developer account, Xcode (full app), Node, Python, or a paid Mac App Store anything — only Docker Desktop.
-
-    ### Step 1 — Install Docker Desktop
-
-    1. Download Docker Desktop for Mac from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
-    2. Open the `.dmg`, drag **Docker** to Applications, launch it
-    3. Complete first-run setup and wait until the menu-bar whale shows **Docker Desktop is running**
-    4. (Apple Silicon) Prefer the **Apple Silicon** build — Rosetta-only Intel images are slower
-
-    ### Step 2 — Get the beta package
-
-    Same as Windows: `.zip` or private repo link from your invite email.
-
-    ```bash
-    # ZIP: unzip, then:
-    cd ~/Downloads/streamclip   # or wherever you extracted
-
-    # Or clone if your invite included a repo URL:
-    # git clone <LINK_FROM_INVITE> streamclip && cd streamclip
-    ```
-
-    ### Step 3 — Configure
-
-    ```bash
-    cp .env.example .env
-    ```
-
-    Defaults work for local beta — no API keys required to start.
-
-    ### Step 4 — Start StreamClip
-
-    ```bash
-    docker compose up -d
-    ```
-
-    First run downloads images (~2–5 GB). Allow 5–15 minutes. Later starts take about a minute.
-
-    ### Step 5 — Verify it's running
-
-    PowerShell verify script is optional on Mac. Use these checks:
 
     ```bash
     docker compose ps
     curl -s http://localhost:8000/api/health
-    open http://localhost:3000
     ```
 
-    You want containers **healthy** / **running**, health JSON with an OK-style status, and the StreamClip UI in the browser.
+    You want every service listed as **running**/**healthy**, and the health check to return something with `"status": "ok"`.
 
-    Optional (if you installed [PowerShell Core](https://github.com/PowerShell/PowerShell)):
+Either way, open your browser to confirm:
 
-    ```bash
-    pwsh -File ./scripts/verify_stack.ps1
-    ```
+| Check | URL | You should see |
+|-------|-----|-----------------|
+| App | [http://localhost:3000](http://localhost:3000) | The StreamClip home screen |
+| API health | [http://localhost:8000/api/health](http://localhost:8000/api/health) | `{"status": "ok", ...}` |
 
 ---
 
-## After install (Windows and Mac)
+## Step 5 — Activate your license key
 
-### Activate your license
+1. On [http://localhost:3000](http://localhost:3000), sign up or log in
+2. Go to **Settings → License**
+3. Paste the license key from your invite email (looks like `SCPRO-XXXX-XXXX-XXXX-XXXX`)
+4. Click **Activate**
 
-1. Open the app at [http://localhost:3000](http://localhost:3000)
-2. Sign up / log in
-3. Go to **Settings → License**
-4. Paste the license key from your invite email
-5. Confirm — beta keys unlock **full access**
+Your beta key unlocks **every feature** — there's no paywall or limited tier during the beta.
 
-### Create your first clip
+---
 
-1. Click **New job**
-2. Paste any **public** video URL — Twitch VOD, YouTube, Kick, or a direct `.mp4` link
-3. Submit and watch the progress bar
-4. When status shows **done**, review and approve clips you like
+## Make your first clip
 
-**Speed guide**
+1. Click **New job** on the home screen
+2. Paste any **public** video link — Twitch VOD, YouTube video, Kick stream, or a direct `.mp4` URL
+3. Click **Submit** and watch the progress bar
+4. When it says **done**, review the clip previews and click **Approve** on the ones you like
 
-| Setup | ~1-hour VOD |
-|-------|-------------|
-| Windows + NVIDIA GPU | ~20–25 minutes |
-| Windows / Mac CPU-only | ~60–90+ minutes |
+**How long does it take?**
 
-### Publish to YouTube Shorts (optional)
+| Your setup | ~1-hour source video |
+|------------|-----------------------|
+| Windows with NVIDIA GPU | ~20–25 minutes |
+| Windows or Mac, CPU only | ~60–90+ minutes |
 
-1. Open a finished, approved clip
-2. **Settings → Distribution → Connect YouTube Shorts** → sign in with Google
-3. Click **Publish** on any approved clip
+Want the full walkthrough? See the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
+
+---
+
+## Publish to YouTube Shorts (optional)
+
+1. Open an approved clip
+2. Go to **Settings → Distribution → Connect YouTube Shorts** and sign in with Google
+3. Return to the clip and click **Publish**
 
 !!! note "TikTok"
-    TikTok direct publish is inbox-upload only during beta (awaiting app audit). Your clip will be saved to TikTok drafts — finish posting inside the TikTok app.
+    During beta, TikTok publishing saves your clip to **TikTok drafts** instead of posting directly (Google/TikTok app-review limitation, not a bug). Finish posting from inside the TikTok app.
 
-### Stop StreamClip
+---
 
-=== "Windows"
+## Stop StreamClip when you're done
 
-    ```powershell
-    docker compose down
-    ```
+```bash
+docker compose down
+```
 
-=== "macOS"
-
-    ```bash
-    docker compose down
-    ```
-
-Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you want to wipe everything.
+Your jobs, clips, and settings stay saved. Only add `-v` to the end of that command if you want to **permanently delete everything** and start fresh.
 
 ---
 
@@ -225,50 +176,32 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 
 | | Windows | macOS |
 |-|---------|-------|
-| OS | Windows 10/11 64-bit | macOS 12+ |
-| Runtime | Docker Desktop (WSL2) | Docker Desktop for Mac |
-| RAM | 16 GB min / 32 GB recommended | Same |
-| Disk | 10 GB+ free (20 GB SSD better) | 20 GB+ free recommended |
-| GPU | NVIDIA + NVENC recommended | CPU only (no NVENC) |
-| Accounts | None to install | None to install |
+| OS version | Windows 10 or 11 (64-bit) | macOS 12 or newer |
+| Runtime | Docker Desktop (with WSL 2) | Docker Desktop for Mac |
+| RAM | 16 GB minimum, 32 GB recommended | Same |
+| Free disk space | 10 GB+ (SSD preferred) | 20 GB+ recommended |
+| Graphics card | NVIDIA GPU recommended for speed — CPU-only works, just slower | No NVIDIA on Mac — CPU-only is expected and fully supported |
+| Accounts | None | None |
 
 ---
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| App won't load at localhost:3000 | Wait 60 s after `docker compose up -d`; run `docker compose ps` — all services should be up |
-| `docker compose` not found | Install/update Docker Desktop and ensure it is **running** |
-| Mac: Docker is slow / fans loud | Give Docker more CPUs/RAM (Docker Desktop → Settings → Resources). Prefer Apple Silicon build on M-series |
-| Very slow clips on Windows | Enable GPU in Docker Desktop → Settings → Resources → GPU |
-| Very slow clips on Mac | Expected without NVIDIA — use shorter source videos for beta |
-| License key not accepted | Paste the full key including dashes; check Settings → License shows a device ID |
-| Windows: `verify_stack.ps1` fails | Post the full output in the beta channel — include GPU model |
-| Mac: `curl` health fails | Confirm API container is running: `docker compose logs api --tail 50` |
+| Problem | What to do |
+|---------|------------|
+| The app won't load at localhost:3000 | Wait 60 seconds after starting, then run `docker compose ps` — every service should say "running" |
+| `docker compose` says "command not found" | Docker Desktop isn't installed or isn't running — open it and wait for "Docker Desktop is running" |
+| Clips are taking forever | On Windows: turn on GPU in Docker Desktop → Settings → Resources → GPU. On Mac: this is expected without NVIDIA — try a shorter video for testing |
+| License key won't activate | Make sure you copied the whole key including every dash |
+| Can't find the `.zip` attachment | Check spam for the "BETA TEST INFO" email; reply to it and ask for a resend |
+
+More detail: [Known issues](BETA_KNOWN_ISSUES.md) · [Troubleshooting tutorial](tutorials/TUTORIAL_TROUBLESHOOTING.md)
 
 ---
 
 ## Get help
 
-Use **Report a bug** or **Beta feedback** in the app header — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
-
----
-
-## One-click installers
-
-| Platform | Artifact | Status |
-|----------|----------|--------|
-| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.2/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
-| macOS | `StreamClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
-
-**Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
-
-Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
-
-### For friends helping build the macOS `.dmg` (not required for beta use)
-
-See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users should **not** need that path yet — use Docker above.
+Use **Report a bug** or **Beta feedback** in the app header (top of the screen) — every submission is read, even before auto-replies are set up. You can also just reply to your invite email.
 
 ---
 

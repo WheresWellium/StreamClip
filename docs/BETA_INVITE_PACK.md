@@ -109,6 +109,21 @@ Replace:
 
 H+0 checklist: [BETA_GO_LIVE.md §7](BETA_GO_LIVE.md#7-launch-day-hour-0).
 
+### Follow-up: BETA TEST INFO (post-invite)
+
+Send the same **getting-started flow** as [henna index](https://streamclip-henna.vercel.app/) and the invite pack, with subject **BETA TEST INFO**. **Reuse the original keys CSV** — do not re-run `issue_beta_keys.py` (that would issue new keys).
+
+```powershell
+# cohort.csv: email,name (gitignored)
+# keys: dist/phase0-invite-pack/keys.csv or tmp/beta-keys.csv from original issuance
+python scripts/send_beta_test_info_emails.py --csv cohort.csv `
+  --keys-csv dist/phase0-invite-pack/keys.csv
+python scripts/send_beta_test_info_emails.py --csv cohort.csv `
+  --keys-csv tmp/beta-keys.csv --send   # requires SMTP_* on api/worker
+```
+
+Subject defaults to **BETA TEST INFO**. Each body includes henna download + quickstart links and the **same** `SCPRO-…` key from the keys file.
+
 ---
 
 ## 6. After first replies

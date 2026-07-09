@@ -28,8 +28,8 @@
 
 ## Next
 
-1. Send invite bodies from `dist/phase0-invite-pack/emails/*.txt`
-2. `mkdocs build --strict` + deploy henna (Vercel)
+1. ~~Send invite bodies from `dist/phase0-invite-pack/emails/*.txt`~~ invites sent 2026-07-09
+2. Send **BETA TEST INFO** follow-up: `python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv tmp/beta-keys.csv --send` (reuse original keys CSV; SMTP required)
 3. H+0 monitor support reports after sends
 
 ## Key paths

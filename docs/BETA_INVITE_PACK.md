@@ -119,8 +119,11 @@ Send the same **getting-started flow** as [henna index](https://streamclip-henna
 python scripts/send_beta_test_info_emails.py --csv cohort.csv `
   --keys-csv dist/phase0-invite-pack/keys.csv
 python scripts/send_beta_test_info_emails.py --csv cohort.csv `
-  --keys-csv tmp/beta-keys.csv --send   # requires SMTP_* on api/worker
+  --keys-csv tmp/beta-keys.csv --env-file .env.beta-mail --send
 ```
+
+Copy `.env.beta-mail.example` → `.env.beta-mail` and set `SMTP_PASSWORD` for
+`wheres@wellium.work` (Outlook / `smtp.office365.com:587`, STARTTLS).
 
 Subject defaults to **BETA TEST INFO**. Each body includes henna download + quickstart links and the **same** `SCPRO-…` key from the keys file.
 

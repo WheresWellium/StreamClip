@@ -107,8 +107,25 @@ in tester-facing copy.
 
 ```powershell
 python scripts/build_beta_zip.py    # writes dist/StreamClip-beta.zip (~1 MB)
-python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv <keys.csv> --send
+python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv <keys.csv> `
+    --env-file .env.beta-mail --send
 ```
+
+Copy `.env.beta-mail.example` → `.env.beta-mail` (gitignored) and set `SMTP_PASSWORD`
+for the `wheres@wellium.work` Microsoft 365 mailbox before `--send`.
+
+| Variable | Outlook / M365 value |
+|----------|----------------------|
+| `SMTP_HOST` | `smtp.office365.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | `wheres@wellium.work` |
+| `SMTP_FROM` | `wheres@wellium.work` |
+| `SMTP_PASSWORD` | Mailbox or app password (not in git) |
+| `SMTP_STARTTLS` | `true` |
+
+Ensure **SMTP AUTH** is enabled for the mailbox (M365 admin → user → Mail →
+Manage email apps → Authenticated SMTP). The script attaches
+`dist/StreamClip-beta.zip` (~0.7 MB) to every message.
 
 The sender script (`scripts/send_beta_test_info_emails.py`) already attaches
 `dist/StreamClip-beta.zip` and uses this subject/body. For a fully manual send,
@@ -159,7 +176,7 @@ Add to `.env` / production secrets — all optional for Phase 0:
 | Variable | Purpose |
 |----------|---------|
 | `BUG_REPORT_TO` | SMTP destination for bug reports |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Outbound mail |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Outbound mail (Docker bug reports + operator beta sends via `.env.beta-mail`) |
 | `OPS_WEBHOOK_URL` | Forward bug + feedback + `job_failed` to Discord/Slack/agent inbox |
 | `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | Error telemetry (API + workers) |
 
@@ -186,7 +203,7 @@ Do not commit secrets or real product/variant IDs.
 Full operator pack: [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md).
 
 - [ ] `verify_stack.ps1` green on operator machine
-- [ ] GitHub Release / installer linked from [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md)
+- [ ] Beta `.zip` built (`python scripts/build_beta_zip.py`) — testers get code via email attachment only
 - [ ] Keys issued via `issue_beta_keys.py`; CSV stored securely (not in git)
 - [ ] At least one admin account exists for `GET /api/admin/bug-reports`
 - [ ] [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) current for this wave

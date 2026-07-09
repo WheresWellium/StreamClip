@@ -25,11 +25,12 @@
 | Brandon | greesbr@gmail.com |
 | Matt | matt@maius.com |
 | AJ | anthony.j.orsted@gmail.com |
+| Mitchell | acosmicprefuse@gmail.com |
 
 ## Next
 
 1. ~~Send invite bodies from `dist/phase0-invite-pack/emails/*.txt`~~ invites sent 2026-07-09
-2. Send **BETA TEST INFO** follow-up: `python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv tmp/beta-keys.csv --send` (reuse original keys CSV; SMTP required)
+2. Add `SMTP_PASSWORD` to `.env.beta-mail` (from `.env.beta-mail.example`), then send **BETA TEST INFO**: `python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv tmp/beta-keys.csv --env-file .env.beta-mail --send`
 3. H+0 monitor support reports after sends
 
 ## Key paths

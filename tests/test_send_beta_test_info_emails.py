@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,28 @@ def test_main_exits_when_keys_csv_missing(tmp_path: Path) -> None:
     cohort.write_text("email,name\nt@example.com,T\n", encoding="utf-8")
     code = sender.main(["--csv", str(cohort), "--keys-csv", str(tmp_path / "missing.csv")])
     assert code == 1
+
+
+def test_load_env_file_sets_smtp_vars(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SMTP_HOST", raising=False)
+    monkeypatch.delenv("SMTP_FROM", raising=False)
+    env_path = tmp_path / ".env.beta-mail"
+    env_path.write_text(
+        "SMTP_HOST=smtp.office365.com\n"
+        "SMTP_FROM=wheres@wellium.work\n",
+        encoding="utf-8",
+    )
+    sender._load_env_file(env_path)
+    assert os.environ["SMTP_HOST"] == "smtp.office365.com"
+    assert os.environ["SMTP_FROM"] == "wheres@wellium.work"
+
+
+def test_load_env_file_does_not_override_existing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("SMTP_HOST", "existing")
+    env_path = tmp_path / ".env.beta-mail"
+    env_path.write_text("SMTP_HOST=smtp.office365.com\n", encoding="utf-8")
+    sender._load_env_file(env_path)
+    assert os.environ["SMTP_HOST"] == "existing"
 
 
 def test_main_exits_when_send_requested_but_zip_missing(tmp_path: Path) -> None:

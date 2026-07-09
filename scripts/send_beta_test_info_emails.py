@@ -23,7 +23,7 @@ Usage (repo root):
 
   # Send when SMTP_* env vars are set (attaches dist/StreamClip-beta.zip):
   python scripts/send_beta_test_info_emails.py --csv cohort.csv \\
-      --keys-csv tmp/beta-keys.csv --send
+      --keys-csv tmp/beta-keys.csv --env-file .env.beta-mail --send
 
   # Preview without writing files:
   python scripts/send_beta_test_info_emails.py --csv cohort.csv \\
@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -188,6 +189,26 @@ def _safe_filename(email: str) -> str:
     return "".join(c if c.isalnum() or c in "._@-" else "_" for c in email)
 
 
+def _load_env_file(path: Path) -> None:
+    """Apply KEY=VALUE lines from an env file into os.environ (existing vars win)."""
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        os.environ[key] = value
+
+
 def _render_body(member: CohortMember, *, henna_base: str) -> str:
     return BODY_TEMPLATE.format(
         name=member.name,
@@ -230,7 +251,7 @@ def _write_pack(
             "",
             "Send via:",
             "  python scripts/send_beta_test_info_emails.py --csv cohort.csv \\",
-            "      --keys-csv <same-keys-as-invite> --send",
+            "      --keys-csv <same-keys-as-invite> --env-file .env.beta-mail --send",
             "",
             "Or copy each file under emails/ into your mail client.",
             "Do not commit dist/ (gitignored).",
@@ -285,6 +306,15 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=None,
+        help=(
+            "Optional env file with SMTP_* vars (copy from .env.beta-mail.example). "
+            "Loaded before send; does not override existing environment variables."
+        ),
+    )
+    parser.add_argument(
         "--send",
         action="store_true",
         help="Send via SMTP (requires SMTP_HOST and related env vars)",
@@ -295,6 +325,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Print actions only; do not write files or send",
     )
     args = parser.parse_args(argv)
+
+    if args.env_file is not None:
+        if not args.env_file.is_file():
+            print(f"Env file not found: {args.env_file}", file=sys.stderr)
+            return 1
+        _load_env_file(args.env_file)
+        print(f"Loaded SMTP env from: {args.env_file}", file=sys.stderr)
 
     if not args.csv.is_file():
         print(f"Cohort CSV not found: {args.csv}", file=sys.stderr)

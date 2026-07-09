@@ -73,15 +73,20 @@ Send keys in the invite email body. Template: [BETA_OPS_PHASE0.md §4](BETA_OPS_
 
 ---
 
-## 5. SMTP (bug report email)
+## 5. SMTP (bug report email + beta operator sends)
 
-Optional — reports **always persist** in Postgres first.
+Optional for in-app bug reports — reports **always persist** in Postgres first.
+
+Phase 0 **BETA TEST INFO** cohort emails use the same `SMTP_*` variables via
+`.env.beta-mail` (copy from `.env.beta-mail.example`) and
+`scripts/send_beta_test_info_emails.py --env-file .env.beta-mail --send`.
+Sender: `wheres@wellium.work` on Microsoft 365 (`smtp.office365.com:587`, STARTTLS).
 
 | Variable | Purpose |
 |----------|---------|
-| `SMTP_HOST` | Outbound mail server |
+| `SMTP_HOST` | Outbound mail server (`smtp.office365.com` for Outlook) |
 | `SMTP_PORT` | Usually `587` (TLS) or `465` |
-| `SMTP_USER` / `SMTP_PASSWORD` | Auth |
+| `SMTP_USER` / `SMTP_PASSWORD` | Auth (`wheres@wellium.work` + mailbox/app password) |
 | `SMTP_FROM` | From address |
 | `BUG_REPORT_TO` | Operator inbox for bug reports |
 

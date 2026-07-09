@@ -33,6 +33,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 
 ## Docker self-host (Phase 0–1)
 
+- **Repo is private** — testers get StreamClip only via the `.zip` attached to their invite email (subject BETA TEST INFO). There is no public GitHub download; do not send testers GitHub links.
 - **Windows:** Docker Desktop with WSL2 backend recommended; NVIDIA + NVENC for fast encode
 - **macOS:** Docker Desktop for Mac supported for beta; **CPU-only** encode (no NVENC) — expect longer jobs
 - Default worker queues configurable via `STREAMCLIP_WORKER_QUEUES` — use `--profile gpu` + `default`-only worker for isolation (`MASTER_TODO` §6.8, `docker-compose.prod.yml`)

@@ -56,9 +56,14 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 ## 5. Phase 0 kit contents
 
-**Creators (primary):** [Download page](BETA_DOWNLOAD.md) on Vercel → `StreamClip-Setup-win-x64.exe` from GitHub Releases.
+**Repo is private** (Option B, decided 2026-07-09) — no GitHub Releases link works
+for testers without repo access. The only distribution path is the `.zip`
+attached directly to the invite email, built with `scripts/build_beta_zip.py`
+and sent via `scripts/send_beta_test_info_emails.py --send`. [Download page](BETA_DOWNLOAD.md)
+walks testers through Docker setup once they have that attachment — it does
+**not** link to GitHub Releases.
 
-**Docker self-host (technical beta):** ship via private link, encrypted zip, or:
+Alternate manual kit (same idea, built differently — for ad hoc sends):
 
 ```powershell
 .\scripts\prepare_beta_kit.ps1
@@ -81,20 +86,22 @@ Kit includes:
 
 ## 6. Invite email template (Phase 0)
 
-**Subject:** StreamClip technical beta — Docker self-host (Phase 0)
+**See canonical template + send command:** [BETA_OPS_PHASE0.md §4](BETA_OPS_PHASE0.md#4-invite-email-template-attach-the-beta-zip--repo-is-private).
+Subject **BETA TEST INFO**, `.zip` attached directly (no `[REPO_OR_ZIP]` placeholder —
+the file itself IS the attachment, built by `scripts/build_beta_zip.py`).
 
-Body:
+Quick summary for testers:
 
 > You're in the StreamClip **Phase 0** cohort (technical self-host).  
 >
 > **Goal:** Run the full clip pipeline locally and report breakages.  
 > **Time:** ~15 min setup, ~1 h first real job (GPU recommended).  
 >
-> 1. Clone/access: `[REPO_OR_ZIP]`  
+> 1. Extract the attached `.zip`  
 > 2. Follow `docs/BETA_TESTER_QUICKSTART.md`  
 > 3. Run `.\scripts\verify_stack.ps1` — must exit 0 before your first job  
 > 4. Complete flows T0-1 through T0-4 in `docs/BETA_TESTER_PLAN.md`  
-> 5. Post feedback in `[DISCORD_OR_DISCUSSIONS]` using the pinned template  
+> 5. Use in-app **Report a bug** / **Beta feedback**, or the GitHub beta-bug issue template  
 >
 > **Commerce note:** Beta validates a **buy-once, run-local** model (no metered cloud). Pro keys are optional for T0-6.  
 >

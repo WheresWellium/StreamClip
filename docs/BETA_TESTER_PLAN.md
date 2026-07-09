@@ -77,13 +77,18 @@ Line coverage caps at 100%. **110%** means the full row below. **Canonical measu
 - **Profile:** Comfortable with Docker, env vars, logs, `docker compose exec`
 - **Hardware:** Windows 10/11; at least 2 with NVIDIA GPU (NVENC path)
 
-### 4.2 Tester kit (ship as a zip + private repo link)
+### 4.2 Tester kit (ship as a `.zip` attached to the invite email — repo is private)
+
+Repo stays private (Option B, decided 2026-07-09) — there is no repo link
+testers can use. `scripts/build_beta_zip.py` builds the tester `.zip` from
+tracked files, and `scripts/send_beta_test_info_emails.py --send` attaches it
+directly to each cohort member's invite email.
 
 1. `docs/BETA_TESTER_QUICKSTART.md` — 15-minute path (see also `docs/BETA_GO_LIVE.md`)
 2. `.env.example` filled for local MinIO + Ollama + distribution BYO OAuth
 3. `scripts/verify_stack.ps1` — must pass before first job
 4. Known-issues list (`docs/BETA_KNOWN_ISSUES.md`: TikTok inbox-only, no Instagram, CPU fallback slow)
-5. Feedback channel: GitHub Discussions *or* Discord `#beta-bugs` + template
+5. Feedback channel: in-app **Report a bug** / **Beta feedback**, GitHub beta-bug issue template
 
 ### 4.3 Required tester flows (acceptance)
 

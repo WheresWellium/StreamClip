@@ -98,9 +98,23 @@ Beta feedback rows have `environment->>'kind' = 'beta_feedback'`.
 
 ---
 
-## 4. Invite email template (manual send)
+## 4. Invite email template (attach the beta .zip — repo is private)
 
-Subject: **StreamClip Phase 0 beta — your access**
+**The repo is private** (Option B, decided 2026-07-09) — there is no public GitHub
+Releases link testers can use. The `.zip` built by `scripts/build_beta_zip.py`
+**must be attached directly to the invite email**. Do not link to GitHub anywhere
+in tester-facing copy.
+
+```powershell
+python scripts/build_beta_zip.py    # writes dist/StreamClip-beta.zip (~1 MB)
+python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv <keys.csv> --send
+```
+
+The sender script (`scripts/send_beta_test_info_emails.py`) already attaches
+`dist/StreamClip-beta.zip` and uses this subject/body. For a fully manual send,
+replicate it exactly — same attachment, same subject:
+
+Subject: **BETA TEST INFO**
 
 Body (replace placeholders):
 
@@ -109,16 +123,25 @@ Hi {name},
 
 You're in — welcome to the StreamClip Phase 0 beta.
 
-Get started (no GitHub account needed):
-https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+Getting started (no GitHub account needed):
 
-Quickstart guide (step-by-step, ~15 min):
-https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/
+1. The StreamClip beta files are attached to this email as a .zip.
+   Extract it to any folder (e.g. C:\StreamClip or ~/StreamClip).
 
-Your license key — paste in Settings → License after logging in:
-{license_key}
+2. Quickstart — install to your first clip (~15 min):
+   https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/
+
+3. Paste your license key in Settings → License after logging in:
+   {license_key}
 
 This key gives you full access to every feature. No feature gates.
+
+The short path:
+- Install Docker Desktop (free) and keep it running
+- Extract the attached .zip to any folder
+- Run the one start command from the quickstart
+- Open http://localhost:3000
+- Paste a public video link and wait for clips
 
 Use "Beta feedback" or "Report a bug" in the app header for support.
 We read every submission even if you don't get an auto-reply yet.

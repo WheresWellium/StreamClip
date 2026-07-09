@@ -1,6 +1,7 @@
-# Docs-only deploy — exclude app stack; keep all of docs/ + mkdocs config.
-# Whitelist-only ignores nested markdown; use explicit excludes instead.
+# Docs-only deploy — exclude almost everything; MkDocs only needs docs/ + mkdocs.yml.
+# Without this, CLI uploads multi-GB monorepo artifacts (bin/, static/, tmp/, etc.).
 
+# App / ML / packaging
 backend/
 core/
 web/
@@ -10,23 +11,49 @@ alembic/
 scripts/
 deploy/
 config/
+desktop_sidecar/
+packaging/
+static/
+bin/
+assets/
+build/
+dist/
 site/
-.workspace/
-workspace/
+tmp/
 output/
+workspace/
+.workspace/
+.cache/
+.pytest_cache/
+.cursor/
+.vscode/
+.github/
+
+# Python / Node
 .venv/
 **/__pycache__/
 **/*.pyc
 **/.next/
 **/node_modules/
 *.egg-info/
-dist/
-build/
+
+# Git / local
 .git/
+.vercel/
+
+# Compose / Docker / root Python (not docs requirements)
 docker-compose*.yml
 Dockerfile*
 /requirements.txt
+/requirements-*.txt
 openapi.json
 Makefile
 .coveragerc
 pyproject.toml
+AGENTS.md
+README.md
+LICENSE*
+*.exe
+*.dll
+*.so
+*.dylib

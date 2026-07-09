@@ -33,17 +33,20 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 
 ## Docker self-host (Phase 0–1)
 
-- Requires **Docker Desktop** on Windows; WSL2 backend recommended
+- **Windows:** Docker Desktop with WSL2 backend recommended; NVIDIA + NVENC for fast encode
+- **macOS:** Docker Desktop for Mac supported for beta; **CPU-only** encode (no NVENC) — expect longer jobs
 - Default worker queues configurable via `STREAMCLIP_WORKER_QUEUES` — use `--profile gpu` + `default`-only worker for isolation (`MASTER_TODO` §6.8, `docker-compose.prod.yml`)
 - Ollama optional; virality degrades to score 0 if LLM unreachable
+- Install guide: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) (Windows & Mac tabs)
 
-## Desktop `.exe` (Phase 2)
+## Desktop `.exe` / `.dmg` (Phase 2)
 
 <a id="desktop-exe-phase-2"></a>
 
-- **Unsigned builds** trigger Windows SmartScreen — click “More info → Run anyway” until code signing (MASTER_TODO §4.10)
+- **Windows `.exe`:** unsigned builds trigger SmartScreen — “More info → Run anyway” until code signing (MASTER_TODO §4.10)
+- **macOS `.dmg`:** not a public beta download yet; scaffold + builder notes in [MACOS_INSTALLER.md](MACOS_INSTALLER.md). Unsigned apps need **right-click → Open** until notarization (§5.3)
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
-- Auto-update is a **stub** — manual reinstall until §4.10
+- Auto-update is a **stub** — manual reinstall until §4.10 / §5
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
 
 ## Reporting bugs

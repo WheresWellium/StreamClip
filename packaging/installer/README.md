@@ -1,5 +1,7 @@
 # Windows desktop installer (§4.10)
 
+> **macOS DMG:** see [MACOS.md](./MACOS.md) (`scripts/build_desktop_installer_macos.sh`, Mac host required).
+
 StreamClip ships as an **NSIS installer** produced by [electron-builder](https://www.electron.build/)
 from `apps/desktop`. The installer bundles:
 
@@ -12,7 +14,7 @@ from `apps/desktop`. The installer bundles:
 From repo root (requires Node 20+, Python 3.11+, ~15 GB free disk):
 
 ```powershell
-cd C:\Users\locat\Projects\streamclip
+cd D:\Projects\streamclip
 .\scripts\build_desktop_installer.ps1
 ```
 
@@ -100,3 +102,8 @@ C:\Program Files\StreamClip\
 ```
 
 User data (SQLite, models, workspace): `%LOCALAPPDATA%\StreamClip\` (§4.18).
+
+## macOS
+
+End-user beta install is **Docker on Mac** — [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md).
+DMG builder notes: [MACOS.md](./MACOS.md) · [docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).

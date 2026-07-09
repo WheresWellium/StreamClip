@@ -2,10 +2,26 @@
 
 from __future__ import annotations
 
+import subprocess
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from scripts import build_beta_zip
+
+
+def _git_available() -> bool:
+    try:
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=build_beta_zip.REPO_ROOT,
+            capture_output=True,
+            check=True,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
 
 
 def test_should_include_excludes_dev_only_paths() -> None:
@@ -23,6 +39,7 @@ def test_should_include_keeps_runtime_files() -> None:
     assert build_beta_zip._should_include("scripts/start_local.ps1")
 
 
+@pytest.mark.skipif(not _git_available(), reason="no git repo available (CI Docker container)")
 def test_build_zip_produces_valid_archive_without_secrets(tmp_path: Path) -> None:
     out_path = tmp_path / "StreamClip-beta.zip"
     code = build_beta_zip.build_zip(ref="HEAD", out_path=out_path)

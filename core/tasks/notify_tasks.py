@@ -17,7 +17,7 @@ from backend.db.session import db_session
 from core.celery_app import celery_app
 from core.config import get_settings
 from core.notify.email import bug_report_recipient, send_email
-from core.notify.n8n_ops import post_ops_webhook
+from core.notify.ops_webhook import post_ops_webhook
 from core.storage import make_storage
 from core.tasks.pipeline_tasks import _safe_async
 
@@ -89,7 +89,7 @@ def _ops_payload_from_report(report: BugReport, *, event: str) -> dict[str, obje
     default_retry_delay=30,
 )
 def send_ops_webhook(report_id: str, event: str) -> dict[str, str]:
-    """Forward a support row to the n8n ops webhook (Outlook routing lives in n8n)."""
+    """Forward a support row to ``OPS_WEBHOOK_URL`` (Discord/Slack/agent inbox)."""
 
     async def _load() -> BugReport | None:
         async with db_session() as db:
@@ -97,7 +97,7 @@ def send_ops_webhook(report_id: str, event: str) -> dict[str, str]:
 
     report = _safe_async(_load())
     if report is None:
-        log.warning("ops_webhook_missing_row", report_id=report_id, event=event)
+        log.warning("ops_webhook_missing_row", report_id=report_id, webhook_event=event)
         return {"status": "skipped", "reason": "not_found"}
 
     sent = post_ops_webhook(_ops_payload_from_report(report, event=event))
@@ -105,6 +105,80 @@ def send_ops_webhook(report_id: str, event: str) -> dict[str, str]:
         "status": "sent" if sent else "skipped",
         "report_id": report_id,
         "event": event,
+    }
+
+
+@celery_app.task(
+    name="core.tasks.notify_tasks.send_job_failed_ops_alert",
+    max_retries=2,
+    default_retry_delay=30,
+)
+def send_job_failed_ops_alert(
+    job_id: str,
+    *,
+    done_count: int = 0,
+    error_count: int = 0,
+) -> dict[str, str]:
+    """Proactive ops alert when a job finishes with clip errors (before user reports)."""
+    sent = post_ops_webhook(
+        {
+            "event": "job_failed",
+            "job_id": job_id,
+            "done_count": done_count,
+            "error_count": error_count,
+            "status": "error",
+            "app": "streamclip",
+        },
+    )
+    return {
+        "status": "sent" if sent else "skipped",
+        "job_id": job_id,
+        "event": "job_failed",
+    }
+
+
+@celery_app.task(
+    name="core.tasks.notify_tasks.probe_stack_health_ops_alert",
+    max_retries=0,
+)
+def probe_stack_health_ops_alert() -> dict[str, object]:
+    """
+    Beat task — probe DB/Redis/storage and POST ``stack_degraded`` when unhealthy.
+
+    Cooldown (~15 min) prevents inbox floods during sustained outages. No-op when
+    ``OPS_WEBHOOK_URL`` is unset.
+    """
+    from core.notify.stack_health import probe_stack_dependencies, should_emit_stack_alert
+
+    result = probe_stack_dependencies(cfg)
+    status = str(result["status"])
+    if status == "ok":
+        should_emit_stack_alert("ok")  # reset edge tracking
+        return {"status": "ok", "event": "stack_health", "alerted": False}
+
+    if not should_emit_stack_alert(status):
+        return {
+            "status": status,
+            "event": "stack_degraded",
+            "alerted": False,
+            "reason": "cooldown",
+            "checks": result["checks"],
+        }
+
+    sent = post_ops_webhook(
+        {
+            "event": "stack_degraded",
+            "status": status,
+            "checks": result["checks"],
+            "failures": result["failures"][:5],
+            "app": "streamclip",
+        },
+    )
+    return {
+        "status": status,
+        "event": "stack_degraded",
+        "alerted": bool(sent),
+        "checks": result["checks"],
     }
 
 

@@ -9,8 +9,9 @@ Long threads should keep **facts on disk**, not in chat. Tool outputs dominate c
 
 ## Before compaction or phase changes
 
-1. Update `docs/SESSION_STATE.md` (goal, blockers, decisions, ordered next steps, key paths) — **≤60 lines**.
+1. Update `docs/SESSION_STATE.md` (Active chats table, goal, blockers, decisions, ordered next steps, key paths) — **≤60 lines**. Template: `docs/AGENT_COORDINATION.md`.
 2. Update `AGENTS.md` only for **durable** preferences/workspace facts (≤12 bullets per section).
+3. Parallel chats: check `docs/.agent-lock.json`; release your lock when done (`docs/AGENT_COORDINATION.md`).
 
 ## During work
 

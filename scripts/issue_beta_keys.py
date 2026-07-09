@@ -2,18 +2,18 @@
 
 Usage (from repo root, API container running):
 
-  docker compose exec api python scripts/issue_beta_keys.py --emails a@example.com,b@example.com
-  docker compose exec api python scripts/issue_beta_keys.py --csv cohort.csv
-  docker compose exec api python scripts/issue_beta_keys.py --count 5 --email-domain example.com
-  docker compose exec api python scripts/issue_beta_keys.py --emails you@example.com --tier admin
+  docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --emails a@example.com,b@example.com
+  docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --csv cohort.csv
+  docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --count 5 --email-domain example.com
+  docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --emails you@example.com --tier admin
 
-``--tier admin`` issues max-access keys (distribution + admin API + highest quotas).
-Default ``--tier pro`` matches paid Pro entitlements.
+Default ``--tier admin`` issues max-access keys (distribution + admin API + highest quotas).
+Use ``--tier pro`` to match paid Pro entitlements.
 
 CSV: one email per line (optional header ``email``).
 
 Prints CSV to stdout: ``email,license_key,order_id,tier``. Keys are not emailed
-automatically — paste into your invite template or n8n workflow later.
+automatically — paste into your invite template.
 """
 
 from __future__ import annotations
@@ -105,7 +105,7 @@ async def _issue(
     mode = "dry-run" if dry_run else "issued"
     print(f"\n{len(rows)} {tier.value} key(s) {mode}.", file=sys.stderr)
     if not dry_run:
-        print("Send keys manually or via n8n when ready.", file=sys.stderr)
+        print("Send keys manually via your invite template.", file=sys.stderr)
     return 0
 
 
@@ -142,9 +142,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--tier",
-        default="pro",
+        default="admin",
         choices=("pro", "admin"),
-        help="License tier: pro (default) or admin (max access for power testers)",
+        help="License tier: admin (default — full access during beta) or pro",
     )
     args = parser.parse_args(argv)
 

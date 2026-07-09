@@ -15,15 +15,15 @@ export default function HomePage() {
     <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
       <section className="space-y-3 pt-1">
         <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border border-sky-400/40 bg-sky-400/10 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-400">
-          Jet Stream — AI clip pipeline
+          Jet Stream — all-in-one clip studio
         </div>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-          Turn long-form video into{" "}
-          <span className="text-sky-400">viral social clips</span>
+          Clip any length.{" "}
+          <span className="text-sky-400">Frame any ratio.</span> Rank what wins.
         </h1>
         <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-          One source in, vertical clips out. Each step lives on its own screen so
-          you are never staring at a wall of controls.
+          Paste a URL or upload a file. We find the moments, reframe to any aspect
+          ratio, and score each clip so you know which cuts should outperform the rest.
         </p>
       </section>
 
@@ -35,7 +35,7 @@ export default function HomePage() {
               New job
             </CardTitle>
             <CardDescription>
-              Paste a Twitch, YouTube, or Kick URL — or upload a file directly.
+              Paste a URL or upload — long, medium, or short form. Any platform source.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -71,23 +71,23 @@ export default function HomePage() {
           <div className="space-y-1">
             <p className="font-medium text-foreground">1 · Create</p>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Choose source and content type. Advanced crop and caption presets stay
-              tucked away until you need them.
+              Pick source, aspect ratio, and content type. Crop and caption presets
+              stay tucked away until you need them.
             </p>
           </div>
           <div className="space-y-1">
             <p className="font-medium text-foreground">2 · Monitor</p>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              The job page shows live progress only — no clip grid competing for attention.
+              Live pipeline progress only — no clip grid competing for attention.
             </p>
           </div>
           <div className="space-y-1 flex flex-col">
             <p className="font-medium text-foreground flex items-center gap-1.5">
               <Film className="h-3.5 w-3.5" />
-              3 · Review clips
+              3 · Rank & ship
             </p>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Approve, edit, and publish from a dedicated clips workspace.
+              Compare scores, approve the winners, then publish or vault from one workspace.
             </p>
           </div>
         </CardContent>

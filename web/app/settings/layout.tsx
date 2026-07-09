@@ -12,7 +12,7 @@ export default function SettingsLayout({
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Profile, license, distribution, and integrations.
+          Profile, license, distribution, API, and integrations.
         </p>
       </div>
       <div className="flex flex-col md:flex-row gap-8">

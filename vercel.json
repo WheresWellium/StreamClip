@@ -3,5 +3,6 @@
   "framework": null,
   "installCommand": "python -m pip install --break-system-packages -r docs/requirements.txt",
   "buildCommand": "python -m mkdocs build --strict",
-  "outputDirectory": "site"
+  "outputDirectory": "site",
+  "ignoreCommand": "exit 1"
 }

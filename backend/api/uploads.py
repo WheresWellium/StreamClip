@@ -21,7 +21,8 @@ from backend.api.schemas import UploadInitRequest, UploadInitResponse
 from backend.db.session import get_db
 from backend.middleware.scope import RequestScope, get_request_scope
 from backend.middleware.rate_limit import rate_limit_request
-from backend.services.job_service import UploadService
+from backend.services.job_service import ALLOWED_AUDIO_UPLOAD_TYPES, UploadService
+from core.commerce.entitlements import scope_allows_audio_ingest
 from core.config import get_settings
 from core.errors import StreamClipError
 from core.storage import make_storage
@@ -46,6 +47,16 @@ async def init_upload(
     when creating a job.
     """
     cfg = get_settings()
+    if (
+        body.content_type in ALLOWED_AUDIO_UPLOAD_TYPES
+        and not await scope_allows_audio_ingest(db, machine_id=scope.device_id)
+    ):
+        raise StreamClipError(
+            "Audio ingest is not enabled on this install",
+            user_message="Audio uploads require the audio-to-clip add-on.",
+            code="audio_ingest_disabled",
+            http_status=403,
+        )
     svc = UploadService(cfg, make_storage(cfg))
     return await svc.init_upload(body, scope)
 

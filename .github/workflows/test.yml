@@ -33,3 +33,73 @@ jobs:
         run: |
           docker compose exec -T api pytest tests/ -m "not desktop" -q \
             --cov=backend --cov=core --cov-report=term-missing:skip-covered
+
+  desktop-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-desktop.txt
+
+      - name: Install desktop test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-desktop.txt
+          pip install pytest pytest-asyncio aiosqlite
+
+      - name: Download ffmpeg Windows binaries
+        shell: pwsh
+        run: .\scripts\download_ffmpeg_windows.ps1
+
+      - name: Desktop verify scripts (MASTER §3.9)
+        shell: pwsh
+        run: .\scripts\verify_desktop.ps1
+
+  # Phase 1 gate (§3.3 / §8.1): Playwright smoke against compose stack.
+  # Specs skip unless E2E_RUN=1 — required here so PRs cannot silently drop E2E.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build and start API + web
+        run: |
+          docker compose build api web
+          docker compose up -d postgres redis minio api web
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/api/health >/dev/null \
+              && curl -sf http://localhost:3000 >/dev/null; then
+              echo "API + web healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Stack failed to become healthy"
+          docker compose logs api web
+          exit 1
+
+      - name: Install Playwright
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Playwright happy-path (E2E_RUN=1)
+        working-directory: web
+        env:
+          E2E_RUN: "1"
+        run: npx playwright test e2e/happy-path.spec.ts

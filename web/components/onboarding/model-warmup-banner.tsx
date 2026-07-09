@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { metaApi, type ModelsHealthResponse } from "@/lib/api/client";
 
-const POLL_MS = 4000;
+const POLL_MS = 2000;
+const COMPLETE_FLASH_MS = 2500;
+const MAX_POLL_FAILURES = 30;
 
 const MODEL_LABELS: Record<string, string> = {
   whisper: "Speech recognition",
@@ -12,61 +14,112 @@ const MODEL_LABELS: Record<string, string> = {
   embedder: "Highlight scoring",
 };
 
+type BannerPhase = "hidden" | "loading" | "complete";
+
+function countFinished(models: Record<string, { state: string }>): number {
+  return Object.values(models).filter(
+    (s) => s.state === "ready" || s.state === "skipped",
+  ).length;
+}
+
+function countTerminal(models: Record<string, { state: string }>): number {
+  return Object.values(models).filter(
+    (s) => s.state === "ready" || s.state === "skipped" || s.state === "failed",
+  ).length;
+}
+
 /**
  * First-run model download progress (desktop profile, MASTER_TODO §4.8).
  *
- * The sidecar prefetches ML models in the background at boot; this banner
- * polls /api/health/models and shows per-model progress until everything is
- * ready. On Docker (models baked into the image) the endpoint reports
- * ready with no models, so the banner never renders.
+ * Polls /api/health/models until models are warm. On Docker (empty models +
+ * ready) the banner stays hidden. Retries when the sidecar is still booting
+ * instead of giving up on the first failed fetch.
  */
 export function ModelWarmupBanner() {
   const [status, setStatus] = useState<ModelsHealthResponse | null>(null);
-  const [done, setDone] = useState(false);
+  const [phase, setPhase] = useState<BannerPhase>("hidden");
+  const failuresRef = useRef(0);
+  const completeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (done) return;
     let cancelled = false;
 
     const poll = async () => {
       try {
         const res = await metaApi.modelsHealth();
         if (cancelled) return;
+        failuresRef.current = 0;
+
+        const entries = Object.entries(res.models);
+        if (entries.length === 0) {
+          // Docker / no prefetch — nothing to show.
+          setPhase("hidden");
+          return;
+        }
+
         setStatus(res);
-        if (res.ready) setDone(true);
+
+        if (res.ready) {
+          const terminal = countTerminal(res.models);
+          if (terminal === entries.length && countFinished(res.models) === entries.length) {
+            setPhase("complete");
+            if (completeTimerRef.current !== null) {
+              window.clearTimeout(completeTimerRef.current);
+            }
+            completeTimerRef.current = window.setTimeout(() => {
+              if (!cancelled) setPhase("hidden");
+            }, COMPLETE_FLASH_MS);
+          } else {
+            setPhase("hidden");
+          }
+          return;
+        }
+
+        setPhase("loading");
       } catch {
-        // Endpoint unreachable (older sidecar or API down) — stay hidden.
-        if (!cancelled) setDone(true);
+        failuresRef.current += 1;
+        if (failuresRef.current >= MAX_POLL_FAILURES) {
+          if (!cancelled) setPhase("hidden");
+        }
       }
     };
 
     void poll();
-    const timer = setInterval(poll, POLL_MS);
+    const timer = window.setInterval(() => void poll(), POLL_MS);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      window.clearInterval(timer);
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+      }
     };
-  }, [done]);
+  }, []);
 
-  if (done || !status || status.ready) return null;
+  if (phase === "hidden" || !status) return null;
 
   const entries = Object.entries(status.models);
-  const readyCount = entries.filter(
-    ([, s]) => s.state === "ready" || s.state === "skipped",
-  ).length;
+  const total = entries.length;
+  const finished = countFinished(status.models);
+  const isComplete = phase === "complete" && status.ready;
 
   return (
     <div
-      className="border-b border-sky-400/30 bg-sky-950/60 px-4 py-2 text-sm text-sky-100"
+      className={
+        isComplete
+          ? "border-b border-emerald-400/30 bg-emerald-950/50 px-4 py-2 text-sm text-emerald-100"
+          : "border-b border-sky-400/30 bg-sky-950/60 px-4 py-2 text-sm text-sky-100"
+      }
       role="status"
       aria-live="polite"
     >
       <div className="container flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="font-medium">
-          Preparing AI models ({readyCount}/{entries.length})…
+          {isComplete
+            ? `AI models ready (${finished}/${total})`
+            : `Preparing AI models (${finished}/${total})…`}
         </span>
         {entries.map(([name, s]) => (
-          <span key={name} className="text-sky-200/80">
+          <span key={name} className={isComplete ? "text-emerald-200/80" : "text-sky-200/80"}>
             {MODEL_LABELS[name] ?? name}:{" "}
             {s.state === "downloading" ? (
               <span className="animate-pulse">downloading</span>
@@ -75,9 +128,11 @@ export function ModelWarmupBanner() {
             )}
           </span>
         ))}
-        <span className="text-sky-200/60">
-          You can browse while this finishes — first job waits for models.
-        </span>
+        {!isComplete ? (
+          <span className="text-sky-200/60">
+            You can browse while this finishes — first job waits for models.
+          </span>
+        ) : null}
       </div>
     </div>
   );

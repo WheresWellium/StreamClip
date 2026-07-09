@@ -60,8 +60,34 @@ PyInstaller on Darwin produces `dist/streamclip-sidecar/streamclip-sidecar` (**n
 The macOS build script stages that tree into `apps/desktop/.staging/sidecar/` and refuses
 a Windows `.exe` copy.
 
-ffmpeg / VideoToolbox (§5.1) and MPS Torch (§5.2) are **not** fully wired yet — track in
-`docs/MASTER_TODO.md` §5.
+### §5.1 VideoToolbox (code path — no Mac host required)
+
+Runtime encode selection is wired in-repo:
+
+- `core/gpu_profile.videotoolbox_available` probes ffmpeg for `h264_videotoolbox`
+- `effective_export_codec` on Darwin: NVENC request → `h264_videotoolbox` → `libx264`
+- `core/export_video.video_encode_args` emits `-q:v` for VideoToolbox
+- Unit tests mock `is_darwin` (run on Windows/Linux CI)
+
+**Still needs a Mac host:** bundling a Darwin ffmpeg binary into the DMG sidecar and a
+live encode smoke on Apple Silicon. The codec fallback logic itself does not.
+
+### §5.2 MPS / CTranslate2 arm64 — scaffold vs Mac host
+
+| Piece | Status without Mac | Needs Mac host |
+|-------|--------------------|----------------|
+| `mps_available()` / `effective_whisper_device` auto→MPS | ✅ in `core/gpu_profile.py` | Live Torch MPS smoke |
+| Whisper `device=mps` config path | ✅ scaffolded | Confirm faster-whisper + CTranslate2 **arm64** wheels install |
+| YOLO / Torch inference on MPS | Probe only | Install `torch` macOS arm64 wheel; verify YOLO forward on MPS |
+| PyInstaller sidecar with ML dylibs | Script scaffold | Build on `macos-latest` / Apple Silicon; fix dyld / entitlements |
+| DMG artifact | Script + CI job (`continue-on-error`) | Successful `build_desktop_installer_macos.sh` producing `.dmg` |
+
+**Operator note:** pin arm64 wheels on the Mac builder (`pip install torch` from the
+official macOS arm64 index; CTranslate2 must publish `macosx_arm64` for the Python
+version in use). Intel Mac / universal2 is deferred (§5.5). Until the Mac build lands,
+beta testers use **Docker on Mac** (`docs/BETA_DOWNLOAD.md`).
+
+Track remaining §5.2/§5.3 work in `docs/MASTER_TODO.md` §5.
 
 ## Code signing & notarization (Gatekeeper)
 

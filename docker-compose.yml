@@ -44,6 +44,7 @@ x-worker-volumes: &worker-volumes
 x-python-volumes: &python-volumes
   - ./backend:/app/backend
   - ./core:/app/core
+  - ./tests:/app/tests
   - ./alembic:/app/alembic
   - ./scripts:/app/scripts
   - ./config.yaml:/app/config.yaml:ro
@@ -167,11 +168,9 @@ services:
       STREAMCLIP_LOG_JSON: "true"
       STREAMCLIP_OBSERVABILITY__ENABLE_METRICS: "true"
       STREAMCLIP_QUEUE__BACKEND: ${STREAMCLIP_QUEUE__BACKEND:-celery}
-      # DEV-ONLY Fernet key for OAuth token encryption (core/distribution/tokens.py).
-      # Generated via: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-      # Do NOT reuse this key in production — generate a fresh one per .env.production.example.
-      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
-      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
+      # Fernet key for OAuth token encryption — set in .env (see .env.example). Never commit a real key.
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ${STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY:-}
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: ${STREAMCLIP_DISTRIBUTION__WEB_ORIGIN:-http://localhost:3000}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -179,7 +178,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-      N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -225,9 +225,9 @@ services:
       STREAMCLIP_WHISPER__COMPUTE_TYPE: int8
       STREAMCLIP_WHISPER__MODEL_SIZE: medium
       STREAMCLIP_EXPORT__CODEC: libx264
-      # DEV-ONLY Fernet key — see api service for generation command. Do not reuse in prod.
-      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
-      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
+      # Fernet key from .env — see .env.example. Never commit a real key.
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ${STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY:-}
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: ${STREAMCLIP_DISTRIBUTION__WEB_ORIGIN:-http://localhost:3000}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -235,10 +235,17 @@ services:
       SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-      N8N_OPS_WEBHOOK_URL: ${N8N_OPS_WEBHOOK_URL:-}
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
     depends_on:
       api:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A core.celery_app.celery_app inspect ping --timeout=5 2>/dev/null | grep -q OK || exit 1"]
+      interval: 30s
+      timeout: 15s
+      start_period: 90s
+      retries: 3
     restart: unless-stopped
 
   # ── Celery GPU-queue worker (optional — NVIDIA Container Toolkit) ──
@@ -279,8 +286,8 @@ services:
       STREAMCLIP_WHISPER__DEVICE: cuda
       STREAMCLIP_WHISPER__COMPUTE_TYPE: float16
       STREAMCLIP_EXPORT__CODEC: h264_nvenc
-      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ayTbWdPMLHXKTN2z_a_Yf2BGkK-7pKgjKqdjnUv1WNA=
-      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: http://localhost:3000
+      STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY: ${STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY:-}
+      STREAMCLIP_DISTRIBUTION__WEB_ORIGIN: ${STREAMCLIP_DISTRIBUTION__WEB_ORIGIN:-http://localhost:3000}
     depends_on:
       api:
         condition: service_started
@@ -301,11 +308,23 @@ services:
     command: celery -A core.celery_app.celery_app beat --loglevel=info
     volumes: *python-volumes
     environment:
+      STREAMCLIP_DATABASE__URL: postgresql+asyncpg://streamclip:streamclip@postgres:5432/streamclip
+      STREAMCLIP_DATABASE__SYNC_URL: postgresql+psycopg://streamclip:streamclip@postgres:5432/streamclip
       STREAMCLIP_REDIS__URL: redis://redis:6379/0
       STREAMCLIP_CELERY__BROKER_URL: redis://redis:6379/1
       STREAMCLIP_CELERY__RESULT_BACKEND: redis://redis:6379/2
+      STREAMCLIP_STORAGE__BACKEND: minio
+      STREAMCLIP_STORAGE__ENDPOINT_URL: http://minio:9000
+      STREAMCLIP_STORAGE__PUBLIC_BASE_URL: http://localhost:9000
+      STREAMCLIP_STORAGE__BUCKET: streamclip
+      STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
+      STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 

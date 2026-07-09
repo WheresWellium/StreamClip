@@ -43,15 +43,19 @@ async def health(
     except Exception as exc:
         log.warning("health_db_fail", error=str(exc))
 
-    # Redis
+    # Redis — skipped in desktop/inprocess mode (no broker; not a failure)
     redis_ok = False
-    try:
-        r = aioredis.from_url(cfg.redis.url)
-        await r.ping()
-        await r.close()
-        redis_ok = True
-    except Exception as exc:
-        log.warning("health_redis_fail", error=str(exc))
+    inprocess_mode = cfg.queue.backend == "inprocess"
+    if inprocess_mode:
+        redis_ok = True  # Not applicable; treat as healthy so status isn't degraded
+    else:
+        try:
+            r = aioredis.from_url(cfg.redis.url)
+            await r.ping()
+            await r.close()
+            redis_ok = True
+        except Exception as exc:
+            log.warning("health_redis_fail", error=str(exc))
 
     # Storage
     storage_ok = False
@@ -97,7 +101,11 @@ async def health_models() -> dict[str, object]:
     in the image build instead).
     """
     models = model_prefetch_snapshot()
-    ready = all(s["state"] in ("ready", "skipped") for s in models.values()) if models else True
+    if not models:
+        ready = True
+    else:
+        terminal = ("ready", "skipped", "failed")
+        ready = all(s["state"] in terminal for s in models.values())
     return {"ready": ready, "models": models}
 
 
@@ -127,13 +135,20 @@ async def health_stack(
         checks["ollama"] = base.ollama
 
     try:
-        from core.gpu_profile import cuda_available, nvenc_available
+        from core.gpu_profile import cuda_available, is_darwin, mps_available, nvenc_available
 
-        checks["cuda"] = cuda_available()
-        checks["nvenc"] = nvenc_available(cfg)
+        if is_darwin():
+            checks["mps"] = mps_available()
+            checks["cuda"] = False
+            checks["nvenc"] = False
+        else:
+            checks["cuda"] = cuda_available()
+            checks["nvenc"] = nvenc_available(cfg)
+            checks["mps"] = False
     except Exception:
         checks["cuda"] = False
         checks["nvenc"] = False
+        checks["mps"] = False
 
     return StackHealthResponse(
         status=base.status,

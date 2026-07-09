@@ -11,7 +11,7 @@
 |------|----------|
 | TikTok | **Inbox upload only** until app audit grants `video.publish` scope; finish posting in TikTok app |
 | Instagram | **Not supported** — no Reels adapter in beta |
-| Cloud multi-tenant | **Not supported** — `backend/cloud/tenant.py` is unwired |
+| Cloud multi-tenant | **Not supported** — stub removed; self-host / desktop only (see `docs/cloud-deploy.md` design notes) |
 | Commerce | Lemon Squeezy one-time keys; license email on `order_created` fallback ✅ (`MASTER_TODO` §2.3, `tests/test_license_hardening.py`) |
 
 ## Security — known limitations
@@ -54,9 +54,9 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 **In-app:** Header → **Beta feedback** (questions/ideas) or **Report a bug** (breakages).
 Both save to the local `bug_reports` table.
 
-**Operator routing (recommended):** Set `N8N_OPS_WEBHOOK_URL` on api + worker — n8n
-forwards to the studio Outlook inbox (address configured only in n8n). See internal
-`docs/OPS_N8N_SETUP.md`.
+**Operator routing (recommended):** Set `OPS_WEBHOOK_URL` on api + worker —
+Discord/Slack/Zapier Catch Hook/custom agent inbox. Job failures also emit
+`job_failed` before testers report. See internal `docs/OPS_ALERTING.md`.
 
 **Legacy Docker SMTP:** Optional `SMTP_HOST` + `BUG_REPORT_TO` (see `.env.example`).
 
@@ -65,8 +65,8 @@ SELECT id, severity, categories, message, user_id, device_id, created_at
 FROM bug_reports ORDER BY created_at DESC LIMIT 50;
 ```
 
-**Desktop `.exe` beta:** Bake `N8N_OPS_WEBHOOK_URL` into the operator build so
-creator installs forward to n8n without local SMTP. Admin list:
+**Desktop `.exe` beta:** Bake `OPS_WEBHOOK_URL` into the operator build so
+creator installs forward support forms without local SMTP. Admin list:
 `GET /api/admin/bug-reports` (admin account) or SQL below.
 
 Include: OS version, GPU model, `job_id`, relevant log snippet, steps to reproduce.

@@ -132,7 +132,7 @@ class OverlayConfig(BaseModel):
 
 
 class ExportConfig(BaseModel):
-    codec: Literal["libx264", "libx265", "h264_nvenc", "hevc_nvenc"] = "libx264"
+    codec: Literal["libx264", "libx265", "h264_nvenc", "hevc_nvenc", "h264_videotoolbox"] = "libx264"
     crf: int = Field(17, ge=0, le=51)
     preset: Literal["ultrafast", "fast", "medium", "slow"] = "fast"
     fps: int = Field(60, ge=60, le=120)
@@ -266,6 +266,8 @@ class LicensingConfig(BaseModel):
 class CommerceConfig(BaseModel):
     lemon_squeezy_api_key: str = ""
     lemon_squeezy_webhook_secret: str = ""
+    # Comma-separated Lemon Squeezy variant IDs that unlock audio_ingest for the buyer.
+    audio_ingest_variant_ids: str = ""
 
 
 class DistributionConfig(BaseModel):

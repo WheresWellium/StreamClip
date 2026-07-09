@@ -197,7 +197,8 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           New clip job
         </CardTitle>
         <CardDescription>
-          Paste a URL or upload a video — we&apos;ll find the best moments and render social-ready clips.
+          Paste a URL or upload a video — we find the best moments, reframe to any
+          aspect ratio, and rank clips so you know what to ship first.
           {meta.processing_profile === "cpu" && (
             <span className="block mt-1 text-sky-400/80 text-xs">
               CPU mode — transcribe and render may take longer. Enable GPU profile for faster jobs.

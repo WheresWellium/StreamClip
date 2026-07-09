@@ -61,6 +61,15 @@ async function sidecarHealthy(): Promise<boolean> {
   }
 }
 
+async function waitForSidecar(maxMs = 120_000): Promise<boolean> {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    if (await sidecarHealthy()) return true;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
 function trayIcon(): Electron.NativeImage {
   const iconPath = path.join(__dirname, "../assets/tray-icon.png");
   const img = nativeImage.createFromPath(iconPath);
@@ -80,13 +89,38 @@ function openWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
-  void mainWindow.loadURL(WEB_URL);
+  void (async () => {
+    const win = mainWindow;
+    if (!win || win.isDestroyed()) return;
+
+    const healthy = await waitForSidecar();
+    if (!healthy) {
+      console.warn("Sidecar not healthy after wait — loading UI anyway (boot gate will retry)");
+    }
+
+    try {
+      await win.loadURL(WEB_URL, { extraHeaders: "Cache-Control: no-cache\r\n" });
+    } catch (err) {
+      console.error("Initial load failed", err);
+      await new Promise((r) => setTimeout(r, 1500));
+      if (!win.isDestroyed()) {
+        await win.loadURL(WEB_URL, { extraHeaders: "Cache-Control: no-cache\r\n" });
+      }
+    }
+
+    if (!win.isDestroyed()) {
+      win.show();
+      win.focus();
+    }
+  })();
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

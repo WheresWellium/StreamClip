@@ -1,7 +1,7 @@
 # StreamClip — Beta Tester Phase Plan
 
-**Status:** **Prepared (Phase 0 — Docker self-host)** · **Invite gate:** `verify_coverage.ps1` ≥95% + `verify_stack.ps1` (see §1, MASTER §3.10) · **Coverage today:** 95.01% — **gate GREEN**, but clean-VM `verify_stack.ps1` (§3.8) still **not cleared** · **Source:** `docs/MASTER_TODO.md`
-**Last updated:** 2026-07-07 · Owner: core team
+**Status:** **Phase 0 invite gate CLEARED (2026-07-09)** · **Coverage:** 95.02% · **Clean-slate verify:** PASS (`BETA_GO_LIVE` §8) · Cohort exit still open · **Source:** `docs/MASTER_TODO.md`
+**Last updated:** 2026-07-09 · Owner: core team
 
 This plan defines *when* beta opens, *who* gets in, *what* they run, and *how* we
 know beta succeeded — aligned with MASTER_TODO release readiness and a
@@ -20,7 +20,7 @@ Line coverage caps at 100%. **110%** means the full row below. **Canonical measu
 | E2E smoke | Playwright: create job → list jobs → publish validation behind `E2E_RUN=1` | ✅ scaffold (`web/e2e/happy-path.spec.ts`); optional via `verify_stack.ps1 -RunE2E` |
 | Stack verify | `scripts/verify_stack.ps1` green on Windows + Docker | ✅ server-profile tests (`-m "not desktop"`) + `/api/health/stack` |
 
-**Phase 0 invite gate:** Do **not** send external invites until **`verify_coverage.ps1` passes** (≥95% line per `.coveragerc`) **and** `verify_stack.ps1` passes. Last measured: **95.01%** (2026-07-07) — **coverage gate is now GREEN** (MASTER §3.5), but clean-VM `verify_stack.ps1` (§3.8) has **not** been run — invites remain blocked on that step. **Ratchet order for Phase 1+:** 95 green ✅ → 100 line → branch hot paths → Playwright smoke → expand cohort.
+**Phase 0 invite gate:** **CLEARED 2026-07-09** — `verify_coverage.ps1` **95.02%** + clean-slate `verify_stack.ps1` PASS (MASTER §3.8 / `BETA_GO_LIVE` §8). External Phase 0 invites may proceed. **Ratchet order for Phase 1+:** 95 green ✅ → 100 line → branch hot paths → Playwright smoke → expand cohort.
 
 ---
 
@@ -30,7 +30,8 @@ Line coverage caps at 100%. **110%** means the full row below. **Canonical measu
 
 | ID | Item | Beta impact if skipped |
 |----|------|------------------------|
-| 3.5 | Line coverage ≥95% (`verify_coverage.ps1`) | **GREEN ✅** (95.01% last run, 2026-07-07) — no longer blocks Phase 0 invites; §3.8 clean-VM verify still outstanding |
+| 3.5 | Line coverage ≥95% (`verify_coverage.ps1`) | **GREEN ✅** (95.02% clean-slate, 2026-07-09) |
+| 3.8 | Clean-slate / clean-VM stack verify | **GREEN ✅** (2026-07-09; Hyper-V N/A → Docker `down -v` proxy) |
 | 3.7 / 8.1 | Full 110% row (100% line + branches + E2E) | Phase 1+ blocker; see MASTER §3.10 |
 | 2.3 | ~~License key delivery email~~ ✅ Done | — |
 | 2.4 / 2.5 | License chain (purchase → key → activate → tier) | Commerce broken; waivable only for **free** Phase 0 |
@@ -42,7 +43,7 @@ Line coverage caps at 100%. **110%** means the full row below. **Canonical measu
 |----|------|---------|---------|---------|
 | 3.3 | Playwright E2E | Waive | Required | Required |
 | 2.1 | TikTok direct publish (app audit) | Waive (inbox flow OK) | Waive | Required for TikTok promise |
-| 2.10 | Cloud tenant stub | Waive (not in beta path) | Waive | Waive |
+| 2.10 | ~~Cloud tenant stub~~ ✅ Removed 2026-07-09 | — | — | — |
 | 4.13 | Electron shell fixes | N/A | Partial OK | Required |
 
 ---
@@ -249,7 +250,7 @@ See MASTER §8.19:
 - [ ] Changelog / known issues published
 - [ ] LS test purchase → key → activate end-to-end
 - [ ] OAuth redirect URIs match deployed `WEB_ORIGIN`
-- [ ] Beat + worker documented for scheduled publish testers
+- [x] Beat + worker documented for scheduled publish testers (`distribution-runbook` + quickstart/ops)
 
 ---
 

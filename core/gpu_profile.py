@@ -9,6 +9,7 @@ is configured but unavailable — preventing silent ffmpeg failures on first job
 from __future__ import annotations
 
 import os
+import sys
 import subprocess
 from typing import TYPE_CHECKING
 
@@ -22,7 +23,24 @@ log = structlog.get_logger(__name__)
 _NVENC_CODECS = frozenset({"h264_nvenc", "hevc_nvenc"})
 
 
+def is_darwin() -> bool:
+    return sys.platform == "darwin"
+
+
+def mps_available() -> bool:
+    if not is_darwin():
+        return False
+    try:
+        import torch
+
+        return bool(getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
+    except Exception:
+        return False
+
+
 def cuda_available() -> bool:
+    if is_darwin():
+        return False
     try:
         import torch
 
@@ -32,6 +50,8 @@ def cuda_available() -> bool:
 
 
 def nvenc_available(cfg: Settings | None = None) -> bool:
+    if is_darwin():
+        return False
     from core.config import get_settings
     from core.ffmpeg_bins import ffmpeg_bin
 
@@ -60,12 +80,19 @@ def effective_export_codec(cfg: Settings, *, requested: str | None = None) -> st
 
 
 def effective_whisper_device(cfg: Settings) -> str:
-    """Resolve whisper device, never returning cuda when CUDA is absent."""
+    """Resolve whisper device, never returning cuda/MPS when absent."""
     device = cfg.whisper.device
     if device == "auto":
-        return "cuda" if cuda_available() else "cpu"
+        if cuda_available():
+            return "cuda"
+        if mps_available():
+            return "mps"
+        return "cpu"
     if device == "cuda" and not cuda_available():
         log.warning("cuda_unavailable_fallback", requested=device, fallback="cpu")
+        return "cpu"
+    if device == "mps" and not mps_available():
+        log.warning("mps_unavailable_fallback", requested=device, fallback="cpu")
         return "cpu"
     return device
 
@@ -79,12 +106,20 @@ def apply_gpu_env_defaults() -> None:
     requests when hardware is missing.
     """
     cuda = cuda_available()
+    mps = mps_available()
     nvenc = nvenc_available() if cuda else False
 
     whisper_env = os.environ.get("STREAMCLIP_WHISPER__DEVICE", "")
     if whisper_env in ("", "auto"):
-        os.environ.setdefault("STREAMCLIP_WHISPER__DEVICE", "cuda" if cuda else "cpu")
+        if cuda:
+            os.environ.setdefault("STREAMCLIP_WHISPER__DEVICE", "cuda")
+        elif mps:
+            os.environ.setdefault("STREAMCLIP_WHISPER__DEVICE", "mps")
+        else:
+            os.environ.setdefault("STREAMCLIP_WHISPER__DEVICE", "cpu")
     elif whisper_env == "cuda" and not cuda:
+        os.environ["STREAMCLIP_WHISPER__DEVICE"] = "cpu"
+    elif whisper_env == "mps" and not mps:
         os.environ["STREAMCLIP_WHISPER__DEVICE"] = "cpu"
 
     codec_env = os.environ.get("STREAMCLIP_EXPORT__CODEC", "")
@@ -95,7 +130,9 @@ def apply_gpu_env_defaults() -> None:
 
     log.info(
         "gpu_profile",
+        platform=sys.platform,
         cuda=cuda,
+        mps=mps,
         nvenc=nvenc,
         whisper=os.environ.get("STREAMCLIP_WHISPER__DEVICE", "(config file)"),
         export_codec=os.environ.get("STREAMCLIP_EXPORT__CODEC", "(config file)"),

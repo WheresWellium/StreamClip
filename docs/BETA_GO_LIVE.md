@@ -18,7 +18,9 @@
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 creator beta:** **Open for invites** (2026-07-08). Download at [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) / https://streamclip-henna.vercel.app/BETA_DOWNLOAD/ — **v1.0.0-beta.2** on [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2). Docker self-host gates remain green for technical testers.
+**Phase 0 invites:** **Blocked** until clean-VM `verify_stack.ps1` is recorded per §8 below and [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) (MASTER §3.8). Line coverage gate is green (95%+); stack verify on a **fresh Windows 11 VM** is still outstanding — aligns with [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §1 entry gate. Do **not** send external cohort invites until §8 sign-off is filled in.
+
+Download page and **v1.0.0-beta.2** artifacts may be linked for operator/internal testing only — see [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
 
 ---
 
@@ -102,26 +104,37 @@ Body:
 
 ## 7. Launch day (Hour 0)
 
-| Time | Action |
-|------|--------|
-| H+0 | Send invites; monitor `#beta-bugs` |
-| H+2 | Confirm ≥3 testers passed T0-1 (`verify_stack` + `/api/health/stack`) |
-| H+24 | Triage P0/P1; publish known-issues addendum if needed |
-| H+72 | Go/no-go for expanding cohort (see `BETA_TESTER_PLAN.md` §4.5, MASTER §8.16) |
+| Time | Action | Status |
+|------|--------|--------|
+| H+0 | Send invites; monitor in-app bugs + GitHub beta-bug template | ✅ invites sent 2026-07-09 |
+| H+2 | Confirm ≥3 testers passed T0-1 (`verify_stack` + `/api/health/stack`) | ☐ |
+| H+24 | Triage P0/P1; publish known-issues addendum if needed | ☐ |
+| H+72 | Go/no-go for expanding cohort (see `BETA_TESTER_PLAN.md` §4.5, MASTER §8.16) | ☐ |
 
 ---
 
-## 8. Success metrics (Phase 0 exit)
+## 8. Clean VM verification record (required before external invites)
 
-See MASTER §8.16:
+Fill this table after running [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) on each platform.
+
+| Field | Windows 11 VM | macOS (Docker beta) |
+|-------|---------------|---------------------|
+| Date | _YYYY-MM-DD_ | _YYYY-MM-DD_ |
+| Commit SHA | `git rev-parse HEAD` | same |
+| GPU / CPU | e.g. RTX 4070 / CPU-only | e.g. M2 / Docker CPU |
+| `verify_stack.ps1` exit | 0 / fail | 0 / fail |
+| First job (1h VOD) wall time | _min_ | _min_ |
+| Operator sign-off | ☐ | ☐ |
+
+**Phase 0 exit metrics** (MASTER §8.16):
 
 - ≥4/5 testers complete T0-1 … T0-4
 - No open 🔴 blockers > 7 days
-- Line coverage ≥95% verified (`verify_coverage.ps1`) — **required before Phase 0 invites** (✅ met: 95.01% last run, 2026-07-07). Clean-VM `verify_stack.ps1` (§3.8) still required and **not yet run**.
-- 110% gate green on `main` (Phase 1 only)
+- Line coverage ≥95% (`verify_coverage.ps1`) — ✅ met
+- Clean-VM rows above **signed off** — ☐ outstanding
 - At least one staging Lemon Squeezy purchase → activate → Pro tier verified
 
-**Then:** Open Phase 1 per `docs/BETA_TESTER_PLAN.md` §5.
+**Then:** Open Phase 1 per [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §5.
 
 ---
 

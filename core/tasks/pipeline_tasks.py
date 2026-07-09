@@ -42,7 +42,7 @@ from core.creator_options import (
     aspect_ratio_dimensions,
     is_valid_aspect_ratio,
 )
-from core.errors import StreamClipError
+from core.errors import StreamClipError, clip_failure_message
 from core.eta import build_eta_context
 from core.highlights import find_highlights
 from core.ingest.service import IngestService, get_job_source_path
@@ -939,7 +939,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                   trace=traceback.format_exc())
         CLIPS_PROCESSED.labels(status="error").inc()
         # Don't propagate — let other clips finish
-        _safe_async(_mark_clip_error(clip_id, str(exc)))
+        _safe_async(_mark_clip_error(clip_id, clip_failure_message(exc)))
 
         from core.webhooks import deliver_clip_webhook
         async def _clip_fail_hook() -> None:
@@ -963,7 +963,7 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                     )
         _safe_async(_clip_fail_hook())
 
-        return {"clip_id": clip_id, "status": "error", "error": str(exc)}
+        return {"clip_id": clip_id, "status": "error", "error": clip_failure_message(exc)}
 
 
 # ─── 7. Finaliser ────────────────────────────────────────────────────────────
@@ -1111,8 +1111,8 @@ def splice_clips(self: ProgressTask, job_id: str, clip_id: str) -> dict[str, Any
     try:
         return _safe_async(_do())
     except Exception as exc:
-        _safe_async(_mark_clip_error(clip_id, str(exc)))
-        return {"clip_id": clip_id, "status": "error", "error": str(exc)}
+        _safe_async(_mark_clip_error(clip_id, clip_failure_message(exc)))
+        return {"clip_id": clip_id, "status": "error", "error": clip_failure_message(exc)}
 
 
 # ─── 8. Periodic cleanup ─────────────────────────────────────────────────────

@@ -247,9 +247,18 @@ class InProcessWorker:
             return [f.result() for f in futures]
 
         if subtask_type == "chord":
-            header = work.tasks[0]
-            callback = work.tasks[1]
-            group_results = self.execute_work(header)
+            # Celery stores header signatures on ``.tasks`` and the callback on
+            # ``.body`` (not ``tasks[1]``). Header may be a flat tuple of
+            # signatures or a nested group — normalize to a group run.
+            header = work.tasks
+            callback = getattr(work, "body", None)
+            if callback is None:
+                raise ValueError("Chord missing body callback")
+            if getattr(header, "subtask_type", None) == "group":
+                group_results = self.execute_work(header)
+            else:
+                futures = [self._submit_signature(sig) for sig in header]
+                group_results = [f.result() for f in futures]
             merged = self._chord_callback(callback, group_results)
             return self.execute_work(merged)
 

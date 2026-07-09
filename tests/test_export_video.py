@@ -23,6 +23,16 @@ def test_nvenc_encode_args():
     assert "-cq" in args
 
 
+def test_videotoolbox_encode_args():
+    cfg = ExportConfig(codec="h264_videotoolbox", crf=17, preset="fast", fps=60)
+    # effective_export_codec is imported inside video_encode_args; patch at its source
+    with patch("core.gpu_profile.effective_export_codec", return_value="h264_videotoolbox"):
+        args = video_encode_args(cfg)
+    assert "h264_videotoolbox" in args
+    assert "-q:v" in args
+    assert "-crf" not in args
+
+
 def test_output_fps_minimum_sixty():
     cfg = ExportConfig(fps=60)
     assert output_fps_args(cfg) == ["-r", "60"]

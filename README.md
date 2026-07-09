@@ -2,9 +2,9 @@
 
 *(formerly StreamClip — internal identifiers, env vars, and Docker services keep the `streamclip` name.)*
 
-**Self-hosted, zero-subscription AI clip pipeline.**
-From a 5-hour Twitch VOD to 5 ready-to-post vertical clips — in minutes.
-No watermarks. No tokens. No Eklipse.
+**Clip any length. Frame any ratio. Rank what wins.**
+
+All-in-one clip studio for creators — paste a URL or upload, auto-reframe to any aspect ratio, caption and overlay in one pass, then rank clips by how they should stack up on the feed. Self-hosted. Zero subscription. No watermarks.
 
 ---
 
@@ -24,9 +24,9 @@ No watermarks. No tokens. No Eklipse.
 
 ## Pipeline modules
 
-- **Highlight detection** — hybrid peak + transcript discovery: audio energy, spectral novelty, optical flow, Twitch chat spikes; content profiles per vertical; greedy NMS and word-boundary snapping. Post-hoc LLM virality ranks clips after creation.
+- **Highlight detection** — hybrid peak + transcript discovery: audio energy, spectral novelty, optical flow, Twitch chat spikes; content profiles per genre; greedy NMS and word-boundary snapping. Comparative LLM scores rank clips against each other after creation.
 - **Speech-to-text** — `faster-whisper` with gaming hot-word boosting and word-level timestamps.
-- **Vertical reframe (9:16)** — YOLOv11 + ByteTrack subject tracking, two-pass Gaussian-smoothed camera path with velocity clamping, HUD-protection zones per genre preset.
+- **Auto-reframe (any ratio)** — YOLOv11 + ByteTrack subject tracking to 9:16, 1:1, 4:5, 16:9, 2:3, and more; two-pass Gaussian-smoothed camera path with velocity clamping; HUD-protection zones per genre preset.
 - **Animated captions** — ASS format with pop-in animations, gaming-term emphasis flashes, pause-aware word grouping, emoji injection.
 - **Semantic meme overlays** — `sentence-transformers` (`all-MiniLM-L6-v2`, ~90MB local) matches asset descriptions to clip hooks by cosine similarity. SFX muxed at the audio peak frame via librosa.
 - **NVENC export** — H.264 via `export.codec` (`libx264` CPU default, `h264_nvenc` on GPU worker), CRF/CQ 17, min 60fps, 1080×1920.

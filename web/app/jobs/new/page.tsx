@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { CreateJobForm } from "@/components/jobs/create-job-form";
+import { StackPreflightBanner } from "@/components/jobs/stack-preflight-banner";
 import { metaApi, templatesApi } from "@/lib/api/client";
 import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
 import { getClientAccessToken } from "@/lib/auth/client-session";
@@ -54,7 +55,7 @@ export default function NewJobPage() {
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight pt-2">New clip job</h1>
         <p className="text-sm text-muted-foreground">
-          Paste a URL or upload a file — we find highlights and render vertical clips.
+          Paste a URL or upload a file — we find highlights, reframe to any ratio, and rank what wins.
         </p>
       </div>
 
@@ -67,6 +68,8 @@ export default function NewJobPage() {
           to keep them across browsers and enable templates.
         </div>
       )}
+
+      <StackPreflightBanner />
 
       <CreateJobForm meta={meta} templates={templates} isAuthenticated={!!token} />
     </div>

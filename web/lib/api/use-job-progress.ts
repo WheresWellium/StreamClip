@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { jobsApi } from "@/lib/api/client";
 import type { ProgressEvent } from "@/lib/api/types";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 
 type SSEState =
   | { status: "connecting"; lastEvent: ProgressEvent | null }
@@ -71,7 +72,11 @@ export function useJobProgress(
             job_id: jobId,
             stage: job.current_stage,
             progress: job.progress,
-            message: job.error_message ?? "",
+            message: userFacingErrorMessage(
+              job.error_message,
+              job.last_error_code,
+              "",
+            ),
             status:
               job.status === "done" || job.status === "cancelled"
                 ? "done"
@@ -90,7 +95,11 @@ export function useJobProgress(
             sawTerminal = true;
             setState({
               status: "error",
-              message: job.error_message || "Job failed",
+              message: userFacingErrorMessage(
+                job.error_message,
+                job.last_error_code,
+                "Job failed.",
+              ),
               lastEvent: event,
             });
           } else {
@@ -139,7 +148,13 @@ export function useJobProgress(
         if (data.status === "error") {
           setState({
             status: "error",
-            message: data.message || "Pipeline error",
+            message: userFacingErrorMessage(
+              data.message,
+              data.extra && typeof data.extra === "object"
+                ? String((data.extra as Record<string, unknown>).code ?? "")
+                : null,
+              "Pipeline error",
+            ),
             lastEvent: data,
           });
           source.close();
@@ -172,7 +187,13 @@ export function useJobProgress(
           clearFallback();
           setState({
             status: "error",
-            message: data.message || "Pipeline error",
+            message: userFacingErrorMessage(
+              data.message,
+              data.extra && typeof data.extra === "object"
+                ? String((data.extra as Record<string, unknown>).code ?? "")
+                : null,
+              "Pipeline error",
+            ),
             lastEvent: data,
           });
         } catch {

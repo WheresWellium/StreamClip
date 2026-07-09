@@ -29,3 +29,14 @@ site/
 .cursor/hooks/state/
 
 .vercel
+
+cohort.csv
+cohort.*.csv
+!cohort.example.csv
+*.license_keys.csv
+
+# Local dev scratch / logs
+tmp/
+
+# Bundled binaries (Windows build artefact)
+bin/ffmpeg/

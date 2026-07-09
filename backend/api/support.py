@@ -5,8 +5,8 @@ POST /api/support/bug-reports   — in-app bug report
 POST /api/support/beta-feedback — beta tester questions / ideas
 
 Rows persist in ``bug_reports`` first. Operator notification is async on the
-``default`` queue: optional SMTP email and/or n8n webhook (Outlook routing
-is configured only inside n8n — never in client or public docs).
+``default`` queue: optional SMTP email and/or ``OPS_WEBHOOK_URL`` (Discord,
+Slack, Zapier Catch Hook, or a custom agent inbox — never n8n).
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id, get_device_id
 from backend.middleware.rate_limit import rate_limit_request
 from core.notify.email import bug_report_email_status
-from core.notify.n8n_ops import ops_webhook_status
+from core.notify.ops_webhook import ops_webhook_status
 from core.task_dispatch import dispatch_task
 from core.tasks.notify_tasks import send_bug_report_email, send_ops_webhook
 
@@ -93,8 +93,8 @@ async def submit_bug_report(
     await db.commit()
 
     email_status, ops_status = _queue_support_notifications(report.id, event="bug_report")
-    return BugReportOut.model_validate(
-        report,
+    out = BugReportOut.model_validate(report)
+    return out.model_copy(
         update={
             "email_notification": email_status,
             "ops_notification": ops_status,
@@ -127,7 +127,10 @@ async def submit_beta_feedback(
     await db.commit()
 
     _, ops_status = _queue_support_notifications(report.id, event="beta_feedback")
-    return BetaFeedbackOut.model_validate(
-        report,
-        update={"topic": body.topic, "ops_notification": ops_status},
+    return BetaFeedbackOut(
+        id=report.id,
+        status=report.status,
+        topic=body.topic,
+        created_at=report.created_at,
+        ops_notification=ops_status,
     )

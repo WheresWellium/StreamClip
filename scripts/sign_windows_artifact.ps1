@@ -6,7 +6,8 @@ param(
     [string]$CertificatePath = $env:CSC_LINK,
     [string]$CertificatePassword = $env:CSC_KEY_PASSWORD,
     [string]$SignTool = $env:SIGNTOOL,
-    [string]$TimestampUrl = $(if ($env:SIGN_TIMESTAMP_URL) { $env:SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" })
+    [string]$TimestampUrl = $(if ($env:SIGN_TIMESTAMP_URL) { $env:SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }),
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,11 +16,13 @@ if (-not (Test-Path $Path)) {
     Write-Error "File not found: $Path"
 }
 
-if (-not $CertificatePath) {
-    Write-Error "Set CSC_LINK or pass -CertificatePath"
-}
-if (-not $CertificatePassword) {
-    Write-Error "Set CSC_KEY_PASSWORD or pass -CertificatePassword"
+if (-not $VerifyOnly) {
+    if (-not $CertificatePath) {
+        Write-Error "Set CSC_LINK or pass -CertificatePath"
+    }
+    if (-not $CertificatePassword) {
+        Write-Error "Set CSC_KEY_PASSWORD or pass -CertificatePassword"
+    }
 }
 
 if (-not $SignTool) {
@@ -37,7 +40,13 @@ if (-not $SignTool -or -not (Test-Path $SignTool)) {
 }
 
 Write-Host "Signing $Path ..." -ForegroundColor Cyan
-& $SignTool sign /fd SHA256 /tr $TimestampUrl /td SHA256 /f $CertificatePath /p $CertificatePassword $Path
+if (-not $VerifyOnly) {
+    & $SignTool sign /fd SHA256 /tr $TimestampUrl /td SHA256 /f $CertificatePath /p $CertificatePassword $Path
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
+Write-Host "Verifying signature ..." -ForegroundColor Cyan
+& $SignTool verify /pa /v $Path
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Signature applied." -ForegroundColor Green
+Write-Host "Signature applied and verified." -ForegroundColor Green

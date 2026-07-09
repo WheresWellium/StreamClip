@@ -5,9 +5,9 @@ export const JOB_STATUS_LEGEND: Record<string, string> = {
   ingesting: "Downloading or copying the source video into the pipeline.",
   transcribing: "Running speech-to-text on the full source with word timestamps.",
   detecting: "Finding highlight moments using audio, motion, and chat signals.",
-  scoring_virality: "Scoring each clip's viral potential after creation (never blocks output).",
-  virality_scored: "Virality scores applied; clips are being rendered.",
-  processing: "Rendering vertical clips — reframe, captions, and overlays.",
+  scoring_virality: "Ranking clips against each other for expected platform performance (never blocks output).",
+  virality_scored: "Comparative scores applied; clips are being rendered.",
+  processing: "Rendering clips — reframe to your aspect ratio, captions, and overlays.",
   done: "All clips finished. Download links are ready.",
   error: "Pipeline failed. See the error message for details.",
   cancelled: "Job was stopped before completion.",
@@ -19,9 +19,9 @@ export const PIPELINE_STAGE_LEGEND: Record<string, string> = {
   transcribed: "Full transcript saved.",
   detecting: "Scoring highlight candidates.",
   detected: "Clip boundaries chosen.",
-  scoring_virality: "LLM virality scoring per clip.",
-  virality_scored: "Clips ranked by ensemble score.",
-  reframe: "Cropping to 9:16 with subject tracking.",
+  scoring_virality: "Comparative performance scoring per clip.",
+  virality_scored: "Clips ranked by how they stack up against each other.",
+  reframe: "Auto-reframing to the job's aspect ratio with subject tracking.",
   caption: "Burning word-synced captions.",
   overlay: "Adding meme/GIF overlays.",
   completed: "Pipeline finished.",
@@ -42,12 +42,12 @@ export const EMOTION_LEGEND: Record<string, string> = {
 export const CLIP_SCORE_LEGEND = {
   rank: "Clip rank after ensemble scoring — #1 is the highest-ranked moment.",
   ensemble:
-    "Combined score from virality, audio, novelty, motion, and chat (0–100).",
+    "Combined score from comparative rank, audio, novelty, motion, and chat (0–100).",
   duration: "Length of this clip in seconds.",
   hook: "Transcript excerpt — the spoken line viewers hear in the clip.",
   title: "Short label derived from the clip transcript.",
   virality:
-    "Post-hoc viral potential from transcript analysis. Does not gate creation.",
+    "How this clip should stack up against your other cuts for platform performance. Does not gate creation.",
   audio: "Loudness and energy in this segment.",
   novelty: "Sudden audio changes — reactions, SFX, surprises.",
   motion: "On-screen movement from optical flow analysis.",
@@ -59,9 +59,9 @@ export const FORM_SECTION_LEGEND = {
   settings:
     "Controls how many clips are created and how they are styled. These are frozen per job when you submit.",
   clips:
-    "How many vertical clips to generate (1–20). The pipeline always produces at least one clip.",
+    "How many clips to generate (1–20). The pipeline always produces at least one clip.",
   reframe:
-    "How the camera crops and tracks subjects for 9:16 vertical output. HUD-safe zones vary by preset.",
+    "How the camera crops and tracks subjects for your chosen aspect ratio. HUD-safe zones vary by preset.",
   captions:
     "Caption animation style burned into each clip. Word-level sync aligns text to speech.",
 };
@@ -89,11 +89,13 @@ export const PIPELINE_STEPPER_LEGEND: Record<string, string> = {
   ingest: "Download or copy the source video and probe metadata.",
   transcribe: "Speech-to-text with word-level timestamps.",
   highlights: "Find highlight moments from audio, motion, and chat.",
-  virality: "Score each clip's viral potential.",
-  process_clip: "Reframe, caption, and render vertical clips.",
+  virality: "Rank clips by how they should stack up on the feed.",
+  process_clip: "Reframe to any ratio, caption, and render clips.",
 };
 
 export const ERROR_LEGEND = {
+  generic:
+    "Something unexpected happened. Try again, or use Report a bug in the header if it keeps failing.",
   jobDetail:
     "The job page failed to load or render. Try again — if the job still exists, progress may continue on the server.",
 };

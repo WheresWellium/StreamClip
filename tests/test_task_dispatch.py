@@ -21,6 +21,8 @@ ROUTED_TASK_NAMES = (
     "core.tasks.vault_tasks.copy_clip_to_vault",
     "core.tasks.notify_tasks.send_bug_report_email",
     "core.tasks.notify_tasks.send_ops_webhook",
+    "core.tasks.notify_tasks.send_job_failed_ops_alert",
+    "core.tasks.notify_tasks.probe_stack_health_ops_alert",
     "core.tasks.notify_tasks.send_license_key_email",
     "core.tasks.notify_tasks.export_training_bundle",
 )
@@ -43,6 +45,40 @@ def test_dispatch_task_uses_celery_by_default(monkeypatch):
     handle = td.dispatch_task(task, args=("j1",), cfg=cfg)
     assert handle.id == "task-abc"
     task.apply_async.assert_called_once()
+
+
+def test_dispatch_task_celery_passes_queue(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
+    task = MagicMock()
+    task.apply_async.return_value = MagicMock(id="q-1")
+    handle = td.dispatch_task(task, args=("j1",), kwargs={"force": True}, queue="gpu", cfg=cfg)
+    assert handle.id == "q-1"
+    task.apply_async.assert_called_once_with(args=("j1",), kwargs={"force": True}, queue="gpu")
+
+
+def test_dispatch_task_defaults_empty_args_kwargs(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
+    task = MagicMock()
+    task.apply_async.return_value = MagicMock(id="empty-1")
+    handle = td.dispatch_task(task, cfg=cfg)
+    assert handle.id == "empty-1"
+    task.apply_async.assert_called_once_with(args=(), kwargs={})
+
+
+def test_dispatch_task_inprocess_starts_worker_when_none(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    worker = MagicMock()
+    worker.submit_task.return_value = "started-1"
+    with patch.object(td, "get_worker", return_value=None), patch.object(
+        td, "start_inprocess_worker", return_value=worker,
+    ) as start:
+        handle = td.dispatch_task(MagicMock(), args=("j1",), queue="default", cfg=cfg)
+    assert handle.id == "started-1"
+    start.assert_called_once_with(cfg)
+    worker.submit_task.assert_called_once()
 
 
 def test_dispatch_task_inprocess_submits_to_worker(monkeypatch):
@@ -101,6 +137,40 @@ def test_dispatch_task_by_name_celery_uses_send_task(monkeypatch):
     assert args[0] == "core.tasks.notify_tasks.send_license_key_email"
     assert kwargs["args"] == ("buyer@test.local", "SCPRO-KEY", None)
     assert kwargs["queue"] == "default"
+
+
+def test_dispatch_task_by_name_celery_omits_queue_when_none(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
+
+    with patch.object(celery_app, "send_task", return_value=MagicMock(id="ct-2")) as send:
+        handle = td.dispatch_task_by_name("tests.dispatch.no_queue", cfg=cfg)
+    assert handle.id == "ct-2"
+    assert "queue" not in send.call_args.kwargs
+
+
+def test_dispatch_task_by_name_inprocess_starts_worker_when_none(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    worker = MagicMock()
+    worker.submit_by_name.return_value = "byname-1"
+    with patch.object(td, "get_worker", return_value=None), patch.object(
+        td, "start_inprocess_worker", return_value=worker,
+    ):
+        handle = td.dispatch_task_by_name(
+            "core.tasks.vault_tasks.copy_clip_to_vault",
+            args=("vc-1",),
+            kwargs={"x": 1},
+            queue="default",
+            cfg=cfg,
+        )
+    assert handle.id == "byname-1"
+    worker.submit_by_name.assert_called_once_with(
+        "core.tasks.vault_tasks.copy_clip_to_vault",
+        args=("vc-1",),
+        kwargs={"x": 1},
+        queue="default",
+    )
 
 
 def test_inprocess_worker_registers_routed_tasks(monkeypatch):

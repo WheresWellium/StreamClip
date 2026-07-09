@@ -40,6 +40,29 @@ __all__ = [
 ]
 
 
+def _init_worker_sentry() -> None:
+    """Capture Celery task failures in Sentry when DSN is configured."""
+    if not cfg.observability.sentry_dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+        sentry_sdk.init(
+            dsn=cfg.observability.sentry_dsn,
+            environment=cfg.environment,
+            integrations=[CeleryIntegration(), SqlalchemyIntegration()],
+            traces_sample_rate=0.1,
+        )
+        log.info("sentry_worker_initialised")
+    except ImportError:
+        log.warning("sentry_sdk_not_installed_on_worker")
+
+
+_init_worker_sentry()
+
+
 # ─── Celery app ──────────────────────────────────────────────────────────────
 
 celery_app = Celery(
@@ -82,7 +105,7 @@ celery_app.conf.update(
     # Default queue
     task_default_queue="default",
 
-    # Beat schedule (periodic cleanup)
+    # Beat schedule (periodic cleanup + autonomous stack health)
     beat_schedule={
         "cleanup-expired-jobs": {
             "task": "core.tasks.pipeline_tasks.cleanup_expired_jobs",
@@ -91,6 +114,10 @@ celery_app.conf.update(
         "process-due-scheduled-publishes": {
             "task": "core.tasks.publish_tasks.process_due_scheduled_jobs",
             "schedule": 60.0,  # every minute
+        },
+        "probe-stack-health-ops": {
+            "task": "core.tasks.notify_tasks.probe_stack_health_ops_alert",
+            "schedule": 300.0,  # every 5 minutes — OPS_WEBHOOK stack_degraded
         },
     },
 )
@@ -267,6 +294,13 @@ def _on_task_failure(task_id: str, exception: Exception, task: Task,
         task_id=task_id, name=task.name,
         error=str(exception), exc_type=type(exception).__name__,
     )
+    if cfg.observability.sentry_dsn:
+        try:
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(exception)
+        except ImportError:
+            pass
 
 
 @task_retry.connect

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "locks": [
+    {
+      "id": "macos-installer",
+      "chat_label": "macOS DMG scaffold",
+      "branch": "feat/macos-installer",
+      "paths": [
+        "scripts/build_desktop_installer_macos.sh",
+        "packaging/installer/MACOS.md",
+        "apps/desktop/package.json",
+        "desktop_sidecar/run.py"
+      ],
+      "exclusive_paths": [
+        "docs/SESSION_STATE.md"
+      ],
+      "owner": "cursor-agent",
+      "acquired_at": "2026-07-08T22:00:00-05:00",
+      "expires_at": "2026-07-09T22:00:00-05:00",
+      "notes": "Replace paths and dates when acquiring a real lock."
+    }
+  ],
+  "deploy_owner": {
+    "chat_label": "beta ops",
+    "branch": "master",
+    "exclusive_actions": [
+      "npx vercel --prod",
+      "gh release create",
+      "scripts/publish_desktop_release.ps1"
+    ],
+    "expires_at": "2026-07-09T22:00:00-05:00"
+  }
+}

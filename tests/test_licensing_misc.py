@@ -104,3 +104,54 @@ def test_get_install_tier_from_persisted_file(tmp_path):
     finally:
         cfg.licensing.enabled = old_enabled
         cfg.licensing.license_file = old_file
+
+
+def test_get_install_tier_enabled_but_no_file(tmp_path):
+    cfg = get_settings()
+    old_enabled = cfg.licensing.enabled
+    old_file = cfg.licensing.license_file
+    cfg.licensing.enabled = True
+    cfg.licensing.license_file = tmp_path / "absent.json"
+    try:
+        assert get_install_tier("machine-1", cfg) is UserTier.FREE
+    finally:
+        cfg.licensing.enabled = old_enabled
+        cfg.licensing.license_file = old_file
+
+
+def test_load_persisted_entitlement_missing_jwt_key(tmp_path):
+    cfg = get_settings()
+    old = cfg.licensing.license_file
+    path = tmp_path / "empty.json"
+    path.write_text(json.dumps({"other": "x"}), encoding="utf-8")
+    cfg.licensing.license_file = path
+    try:
+        assert load_persisted_entitlement(cfg) is None
+    finally:
+        cfg.licensing.license_file = old
+
+
+def test_load_persisted_entitlement_returns_token(tmp_path):
+    cfg = get_settings()
+    old = cfg.licensing.license_file
+    path = tmp_path / "ok.json"
+    path.write_text(json.dumps({"entitlement_jwt": "tok-abc"}), encoding="utf-8")
+    cfg.licensing.license_file = path
+    try:
+        assert load_persisted_entitlement(cfg) == "tok-abc"
+    finally:
+        cfg.licensing.license_file = old
+
+
+def test_verify_entitlement_allows_missing_exp():
+    cfg = get_settings()
+    payload = {
+        "type": "entitlement",
+        "tier": UserTier.PRO.value,
+        "machine_id": "m1",
+        "license_key_hash": "abc",
+    }
+    token = jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
+    ent = verify_entitlement_token(token, machine_id="m1", cfg=cfg)
+    assert ent.expires_at is None
+    assert ent.tier is UserTier.PRO

@@ -102,13 +102,18 @@ class AuthService:
         if user is None or not user.is_active or not user.hashed_password:
             return None
         raw_token = secrets.token_urlsafe(32)
+        token_hash = _hash_reset_token(raw_token)
         expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=self.cfg.auth.password_reset_expire_minutes,
         )
+        # Delete the current user's pending tokens AND any global collision on
+        # this hash (guards against tests that patch token generation with a
+        # fixed value, which would otherwise hit the unique index cross-user).
         await self.reset_tokens.invalidate_for_user(user.id)
+        await self.reset_tokens.delete_by_hash(token_hash)
         await self.reset_tokens.create(
             user_id=user.id,
-            token_hash=_hash_reset_token(raw_token),
+            token_hash=token_hash,
             expires_at=expires_at,
         )
         return raw_token, user

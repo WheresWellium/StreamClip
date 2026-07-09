@@ -15,11 +15,18 @@ from backend.api.schemas import (
     WebhookSettingsOut,
     WebhookSettingsRequest,
 )
-from backend.db.repositories import ClipFeedbackRepository, ClipRepository, UserRepository
+from backend.db.repositories import (
+    ClipFeedbackRepository,
+    ClipRepository,
+    JobRepository,
+    UserRepository,
+)
 from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id, require_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from backend.middleware.scope import RequestScope, get_request_scope
 from backend.services.feedback_service import apply_clip_style_feedback
+from core.config import get_settings
 from core.errors import StreamClipError
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -111,13 +118,33 @@ async def update_privacy_settings(
 async def submit_clip_feedback(
     clip_id: str,
     body: ClipFeedbackRequest,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
     user_id: Annotated[str | None, Depends(get_current_user_id)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ClipFeedbackOut:
     clips = ClipRepository(db)
     clip = await clips.get(clip_id, with_overlays=False)
     if clip is None:
-        raise StreamClipError("Clip not found", user_message="Clip not found")
+        raise StreamClipError(
+            "Clip not found",
+            user_message="Clip not found",
+            http_status=404,
+        )
+
+    cfg = get_settings()
+    jobs = JobRepository(db)
+    job = await jobs.get_for_scope(
+        clip.job_id,
+        owner_id=scope.user_id,
+        device_id=scope.device_id,
+        device_scoped=cfg.auth.device_scoped_anonymous,
+    )
+    if job is None:
+        raise StreamClipError(
+            "Clip not found",
+            user_message="Clip not found",
+            http_status=404,
+        )
 
     fb_repo = ClipFeedbackRepository(db)
     await fb_repo.upsert(clip_id, user_id, body.rating)

@@ -10,7 +10,7 @@
     "start": "npm run build && electron .",
     "start:sidecar-dev": "cd ../.. && python -m desktop_sidecar",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -64,7 +64,18 @@
       "differentialPackage": false
     },
     "mac": {
-      "target": ["dmg"]
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "artifactName": "StreamClip-mac-{arch}.${ext}",
+      "category": "public.app-category.video",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
     },
     "linux": {
       "target": ["AppImage"]

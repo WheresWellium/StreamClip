@@ -17,7 +17,7 @@ description: >-
 
 ## Product (one line)
 
-**Long-form video → viral vertical shorts** (URL, upload, podcast, VOD — not streamers-only). Copy detail: [streamclip-copy-messaging](../streamclip-copy-messaging/SKILL.md).
+**Clip any length. Frame any ratio. Rank what wins.** — all-in-one clip studio for any creator (URL, upload, podcast, VOD, stream). Copy detail: [streamclip-copy-messaging](../streamclip-copy-messaging/SKILL.md).
 
 ## Repo map
 
@@ -67,13 +67,18 @@ cd web && npm install && npm run dev
 
 See `CONTRIBUTING.md` for debugging Next.js, OpenAPI type regen, and Playwright.
 
+## Canonical workspace
+
+**Repo root:** `D:\Projects\streamclip` only (Cursor project `d-Projects-streamclip`).  
+Do not use `C:\Users\locat\Projects\streamclip` — hollow post-migration skeleton. Details: `docs/AGENT_COORDINATION.md`, `AGENTS.md`.
+
 ## Long chat / summarization
 
 When context compacts or the thread is summarized:
 
 1. Read `docs/SESSION_STATE.md` first (rolling goal, blockers, next steps).
 2. Read `AGENTS.md` for durable preferences and workspace facts.
-3. Grep `agent-transcripts/<chat-id>/*.jsonl` for details — never read transcripts linearly.
+3. Grep `agent-transcripts/<chat-id>/*.jsonl` under `d-Projects-streamclip` — never read transcripts linearly.
 
 Keep `SESSION_STATE.md` updated at phase boundaries (see `.cursor/rules/conversation-compaction.mdc`).
 

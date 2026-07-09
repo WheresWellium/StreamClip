@@ -4,6 +4,8 @@ import "./globals.css";
 
 import { ClientProviders } from "@/components/providers/client-providers";
 import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
+import { HeaderHelpMenu } from "@/components/layout/header-help-menu";
+import { SidecarReadyGate } from "@/components/layout/sidecar-ready-gate";
 import { AuthExtras } from "@/components/auth/auth-extras";
 import { ModelWarmupBanner } from "@/components/onboarding/model-warmup-banner";
 import { HeaderSupportActions } from "@/components/support/header-support-actions";
@@ -20,9 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jet Stream — AI clip generator",
+  title: "Jet Stream — all-in-one clip studio",
   description:
-    "Self-hosted AI pipeline for turning streams into vertical short-form clips.",
+    "Clip any length. Frame any ratio. Rank what wins — auto-reframe, captions, overlays, vault, and publish in one studio.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ),
@@ -40,6 +42,7 @@ export default function RootLayout({
       >
         <ClientProviders>
           <AuthExtras />
+          <SidecarReadyGate>
           <div className="min-h-screen hero-gradient">
           <header className="border-b border-white/25 bg-background/85 backdrop-blur-sm sticky top-0 z-40">
             <div className="container flex h-12 items-center justify-between">
@@ -62,7 +65,8 @@ export default function RootLayout({
                 </span>
                 Jet Stream
               </a>
-              <nav className="flex items-center gap-2 text-sm">
+              <nav className="flex items-center gap-2 text-sm flex-wrap justify-end">
+                <HeaderHelpMenu />
                 <HeaderNavWrapper />
                 <HeaderSupportActions />
               </nav>
@@ -71,6 +75,7 @@ export default function RootLayout({
           <ModelWarmupBanner />
           <main className="container py-6">{children}</main>
           </div>
+          </SidecarReadyGate>
         </ClientProviders>
       </body>
     </html>

@@ -336,3 +336,147 @@ async def test_publish_progress_stream(dist_client, monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
+
+
+# ─── update_publish_job (PATCH /api/distribution/publish-jobs/{id}) ───────────
+
+
+@pytest.mark.asyncio
+async def test_update_publish_job_not_found(dist_client, monkeypatch):
+    class FakeRepo:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_user(self, publish_job_id, user_id):
+            return None
+
+    monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
+    resp = await dist_client.client.patch(
+        "/api/distribution/publish-jobs/ghost",
+        json={"title": "New Title"},
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_publish_job_invalid_status(dist_client, monkeypatch):
+    """Jobs in terminal/active states cannot be edited."""
+    class FakeRepo:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_user(self, publish_job_id, user_id):
+            return _publish_row(status="published")
+
+    monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
+    resp = await dist_client.client.patch(
+        "/api/distribution/publish-jobs/pj-1",
+        json={"title": "New Title"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["code"] == "invalid_status"
+
+
+@pytest.mark.asyncio
+async def test_update_publish_job_reschedule_non_scheduled(dist_client, monkeypatch):
+    """Setting scheduled_at on a 'pending' (not 'scheduled') job is rejected."""
+    from datetime import datetime, timezone
+
+    class FakeRepo:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_user(self, publish_job_id, user_id):
+            return _publish_row(status="pending")
+
+    monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
+    resp = await dist_client.client.patch(
+        "/api/distribution/publish-jobs/pj-1",
+        json={"scheduled_at": datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc).isoformat()},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["code"] == "invalid_status"
+
+
+@pytest.mark.asyncio
+async def test_update_publish_job_race_conflict(dist_client, monkeypatch):
+    """update_editable returns None when the job has already started uploading."""
+    class FakeRepo:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_user(self, publish_job_id, user_id):
+            return _publish_row(status="pending")
+
+        async def update_editable(self, job_id, *, title, description, scheduled_at):
+            return None
+
+    monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
+    resp = await dist_client.client.patch(
+        "/api/distribution/publish-jobs/pj-1",
+        json={"title": "Too late"},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "invalid_status"
+
+
+@pytest.mark.asyncio
+async def test_update_publish_job_success(dist_client, monkeypatch):
+    """Happy-path: pending job can have its title/description updated."""
+    class FakeRepo:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_user(self, publish_job_id, user_id):
+            return _publish_row(status="pending")
+
+        async def update_editable(self, job_id, *, title, description, scheduled_at):
+            return _publish_row(status="pending", title=title or "T", description=description or "D")
+
+    monkeypatch.setattr(distribution_api, "PublishJobRepository", FakeRepo)
+    resp = await dist_client.client.patch(
+        "/api/distribution/publish-jobs/pj-1",
+        json={"title": "Updated Title", "description": "Better desc"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["title"] == "Updated Title"
+    assert dist_client.session.committed
+
+
+# ─── oauth_start / oauth_callback else (unknown adapter) ──────────────────────
+
+
+@pytest.mark.asyncio
+async def test_oauth_start_unknown_adapter_type(dist_client, monkeypatch):
+    """If build_adapter returns an unrecognised adapter type, StreamClipError is raised."""
+    class UnknownAdapter:
+        pass
+
+    with patch.object(distribution_api, "build_adapter", AsyncMock(return_value=UnknownAdapter())), \
+         patch.object(distribution_api, "create_oauth_state", return_value="state"), \
+         patch.object(distribution_api, "default_redirect_uri", return_value="http://cb"):
+        resp = await dist_client.client.get("/api/distribution/oauth/youtube_shorts/start")
+
+    assert resp.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_unknown_adapter_type(dist_client, monkeypatch):
+    """If build_adapter returns an unrecognised adapter, callback redirects to unknown_platform."""
+    cfg = distribution_api.get_settings()
+    web = cfg.distribution.web_origin.rstrip("/")
+
+    class UnknownAdapter:
+        pass
+
+    with patch.object(distribution_api, "verify_oauth_state", return_value=USER_ID), \
+         patch.object(distribution_api, "build_adapter", AsyncMock(return_value=UnknownAdapter())), \
+         patch.object(distribution_api, "default_redirect_uri", return_value="http://cb"):
+        resp = await dist_client.client.get(
+            "/api/distribution/oauth/youtube_shorts/callback",
+            params={"code": "abc", "state": "st"},
+            follow_redirects=False,
+        )
+
+    assert resp.status_code in (302, 307)
+    assert "unknown_platform" in resp.headers["location"]

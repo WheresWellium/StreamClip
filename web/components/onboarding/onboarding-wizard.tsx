@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { completeOnboardingAction } from "@/lib/api/actions/onboarding";
 import { markOnboardingComplete } from "@/lib/auth/client-session";
+import { HealthChecklist, type StackHealthSnapshot } from "@/components/onboarding/health-checklist";
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { Button } from "@/components/ui/button";
 import { metaApi } from "@/lib/api/client";
@@ -26,16 +27,16 @@ type Props = {
 export function OnboardingWizard({ sampleUrl, meta }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("welcome");
-  const [health, setHealth] = useState<Record<string, unknown> | null>(null);
+  const [health, setHealth] = useState<StackHealthSnapshot | null>(null);
   const [checking, setChecking] = useState(false);
 
   const runHealthCheck = useCallback(async () => {
     setChecking(true);
     try {
-      const data = await metaApi.health();
+      const data = await metaApi.stackHealth();
       setHealth(data);
     } catch {
-      setHealth({ status: "error" });
+      setHealth({ status: "error", checks: {}, worker: false });
     } finally {
       setChecking(false);
     }
@@ -74,7 +75,8 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
         <section className="space-y-4">
           <h1 className="text-2xl font-semibold">Welcome to Jet Stream</h1>
           <p className="text-muted-foreground">
-            Turn long-form streams into vertical clips with AI captions, reframe, and overlays.
+            The clip studio for any length of footage — auto-reframe to any ratio,
+            caption and overlay in one pass, then rank what wins before you publish.
           </p>
         </section>
       )}
@@ -82,15 +84,14 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
       {step === "health" && (
         <section className="space-y-4">
           <h1 className="text-2xl font-semibold">Stack health</h1>
-          {checking && <p className="text-sm text-muted-foreground">Checking services…</p>}
-          {health && (
-            <pre className="text-xs bg-black/30 p-4 rounded overflow-auto">
-              {JSON.stringify(health, null, 2)}
-            </pre>
-          )}
-          <Button variant="outline" onClick={() => void runHealthCheck()}>
-            Re-check
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            We verify database, storage, and workers before your first clip job.
+          </p>
+          <HealthChecklist
+            data={health}
+            loading={checking}
+            onRetry={() => void runHealthCheck()}
+          />
         </section>
       )}
 

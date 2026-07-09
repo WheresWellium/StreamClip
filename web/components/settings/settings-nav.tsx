@@ -11,6 +11,7 @@ export type SettingsSection =
   | "license"
   | "distribution"
   | "integrations"
+  | "api"
   | "privacy"
   | "advanced";
 
@@ -20,6 +21,7 @@ const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "license", label: "License" },
   { id: "distribution", label: "Distribution" },
   { id: "integrations", label: "Integrations" },
+  { id: "api", label: "API" },
   { id: "privacy", label: "Privacy & data" },
   { id: "advanced", label: "Advanced" },
 ];

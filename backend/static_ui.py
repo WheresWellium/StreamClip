@@ -18,6 +18,8 @@ from core.config import Settings
 
 log = structlog.get_logger(__name__)
 
+_SPA_NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+
 def _is_reserved_api_path(path: str) -> bool:
     return (
         path.startswith("api/")
@@ -62,7 +64,7 @@ def mount_static_ui(app: FastAPI, cfg: Settings) -> bool:
 
     @app.get("/", include_in_schema=False)
     async def static_index() -> FileResponse:
-        return FileResponse(static_dir / "index.html")
+        return FileResponse(static_dir / "index.html", headers=_SPA_NO_CACHE)
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def static_spa(full_path: str) -> FileResponse:
@@ -71,12 +73,15 @@ def mount_static_ui(app: FastAPI, cfg: Settings) -> bool:
             raise HTTPException(status_code=404, detail="Not found")
         candidate = static_dir / normalized
         if candidate.is_file():
-            return FileResponse(candidate)
+            # Hashed Next assets under _next/ are mounted separately; HTML shells
+            # should not be cached so desktop installs pick up fresh UI after update.
+            headers = _SPA_NO_CACHE if candidate.suffix == ".html" else None
+            return FileResponse(candidate, headers=headers)
         # Next export may emit path/index.html
         index_nested = static_dir / normalized / "index.html"
         if index_nested.is_file():
-            return FileResponse(index_nested)
-        return FileResponse(static_dir / "index.html")
+            return FileResponse(index_nested, headers=_SPA_NO_CACHE)
+        return FileResponse(static_dir / "index.html", headers=_SPA_NO_CACHE)
 
     log.info("static_ui_mounted", dir=str(static_dir))
     return True

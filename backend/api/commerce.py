@@ -29,6 +29,7 @@ from core.commerce.lemon_squeezy import (
     parse_order_event,
     verify_webhook_signature,
 )
+from core.commerce.entitlements import tag_audio_order_id, variant_grants_audio_ingest
 from core.config import get_settings
 from core.licensing import hash_license_key
 from core.task_dispatch import dispatch_task_by_name
@@ -113,13 +114,17 @@ async def lemon_squeezy_webhook(
 
     repo = InstallLicenseRepository(db)
 
+    order_id = event["order_id"] or None
+    if variant_grants_audio_ingest(event.get("variant_id"), cfg):
+        order_id = tag_audio_order_id(order_id)
+
     if event["event_name"] == "license_key_created" and event["license_key_hash"]:
         # LS generated + delivers the key; we only need the hash to verify activation.
         if await repo.get_by_key_hash(event["license_key_hash"]) is None:
             await repo.create_issued(
                 license_key_hash=event["license_key_hash"],
                 tier=UserTier.PRO,
-                order_id=event["order_id"] or None,
+                order_id=order_id,
                 customer_email=event.get("customer_email"),
             )
             await db.commit()
@@ -135,7 +140,7 @@ async def lemon_squeezy_webhook(
         license_key, _ = await _issue_key_with_collision_retry(
             db,
             repo,
-            order_id=event["order_id"] or None,
+            order_id=order_id,
             customer_email=event.get("customer_email"),
         )
         await db.commit()

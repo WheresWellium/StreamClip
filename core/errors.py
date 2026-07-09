@@ -15,7 +15,48 @@ Design rules:
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+_INTERNAL_DETAIL_RE = re.compile(
+    r"(traceback|file \"|ytdlp|ffmpeg|\.py:|\\|[A-Z]:\\|Exception:|Error:)",
+    re.IGNORECASE,
+)
+
+
+def expose_error_context() -> bool:
+    """Return True when API responses may include diagnostic ``context`` payloads."""
+    from core.config import get_settings
+
+    return get_settings().environment == "development"
+
+
+def sanitize_user_message(
+    message: str | None,
+    *,
+    fallback: str = "Something went wrong.",
+) -> str:
+    """Strip strings that look like stack traces or tool output before UI display."""
+    if not message or not str(message).strip():
+        return fallback
+    text = str(message).strip()
+    if len(text) > 280 or _INTERNAL_DETAIL_RE.search(text):
+        return fallback
+    return text
+
+
+def clip_failure_message(exc: BaseException) -> str:
+    """User-safe clip error text for DB + SSE (never raw ``str(exc)``)."""
+    if isinstance(exc, StreamClipError):
+        return exc.user_message
+    return "Video processing failed."
+
+
+def publish_failure_message(exc: BaseException) -> str:
+    """User-safe publish error text for DB + SSE."""
+    if isinstance(exc, StreamClipError):
+        return exc.user_message
+    return "Publish failed. Try again or check your platform connection."
 
 
 class StreamClipError(Exception):
@@ -47,12 +88,14 @@ class StreamClipError(Exception):
 
     def to_dict(self) -> dict[str, Any]:
         """Serialisable payload for API responses and structured logs."""
-        return {
+        payload: dict[str, Any] = {
             "code": self.code,
             "message": self.user_message,
             "retryable": self.is_retryable,
-            "context": self.context,
         }
+        if expose_error_context() and self.context:
+            payload["context"] = self.context
+        return payload
 
 
 # ─── Ingest ──────────────────────────────────────────────────────────────────

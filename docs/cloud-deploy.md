@@ -1,17 +1,17 @@
 # StreamClip Cloud MVP — Multi-tenant Architecture
 
-> **Status: design-stage only — nothing here is implemented.** `backend/cloud/tenant.py` is an unwired stub, no code reads `STREAMCLIP_CLOUD_MODE` or the `STRIPE_*` vars in `docker-compose.cloud.yml`, and Stripe has been removed from the product (Lemon Squeezy is the billing provider). Keep or delete per MASTER_TODO 2.10 before shipping cloud.
+> **Status: design-stage only — nothing here is implemented.** The former `backend/cloud/tenant.py` stub and `docker-compose.cloud.yml` were **removed** (MASTER §2.10, 2026-07-09). No code reads `STREAMCLIP_CLOUD_MODE`. Stripe has been removed from the product (Lemon Squeezy is the billing provider). This doc is a future-architecture sketch only.
 
 ## Overview
 
-The cloud deployment extends the self-hosted stack with tenant isolation, row-level security (RLS), and usage metering. This document describes a target architecture; `backend/cloud/tenant.py` provides the middleware stub.
+The cloud deployment would extend the self-hosted stack with tenant isolation, row-level security (RLS), and usage metering. This document describes a target architecture only — no middleware stub ships in-tree.
 
 ## Tenancy model
 
 | Layer | Strategy |
 |-------|----------|
 | Identity | Auth0 / Clerk JWT with `tenant_id` claim |
-| API | `X-Tenant-Id` header → `TenantContext` (see `backend/cloud/tenant.py`) |
+| API | `X-Tenant-Id` header → tenant context (not implemented) |
 | Database | PostgreSQL schema-per-tenant or shared schema + RLS |
 | Storage | S3 prefix `tenants/{tenant_id}/` |
 | Queue | Celery task headers include `tenant_id` |
@@ -51,7 +51,7 @@ Env vars:
 
 ## Deployment
 
-Use `docker-compose.cloud.yml` as a skeleton. Add:
+Use a dedicated compose overlay when implementing. Add:
 
 1. Managed Postgres with RLS policies applied via Alembic
 2. Redis Cluster for broker + SSE pub/sub

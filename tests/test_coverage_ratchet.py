@@ -11,9 +11,25 @@ import pytest
 
 from backend.services import sse as sse_mod
 from backend.services.sse import stream_job_progress, stream_publish_progress
+from core import progress_bus as pb_mod
 from core.config import get_settings
 from core.errors import StreamClipError
+from core.progress_bus import reset_progress_bus
 from core.tasks import pipeline_tasks as pt
+
+
+@pytest.fixture
+def inprocess_cfg(monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    return cfg
+
+
+@pytest.fixture(autouse=True)
+def _fresh_bus():
+    reset_progress_bus()
+    yield
+    reset_progress_bus()
 
 
 def _asyncio_run(coro):
@@ -340,6 +356,44 @@ async def test_stream_job_redis_cleanup_warning():
 
     with patch.object(sse_mod, "get_redis", AsyncMock(return_value=mock_redis)):
         gen = stream_job_progress("job-cln", cfg, heartbeat_secs=100)
+        await gen.__anext__()
+        await gen.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_publish_inprocess_invalid_json_cleanup(inprocess_cfg):
+    """Memory bus: invalid JSON on live channel + generator cleanup."""
+    cfg = inprocess_cfg
+    bus = pb_mod.get_progress_bus(cfg)
+    channel = f"{cfg.redis.publish_pubsub_channel_prefix}pj-mem-inv"
+    queue = bus.subscribe(channel)
+
+    async def publish_bad():
+        await asyncio.sleep(0.02)
+        queue.put_nowait("not-valid-json{{{")
+        bus.publish(channel, {"status": "done", "stage": "done", "progress": 1.0})
+
+    task = asyncio.create_task(publish_bad())
+    try:
+        chunks = [c async for c in stream_publish_progress("pj-mem-inv", cfg, heartbeat_secs=100)]
+    finally:
+        await task
+    assert any("done" in c for c in chunks)
+
+
+@pytest.mark.asyncio
+async def test_stream_publish_redis_cleanup_exception():
+    cfg = get_settings()
+    mock_redis = AsyncMock()
+    mock_redis.get = AsyncMock(return_value=None)
+    mock_pubsub = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(return_value=None)
+    mock_pubsub.unsubscribe = AsyncMock(side_effect=RuntimeError("cleanup fail"))
+    mock_pubsub.close = AsyncMock()
+    mock_redis.pubsub = MagicMock(return_value=mock_pubsub)
+
+    with patch.object(sse_mod, "get_redis", AsyncMock(return_value=mock_redis)):
+        gen = stream_publish_progress("pj-clean-fail", cfg, heartbeat_secs=100)
         await gen.__anext__()
         await gen.aclose()
 

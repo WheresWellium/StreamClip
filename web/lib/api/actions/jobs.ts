@@ -84,7 +84,7 @@ export async function createJobAction(
     }
     return {
       status: "error",
-      message: err instanceof Error ? err.message : "Unknown error",
+      message: "Could not create job. Try again or check stack health.",
     };
   }
 }

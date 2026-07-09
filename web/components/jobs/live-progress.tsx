@@ -15,6 +15,7 @@ import {
   legendForStage,
   legendForStatus,
 } from "@/lib/help/legends";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 import {
   formatDurationSeconds,
   formatEtaRemaining,
@@ -228,7 +229,6 @@ export function LiveProgress({
         : null;
 
   const stage = liveEvent?.stage ?? initialStage;
-  const message = liveEvent?.message ?? initialStage;
   const progress = liveEvent?.progress ?? initialProgress;
   const status =
     liveEvent?.status === "done"
@@ -238,6 +238,15 @@ export function LiveProgress({
         : finished
           ? initialStatus
           : "processing";
+  const rawMessage = liveEvent?.message ?? initialStage;
+  const errorCode =
+    liveEvent?.extra && typeof liveEvent.extra === "object"
+      ? String((liveEvent.extra as Record<string, unknown>).code ?? "")
+      : undefined;
+  const message =
+    status === "error"
+      ? userFacingErrorMessage(rawMessage, errorCode || null, "Job failed.")
+      : rawMessage;
 
   const totalElapsedBase =
     liveEvent?.total_elapsed_secs ?? initialTotalElapsedSecs ?? null;
@@ -258,7 +267,7 @@ export function LiveProgress({
     }
     if (state.status === "error") {
       const msg = "message" in state ? state.message : undefined;
-      if (msg) toast("Job failed", msg);
+      if (msg) toast("Job failed", userFacingErrorMessage(msg, null, "Job failed."));
     }
   }, [state, router, toast]);
 
@@ -271,7 +280,11 @@ export function LiveProgress({
             Job failed
           </span>
         </div>
-        <p className="text-xs text-destructive/80">{state.message}</p>
+        <p className="text-xs text-destructive/80">
+          {"message" in state
+            ? userFacingErrorMessage(state.message, null, "Job failed.")
+            : "Job failed."}
+        </p>
       </div>
     );
   }

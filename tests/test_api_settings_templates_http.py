@@ -68,6 +68,22 @@ async def authed_client(app, client, monkeypatch):
                 llm_score=50.0,
             )
 
+    class FakeJobs:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_scope(
+            self,
+            job_id,
+            *,
+            owner_id,
+            device_id=None,
+            device_scoped=True,
+        ):
+            if job_id == "job-1" and owner_id == USER:
+                return SimpleNamespace(id=job_id)
+            return None
+
     class FakeFeedback:
         def __init__(self, db) -> None:
             pass
@@ -77,6 +93,7 @@ async def authed_client(app, client, monkeypatch):
 
     monkeypatch.setattr(settings_api, "UserRepository", FakeUsers)
     monkeypatch.setattr(settings_api, "ClipRepository", FakeClips)
+    monkeypatch.setattr(settings_api, "JobRepository", FakeJobs)
     monkeypatch.setattr(settings_api, "ClipFeedbackRepository", FakeFeedback)
     monkeypatch.setattr(
         settings_api,
@@ -115,6 +132,23 @@ async def test_submit_clip_feedback(authed_client):
     )
     assert resp.status_code == 201
     assert resp.json()["rating"] == 5
+
+
+@pytest.mark.asyncio
+async def test_submit_clip_feedback_denied_when_job_out_of_scope(authed_client, monkeypatch):
+    class DenyJobs:
+        def __init__(self, db) -> None:
+            pass
+
+        async def get_for_scope(self, job_id, *, owner_id, device_id=None, device_scoped=True):
+            return None
+
+    monkeypatch.setattr(settings_api, "JobRepository", DenyJobs)
+    resp = await authed_client.client.post(
+        "/api/settings/clips/clip-1/feedback",
+        json={"rating": 5},
+    )
+    assert resp.status_code == 404
 
 
 @pytest.fixture

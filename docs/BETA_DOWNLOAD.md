@@ -1,6 +1,19 @@
 # Get StreamClip — Beta Access
 
-**StreamClip** turns long-form video into viral vertical shorts — locally, privately, no cloud required.
+**StreamClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
+
+**New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
+
+---
+
+## Choose how you want to run it
+
+| Option | Who it's for | Difficulty |
+|--------|--------------|------------|
+| **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
+| **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
+
+Both options are free. You do **not** need a GitHub account.
 
 ---
 
@@ -10,10 +23,36 @@
 |------|--------|--------------|
 | **Docker self-host (Windows)** | ✅ Ready | Beta testers with Docker Desktop |
 | **Docker self-host (macOS)** | ✅ Ready | Beta testers on Apple Silicon or Intel Mac |
-| **Windows one-click installer (.exe)** | 🔜 Coming soon | General creators — being packaged |
+| **Windows one-click installer (.exe)** | ✅ Ready (unsigned beta) | Creators who want no Docker — SmartScreen may warn |
 | **macOS one-click installer (.dmg)** | 🔜 Coming soon | General creators — scaffold in progress |
 
-**If you received a beta invite today, use the Docker path for your OS below — it's the same full product.** No Apple Developer account, no code-signing cert, and no GitHub account required.
+**Phase 0 testers:** Docker is still the most complete path. The Windows `.exe` works well for quick trials without Docker.
+
+---
+
+## Windows installer (no Docker)
+
+If you prefer **not** to install Docker:
+
+1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)** (about 390 MB)
+2. Run the installer
+
+**If Windows shows "Windows protected your PC"**
+
+This is normal for an unsigned beta build. It does **not** mean the file is a virus.
+
+1. Click **More info**
+2. Click **Run anyway**
+3. Finish install and open StreamClip from the Start menu
+4. Sign up or log in, then paste your license key in **Settings → License**
+
+The desktop app runs everything locally. You still need your **license key** from your invite email.
+
+---
+
+## Docker install (Windows and Mac)
+
+Pick your platform below.
 
 ---
 
@@ -216,14 +255,16 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 ---
 
-## One-click installers — coming soon
+## One-click installers
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | `StreamClip-Setup-win-x64.exe` | Packaging / local builds exist; public download link soon |
-| macOS | `StreamClip-mac-arm64.dmg` | Scaffold ready; needs a Mac host to produce the DMG |
+| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
+| macOS | `StreamClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
-Until those links appear here, **Docker is the supported beta path** on both platforms.
+**Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
+
+Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
 
 ### For friends helping build the macOS `.dmg` (not required for beta use)
 

@@ -1,41 +1,59 @@
 # Jet Stream docs
 
-**Jet Stream** *(codebase: StreamClip)* turns long-form video into viral vertical shorts — self-hosted, private, no cloud subscription required. All processing runs on your machine.
+**StreamClip** turns long videos into short vertical clips on **your own computer**. Nothing is uploaded to our servers unless you choose to publish to YouTube or TikTok.
 
 ---
 
 !!! tip "Beta testers — start here"
-    **No GitHub account needed.** Works on **Windows and Mac** via Docker.
-    [**Get StreamClip →**](BETA_DOWNLOAD.md) — pick your OS, activate your license, make your first clip.
+    **You do not need a GitHub account.**
+
+    1. **[Get StreamClip](BETA_DOWNLOAD.md)** — pick Windows or Mac and follow the steps
+    2. **[Quickstart](BETA_TESTER_QUICKSTART.md)** — from install to your first clip (~15 minutes)
+    3. Paste your **license key** in **Settings → License** (from your invite email)
+
+    **Stuck?** Use **Report a bug** in the app header or reply to your invite email.
 
 ---
 
-## Find your guide
+## Pick your guide
 
-| You are… | Go to |
-|----------|-------|
-| **A creator on Windows or Mac (beta invite)** | [Get StreamClip (install guide)](BETA_DOWNLOAD.md) |
-| **Running through the full beta test plan** | [Quickstart](BETA_TESTER_QUICKSTART.md) → [Beta test plan](BETA_TESTER_PLAN.md) |
-| **Helping build the macOS `.dmg`** | [macOS installer — builders](MACOS_INSTALLER.md) |
-| **An operator running the Docker stack** | [Distribution runbook](distribution-runbook.md) · [Performance budgets](PERFORMANCE.md) |
-| **An engineer exploring the system** | [Technical design](TECHNICAL_DESIGN.md) · [Creator platform map](CREATOR_PLATFORM.md) |
-| **Checking launch readiness** | [Beta go-live checklist](BETA_GO_LIVE.md) |
-
----
-
-## What StreamClip does
-
-1. **Ingest** — paste any public video URL (Twitch, YouTube, Kick, `.mp4`)
-2. **Transcribe** — Whisper runs locally to extract speech and timing
-3. **Detect highlights** — YOLO + virality scoring picks the best moments
-4. **Render clips** — FFmpeg + NVENC (NVIDIA) or libx264 (CPU / Mac) encodes vertical shorts
-5. **Review and publish** — approve clips in the UI, publish to YouTube Shorts or TikTok
-
-Everything stays on your machine unless you publish.
+| If you want to… | Open this |
+|-----------------|-----------|
+| **Install and run the beta** | [Get StreamClip](BETA_DOWNLOAD.md) |
+| **Step-by-step: first clip** | [Beta quickstart](BETA_TESTER_QUICKSTART.md) |
+| **Follow the full test checklist** | [Beta test plan](BETA_TESTER_PLAN.md) |
+| **Fix a problem** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
+| **Build the macOS installer** (helpers only) | [macOS installer — builders](MACOS_INSTALLER.md) |
+| **Understand how it works** (technical) | [Technical design](TECHNICAL_DESIGN.md) |
 
 ---
 
-## Local docs preview
+## What StreamClip does (simple version)
+
+1. **You paste a link** — Twitch, YouTube, Kick, or a public `.mp4`
+2. **It listens and reads** — speech is turned into text on your machine
+3. **It finds the best moments** — software picks highlight sections
+4. **It makes short clips** — vertical videos ready for Shorts / TikTok
+5. **You review and publish** — approve clips, then post if you want
+
+Your raw video files stay on your computer.
+
+---
+
+## Words you might see
+
+| Word | Plain meaning |
+|------|----------------|
+| **Docker** | A free app that runs StreamClip in the background (like a mini server on your PC) |
+| **License key** | A code from your invite email (`SCPRO-…`) that unlocks all features |
+| **Job** | One video you asked StreamClip to process |
+| **Clip** | One short video cut from that job |
+| **Vault** | Your saved favorite clips |
+| **GPU** | Your graphics card — makes processing much faster on Windows with NVIDIA |
+
+---
+
+## Preview these docs on your computer
 
 ```bash
 pip install -r docs/requirements.txt
@@ -43,11 +61,3 @@ python -m mkdocs serve -a 127.0.0.1:8001
 ```
 
 Open [http://127.0.0.1:8001](http://127.0.0.1:8001).
-
-## Build (strict)
-
-```bash
-mkdocs build --strict
-```
-
-Output lands in `site/` (gitignored).

@@ -32,12 +32,14 @@ EXCLUDE_PREFIXES = (
     "packaging/",
     "desktop_sidecar/",
     "apps/",
+    "web/",       # testers run pre-built Docker images; Next.js source not needed
 )
 EXCLUDE_FILES = {
     "AGENTS.md",
     "CONTRIBUTING.md",
     "PLAN.md",
     "COMMERCIAL.md",
+    "mkdocs.yml",  # internal docs build config, not needed by testers
 }
 
 

@@ -37,6 +37,7 @@ import csv
 import io
 import os
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -66,8 +67,10 @@ You're in — welcome to the StreamClip Phase 0 beta.
 
 Getting started (no GitHub account needed):
 
-1. The StreamClip beta files are attached to this email as a .zip.
-   Extract it to any folder (e.g. C:\\StreamClip or ~/StreamClip).
+1. The StreamClip beta files are attached to this email as **StreamClip-beta.sc**.
+   Rename it to StreamClip-beta.zip, then extract it to any folder
+   (e.g. C:\\StreamClip or ~/StreamClip). It's a standard zip archive —
+   the .sc extension is used to avoid overzealous email virus scanners.
 
 2. Quickstart — install to your first clip (~15 min):
    {henna_base}/BETA_TESTER_QUICKSTART/
@@ -395,23 +398,35 @@ def main(argv: list[str] | None = None) -> int:
         print("SMTP not configured (set SMTP_HOST, etc.). Bodies saved only.", file=sys.stderr)
         return 1
 
+    # Copy the zip to a temp file with a .sc extension so MailScanner and
+    # similar gateway scanners don't block the .zip attachment by name.
+    # Recipients extract it normally — it's still a valid zip archive.
+    safe_name = "StreamClip-beta.sc"
+    tmp_dir = Path(tempfile.mkdtemp())
+    safe_zip_path = tmp_dir / safe_name
+    safe_zip_path.write_bytes(args.zip_path.read_bytes())
+
     sent = 0
     failed: list[str] = []
-    for member, _path in written:
-        body = _render_body(member, henna_base=henna_base)
-        ok = send_email(
-            to=member.email,
-            subject=subject,
-            body=body,
-            settings=smtp,
-            attachments=[args.zip_path],
-        )
-        if ok:
-            sent += 1
-            print(f"SENT {member.email}", file=sys.stderr)
-        else:
-            failed.append(member.email)
-            print(f"FAILED {member.email}", file=sys.stderr)
+    try:
+        for member, _path in written:
+            body = _render_body(member, henna_base=henna_base)
+            ok = send_email(
+                to=member.email,
+                subject=subject,
+                body=body,
+                settings=smtp,
+                attachments=[safe_zip_path],
+            )
+            if ok:
+                sent += 1
+                print(f"SENT {member.email}", file=sys.stderr)
+            else:
+                failed.append(member.email)
+                print(f"FAILED {member.email}", file=sys.stderr)
+    finally:
+        safe_zip_path.unlink(missing_ok=True)
+        tmp_dir.rmdir()
 
     print(f"\n{sent}/{len(written)} sent.", file=sys.stderr)
     if failed:

@@ -110,12 +110,19 @@ def send_email(
 
     for attempt in range(max_retries):
         try:
-            with smtplib.SMTP(smtp.host, smtp.port, timeout=15) as client:
-                if smtp.starttls:
+            if not smtp.starttls:
+                # Port 465 implicit SSL
+                with smtplib.SMTP_SSL(smtp.host, smtp.port, timeout=15) as client:
+                    if smtp.user:
+                        client.login(smtp.user, smtp.password)
+                    client.send_message(msg)
+            else:
+                # Port 587 STARTTLS
+                with smtplib.SMTP(smtp.host, smtp.port, timeout=15) as client:
                     client.starttls()
-                if smtp.user:
-                    client.login(smtp.user, smtp.password)
-                client.send_message(msg)
+                    if smtp.user:
+                        client.login(smtp.user, smtp.password)
+                    client.send_message(msg)
             log.info("email_sent", to=to, subject=subject)
             return True
         except (smtplib.SMTPException, OSError) as exc:

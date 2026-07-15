@@ -5,6 +5,13 @@ No GitHub account or repo access required to use the output — this is the
 2026-07-09 decision). Uses `git archive` so nothing untracked/gitignored
 (secrets, .env, tmp/, dist/, node_modules/, __pycache__, etc.) ever ships.
 
+The archive keeps real filenames and the full runtime source (including
+``web/`` — the ``web`` compose service builds from ``./web``, so a tester
+running ``docker compose up -d --build`` needs it). Mail-scanner evasion is
+handled non-destructively at send time by attaching the archive with a ``.sc``
+extension (see ``scripts/send_beta_test_info_emails.py``); we do NOT rename or
+drop files that the deploy depends on.
+
 Usage (repo root):
   python scripts/build_beta_zip.py
   python scripts/build_beta_zip.py --out dist/StreamClip-beta.zip --ref HEAD
@@ -15,35 +22,22 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-import tempfile
-import os
-import zipfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = REPO_ROOT / "dist" / "StreamClip-beta.zip"
 
-# MailScanner and similar scanners flag:
-#   - filenames with multiple dots (e.g. docker-compose.prod.yml looks like hidden ext)
-#   - common archive extensions (.zip, .tar.gz) as potential malware delivery
-# Map source filename → safe name inside the zip to avoid these triggers.
-RENAME_INSIDE_ZIP = {
-    "docker-compose.prod.yml": "docker-compose-prod.yml",
-}
-
-# Keep the tester zip small and free of anything not needed to run
-# `docker compose up -d`. Everything here is already git-tracked (git archive
-# only includes tracked files), this just trims dev-only tracked content the
-# tester doesn't need (CI configs, agent tooling, full test suite).
+# Trim only dev-only tracked content a Docker tester never runs. Everything
+# needed by `docker compose up -d --build` (backend, core, web, alembic,
+# Dockerfiles, compose files, start scripts, .env.example) MUST stay.
 EXCLUDE_PREFIXES = (
     ".github/",
     ".cursor/",
     ".vscode/",
     "tests/",
-    "packaging/",
-    "desktop_sidecar/",
-    "apps/",
-    "web/",       # testers run pre-built Docker images; Next.js source not needed
+    "packaging/",       # desktop installer tooling
+    "desktop_sidecar/",  # desktop-only runtime
+    "apps/",             # Electron shell
 )
 EXCLUDE_FILES = {
     "AGENTS.md",
@@ -80,38 +74,19 @@ def build_zip(*, ref: str, out_path: Path) -> int:
     included = [p for p in tracked if _should_include(p)]
     excluded_count = len(tracked) - len(included)
 
-    # Build via git archive into a temp buffer, then repack with safe filenames.
-    import tempfile, os
-    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
-        tmp_path = tmp.name
-
-    try:
-        subprocess.run(
-            [
-                "git", "archive",
-                "--format=zip",
-                "--prefix=streamclip/",
-                "-o", tmp_path,
-                ref,
-                "--",
-                *included,
-            ],
-            cwd=REPO_ROOT,
-            check=True,
-        )
-
-        # Repack: rename any files that trigger mail scanner heuristics.
-        with zipfile.ZipFile(tmp_path, "r") as src_zip, \
-             zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as dst_zip:
-            for item in src_zip.infolist():
-                data = src_zip.read(item.filename)
-                basename = item.filename.split("/")[-1]
-                if basename in RENAME_INSIDE_ZIP:
-                    new_name = item.filename[: -len(basename)] + RENAME_INSIDE_ZIP[basename]
-                    item.filename = new_name
-                dst_zip.writestr(item, data)
-    finally:
-        os.unlink(tmp_path)
+    subprocess.run(
+        [
+            "git", "archive",
+            "--format=zip",
+            "--prefix=streamclip/",
+            "-o", str(out_path),
+            ref,
+            "--",
+            *included,
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+    )
 
     size_mb = out_path.stat().st_size / (1024 * 1024)
     print(f"Built {out_path} ({size_mb:.1f} MB, {len(included)} files, {excluded_count} excluded)", file=sys.stderr)

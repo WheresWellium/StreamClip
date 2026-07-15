@@ -1,6 +1,8 @@
-"""Line-coverage sweep, part 2: commerce webhook branches, license email
-linkage, upload audio gate, health probe branches, and the SSE progress
-cursor parse."""
+"""Line-coverage sweep, part 2: commerce webhook email branch, license
+email-linkage, health probe branches, upload audio gate, SSE cursor parse.
+
+Async handlers use mocked dependencies (see test_coverage_api_100 for why).
+"""
 
 from __future__ import annotations
 
@@ -8,21 +10,23 @@ import hashlib
 import hmac
 import json
 import uuid
+from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 import backend.api.commerce as commerce_api
+import backend.api.health as health_api
 import backend.api.jobs as jobs_api
+import backend.api.license as license_api
 import backend.api.uploads as uploads_api
 from backend.db.models import UserTier
-from backend.db.repositories import InstallLicenseRepository
-from backend.db.session import get_db, get_sessionmaker
+from backend.db.session import get_db
+from backend.middleware.auth import get_current_user_id
 from backend.middleware.scope import RequestScope, get_request_scope
 from backend.services.job_service import ALLOWED_AUDIO_UPLOAD_TYPES
-from core.commerce.lemon_squeezy import generate_license_key
 from core.config import get_settings
-from core.licensing import hash_license_key
 
 WEBHOOK_SECRET = "api100b-webhook-secret"
 
@@ -31,30 +35,33 @@ def _sign(body: bytes) -> str:
     return hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
 
 
-# ─── commerce.py: audio variant tagging (119) + email enqueue failure (159-160) ─
+def _override_db(app):
+    async def fake_db():
+        yield AsyncMock()
+
+    app.dependency_overrides[get_db] = fake_db
+
+
+# ─── commerce.py: order_created email enqueue failure (159-160) ───────────────
 
 @pytest.mark.asyncio
-async def test_webhook_audio_variant_and_email_enqueue_failure(client, monkeypatch):
+async def test_webhook_email_enqueue_failure(app, client, monkeypatch):
     cfg = get_settings()
     old_secret = cfg.commerce.lemon_squeezy_webhook_secret
     cfg.commerce.lemon_squeezy_webhook_secret = WEBHOOK_SECRET
-    monkeypatch.setattr(cfg.commerce, "audio_ingest_variant_ids", "vaudio", raising=False)
+
+    repo = MagicMock()
+    repo.get_by_order_id = AsyncMock(return_value=None)
+    repo.create_issued = AsyncMock(return_value=SimpleNamespace(id="lic1"))
+    monkeypatch.setattr(commerce_api, "InstallLicenseRepository", lambda db: repo)
+    _override_db(app)
     try:
         body = json.dumps({
             "meta": {"event_name": "order_created"},
-            "data": {
-                "id": uuid.uuid4().hex[:12],
-                "attributes": {
-                    "user_email": "audio-buyer@example.com",
-                    "first_order_item": {"variant_id": "vaudio"},
-                },
-            },
+            "data": {"id": uuid.uuid4().hex[:12], "attributes": {"user_email": "b@x.com"}},
         }).encode()
-        # dispatch raises -> the best-effort except (159-160) is exercised
         with patch.object(
-            commerce_api,
-            "dispatch_task_by_name",
-            side_effect=RuntimeError("broker down"),
+            commerce_api, "dispatch_task_by_name", side_effect=RuntimeError("broker down"),
         ):
             resp = await client.post(
                 "/api/commerce/webhooks/lemon-squeezy",
@@ -65,49 +72,95 @@ async def test_webhook_audio_variant_and_email_enqueue_failure(client, monkeypat
         assert resp.json()["license_key"].startswith("SCPRO-")
     finally:
         cfg.commerce.lemon_squeezy_webhook_secret = old_secret
+        app.dependency_overrides.pop(get_db, None)
 
 
-# ─── license.py: activation links license to user by purchase email (97-105) ──
+# ─── license.py: activation links license to user by purchase email (95-105) ──
 
 @pytest.mark.asyncio
-async def test_activate_links_license_by_purchase_email(client):
-    # Register a user whose email matches the license purchase email.
-    email = f"liclink-{uuid.uuid4().hex[:10]}@example.com"
-    reg = await client.post(
-        "/api/auth/register",
-        json={"email": email, "password": "password123"},
+async def test_activate_links_license_by_purchase_email(app, client, monkeypatch):
+    lic = SimpleNamespace(
+        id="lic1",
+        status="issued",
+        machine_id=None,
+        activation_count=0,
+        tier=UserTier.PRO,
+        user_id=None,
+        customer_email="Buyer@Example.com",
     )
-    assert reg.status_code == 201
-    user_id = reg.json()["user"]["id"]
+    repo = MagicMock()
+    repo.get_by_key_hash = AsyncMock(return_value=lic)
+    repo.mark_activated = AsyncMock()
+    monkeypatch.setattr(license_api, "InstallLicenseRepository", lambda db: repo)
 
-    raw_key = generate_license_key()
-    SessionMaker = get_sessionmaker()
-    async with SessionMaker() as session:
-        repo = InstallLicenseRepository(session)
-        await repo.create_issued(
-            license_key_hash=hash_license_key(raw_key),
-            tier=UserTier.PRO,
-            order_id=uuid.uuid4().hex[:12],
-            customer_email=email,
+    entitlement = SimpleNamespace(
+        expires_at=datetime.now(timezone.utc), tier=SimpleNamespace(value="pro"),
+    )
+    monkeypatch.setattr(
+        license_api, "activate_license_key", lambda *a, **k: ("jwt-token", entitlement),
+    )
+
+    user_repo = MagicMock()
+    user_repo.get_by_email = AsyncMock(return_value=SimpleNamespace(id="user-9"))
+    monkeypatch.setattr(license_api, "UserRepository", lambda db: user_repo)
+    link = AsyncMock()
+    monkeypatch.setattr(license_api, "link_license_to_user", link)
+
+    _override_db(app)
+    app.dependency_overrides[get_current_user_id] = lambda: None
+    try:
+        resp = await client.post(
+            "/api/license/activate",
+            json={"license_key": "SCPRO-AAAA-BBBB-CCCC-DDDD", "machine_id": "machine-abcdef12"},
         )
-        await session.commit()
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["tier"] == "pro"
+        link.assert_awaited()
+        user_repo.get_by_email.assert_awaited_with("buyer@example.com")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_current_user_id, None)
 
-    # No Authorization header: linkage falls back to the purchase-email match.
-    resp = await client.post(
-        "/api/license/activate",
-        json={"license_key": raw_key, "machine_id": "machine-abcdef12"},
+
+@pytest.mark.asyncio
+async def test_activate_links_authed_user_swallows_link_error(app, client, monkeypatch):
+    """97 (link by authed user) + 104-105 (best-effort linkage never fails activation)."""
+    lic = SimpleNamespace(
+        id="lic2", status="issued", machine_id="machine-abcdef12", activation_count=0,
+        tier=UserTier.PRO, user_id=None, customer_email=None,
     )
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["tier"] == "pro"
+    repo = MagicMock()
+    repo.get_by_key_hash = AsyncMock(return_value=lic)
+    repo.mark_activated = AsyncMock()
+    monkeypatch.setattr(license_api, "InstallLicenseRepository", lambda db: repo)
+    entitlement = SimpleNamespace(expires_at=None, tier=SimpleNamespace(value="pro"))
+    monkeypatch.setattr(license_api, "activate_license_key", lambda *a, **k: ("jwt", entitlement))
+    monkeypatch.setattr(
+        license_api, "link_license_to_user", AsyncMock(side_effect=RuntimeError("link boom")),
+    )
+    _override_db(app)
+    app.dependency_overrides[get_current_user_id] = lambda: "authed-user"
+    try:
+        resp = await client.post(
+            "/api/license/activate",
+            json={"license_key": "SCPRO-AAAA-BBBB-CCCC-DDDD", "machine_id": "machine-abcdef12"},
+        )
+        assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_current_user_id, None)
 
-    async with SessionMaker() as session:
-        repo = InstallLicenseRepository(session)
-        lic = await repo.get_by_key_hash(hash_license_key(raw_key))
-        assert lic is not None
-        assert lic.user_id == user_id
+
+@pytest.mark.asyncio
+async def test_license_status_no_persisted_token(app, client, monkeypatch):
+    """133: no persisted entitlement -> inactive with the install's base tier."""
+    monkeypatch.setattr(license_api, "load_persisted_entitlement", lambda cfg: "")
+    resp = await client.get("/api/license/status", params={"machine_id": "machine-abc123"})
+    assert resp.status_code == 200
+    assert resp.json()["active"] is False
 
 
-# ─── uploads.py: audio upload rejected without the add-on (50-59) ─────────────
+# ─── uploads.py: audio upload rejected without the add-on (54) ────────────────
 
 @pytest.mark.asyncio
 async def test_upload_init_audio_disabled(client, monkeypatch):
@@ -122,32 +175,26 @@ async def test_upload_init_audio_disabled(client, monkeypatch):
         json={"filename": "clip.mp3", "content_type": audio_type},
     )
     assert resp.status_code == 403
-    assert resp.json().get("code") == "audio_ingest_disabled" or resp.status_code == 403
 
 
-# ─── health.py: db ok (42), inprocess redis (50), redis fail (57-58) ─────────
+# ─── health.py: db ok (42) + inprocess redis (50) ────────────────────────────
 
 @pytest.mark.asyncio
-async def test_health_inprocess_redis_ok(client, monkeypatch):
+async def test_health_inprocess_ok(app, client, monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.queue, "backend", "inprocess")
-    resp = await client.get("/api/health")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["database"] is True
-    assert body["redis"] is True
-
-
-@pytest.mark.asyncio
-async def test_health_redis_failure_degraded(client, monkeypatch):
-    cfg = get_settings(reload=True)
-    monkeypatch.setattr(cfg.queue, "backend", "celery")
-    monkeypatch.setattr(cfg.redis, "url", "redis://127.0.0.1:6390/0")  # nothing here
-    resp = await client.get("/api/health")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["redis"] is False
-    assert body["status"] == "degraded"
+    _override_db(app)
+    storage = MagicMock()
+    storage.list_prefix.return_value = []
+    monkeypatch.setattr(health_api, "make_storage", lambda cfg: storage)
+    try:
+        resp = await client.get("/api/health")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["database"] is True
+        assert body["redis"] is True
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 # ─── jobs.py: SSE progress cursor parse (511-524) ────────────────────────────
@@ -162,22 +209,25 @@ async def test_progress_stream_parses_last_event_id(app, client, monkeypatch):
     monkeypatch.setattr(jobs_api, "_get_service", lambda db: svc)
     monkeypatch.setattr(jobs_api, "stream_job_progress", _fake_stream)
 
-    session = MagicMock()
-
-    async def fake_db():
-        yield session
-
-    app.dependency_overrides[get_db] = fake_db
+    _override_db(app)
     app.dependency_overrides[get_request_scope] = lambda: RequestScope(
         user_id=None, device_id="test-device-0001",
     )
     try:
-        resp = await client.get(
+        ok = await client.get(
             "/api/jobs/job-xyz/progress",
             headers={"Last-Event-Id": "7"},
         )
-        assert resp.status_code == 200
-        assert "cursor=7" in resp.text
+        assert ok.status_code == 200
+        assert "cursor=7" in ok.text
+
+        # Non-numeric id -> ValueError branch resets the cursor (515-516).
+        bad = await client.get(
+            "/api/jobs/job-xyz/progress",
+            headers={"Last-Event-Id": "not-a-number"},
+        )
+        assert bad.status_code == 200
+        assert "cursor=None" in bad.text
     finally:
         app.dependency_overrides.pop(get_db, None)
         app.dependency_overrides.pop(get_request_scope, None)

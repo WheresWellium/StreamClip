@@ -24,9 +24,18 @@ from core.distribution.tokens import encrypt_secret
 
 @pytest.fixture
 def token_key():
-    """Ensure distribution token encryption key is set."""
+    """Ensure distribution token encryption key is set (self-generates so the
+    test passes without a .env Fernet key, e.g. in CI)."""
+    from core.distribution import tokens
+
     cfg = get_settings(reload=True)
-    yield cfg.distribution.token_encryption_key
+    old = cfg.distribution.token_encryption_key
+    if not old:
+        cfg.distribution.token_encryption_key = tokens.generate_token_key()
+    try:
+        yield cfg.distribution.token_encryption_key
+    finally:
+        cfg.distribution.token_encryption_key = old
 
 
 async def _make_user(db, tag="u"):

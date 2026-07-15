@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The api container runs as uid 1001 (streamclip); pre-create the
+      # bind-mount dirs so Docker doesn't create them root-owned (tests
+      # write under workspace/ and .cache/).
+      - name: Prepare bind-mount dirs
+        run: |
+          mkdir -p workspace output .cache
+          sudo chown -R 1001:1001 workspace output .cache
+
       - name: Build and start API stack
         run: |
           docker compose build api
@@ -31,7 +39,10 @@ jobs:
 
       - name: Pytest with coverage (not desktop)
         run: |
-          docker compose exec -T api pytest tests/ -m "not desktop" -q \
+          # NUMBA_CACHE_DIR: librosa's jitted helpers need a writable cache
+          # location in the container (site-packages is root-owned).
+          docker compose exec -T -e NUMBA_CACHE_DIR=/tmp/numba-cache api \
+            pytest tests/ -m "not desktop" -q \
             --cov=backend --cov=core --cov-report=term-missing:skip-covered
 
   desktop-smoke:
@@ -75,6 +86,11 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: web/package-lock.json
+
+      - name: Prepare bind-mount dirs
+        run: |
+          mkdir -p workspace output .cache
+          sudo chown -R 1001:1001 workspace output .cache
 
       - name: Build and start API + web
         run: |

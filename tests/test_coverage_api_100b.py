@@ -203,6 +203,28 @@ async def test_health_inprocess_ok(app, client, monkeypatch):
         app.dependency_overrides.pop(get_db, None)
 
 
+@pytest.mark.asyncio
+async def test_health_redis_failure(app, client, monkeypatch):
+    """57-58: redis ping failure marks redis unhealthy without erroring the probe."""
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
+    _override_db(app)
+    storage = MagicMock()
+    storage.list_prefix.return_value = []
+    monkeypatch.setattr(health_api, "make_storage", lambda cfg: storage)
+
+    bad_redis = MagicMock()
+    bad_redis.ping = AsyncMock(side_effect=RuntimeError("no redis"))
+    bad_redis.close = AsyncMock()
+    monkeypatch.setattr(health_api.aioredis, "from_url", lambda *a, **k: bad_redis)
+    try:
+        resp = await client.get("/api/health")
+        assert resp.status_code == 200
+        assert resp.json()["redis"] is False
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
 # ─── jobs.py: SSE progress cursor parse (511-524) ────────────────────────────
 
 @pytest.mark.asyncio

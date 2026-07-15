@@ -213,10 +213,18 @@ def test_create_job_request_validators():
     ok = CreateJobRequest(source_url=None, display_title=None)
     assert ok.source_url is None
 
+    # Valid explicit values exercise each validator's success return (71, 85, 92).
+    valid = CreateJobRequest(
+        caption_style="gaming_impact",
+        reframe_preset="fps_game",
+        content_profile="gaming",
+    )
+    assert valid.caption_style == "gaming_impact"
+
     for field, value in (
-        ("caption_style", "bogus"),      # 71
-        ("reframe_preset", "bogus"),     # 85
-        ("content_profile", "bogus"),    # 92
+        ("caption_style", "bogus"),
+        ("reframe_preset", "bogus"),
+        ("content_profile", "bogus"),
     ):
         with pytest.raises(ValidationError):
             CreateJobRequest(**{field: value})
@@ -232,14 +240,23 @@ def test_beta_feedback_request_environment_ok():
     from backend.api.schemas import BetaFeedbackRequest
 
     body = BetaFeedbackRequest(topic="idea", message="hello world here", environment={"a": "b"})
-    assert body.environment == {"a": "b"}  # 453
+    assert body.environment == {"a": "b"}
+
+    # >20 environment entries is rejected (453)
+    with pytest.raises(ValidationError):
+        BetaFeedbackRequest(
+            topic="idea",
+            message="hello world here",
+            environment={str(i): "x" for i in range(21)},
+        )
 
 
 def test_update_clip_request_validators():
     from backend.api.schemas import UpdateClipRequest
 
-    # valid transcript edits pass through
+    # valid transcript edits pass through; explicit None hits the None return (537)
     assert UpdateClipRequest(transcript_edits={"0": "hi"}).transcript_edits == {"0": "hi"}
+    assert UpdateClipRequest(transcript_edits=None).transcript_edits is None
 
     with pytest.raises(ValidationError):
         UpdateClipRequest(transcript_edits={str(i): "x" for i in range(501)})  # 537

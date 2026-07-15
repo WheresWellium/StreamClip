@@ -48,7 +48,9 @@ def _override_db(app):
 async def test_webhook_email_enqueue_failure(app, client, monkeypatch):
     cfg = get_settings()
     old_secret = cfg.commerce.lemon_squeezy_webhook_secret
+    old_variants = cfg.commerce.audio_ingest_variant_ids
     cfg.commerce.lemon_squeezy_webhook_secret = WEBHOOK_SECRET
+    cfg.commerce.audio_ingest_variant_ids = "vaudio"  # exercises audio order tagging (119)
 
     repo = MagicMock()
     repo.get_by_order_id = AsyncMock(return_value=None)
@@ -58,7 +60,10 @@ async def test_webhook_email_enqueue_failure(app, client, monkeypatch):
     try:
         body = json.dumps({
             "meta": {"event_name": "order_created"},
-            "data": {"id": uuid.uuid4().hex[:12], "attributes": {"user_email": "b@x.com"}},
+            "data": {"id": uuid.uuid4().hex[:12], "attributes": {
+                "user_email": "b@x.com",
+                "first_order_item": {"variant_id": "vaudio"},
+            }},
         }).encode()
         with patch.object(
             commerce_api, "dispatch_task_by_name", side_effect=RuntimeError("broker down"),
@@ -72,6 +77,7 @@ async def test_webhook_email_enqueue_failure(app, client, monkeypatch):
         assert resp.json()["license_key"].startswith("SCPRO-")
     finally:
         cfg.commerce.lemon_squeezy_webhook_secret = old_secret
+        cfg.commerce.audio_ingest_variant_ids = old_variants
         app.dependency_overrides.pop(get_db, None)
 
 

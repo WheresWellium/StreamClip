@@ -10,6 +10,7 @@ config.yaml:
   SMTP_PASSWORD  — optional auth password
   SMTP_FROM      — sender address (default: streamclip@localhost)
   SMTP_STARTTLS  — "false" to disable STARTTLS (default on)
+  SMTP_SSL       — "true" for implicit SSL (port 465). Auto-on when port == 465.
   BUG_REPORT_TO  — recipient for bug report notifications
 
 Mirrors the webhook delivery pattern: bounded retries, never raises to the
@@ -39,6 +40,7 @@ class SMTPSettings:
     password: str
     sender: str
     starttls: bool
+    use_ssl: bool = False
 
     @property
     def configured(self) -> bool:
@@ -46,13 +48,18 @@ class SMTPSettings:
 
 
 def smtp_settings_from_env() -> SMTPSettings:
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    ssl_env = os.environ.get("SMTP_SSL", "").strip().lower()
+    # Implicit SSL when explicitly requested, or on the conventional 465 port.
+    use_ssl = ssl_env == "true" or (ssl_env == "" and port == 465)
     return SMTPSettings(
         host=os.environ.get("SMTP_HOST", "").strip(),
-        port=int(os.environ.get("SMTP_PORT", "587")),
+        port=port,
         user=os.environ.get("SMTP_USER", ""),
         password=os.environ.get("SMTP_PASSWORD", ""),
         sender=os.environ.get("SMTP_FROM", "streamclip@localhost"),
         starttls=os.environ.get("SMTP_STARTTLS", "true").lower() != "false",
+        use_ssl=use_ssl,
     )
 
 
@@ -110,16 +117,17 @@ def send_email(
 
     for attempt in range(max_retries):
         try:
-            if not smtp.starttls:
-                # Port 465 implicit SSL
+            if smtp.use_ssl:
+                # Implicit SSL (port 465): TLS established at connect time.
                 with smtplib.SMTP_SSL(smtp.host, smtp.port, timeout=15) as client:
                     if smtp.user:
                         client.login(smtp.user, smtp.password)
                     client.send_message(msg)
             else:
-                # Port 587 STARTTLS
+                # Plain SMTP (port 25/587); upgrade with STARTTLS when enabled.
                 with smtplib.SMTP(smtp.host, smtp.port, timeout=15) as client:
-                    client.starttls()
+                    if smtp.starttls:
+                        client.starttls()
                     if smtp.user:
                         client.login(smtp.user, smtp.password)
                     client.send_message(msg)

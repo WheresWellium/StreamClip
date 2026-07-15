@@ -169,6 +169,16 @@ async def test_authenticate_wrong_password(db):
 
 
 @pytest.mark.asyncio
+async def test_register_creates_user(db):
+    """52: AuthService.register persists a new user (direct call)."""
+    svc = AuthService(db, get_settings())
+    email = f"reg-{uuid.uuid4().hex[:8]}@test.local"
+    user = await svc.register(email, "password123", display_name="Reg")
+    assert user.email == email
+    assert user.display_name == "Reg"
+
+
+@pytest.mark.asyncio
 async def test_password_reset_roundtrip(db):
     """126-130: reset_password consumes a valid reset token."""
     from backend.middleware.auth import hash_password, verify_password

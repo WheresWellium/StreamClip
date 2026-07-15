@@ -168,6 +168,20 @@ async def test_authenticate_wrong_password(db):
         await svc.authenticate(email, "totally-wrong")
 
 
+def test_configure_logging_json(monkeypatch):
+    """main.py 47: JSON log renderer branch."""
+    import backend.main as main_mod
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg, "log_json", True)
+    monkeypatch.setattr(main_mod, "get_settings", lambda: cfg)
+    try:
+        main_mod._configure_logging()
+    finally:
+        monkeypatch.undo()
+        main_mod._configure_logging()  # restore console renderer for other tests
+
+
 @pytest.mark.asyncio
 async def test_register_creates_user(db):
     """52: AuthService.register persists a new user (direct call)."""

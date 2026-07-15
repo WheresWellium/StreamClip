@@ -113,7 +113,7 @@ Quick summary for testers:
 
 | Time | Action | Status |
 |------|--------|--------|
-| H+0 | Send invites; monitor in-app bugs + GitHub beta-bug template | ✅ invites sent 2026-07-09 |
+| H+0 | Send invites; monitor in-app bugs + GitHub beta-bug template | ✅ invites 2026-07-09; BETA TEST INFO + zip sent 6/6 2026-07-10 |
 | H+2 | Confirm ≥3 testers passed T0-1 (`verify_stack` + `/api/health/stack`) | ☐ |
 | H+24 | Triage P0/P1; publish known-issues addendum if needed | ☐ |
 | H+72 | Go/no-go for expanding cohort (see `BETA_TESTER_PLAN.md` §4.5, MASTER §8.16) | ☐ |

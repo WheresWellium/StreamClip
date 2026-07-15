@@ -79,7 +79,7 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | 3.2 | ~~HTTP tests for `/api/distribution/*` and `/api/vault/*`~~ ✅ `tests/test_distribution_vault_http.py` | ✅ | — |
 | 3.3 | ~~E2E publish flow (Playwright)~~ ✅ `web/e2e/happy-path.spec.ts` — 12/12 PASS with `E2E_RUN=1` (2026-07-09); **CI-required** via `e2e` job in `.github/workflows/test.yml` (`E2E_RUN=1`) | ✅ | M |
 | 3.4 | ~~`test_score_parallel_and_ensemble` fails locally (missing `ollama`)~~ ✅ `_build_client` stubbed in test | ✅ | — |
-| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **95.91%** (2026-07-09) — **gate GREEN**. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟢 | L |
+| 3.5 | Coverage gate ratchet — **`fail_under=95`** (see §3.10). Last full Docker run: **97.18%** (2026-07-15, 9206 stmts / 260 miss) — **line gate GREEN**. ⚠️ **4 pre-existing test failures** in the same run (deterministic, on `master`, NOT from PR #3): `test_coverage_hotpath_finish::test_run_transcribe_streamclip_error_marks_failed` (`DISTRIBUTION_TOKEN_KEY not configured`), `test_highlights_coverage_finish::test_discover_peak_windows_empty_energy_curve`, `test_pipeline_tasks_coverage2::test_run_virality_with_chat_and_transcript`, `test_repositories_coverage4::test_platform_upsert_updates_metadata`. These fail the pytest exit code even though line coverage passes — track/fix before Phase 0 exit. **110% plan:** 100% line + hot-path branches + Playwright smoke | 🟡 | L |
 | 3.6 | ~~Zero-test surfaces~~ ✅ batches 1–3 + Playwright e2e (§3.3) | ✅ | — |
 | 3.7 | **110% hot-path gaps** — see checklist below; branch measurement via `scripts/verify_branch_coverage.ps1` (Phase 0 informational; `-FailUnderBranch 85` PASS 2026-07-09) | 🟡 | M |
 | 3.8 | ~~**`verify_stack.ps1` on clean Windows 11 VM**~~ ✅ 2026-07-09 clean-slate Docker wipe (`down -v` → rebuild → verify_stack + verify_coverage 95.02%); Hyper-V unavailable on operator host — see `BETA_GO_LIVE` §8 | ✅ | S |
@@ -98,15 +98,16 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | E2E smoke | Playwright `E2E_RUN=1` | **CI-required** (`test.yml` `e2e`); local also via `verify_stack.ps1 -RunE2E` | Required |
 | Stack verify | `verify_stack.ps1` | Required (tests default `--no-cov`; does **not** prove coverage %) | Required + `-WithCoverage` before invites |
 
-**Current measured line coverage (2026-07-07):** **95.40%** (400 miss / 8699) — **gate GREEN**. Re-verify with `verify_coverage.ps1`.
+**Current measured line coverage (2026-07-15):** **97.18%** (260 miss / 9206) — **line gate GREEN**. ⚠️ pytest still exits non-zero due to 4 pre-existing test failures (see §3.5). Re-verify with `verify_coverage.ps1`.
 
-**110% progress (estimated composite ~91/110):**
+**110% progress (estimated composite ~92/110):**
 
 | Pillar | Target | Current | Remaining |
 |--------|--------|---------|-----------|
-| Line | 100% (Phase 1+) | **95.91%** (2026-07-09) | ~376 stmts |
+| Line | 100% (Phase 1+) | **97.18%** (2026-07-15) | ~260 stmts |
+| Test pass rate | 100% | ⚠️ **4 pre-existing failures** (§3.5) | fix or quarantine before Phase 0 exit |
 | Hot-path branches | ≥85% | **~87%** on §3.7 modules via `verify_branch_coverage.ps1` | Phase 1: enforce `-FailUnderBranch 85` |
-| E2E smoke | §3.3 | health/jobs/create/list + distribution auth checks | OAuth E2E deferred |
+| E2E smoke | §3.3 | health/jobs/create/list + distribution auth checks; ⚠️ CI job flakes on runner disk (Ollama 3.1GB image) | needs prune step / bigger runner |
 | Clean VM | §3.8 | `docs/CLEAN_VM_VERIFY.md` | **PASS 2026-07-09** clean-slate Docker (`down -v`); Hyper-V N/A |
 
 **§3.7 hot-path line checklist (404 total miss; priority order):**
@@ -223,7 +224,7 @@ Real DMG still needs a Mac host (§5.2–5.3).
 **Canonical plan:** [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) — Phase 0 (Docker
 technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`).
 
-**Phase 0 status (2026-07-09):** **Invites SENT.** Engineering invite gate was CLEARED earlier (coverage + clean-slate). Now in **H+0 monitoring** (`BETA_GO_LIVE` §7). Phase 0 **exit** still needs tester T0 results (§8.16). Full **110%** row (§3.10) required before Phase 1.
+**Phase 0 status (2026-07-15):** **Invites + BETA TEST INFO SENT (6/6, 2026-07-10)** — testers have the beta `.zip` (attached as `.sc` to dodge mail scanners) + license keys. Delivery path validated end-to-end via `mail.wellium.work:465` SSL. Now in **H+2…H+72 monitoring** (`BETA_GO_LIVE` §7). Phase 0 **exit** still needs tester T0 results (§8.16) + the 4 pre-existing test failures (§3.5) resolved. Full **110%** row (§3.10) required before Phase 1.
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
@@ -316,7 +317,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 
 ---
 
-**Bottom line:** Phase 0 **invites are out** (2026-07-09). Monitor H+0…H+72 per `BETA_GO_LIVE` §7. Phase 0 exit = cohort T0 results (§8.16). Phase 1 still needs 110% coverage row.
+**Bottom line:** Phase 0 **invites + BETA TEST INFO are out (6/6, 2026-07-10)**. Monitor H+2…H+72 per `BETA_GO_LIVE` §7. **Before Phase 0 exit:** cohort T0 results (§8.16) + fix 4 pre-existing test failures (§3.5) + e2e runner-disk flake. Phase 1 still needs the full 110% row.
 
 ---
 ## Plan sync checklist (agents)

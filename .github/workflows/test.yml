@@ -122,6 +122,9 @@ jobs:
       - name: Install Playwright
         working-directory: web
         run: |
+          # The web container's anonymous node_modules volume leaves a
+          # root-owned web/node_modules on the host; reclaim it for npm ci.
+          sudo chown -R "$(id -u):$(id -g)" .
           npm ci
           npx playwright install --with-deps chromium
 

@@ -56,6 +56,13 @@ Dry run (no DB writes):
 docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --emails you@example.com --tier admin --dry-run
 ```
 
+One-command admin key for local testing (prints a ready-to-paste `SCPRO-…` admin key):
+
+```powershell
+.\scripts\dev_admin_key.ps1                 # Windows (default dev@streamclip.local)
+./scripts/dev_admin_key.sh you@example.com  # macOS / Linux
+```
+
 Local dev shortcut (auto-activates on `streamclip-local-dev`, upgrades all DB users to admin):
 
 ```powershell

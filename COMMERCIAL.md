@@ -11,6 +11,7 @@ The following components require a **StreamClip Pro** commercial license:
 ## Purchasing
 
 - **Self-Hosted Pro:** One-time purchase via [Lemon Squeezy](https://lemonsqueezy.com) — perpetual entitlement, includes Docker production bundle and license key activation. Keys are delivered by email at purchase (Lemon Squeezy license keys, or StreamClip's own delivery email on the `order_created` fallback path).
+- **Phase 0 beta:** $0 Lead Magnet checkout on the same Lemon Squeezy store — zip + installer downloads and a license key in the receipt. Beta keys activate via the Lemon Squeezy License API on first use (network required once). Operator manual cohort keys use `scripts/import_invite_license.py` before UI activation. See `docs/BETA_DISTRIBUTION.md` (operator runbook).
 
 ## Activation
 

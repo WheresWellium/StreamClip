@@ -12,11 +12,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+import backend.api.license as license_api
 from backend.api.commerce import _issue_key_with_collision_retry
 from backend.db.models import InstallLicense, User, UserTier
 from backend.db.session import get_sessionmaker
+from core.commerce.lemon_squeezy_client import LSActivateResult
 from core.config import get_settings
 from core.licensing import PERPETUAL_DAYS, activate_license_key, hash_license_key
+from test_license_chain import FakeLicenseRepo, _sign as chain_sign, license_env
 
 WEBHOOK_SECRET = "hardening-test-secret"
 
@@ -234,3 +237,55 @@ async def test_order_created_enqueues_license_email(client):
         assert kwargs["queue"] == "default"
     finally:
         cfg.commerce.lemon_squeezy_webhook_secret = old_secret
+
+
+# ─── Lemon Squeezy activate + webhook tier mapping ────────────────────────────
+
+@pytest.mark.asyncio
+async def test_ls_activate_failure_returns_invalid_key(client, license_env, monkeypatch):
+    cfg = get_settings()
+    old_api = cfg.commerce.lemon_squeezy_api_key
+    cfg.commerce.lemon_squeezy_api_key = "test-api-key"
+    try:
+        async def fake_activate(_key, _machine, *, api_key):
+            return LSActivateResult(ok=False, error="LS unavailable")
+
+        monkeypatch.setattr(license_api, "activate_license_with_ls", fake_activate)
+        resp = await client.post(
+            "/api/license/activate",
+            json={"license_key": "LS-FAIL-KEY-0000-0000", "machine_id": "machine-ls-fail"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "invalid_license_key"
+        assert len(FakeLicenseRepo.rows) == 0
+    finally:
+        cfg.commerce.lemon_squeezy_api_key = old_api
+
+
+@pytest.mark.asyncio
+async def test_license_key_created_beta_variant_maps_admin(client, license_env):
+    cfg = get_settings()
+    old_beta = cfg.commerce.lemon_squeezy_beta_variant_id
+    cfg.commerce.lemon_squeezy_beta_variant_id = "beta-variant-99"
+    try:
+        body = json.dumps({
+            "meta": {"event_name": "license_key_created"},
+            "data": {
+                "id": "3",
+                "attributes": {
+                    "key": "LS-BETA-KEY-0000-0000",
+                    "order_id": 91,
+                    "variant_id": "beta-variant-99",
+                },
+            },
+        }).encode()
+        resp = await client.post(
+            "/api/commerce/webhooks/lemon-squeezy",
+            content=body,
+            headers={"X-Signature": chain_sign(body)},
+        )
+        assert resp.status_code == 200
+        assert len(FakeLicenseRepo.rows) == 1
+        assert FakeLicenseRepo.rows[0].tier is UserTier.ADMIN
+    finally:
+        cfg.commerce.lemon_squeezy_beta_variant_id = old_beta

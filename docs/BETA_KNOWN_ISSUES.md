@@ -13,6 +13,7 @@
 | Instagram | **Not supported** — no Reels adapter in beta |
 | Cloud multi-tenant | **Not supported** — stub removed; self-host / desktop only (see `docs/cloud-deploy.md` design notes) |
 | Commerce | Lemon Squeezy one-time keys; license email on `order_created` fallback ✅ (`MASTER_TODO` §2.3, `tests/test_license_hardening.py`) |
+| Lemon Squeezy first activate | **Network required once** — self-hosted installs call the LS License API on first activation when the key is not already in local Postgres. After activation, offline grace applies (`licensing.offline_grace_days`). Manual cohort: run `import_invite_license.py` once before UI activate. |
 
 ## Security — known limitations
 

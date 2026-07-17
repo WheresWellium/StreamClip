@@ -138,7 +138,7 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
     .\scripts\verify_stack.ps1
     ```
 
-    All checks should be green. If any fail, **stop here** and use **Report a bug** in the app header (or reply to your invite email) with the script output before creating jobs.
+    All checks should be green. If any fail, **stop here** and open the **Help menu (?)** → **Report a bug** (or reply to your invite email) with the script output before creating jobs.
 
 === "macOS"
 
@@ -273,7 +273,7 @@ docker compose up -d
 ```
 
 **Where do I report bugs or feedback?**
-Use **Report a bug** or **Beta feedback** in the app header (top bar). Every submission is logged and read. You can also reply to your invite email.
+Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feedback**. Every submission is logged and read. You can also reply to your invite email.
 
 **What information should I include in a bug report?**
 - The job ID (shown on the job detail page)

@@ -11,7 +11,7 @@
     2. **[Quickstart](BETA_TESTER_QUICKSTART.md)** — from install to your first clip (~15 minutes)
     3. Complete your **free checkout** from the invite email (new cohorts) or paste your **license key** in **Settings → License**
 
-    **Stuck?** Use **Report a bug** in the app header or reply to your invite email.
+    **Stuck?** Open the **Help menu (?)** in the app header → **Report a bug**, or reply to your invite email.
 
 ---
 

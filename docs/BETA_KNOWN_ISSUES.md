@@ -52,7 +52,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 
 ## Reporting bugs
 
-**In-app:** Header → **Beta feedback** (questions/ideas) or **Report a bug** (breakages).
+**In-app:** **Help menu (?)** → **Beta feedback** (questions/ideas) or **Report a bug** (breakages).
 Both save to the local `bug_reports` table.
 
 **Operator routing (recommended):** Set `OPS_WEBHOOK_URL` on api + worker —

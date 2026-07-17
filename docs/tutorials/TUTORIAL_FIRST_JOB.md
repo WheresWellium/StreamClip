@@ -109,7 +109,7 @@ When everything is done:
     docker compose logs api worker --tail 50
     ```
 
-Copy the **job ID** from the job page and use **Report a bug** in the app header.
+Copy the **job ID** from the job page and open **Help menu (?)** → **Report a bug**.
 
 ---
 

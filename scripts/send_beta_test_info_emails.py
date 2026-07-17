@@ -66,7 +66,7 @@ You're in — welcome to the StreamClip Phase 0 beta.
 
 After checkout, paste your license key in Settings → License.
 
-Use "Beta feedback" or "Report a bug" in the app header for support.
+Use the **Help menu (?)** in the app header → **Beta feedback** or **Report a bug** for support.
 
 Thanks,
 Wellium
@@ -101,7 +101,7 @@ The short path:
 - Open http://localhost:3000
 - Paste a public video link and wait for clips
 
-Use "Beta feedback" or "Report a bug" in the app header for support.
+Use the **Help menu (?)** in the app header → **Beta feedback** or **Report a bug** for support.
 We read every submission even if you don't get an auto-reply yet.
 
 Thanks,

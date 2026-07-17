@@ -137,7 +137,7 @@ Run the same ~10 min test clip on your hardware and note wall-clock time:
 | Job stages use GPU | transcribe + render fast | all CPU |
 | 10 min source → clips | ~3–5 min | ~10–15 min |
 
-Report timings via **Beta feedback** in the app header.
+Report timings via **Help menu (?)** → **Beta feedback**.
 
 ---
 

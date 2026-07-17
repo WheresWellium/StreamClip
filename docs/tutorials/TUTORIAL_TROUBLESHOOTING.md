@@ -78,7 +78,7 @@ Include in your report:
 3. Output of `docker compose logs api worker --tail 50`
 4. What you expected vs. what happened
 
-Use **Report a bug** in the app header — submissions persist locally even without SMTP.
+Open the **Help menu (?)** → **Report a bug** — submissions persist locally even without SMTP.
 
 ---
 

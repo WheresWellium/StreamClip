@@ -257,7 +257,7 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 
 ## Get help
 
-Use **Report a bug** or **Beta feedback** in the app header — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
+Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feedback** — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
 
 ---
 

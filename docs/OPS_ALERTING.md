@@ -100,7 +100,7 @@ Requires Beat (Docker `beat` service) or desktop `queue.inprocess_beat`. Task:
 
 1. Set `OPS_WEBHOOK_URL` (and optionally `STREAMCLIP_OBSERVABILITY__SENTRY_DSN`) in `.env` / `.env.production`
 2. Restart `api` + `worker` + `beat` (`docker compose up -d api worker beat`)
-3. Submit **Beta feedback** or **Report a bug** in the app header
+3. Open **Help menu (?)** → **Beta feedback** or **Report a bug**
 4. Confirm the receiver got the JSON
 5. Force a failing job (or mock) and confirm `job_failed` arrives
 6. Optional: stop Postgres briefly and wait ≤5 min for `stack_degraded` (or run the task once via Flower/celery call)

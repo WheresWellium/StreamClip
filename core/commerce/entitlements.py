@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.models import UserTier
 from backend.db.repositories import InstallLicenseRepository
 from core.config import Settings, get_settings
 
@@ -13,6 +14,17 @@ def _audio_variant_ids(cfg: Settings) -> set[str]:
     if not raw:
         return set()
     return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def variant_tier(variant_id: str | None, cfg: Settings | None = None) -> UserTier:
+    """Map a Lemon Squeezy variant id to an install license tier."""
+    cfg = cfg or get_settings()
+    vid = (variant_id or "").strip()
+    if vid and vid == (cfg.commerce.lemon_squeezy_beta_variant_id or "").strip():
+        return UserTier.ADMIN
+    if vid and vid == (cfg.commerce.lemon_squeezy_pro_variant_id or "").strip():
+        return UserTier.PRO
+    return UserTier.PRO
 
 
 def variant_grants_audio_ingest(variant_id: str | None, cfg: Settings | None = None) -> bool:

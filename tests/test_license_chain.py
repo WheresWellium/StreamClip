@@ -21,6 +21,7 @@ from core.commerce.lemon_squeezy import (
     parse_order_event,
     verify_webhook_signature,
 )
+from core.commerce.lemon_squeezy_client import LSActivateResult
 from core.config import get_settings
 from core.licensing import (
     activate_license_key,
@@ -268,6 +269,37 @@ async def _issue_key() -> str:
         license_key_hash=hash_license_key(key), tier=UserTier.PRO, order_id="o1",
     )
     return key
+
+
+async def test_activate_via_ls_api_seeds_admin_tier(client, license_env, monkeypatch):
+    cfg = get_settings()
+    old_api = cfg.commerce.lemon_squeezy_api_key
+    old_beta = cfg.commerce.lemon_squeezy_beta_variant_id
+    cfg.commerce.lemon_squeezy_api_key = "test-api-key"
+    cfg.commerce.lemon_squeezy_beta_variant_id = "42"
+    try:
+        async def fake_activate(_key, _machine, *, api_key):
+            assert api_key == "test-api-key"
+            return LSActivateResult(
+                ok=True,
+                variant_id="42",
+                order_id="77",
+                customer_email="buyer@example.com",
+            )
+
+        monkeypatch.setattr(license_api, "activate_license_with_ls", fake_activate)
+        key = "LS-BETA-KEY-0000-0000-0000"
+        resp = await client.post(
+            "/api/license/activate",
+            json={"license_key": key, "machine_id": "machine-ls-1"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["tier"] == "admin"
+        assert len(FakeLicenseRepo.rows) == 1
+        assert FakeLicenseRepo.rows[0].tier is UserTier.ADMIN
+    finally:
+        cfg.commerce.lemon_squeezy_api_key = old_api
+        cfg.commerce.lemon_squeezy_beta_variant_id = old_beta
 
 
 async def test_activate_unknown_key_rejected(client, license_env):

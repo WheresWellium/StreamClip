@@ -29,7 +29,7 @@ from core.commerce.lemon_squeezy import (
     parse_order_event,
     verify_webhook_signature,
 )
-from core.commerce.entitlements import tag_audio_order_id, variant_grants_audio_ingest
+from core.commerce.entitlements import tag_audio_order_id, variant_grants_audio_ingest, variant_tier
 from core.config import get_settings
 from core.licensing import hash_license_key
 from core.task_dispatch import dispatch_task_by_name
@@ -49,6 +49,7 @@ async def _issue_key_with_collision_retry(
     *,
     order_id: str | None,
     customer_email: str | None,
+    tier: UserTier = UserTier.PRO,
     max_attempts: int = 3,
 ) -> tuple[str, InstallLicense]:
     """
@@ -61,7 +62,7 @@ async def _issue_key_with_collision_retry(
         try:
             lic = await repo.create_issued(
                 license_key_hash=hash_license_key(license_key),
-                tier=UserTier.PRO,
+                tier=tier,
                 order_id=order_id,
                 customer_email=customer_email,
             )
@@ -118,12 +119,14 @@ async def lemon_squeezy_webhook(
     if variant_grants_audio_ingest(event.get("variant_id"), cfg):
         order_id = tag_audio_order_id(order_id)
 
+    tier = variant_tier(event.get("variant_id"), cfg)
+
     if event["event_name"] == "license_key_created" and event["license_key_hash"]:
         # LS generated + delivers the key; we only need the hash to verify activation.
         if await repo.get_by_key_hash(event["license_key_hash"]) is None:
             await repo.create_issued(
                 license_key_hash=event["license_key_hash"],
-                tier=UserTier.PRO,
+                tier=tier,
                 order_id=order_id,
                 customer_email=event.get("customer_email"),
             )
@@ -142,6 +145,7 @@ async def lemon_squeezy_webhook(
             repo,
             order_id=order_id,
             customer_email=event.get("customer_email"),
+            tier=tier,
         )
         await db.commit()
         log.info("license_issued", order_id=event["order_id"], license_key_prefix=_mask(license_key))

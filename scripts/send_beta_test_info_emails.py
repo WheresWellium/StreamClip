@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from core.commerce.checkout_urls import build_ls_checkout_url  # noqa: E402
 from core.notify.email import send_email, smtp_settings_from_env  # noqa: E402
 
 HENNA_BASE = "https://streamclip-henna.vercel.app"
@@ -47,6 +49,28 @@ DEFAULT_KEYS_CANDIDATES = (
     REPO_ROOT / "dist" / "phase0-invite-pack" / "keys.csv",
     REPO_ROOT / "tmp" / "beta-keys.csv",
 )
+
+BODY_TEMPLATE_LS = """\
+Hi {name},
+
+You're in — welcome to the StreamClip Phase 0 beta.
+
+1. Complete your free checkout (downloads + license key):
+   {checkout_url}
+
+2. Get StreamClip — pick Windows or Mac:
+   {henna_base}/BETA_DOWNLOAD/
+
+3. Quickstart — install to your first clip (~15 min):
+   {henna_base}/BETA_TESTER_QUICKSTART/
+
+After checkout, paste your license key in Settings → License.
+
+Use "Beta feedback" or "Report a bug" in the app header for support.
+
+Thanks,
+Wellium
+"""
 
 # Aligned with docs/index.md tip + prepare_invite_pack.ps1 + BETA_TESTER_QUICKSTART short version.
 BODY_TEMPLATE = """\
@@ -65,11 +89,14 @@ Getting started (same flow as the docs site — no GitHub account needed):
 3. Paste your license key in Settings → License after logging in:
    {license_key}
 
+Before activating (manual cohort only), import once:
+   docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py --key {license_key} --tier admin
+
 This key gives you full access to every feature. No feature gates.
 
 The short path:
 - Install Docker Desktop (free) and keep it running
-- Extract the beta .zip from your invite (or use your private repo link)
+- Extract the beta .zip from your invite email checkout downloads
 - Run the one start command from the quickstart
 - Open http://localhost:3000
 - Paste a public video link and wait for clips
@@ -86,7 +113,8 @@ Wellium
 class CohortMember:
     email: str
     name: str
-    license_key: str
+    license_key: str = ""
+    checkout_url: str = ""
 
 
 def _parse_cohort_csv(path: Path) -> list[tuple[str, str]]:
@@ -144,11 +172,18 @@ def _resolve_keys_csv(explicit: Path | None) -> Path | None:
 
 def _build_cohort(
     cohort_path: Path,
-    keys_path: Path,
+    keys_path: Path | None,
+    *,
+    mode: str,
+    checkout_base: str,
 ) -> list[CohortMember]:
-    key_by_email = _parse_keys_csv(keys_path)
-    if not key_by_email:
-        raise ValueError(f"No license keys found in {keys_path}")
+    key_by_email: dict[str, str] = {}
+    if mode == "manual":
+        if keys_path is None:
+            raise ValueError("Manual mode requires --keys-csv")
+        key_by_email = _parse_keys_csv(keys_path)
+        if not key_by_email:
+            raise ValueError(f"No license keys found in {keys_path}")
 
     members: list[CohortMember] = []
     seen: set[str] = set()
@@ -159,11 +194,22 @@ def _build_cohort(
         if lookup in seen:
             continue
         seen.add(lookup)
-        license_key = key_by_email.get(lookup)
-        if not license_key:
-            missing_keys.append(email)
-            continue
-        members.append(CohortMember(email=email, name=name, license_key=license_key))
+        license_key = key_by_email.get(lookup, "")
+        checkout_url = ""
+        if mode == "manual":
+            if not license_key:
+                missing_keys.append(email)
+                continue
+        else:
+            checkout_url = build_ls_checkout_url(checkout_base, email=email, name=name)
+        members.append(
+            CohortMember(
+                email=email,
+                name=name,
+                license_key=license_key,
+                checkout_url=checkout_url,
+            ),
+        )
 
     if missing_keys:
         raise ValueError(
@@ -179,7 +225,13 @@ def _safe_filename(email: str) -> str:
     return "".join(c if c.isalnum() or c in "._@-" else "_" for c in email)
 
 
-def _render_body(member: CohortMember, *, henna_base: str) -> str:
+def _render_body(member: CohortMember, *, henna_base: str, mode: str) -> str:
+    if mode == "ls":
+        return BODY_TEMPLATE_LS.format(
+            name=member.name,
+            checkout_url=member.checkout_url,
+            henna_base=henna_base.rstrip("/"),
+        )
     return BODY_TEMPLATE.format(
         name=member.name,
         license_key=member.license_key,
@@ -193,21 +245,22 @@ def _write_pack(
     subject: str,
     out_dir: Path,
     henna_base: str,
+    mode: str,
 ) -> list[tuple[CohortMember, Path]]:
     emails_dir = out_dir / "emails"
     emails_dir.mkdir(parents=True, exist_ok=True)
     written: list[tuple[CohortMember, Path]] = []
-    index_lines = ["email,name,license_key,subject,file"]
+    index_lines = ["email,name,license_key,checkout_url,subject,file"]
 
     for member in members:
-        body = _render_body(member, henna_base=henna_base)
+        body = _render_body(member, henna_base=henna_base, mode=mode)
         safe = _safe_filename(member.email)
         path = emails_dir / f"{safe}.txt"
         content = f"To: {member.email}\nSubject: {subject}\n\n{body}"
         path.write_text(content, encoding="utf-8")
         written.append((member, path))
         index_lines.append(
-            f"{member.email},{member.name},{member.license_key},{subject},emails/{safe}.txt",
+            f"{member.email},{member.name},{member.license_key},{member.checkout_url},{subject},emails/{safe}.txt",
         )
 
     (out_dir / "index.csv").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
@@ -240,6 +293,17 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=REPO_ROOT / "cohort.csv",
         help="Cohort CSV with columns email[,name] (default: cohort.csv)",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("manual", "ls"),
+        default="manual",
+        help="Invite mode: manual (inline key) or ls (checkout URL)",
+    )
+    parser.add_argument(
+        "--checkout-url",
+        default="",
+        help="LS checkout base URL (ls mode; default: STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL)",
     )
     parser.add_argument(
         "--keys-csv",
@@ -283,8 +347,9 @@ def main(argv: list[str] | None = None) -> int:
         print("Copy cohort.example.csv to cohort.csv and add real emails.", file=sys.stderr)
         return 1
 
-    keys_path = _resolve_keys_csv(args.keys_csv)
-    if keys_path is None:
+    mode = args.mode.strip().lower()
+    keys_path = _resolve_keys_csv(args.keys_csv) if mode == "manual" else args.keys_csv
+    if mode == "manual" and keys_path is None:
         print("Keys CSV not found.", file=sys.stderr)
         print(
             "Pass --keys-csv with the original issue_beta_keys output "
@@ -294,8 +359,15 @@ def main(argv: list[str] | None = None) -> int:
         print("Do NOT re-run issue_beta_keys — that would create new keys.", file=sys.stderr)
         return 1
 
+    checkout_base = (args.checkout_url or os.environ.get(
+        "STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL", "",
+    )).strip()
+    if mode == "ls" and not checkout_base:
+        print("LS mode requires --checkout-url or STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL", file=sys.stderr)
+        return 1
+
     try:
-        members = _build_cohort(args.csv, keys_path)
+        members = _build_cohort(args.csv, keys_path, mode=mode, checkout_base=checkout_base)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -306,13 +378,17 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     henna_base = args.henna_base.strip().rstrip("/")
-    print(f"Using keys from: {keys_path}", file=sys.stderr)
+    if mode == "manual" and keys_path:
+        print(f"Using keys from: {keys_path}", file=sys.stderr)
 
     if args.dry_run:
         for member in members:
-            print(
-                f"DRY-RUN to={member.email} key={member.license_key[:12]}… subject={subject!r}",
-            )
+            if mode == "ls":
+                print(f"DRY-RUN to={member.email} checkout={member.checkout_url[:48]}… subject={subject!r}")
+            else:
+                print(
+                    f"DRY-RUN to={member.email} key={member.license_key[:12]}… subject={subject!r}",
+                )
         print(f"Would prepare/send {len(members)} email(s).", file=sys.stderr)
         return 0
 
@@ -321,6 +397,7 @@ def main(argv: list[str] | None = None) -> int:
         subject=subject,
         out_dir=args.out_dir,
         henna_base=henna_base,
+        mode=mode,
     )
     print(f"Prepared {len(written)} email(s) under {args.out_dir}/emails/", file=sys.stderr)
 
@@ -336,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
     sent = 0
     failed: list[str] = []
     for member, _path in written:
-        body = _render_body(member, henna_base=henna_base)
+        body = _render_body(member, henna_base=henna_base, mode=mode)
         ok = send_email(to=member.email, subject=subject, body=body, settings=smtp)
         if ok:
             sent += 1

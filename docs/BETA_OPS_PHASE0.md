@@ -149,6 +149,10 @@ See `.env.example` and [OPS_ALERTING.md](OPS_ALERTING.md).
 Operator checklist before relying on paid Pro keys (see [COMMERCIAL.md](../COMMERCIAL.md), `.env.example` / `.env.production.example`):
 
 - [ ] Product is a **one-time purchase** (not a subscription) — matches perpetual entitlement in `COMMERCIAL.md`
+- [ ] **Beta Lead Magnet** variant ID in `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_BETA_VARIANT_ID` (maps to ADMIN tier)
+- [ ] **Checkout URL** in `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL` for invite emails
+- [ ] Zip + `.exe` uploaded to LS product files (not GitHub — repo may be private)
+- [ ] `.\scripts\verify_ls_beta_config.ps1` passes before invites — see [BETA_DISTRIBUTION.md](BETA_DISTRIBUTION.md)
 - [ ] Webhook URL points at the live API: `{API_ORIGIN}/api/commerce/webhooks/lemon-squeezy` (events that deliver license keys)
 - [ ] `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_WEBHOOK_SECRET` / `LEMON_SQUEEZY_WEBHOOK_SECRET` matches the signing secret shown in the LS dashboard
 - [ ] `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY` / `LEMON_SQUEEZY_API_KEY` set if API calls are needed

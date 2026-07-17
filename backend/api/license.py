@@ -18,6 +18,8 @@ from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id
 from backend.middleware.rate_limit import rate_limit_request
 from backend.services.license_link import link_license_to_user
+from core.commerce.lemon_squeezy_client import activate_license_with_ls
+from core.commerce.entitlements import variant_tier
 from core.config import get_settings
 from core.errors import (
     ActivationLimitError,
@@ -59,6 +61,32 @@ async def activate_license(
     audit = log.bind(hash_prefix=key_hash[:12], machine_id=body.machine_id)
 
     lic = await repo.get_by_key_hash(key_hash)
+    if lic is None and cfg.commerce.lemon_squeezy_api_key:
+        ls_result = await activate_license_with_ls(
+            body.license_key,
+            body.machine_id,
+            api_key=cfg.commerce.lemon_squeezy_api_key,
+        )
+        if ls_result.ok:
+            tier = variant_tier(ls_result.variant_id, cfg)
+            order_id = str(ls_result.order_id) if ls_result.order_id else None
+            lic = await repo.create_issued(
+                license_key_hash=key_hash,
+                tier=tier,
+                order_id=order_id,
+                customer_email=ls_result.customer_email,
+            )
+            audit.info(
+                "license_ls_activate_seeded",
+                variant_id=ls_result.variant_id,
+                tier=tier.value,
+            )
+        else:
+            audit.warning(
+                "license_ls_activate_failed",
+                error=ls_result.error,
+            )
+
     if lic is None:
         audit.warning("license_activate_attempt", result="invalid_key")
         raise InvalidLicenseKeyError()

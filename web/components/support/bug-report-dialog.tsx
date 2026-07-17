@@ -27,6 +27,11 @@ const CATEGORIES: { id: string; label: string }[] = [
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
 type Severity = (typeof SEVERITIES)[number];
 
+type BugReportDialogProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
 /** Pull a job id out of /jobs/[id]... paths to pre-fill the report. */
 function jobIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/jobs\/([^/]+)/);
@@ -34,11 +39,17 @@ function jobIdFromPath(pathname: string): string | null {
   return match[1];
 }
 
-export function BugReportDialog() {
+export function BugReportDialog({
+  open: controlledOpen,
+  onOpenChange,
+}: BugReportDialogProps = {}) {
   const pathname = usePathname();
   const { push: toast } = useToastSafe();
 
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
+  const showTrigger = controlledOpen === undefined;
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState("");
@@ -99,16 +110,18 @@ export function BugReportDialog() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Report a bug"
-        title="Report a bug"
-      >
-        <Bug className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Report a bug</span>
-      </button>
+      {showTrigger && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Report a bug"
+          title="Report a bug"
+        >
+          <Bug className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Report a bug</span>
+        </button>
+      )}
 
       {open && (
         <div

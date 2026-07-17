@@ -8,7 +8,6 @@ import { HeaderHelpMenu } from "@/components/layout/header-help-menu";
 import { SidecarReadyGate } from "@/components/layout/sidecar-ready-gate";
 import { AuthExtras } from "@/components/auth/auth-extras";
 import { ModelWarmupBanner } from "@/components/onboarding/model-warmup-banner";
-import { HeaderSupportActions } from "@/components/support/header-support-actions";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -45,10 +44,10 @@ export default function RootLayout({
           <SidecarReadyGate>
           <div className="min-h-screen hero-gradient">
           <header className="border-b border-white/25 bg-background/85 backdrop-blur-sm sticky top-0 z-40">
-            <div className="container flex h-12 items-center justify-between">
+            <div className="container flex h-12 items-center gap-4">
               <a
                 href="/"
-                className="flex items-center gap-2 font-mono text-sm font-medium uppercase tracking-[0.12em] text-foreground hover:text-sky-400 transition-colors"
+                className="flex shrink-0 items-center gap-2 font-mono text-sm font-medium uppercase tracking-[0.12em] text-foreground hover:text-sky-400 transition-colors"
               >
                 <span
                   className="flex h-5 w-5 items-center justify-center border border-sky-400 text-sky-400"
@@ -63,13 +62,12 @@ export default function RootLayout({
                     <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
                   </svg>
                 </span>
-                Jet Stream
+                <span className="hidden sm:inline">Jet Stream</span>
               </a>
-              <nav className="flex items-center gap-2 text-sm flex-wrap justify-end">
-                <HeaderHelpMenu />
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
                 <HeaderNavWrapper />
-                <HeaderSupportActions />
-              </nav>
+                <HeaderHelpMenu />
+              </div>
             </div>
           </header>
           <ModelWarmupBanner />

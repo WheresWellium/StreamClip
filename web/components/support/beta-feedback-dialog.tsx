@@ -19,6 +19,11 @@ const TOPICS = [
 
 type Topic = (typeof TOPICS)[number]["id"];
 
+type BetaFeedbackDialogProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
 function supportDeliveryToast(
   toast: (title: string, description?: string) => void,
   opsNotification?: string,
@@ -33,11 +38,17 @@ function supportDeliveryToast(
   );
 }
 
-export function BetaFeedbackDialog() {
+export function BetaFeedbackDialog({
+  open: controlledOpen,
+  onOpenChange,
+}: BetaFeedbackDialogProps = {}) {
   const pathname = usePathname();
   const { push: toast } = useToastSafe();
 
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
+  const showTrigger = controlledOpen === undefined;
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState("");
@@ -72,16 +83,18 @@ export function BetaFeedbackDialog() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Beta feedback"
-        title="Beta feedback"
-      >
-        <MessageCircle className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Beta feedback</span>
-      </button>
+      {showTrigger && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Beta feedback"
+          title="Beta feedback"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Beta feedback</span>
+        </button>
+      )}
 
       {open && (
         <div

@@ -63,9 +63,10 @@ jobs:
           CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
           STREAMCLIP_REQUIRE_SIGNED_INSTALLER: ${{ github.event.inputs.require_signed == true && '1' || '' }}
-        run: .\scripts\verify_desktop_signing_ready.ps1 @(
-          $(if ($env:STREAMCLIP_REQUIRE_SIGNED_INSTALLER -eq '1') { '-RequireSigning' })
-        )
+        run: |
+          .\scripts\verify_desktop_signing_ready.ps1 @(
+            $(if ($env:STREAMCLIP_REQUIRE_SIGNED_INSTALLER -eq '1') { '-RequireSigning' })
+          )
 
       - name: Install Python packaging deps
         run: |

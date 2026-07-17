@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The api container runs as uid 1001 (streamclip); pre-create the
+      # bind-mount dirs so Docker doesn't create them root-owned (tests
+      # write under workspace/ and .cache/).
+      - name: Prepare bind-mount dirs
+        run: |
+          mkdir -p workspace output .cache
+          sudo chown -R 1001:1001 workspace output .cache
+
       - name: Build and start API stack
         run: |
           docker compose build api
@@ -31,7 +39,10 @@ jobs:
 
       - name: Pytest with coverage (not desktop)
         run: |
-          docker compose exec -T api pytest tests/ -m "not desktop" -q \
+          # NUMBA_CACHE_DIR: librosa's jitted helpers need a writable cache
+          # location in the container (site-packages is root-owned).
+          docker compose exec -T -e NUMBA_CACHE_DIR=/tmp/numba-cache api \
+            pytest tests/ -m "not desktop" -q \
             --cov=backend --cov=core --cov-report=term-missing:skip-covered
 
   desktop-smoke:
@@ -76,6 +87,22 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      # The API image (torch + prewarmed ML models) plus the web image and
+      # Playwright browsers exceed the default runner disk — drop unused
+      # preinstalled toolchains first (frees ~25 GB).
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/local/.ghcup /usr/share/swift
+          sudo docker image prune -af
+          df -h /
+
+      - name: Prepare bind-mount dirs
+        run: |
+          mkdir -p workspace output .cache
+          sudo chown -R 1001:1001 workspace output .cache
+
       - name: Build and start API + web
         run: |
           docker compose build api web
@@ -95,6 +122,9 @@ jobs:
       - name: Install Playwright
         working-directory: web
         run: |
+          # The web container's anonymous node_modules volume leaves a
+          # root-owned web/node_modules on the host; reclaim it for npm ci.
+          sudo chown -R "$(id -u):$(id -g)" .
           npm ci
           npx playwright install --with-deps chromium
 

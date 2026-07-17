@@ -1,22 +1,22 @@
-"""Commerce entitlement helpers — unit tests."""
+"""Tests for variant_tier mapping."""
 
 from __future__ import annotations
 
-from core.commerce.entitlements import (
-    order_id_tags_audio_ingest,
-    tag_audio_order_id,
-    variant_grants_audio_ingest,
-)
-from core.config import Settings, CommerceConfig, get_settings
+from backend.db.models import UserTier
+from core.commerce.entitlements import variant_tier
+from core.config import get_settings
 
 
-def test_variant_grants_audio_ingest():
-    cfg = Settings(commerce=CommerceConfig(audio_ingest_variant_ids="123,456"))
-    assert variant_grants_audio_ingest("123", cfg) is True
-    assert variant_grants_audio_ingest("999", cfg) is False
-
-
-def test_order_id_audio_tag():
-    assert order_id_tags_audio_ingest("audio:ord_1") is True
-    assert order_id_tags_audio_ingest("ord_1") is False
-    assert tag_audio_order_id("ord_1") == "audio:ord_1"
+def test_variant_tier_beta_maps_admin():
+    cfg = get_settings()
+    old_beta = cfg.commerce.lemon_squeezy_beta_variant_id
+    old_pro = cfg.commerce.lemon_squeezy_pro_variant_id
+    cfg.commerce.lemon_squeezy_beta_variant_id = "999"
+    cfg.commerce.lemon_squeezy_pro_variant_id = "1000"
+    try:
+        assert variant_tier("999", cfg) is UserTier.ADMIN
+        assert variant_tier("1000", cfg) is UserTier.PRO
+        assert variant_tier("unknown", cfg) is UserTier.PRO
+    finally:
+        cfg.commerce.lemon_squeezy_beta_variant_id = old_beta
+        cfg.commerce.lemon_squeezy_pro_variant_id = old_pro

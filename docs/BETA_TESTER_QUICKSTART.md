@@ -76,27 +76,18 @@ If Docker Desktop is not already installed:
 
 ## Step 2 — Get the StreamClip files
 
-**Option A — ZIP download (easiest)**
+**Recommended — Lemon Squeezy checkout (invite email)**
 
-Extract the beta `.zip` from your invite email to any folder (e.g. `C:\StreamClip` or `~/StreamClip`).
+1. Open the **free checkout link** from your invite email
+2. Enter your email and complete checkout ($0)
+3. Download **`streamclip-beta-kit-*.zip`** (Docker) and/or **`StreamClip-Setup-win-x64.exe`** (no Docker)
+4. Your **license key** is in the receipt and order library — save it for Step 6
 
-**Option B — Private repo link**
+Extract the beta `.zip` to any folder (e.g. `C:\StreamClip` or `~/StreamClip`).
 
-If your invite included a private repo link, you'll need Git installed:
+**Manual invite (existing cohort only)**
 
-=== "Windows"
-
-    ```powershell
-    git clone <LINK_FROM_INVITE_EMAIL> streamclip
-    ```
-
-=== "macOS"
-
-    ```bash
-    git clone <LINK_FROM_INVITE_EMAIL> streamclip
-    ```
-
-Replace `<LINK_FROM_INVITE_EMAIL>` with the exact URL from your email. If you're unsure which option you have, reply to your invite email.
+If your email includes an inline `SCPRO-…` key and a zip attachment/link, use that package. You do **not** need GitHub.
 
 ---
 
@@ -147,7 +138,7 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
     .\scripts\verify_stack.ps1
     ```
 
-    All checks should be green. If any fail, **stop here** and use **Report a bug** in the app header (or reply to your invite email) with the script output before creating jobs.
+    All checks should be green. If any fail, **stop here** and open the **Help menu (?)** → **Report a bug** (or reply to your invite email) with the script output before creating jobs.
 
 === "macOS"
 
@@ -179,9 +170,22 @@ You can also open these links to confirm:
 
 ## Step 6 — Activate your license key (optional)
 
-1. Go to **Settings → License**
-2. Paste the license key from your invite email (format: `SCPRO-…` with dashes)
-3. Click **Activate** — a confirmation shows your features are unlocked
+=== "Lemon Squeezy checkout (new invites)"
+
+    1. Go to **Settings → License**
+    2. Paste the license key from your checkout receipt (format: `SCPRO-…` or LS-issued key)
+    3. Click **Activate** — requires internet once (validates with Lemon Squeezy)
+
+=== "Manual invite (inline key in email)"
+
+    1. Import the key into your local database (one time):
+
+    ```bash
+    docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py \
+      --key SCPRO-XXXX-XXXX-XXXX-XXXX --tier admin
+    ```
+
+    2. Go to **Settings → License** → paste the same key → **Activate**
 
 Your beta key gives you **full access to every feature** — no paywalls, no feature gates. Skip this step if your invite is for technical pipeline testing only (T0-1 … T0-4).
 
@@ -241,7 +245,7 @@ Your jobs, clips, and settings are saved in Docker volumes and will be there nex
 No. You only need Docker Desktop and the beta package from your invite email. On Mac you also do **not** need an Apple Developer account.
 
 **The download link sent me to GitHub and I got a 404 — what do I do?**
-Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run StreamClip.
+Use the **Lemon Squeezy checkout link** from your invite email instead. GitHub downloads require a public repo — beta access is via checkout, not GitHub. Reply to your invite email if you need a new link.
 
 **My license key isn't working. What format should it be?**
 The key from your beta invite starts with `SCPRO-` (four hex groups with dashes). Paste the entire string. If it still fails, check that your device ID shows in Settings → License and reply to your invite email.
@@ -269,7 +273,7 @@ docker compose up -d
 ```
 
 **Where do I report bugs or feedback?**
-Use **Report a bug** or **Beta feedback** in the app header (top bar). Every submission is logged and read. You can also reply to your invite email.
+Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feedback**. Every submission is logged and read. You can also reply to your invite email.
 
 **What information should I include in a bug report?**
 - The job ID (shown on the job detail page)

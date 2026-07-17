@@ -25,6 +25,7 @@ exclude_docs: |
   BETA_GO_LIVE.md
   BETA_ON_CALL.md
   BETA_INVITE_PACK.md
+  BETA_DISTRIBUTION.md
   SESSION_STATE.md
   AGENT_COORDINATION.md
   .agent-lock.example.json

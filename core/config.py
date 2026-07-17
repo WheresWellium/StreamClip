@@ -266,6 +266,12 @@ class LicensingConfig(BaseModel):
 class CommerceConfig(BaseModel):
     lemon_squeezy_api_key: str = ""
     lemon_squeezy_webhook_secret: str = ""
+    # Phase 0 beta Lead Magnet variant → ADMIN tier on activate/webhook.
+    lemon_squeezy_beta_variant_id: str = ""
+    # Paid one-time Pro SKU variant.
+    lemon_squeezy_pro_variant_id: str = ""
+    # Base checkout URL for invite emails (no query params).
+    lemon_squeezy_checkout_url: str = ""
     # Comma-separated Lemon Squeezy variant IDs that unlock audio_ingest for the buyer.
     audio_ingest_variant_ids: str = ""
 

@@ -1,72 +1,106 @@
 # Build Phase 0 invite pack from cohort.csv + issued keys (§8.15).
 # Does NOT send email. Does NOT invent tester addresses.
 #
-# Prerequisites:
-#   1. Copy cohort.example.csv → cohort.csv and put real emails (gitignored)
-#   2. Issue keys (writes keys CSV):
-#        docker compose exec -e PYTHONPATH=/app -T api `
-#          python scripts/issue_beta_keys.py --csv cohort.csv `
-#          > dist/phase0-invite-pack/keys.csv
-#   3. Run this script:
-#        .\scripts\prepare_invite_pack.ps1 -KeysCsv dist\phase0-invite-pack\keys.csv
+# Modes:
+#   Manual       — henna links + inline SCPRO key (existing cohort)
+#   LemonSqueezy — henna links + personalized LS checkout URL (new cohort)
 #
-# Output (gitignored under dist/):
-#   dist/phase0-invite-pack/keys.csv (if you redirected issue_beta_keys here)
-#   dist/phase0-invite-pack/emails/<email-safe>.txt  — ready-to-paste bodies
-#   dist/phase0-invite-pack/SEND_CHECKLIST.txt
+# Prerequisites (Manual):
+#   docker compose exec -e PYTHONPATH=/app -T api python scripts/issue_beta_keys.py --csv cohort.csv `
+#     > dist/phase0-invite-pack/keys.csv
+#
+# Prerequisites (LemonSqueezy):
+#   Set STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL in environment or .env
+#
+#   .\scripts\prepare_invite_pack.ps1 -Mode LemonSqueezy -CohortCsv cohort.csv
 
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$KeysCsv,
+    [ValidateSet("Manual", "LemonSqueezy")]
+    [string]$Mode = "Manual",
+    [string]$KeysCsv = "",
     [string]$CohortCsv = "cohort.csv",
-    [string]$OutDir = "dist/phase0-invite-pack"
+    [string]$OutDir = "dist/phase0-invite-pack",
+    [string]$CheckoutUrl = "",
+    [string]$HennaBase = "https://streamclip-henna.vercel.app"
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$keysPath = if ([IO.Path]::IsPathRooted($KeysCsv)) { $KeysCsv } else { Join-Path $root $KeysCsv }
 $cohortPath = if ([IO.Path]::IsPathRooted($CohortCsv)) { $CohortCsv } else { Join-Path $root $CohortCsv }
-
-if (-not (Test-Path $keysPath)) {
-    Write-Host "FAIL: keys CSV not found: $keysPath" -ForegroundColor Red
-    Write-Host "Issue keys first, e.g.:"
-    Write-Host '  docker compose exec -e PYTHONPATH=/app -T api python scripts/issue_beta_keys.py --csv cohort.csv > dist/phase0-invite-pack/keys.csv'
+if (-not (Test-Path $cohortPath)) {
+    Write-Host "FAIL: cohort CSV not found: $cohortPath" -ForegroundColor Red
     exit 1
+}
+
+$checkoutBase = $CheckoutUrl
+if (-not $checkoutBase) {
+    $checkoutBase = $env:STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL
+}
+if ($Mode -eq "LemonSqueezy" -and -not $checkoutBase) {
+    Write-Host "FAIL: LemonSqueezy mode requires checkout URL." -ForegroundColor Red
+    Write-Host "Set STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL or pass -CheckoutUrl"
+    exit 1
+}
+
+$keysPath = $null
+if ($KeysCsv) {
+    $keysPath = if ([IO.Path]::IsPathRooted($KeysCsv)) { $KeysCsv } else { Join-Path $root $KeysCsv }
+}
+if ($Mode -eq "Manual") {
+    if (-not $keysPath -or -not (Test-Path $keysPath)) {
+        Write-Host "FAIL: Manual mode requires -KeysCsv from issue_beta_keys.py output" -ForegroundColor Red
+        exit 1
+    }
 }
 
 New-Item -ItemType Directory -Force -Path (Join-Path $root $OutDir) | Out-Null
 $emailsDir = Join-Path (Join-Path $root $OutDir) "emails"
 New-Item -ItemType Directory -Force -Path $emailsDir | Out-Null
 
-# Optional name map from cohort.csv (email,name)
-$names = @{}
-if (Test-Path $cohortPath) {
+function Get-CohortRows {
     Import-Csv $cohortPath | ForEach-Object {
         $em = $_.email
         if (-not $em) { $em = $_.Email }
         $nm = $_.name
         if (-not $nm) { $nm = $_.Name }
         if ($em) {
-            $names[$em.Trim().ToLowerInvariant()] = if ($nm) { $nm.Trim() } else { "" }
+            [PSCustomObject]@{
+                Email = $em.Trim()
+                Name  = if ($nm) { $nm.Trim() } else { ($em -split "@")[0] }
+            }
         }
     }
 }
 
-$template = @"
+$keyByEmail = @{}
+if ($Mode -eq "Manual" -and $keysPath) {
+    Import-Csv $keysPath | ForEach-Object {
+        $em = ($_.email).Trim()
+        $key = ($_.license_key).Trim()
+        if ($em -and $key) {
+            $keyByEmail[$em.ToLowerInvariant()] = $key
+        }
+    }
+}
+
+$manualTemplate = @"
 Hi {name},
 
 You're in - welcome to the StreamClip Phase 0 beta.
 
 Get started (no GitHub account needed):
-https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+{henna_base}/BETA_DOWNLOAD/
 
 Quickstart guide (step-by-step, ~15 min):
-https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/
+{henna_base}/BETA_TESTER_QUICKSTART/
 
 Your license key - paste in Settings -> License after logging in:
 {license_key}
+
+Before activating, import the key into your local install (one time):
+  docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py --key {license_key} --tier admin
 
 This key gives you full access to every feature. No feature gates.
 
@@ -77,36 +111,74 @@ Thanks,
 Wellium
 "@
 
+$lsTemplate = @"
+Hi {name},
+
+You're in - welcome to the StreamClip Phase 0 beta.
+
+1. Complete your free checkout (downloads + license key):
+{checkout_url}
+
+2. Install guide:
+{henna_base}/BETA_DOWNLOAD/
+
+3. Quickstart (~15 min):
+{henna_base}/BETA_TESTER_QUICKSTART/
+
+After checkout, paste your license key in Settings -> License.
+
+Use "Beta feedback" or "Report a bug" in the app header for support.
+
+Thanks,
+Wellium
+"@
+
 $subject = "StreamClip Phase 0 beta - your access"
-$rows = Import-Csv $keysPath
 $count = 0
 $index = New-Object System.Collections.Generic.List[string]
 $index.Add("Subject: $subject")
+$index.Add("Mode: $Mode")
 $index.Add("")
-$index.Add("email,name,license_key,email_file")
+if ($Mode -eq "Manual") {
+    $index.Add("email,name,license_key,email_file")
+} else {
+    $index.Add("email,name,checkout_url,email_file")
+}
 
-foreach ($row in $rows) {
-    $email = ($row.email).Trim()
+foreach ($member in Get-CohortRows) {
+    $email = $member.Email
+    $name = $member.Name
     if (-not $email -or $email -eq "email") { continue }
-    $key = ($row.license_key).Trim()
-    if (-not $key) {
-        Write-Host "WARN: missing license_key for $email - skip" -ForegroundColor Yellow
-        continue
-    }
-    $lookup = $email.ToLowerInvariant()
-    $name = ""
-    if ($names.ContainsKey($lookup)) {
-        $name = $names[$lookup]
-    }
-    if (-not $name) {
-        $name = ($email -split "@")[0]
-    }
-    $body = $template.Replace("{name}", $name).Replace("{license_key}", $key)
+
     $safe = ($email -replace '[^a-zA-Z0-9._@-]', '_')
+
+    if ($Mode -eq "Manual") {
+        $lookup = $email.ToLowerInvariant()
+        if (-not $keyByEmail.ContainsKey($lookup)) {
+            Write-Host "WARN: no license_key for $email - skip" -ForegroundColor Yellow
+            continue
+        }
+        $key = $keyByEmail[$lookup]
+        $body = $manualTemplate.Replace("{name}", $name)
+        $body = $body.Replace("{license_key}", $key)
+        $body = $body.Replace("{henna_base}", $HennaBase.TrimEnd("/"))
+        $index.Add("$email,$name,$key,emails/$safe")
+    } else {
+        $checkoutOut = & python "$root/scripts/build_ls_checkout_url.py" --base-url $checkoutBase --email $email --name $name 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL: build_ls_checkout_url for $email : $checkoutOut" -ForegroundColor Red
+            exit 1
+        }
+        $checkoutLink = ($checkoutOut | Out-String).Trim()
+        $body = $lsTemplate.Replace("{name}", $name)
+        $body = $body.Replace("{checkout_url}", $checkoutLink)
+        $body = $body.Replace("{henna_base}", $HennaBase.TrimEnd("/"))
+        $index.Add("$email,$name,$checkoutLink,emails/$safe")
+    }
+
     $file = Join-Path $emailsDir "$safe.txt"
     $content = "To: $email`r`nSubject: $subject`r`n`r`n$body"
     Set-Content -Path $file -Value $content -Encoding utf8
-    $index.Add("$email,$name,$key,emails/$safe.txt")
     $count++
 }
 
@@ -114,26 +186,23 @@ $when = Get-Date -Format 'yyyy-MM-dd HH:mm'
 $checklist = @(
     "Phase 0 invite pack - SEND CHECKLIST",
     "Generated: $when",
+    "Mode: $Mode",
     "Count: $count",
     "",
     "Before send:",
-    "- [ ] OPS_WEBHOOK_URL set (optional but recommended) - docs/OPS_ALERTING.md",
-    "- [ ] BETA_ON_CALL.md TBD contacts filled",
-    "- [ ] Keys stored in password manager (do not commit keys.csv)",
-    "",
-    "Send each file under emails/ via your mail client (copy body).",
-    "Do not commit this folder (dist/ is gitignored).",
+    "- [ ] verify_ls_beta_config.ps1 (LemonSqueezy mode)",
+    "- [ ] OPS_WEBHOOK_URL set (optional) - docs/OPS_ALERTING.md",
+    "- [ ] Keys/checkout stored securely (do not commit dist/)",
     "",
     "After send:",
-    "- [ ] H+0 monitor: docker compose exec -e PYTHONPATH=/app api python scripts/list_support_reports.py --limit 20",
-    "- [ ] BETA_GO_LIVE.md section 7 launch-day table"
+    "- [ ] H+0 monitor: docker compose exec -e PYTHONPATH=/app api python scripts/list_support_reports.py --limit 20"
 ) -join "`r`n"
 
 $outRoot = Join-Path $root $OutDir
 Set-Content -Path (Join-Path $outRoot "index.csv") -Value ($index -join "`n") -Encoding utf8
 Set-Content -Path (Join-Path $outRoot "SEND_CHECKLIST.txt") -Value $checklist -Encoding utf8
 
-Write-Host "Invite pack ready: $OutDir ($count emails)" -ForegroundColor Green
+Write-Host "Invite pack ready: $OutDir ($count emails, mode=$Mode)" -ForegroundColor Green
 Write-Host "  index:     $OutDir\index.csv"
 Write-Host "  checklist: $OutDir\SEND_CHECKLIST.txt"
 Write-Host "  bodies:    $OutDir\emails\"

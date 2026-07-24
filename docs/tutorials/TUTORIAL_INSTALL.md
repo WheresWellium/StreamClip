@@ -4,6 +4,9 @@
 
 This tutorial walks through the **recommended install path** for Phase 0 beta: Docker Desktop + `start_local.ps1` on Windows, with macOS equivalents where they differ.
 
+!!! tip "Windows one-click installer"
+    Using the `.exe` from [Get StreamClip](../BETA_DOWNLOAD.md#one-click-installers)? Skip Docker steps — open the app and use **Settings → Get started** until you see **Ready**.
+
 ---
 
 ## What you need
@@ -87,7 +90,15 @@ If your invite included a private repo link, clone with Git. When unsure, reply 
 
 ---
 
-## Step 4 — Verify the stack
+## Step 4 — Verify you're ready
+
+**In the app (all paths):**
+
+1. Open [http://localhost:3000](http://localhost:3000) (Docker) or launch the desktop app (`.exe`)
+2. Go to **Settings → Get started**
+3. **Ready** — proceed to [First job](TUTORIAL_FIRST_JOB.md). **Needs attention** — open **Help → Troubleshooting** before creating jobs.
+
+**Docker only (optional):**
 
 === "Windows"
 
@@ -107,15 +118,15 @@ If your invite included a private repo link, clone with Git. When unsure, reply 
 
     Or: `pwsh -File ./scripts/verify_stack.ps1`
 
-**Pass criteria:** all checks green (Windows) or containers healthy + health JSON OK (Mac).
+**Pass criteria:** **Ready** in the app, or all checks green from `verify_stack.ps1` (Windows) / healthy containers (Mac).
 
-| URL | Expected |
-|-----|----------|
+| Check | Expected |
+|-------|----------|
+| **Settings → Get started** | **Ready** |
 | [http://localhost:3000](http://localhost:3000) | StreamClip home screen |
-| [http://localhost:8000/api/health](http://localhost:8000/api/health) | `"status": "ok"` |
 
-!!! warning "Stop if verify fails"
-    Do **not** create jobs until verify passes. Post the full script output in your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
+!!! warning "Stop if not ready"
+    Do **not** create jobs until **Get started** shows **Ready** (or Docker verify passes). Post output via **Report a bug** or your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
 
 ---
 

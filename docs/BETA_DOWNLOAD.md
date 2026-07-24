@@ -34,9 +34,8 @@ Both options are free. You do **not** need a GitHub account.
 
 If you prefer **not** to install Docker:
 
-1. Complete the **free checkout link** from your invite email (Lemon Squeezy)
-2. Download **`StreamClip-Setup-win-x64.exe`** from your order library (~390 MB)
-3. Run the installer
+1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)** (about 390 MB)
+2. Run the installer
 
 **If Windows shows "Windows protected your PC"**
 
@@ -70,15 +69,10 @@ Pick your platform below.
 
     ### Step 1 — Get the beta package
 
-    Use the **free checkout link** in your invite email. After checkout, download:
-
-    - **`streamclip-beta-kit-*.zip`** (Docker path — recommended)
-    - **`StreamClip-Setup-win-x64.exe`** (optional — no Docker)
-
-    If you did not receive a checkout link:
+    You should have received a `.zip` or a private repo link in your invite email. If you haven't:
 
     - Check spam for an email from Wellium
-    - Reply to your invite email and ask for access
+    - Reply to your invite email and ask for the download link
 
     ### Step 2 — Extract and set up
 
@@ -130,7 +124,7 @@ Pick your platform below.
 
     ### Step 2 — Get the beta package
 
-    Same as Windows: complete the **checkout link** from your invite email and download the zip (and optional `.exe`).
+    Same as Windows: `.zip` or private repo link from your invite email.
 
     ```bash
     # ZIP: unzip, then:
@@ -249,7 +243,7 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 | Mac: Docker is slow / fans loud | Give Docker more CPUs/RAM (Docker Desktop → Settings → Resources). Prefer Apple Silicon build on M-series |
 | Very slow clips on Windows | Enable GPU in Docker Desktop → Settings → Resources → GPU |
 | Very slow clips on Mac | Expected without NVIDIA — use shorter source videos for beta |
-| License key not accepted | Paste the full key including dashes; check Settings → License shows a device ID |
+| License key not accepted | Paste the full key including dashes; under **Settings → License**, use **Show details** on **This install** if support asks |
 | Windows: `verify_stack.ps1` fails | Post the full output in the beta channel — include GPU model |
 | Mac: `curl` health fails | Confirm API container is running: `docker compose logs api --tail 50` |
 
@@ -257,7 +251,7 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 
 ## Get help
 
-Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feedback** — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
+Use **Report a bug** or **Beta feedback** in the app header — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
 
 ---
 
@@ -265,10 +259,10 @@ Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feed
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | Installer from invite checkout (Lemon Squeezy) | ✅ **v1.0.0-beta.2** — unsigned; SmartScreen may warn → More info → Run anyway |
+| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
 | macOS | `StreamClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
-**Note:** GitHub release links require a public repo. Beta testers should use the **checkout link in the invite email**, not GitHub.
+**Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
 
 Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
 

@@ -5,7 +5,12 @@ from __future__ import annotations
 from backend.db.models import ApprovalStatus, User, UserTier, VaultClip
 from backend.db.repositories import ClipRepository, JobRepository, VaultClipRepository
 from core.billing import get_tier_limits
-from core.distribution.errors import AlreadyInVaultError, ClipNotApprovedError, VaultFullError
+from core.distribution.errors import (
+    AlreadyInVaultError,
+    ClipNotApprovedError,
+    VaultFullError,
+    VaultStorageFullError,
+)
 from core.errors import StreamClipError
 from core.pipeline_metrics import VAULT_QUOTA_DENIED_TOTAL
 from core.storage import make_storage
@@ -59,8 +64,14 @@ class VaultService:
         limits = get_tier_limits(tier)
         count = await self.vault_repo.count_for_user(user_id)
         if count >= limits.max_vault_clips:
-            VAULT_QUOTA_DENIED_TOTAL.inc()
+            VAULT_QUOTA_DENIED_TOTAL.labels(reason="clips").inc()
             raise VaultFullError(limits.max_vault_clips)
+
+        used_bytes = await self.vault_repo.bytes_for_user(user_id)
+        clip_bytes = int(getattr(clip, "file_size_bytes", 0) or 0)
+        if clip_bytes > 0 and used_bytes + clip_bytes > limits.max_vault_bytes:
+            VAULT_QUOTA_DENIED_TOTAL.labels(reason="bytes").inc()
+            raise VaultStorageFullError(limits.max_vault_bytes)
 
         metadata = {
             "ensemble_score": clip.ensemble_score,

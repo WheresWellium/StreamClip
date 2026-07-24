@@ -74,7 +74,7 @@ export function useJobProgress(
             progress: job.progress,
             message: userFacingErrorMessage(
               job.error_message,
-              job.last_error_code,
+              job.error_code,
               "",
             ),
             status:
@@ -97,7 +97,7 @@ export function useJobProgress(
               status: "error",
               message: userFacingErrorMessage(
                 job.error_message,
-                job.last_error_code,
+                job.error_code,
                 "Job failed.",
               ),
               lastEvent: event,

@@ -40,7 +40,7 @@ Browser ↔ MinIO (presigned PUT/GET)
 
 | Service | Port | Role |
 |---------|------|------|
-| web | 3000 | Next.js UI; rewrites `/api`, `/docs` to API |
+| web | 3000 | Next.js UI; rewrites `/api` to API in Docker dev; **no** `/docs` proxy in external/desktop builds |
 | api | 8000 | FastAPI, job CRUD, auth, SSE relay, `/metrics` |
 | worker | — | Celery: `default` + `gpu` queues |
 | postgres | 5432 | Job/clip/user metadata |

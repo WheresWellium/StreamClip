@@ -32,6 +32,8 @@ class WhisperConfig(BaseModel):
     vad_filter: bool = True
     clip_vad_filter: bool = False
     min_word_probability: float = Field(0.25, ge=0.0, le=1.0)
+    confidence_rerun_enabled: bool = False
+    confidence_rerun_max_windows: int = Field(3, ge=1, le=10)
 
 
 class LLMConfig(BaseModel):
@@ -97,7 +99,7 @@ class ReframeConfig(BaseModel):
 class CaptionConfig(BaseModel):
     style: str = "gaming_impact"
     font_size: int = Field(72, ge=24, le=120)
-    max_chars_per_line: int = 25
+    max_chars_per_line: int = 42
     words_per_group: int = 3
     highlight_keywords: bool = True
     add_emoji: bool = True

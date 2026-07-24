@@ -4,27 +4,34 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils/format";
+import { devToolsEnabled } from "@/lib/dev-tools";
 
 export type SettingsSection =
   | "account"
   | "get-started"
   | "license"
+  | "vault"
+  | "billing"
   | "distribution"
   | "integrations"
-  | "api"
   | "privacy"
   | "advanced";
 
-const SECTIONS: { id: SettingsSection; label: string }[] = [
+const ALL_SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "account", label: "Account" },
   { id: "get-started", label: "Get started" },
   { id: "license", label: "License" },
+  { id: "vault", label: "Vault & Storage" },
+  { id: "billing", label: "Billing" },
   { id: "distribution", label: "Distribution" },
   { id: "integrations", label: "Integrations" },
-  { id: "api", label: "API" },
   { id: "privacy", label: "Privacy & data" },
   { id: "advanced", label: "Advanced" },
 ];
+
+const SECTIONS = ALL_SECTIONS.filter(
+  (section) => section.id !== "advanced" || devToolsEnabled,
+);
 
 export function SettingsNav() {
   const searchParams = useSearchParams();

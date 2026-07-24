@@ -9,9 +9,9 @@
 
     1. **[Get StreamClip](BETA_DOWNLOAD.md)** — pick Windows or Mac and follow the steps
     2. **[Quickstart](BETA_TESTER_QUICKSTART.md)** — from install to your first clip (~15 minutes)
-    3. Complete your **free checkout** from the invite email (new cohorts) or paste your **license key** in **Settings → License**
+    3. Paste your **license key** in **Settings → License** (from your invite email)
 
-    **Stuck?** Open the **Help menu (?)** in the app header → **Report a bug**, or reply to your invite email.
+    **Stuck?** Open **Help** in the app (guides stay in-window) or use **Report a bug** in the header. Reply to your invite email if you need a human.
 
 ---
 
@@ -24,7 +24,9 @@
 | **Follow the full test checklist** | [Beta test plan](BETA_TESTER_PLAN.md) |
 | **Fix a problem** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
 | **Build the macOS installer** (helpers only) | [macOS installer — builders](MACOS_INSTALLER.md) |
-| **Understand how it works** (technical) | [Technical design](TECHNICAL_DESIGN.md) |
+
+!!! note "Operator / engineering docs"
+    Architecture, performance, and runbooks stay in the repo for contributors but are **not** linked in the public docs nav or the shipped app. Partners who need HTTP API reference should ask your operator privately.
 
 ---
 
@@ -49,7 +51,8 @@ Your raw video files stay on your computer.
 | **Job** | One video you asked StreamClip to process |
 | **Clip** | One short video cut from that job |
 | **Vault** | Your saved favorite clips |
-| **GPU** | Your graphics card — makes processing much faster on Windows with NVIDIA |
+| **GPU** | Your graphics card — makes processing much faster when acceleration is on |
+| **Help center** | In-app guides at **Help** — same topics as this site, embedded in StreamClip |
 
 ---
 

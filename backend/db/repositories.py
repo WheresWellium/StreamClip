@@ -9,15 +9,16 @@ like "load clips ordered by rank" or "only return jobs for this owner".
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import String, cast, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.middleware.device_id import normalize_device_id
 from core.config import get_settings
+from core.support.ticket_lifecycle import UNSET
 from backend.db.models import (
     Asset,
     BugReport,
@@ -25,10 +26,12 @@ from backend.db.models import (
     ClipFeedback,
     ClipOverlay,
     ClipStatus,
+    FeedbackAttachment,
     InstallLicense,
     Job,
     JobStatus,
     JobTemplate,
+    JobTitleAudit,
     InstallOAuthApp,
     LocalDevice,
     PasswordResetToken,
@@ -549,6 +552,31 @@ class UserRepository:
             user.data_contribution_opt_in = opted_in
             await self.db.flush()
 
+    async def get_user_preferences(self, user_id: str) -> dict[str, Any]:
+        user = await self.get(user_id)
+        if user is None:
+            return {}
+        return dict(user.user_preferences or {})
+
+    async def update_user_preferences(
+        self,
+        user_id: str,
+        patch: dict[str, Any],
+    ) -> dict[str, Any]:
+        user = await self.get(user_id)
+        if user is None:
+            return {}
+        merged = {**(user.user_preferences or {}), **patch}
+        user.user_preferences = merged
+        await self.db.flush()
+        return merged
+
+    async def wipe_user_preferences(self, user_id: str) -> None:
+        user = await self.get(user_id)
+        if user:
+            user.user_preferences = {}
+            await self.db.flush()
+
     async def update_style_weights(self, user_id: str, weights: dict[str, Any]) -> None:
         user = await self.get(user_id)
         if user:
@@ -810,10 +838,163 @@ class BugReportRepository:
         return await self.db.get(BugReport, report_id)
 
     async def list_recent(self, *, limit: int = 50) -> list[BugReport]:
+        return await self.list_filtered(limit=limit)
+
+    async def list_filtered(
+        self,
+        *,
+        limit: int = 50,
+        status: str | None = None,
+        severity: str | None = None,
+        assigned_to: str | None = None,
+        category: str | None = None,
+        since: date | None = None,
+    ) -> list[BugReport]:
+        stmt = select(BugReport).order_by(BugReport.created_at.desc()).limit(limit)
+        if status is not None:
+            stmt = stmt.where(BugReport.status == status)
+        if severity is not None:
+            stmt = stmt.where(BugReport.severity == severity)
+        if assigned_to is not None:
+            stmt = stmt.where(BugReport.assigned_to == assigned_to)
+        if category is not None:
+            stmt = stmt.where(
+                cast(BugReport.categories, String).like(f'%"{category}"%'),
+            )
+        if since is not None:
+            since_dt = datetime.combine(since, datetime.min.time(), tzinfo=timezone.utc)
+            stmt = stmt.where(BugReport.created_at >= since_dt)
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_open_by_severity(self) -> dict[str, int]:
+        stmt = (
+            select(BugReport.severity, func.count())
+            .where(BugReport.status != "resolved")
+            .group_by(BugReport.severity)
+        )
+        result = await self.db.execute(stmt)
+        return {severity: count for severity, count in result.all()}
+
+    async def open_ticket_ages_seconds(self) -> list[dict[str, Any]]:
+        stmt = select(BugReport.severity, BugReport.created_at).where(
+            BugReport.status != "resolved",
+        )
+        result = await self.db.execute(stmt)
+        return [
+            {"severity": severity, "created_at": created_at}
+            for severity, created_at in result.all()
+        ]
+
+    async def update_ticket(
+        self,
+        report: BugReport,
+        *,
+        status: str,
+        assigned_to: str | None | object = UNSET,
+        resolution_note: str | None = None,
+    ) -> BugReport:
+        report.status = status
+        if assigned_to is not UNSET:
+            report.assigned_to = assigned_to  # type: ignore[assignment]
+        if resolution_note is not None:
+            env = dict(report.environment or {})
+            env["resolution_note"] = resolution_note
+            report.environment = env
+        await self.db.flush()
+        return report
+
+
+class FeedbackAttachmentRepository:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def create_pending(
+        self,
+        *,
+        user_id: str | None,
+        device_id: str | None,
+        storage_key: str,
+        filename: str,
+        content_type: str,
+        size_bytes: int,
+    ) -> FeedbackAttachment:
+        row = FeedbackAttachment(
+            user_id=user_id,
+            device_id=device_id,
+            storage_key=storage_key,
+            filename=filename,
+            content_type=content_type,
+            size_bytes=size_bytes,
+        )
+        self.db.add(row)
+        await self.db.flush()
+        return row
+
+    async def get(self, attachment_id: str) -> FeedbackAttachment | None:
+        return await self.db.get(FeedbackAttachment, attachment_id)
+
+    async def link_to_report(
+        self,
+        attachment_ids: list[str],
+        *,
+        report_id: str,
+        user_id: str | None,
+        device_id: str | None,
+    ) -> list[FeedbackAttachment]:
+        if not attachment_ids:
+            return []
         result = await self.db.execute(
-            select(BugReport).order_by(BugReport.created_at.desc()).limit(limit),
+            select(FeedbackAttachment).where(FeedbackAttachment.id.in_(attachment_ids)),
+        )
+        rows = list(result.scalars().all())
+        if len(rows) != len(set(attachment_ids)):
+            raise ValueError("One or more attachment ids were not found")
+        for row in rows:
+            if row.bug_report_id is not None:
+                raise ValueError(f"Attachment {row.id} is already linked")
+            if user_id is not None:
+                if row.user_id != user_id:
+                    raise ValueError(f"Attachment {row.id} is not owned by this user")
+            elif device_id is not None:
+                if row.device_id != device_id:
+                    raise ValueError(f"Attachment {row.id} is not owned by this device")
+            else:
+                raise ValueError("Attachment ownership requires user or device scope")
+            row.bug_report_id = report_id
+        await self.db.flush()
+        return rows
+
+    async def list_for_report(self, report_id: str) -> list[FeedbackAttachment]:
+        result = await self.db.execute(
+            select(FeedbackAttachment).where(FeedbackAttachment.bug_report_id == report_id),
         )
         return list(result.scalars().all())
+
+
+class JobTitleAuditRepository:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def create(
+        self,
+        *,
+        job_id: str,
+        previous_title: str | None,
+        new_title: str | None,
+        user_id: str | None,
+        source: str = "user_edit",
+    ) -> JobTitleAudit:
+        row = JobTitleAudit(
+            job_id=job_id,
+            previous_title=previous_title,
+            new_title=new_title,
+            user_id=user_id,
+            source=source,
+        )
+        self.db.add(row)
+        await self.db.flush()
+        return row
 
 
 # ─── Distribution repositories ───────────────────────────────────────────────
@@ -1214,6 +1395,19 @@ class VaultClipRepository:
             select(func.count()).select_from(VaultClip).where(
                 VaultClip.user_id == user_id,
                 VaultClip.status != "failed",
+                VaultClip.archived_flag.is_(False),
+            ),
+        )
+        return int(result.scalar_one())
+
+    async def bytes_for_user(self, user_id: str) -> int:
+        from sqlalchemy import func
+
+        result = await self.db.execute(
+            select(func.coalesce(func.sum(VaultClip.file_size_bytes), 0)).where(
+                VaultClip.user_id == user_id,
+                VaultClip.status != "failed",
+                VaultClip.archived_flag.is_(False),
             ),
         )
         return int(result.scalar_one())
@@ -1267,6 +1461,7 @@ class VaultClipRepository:
         status: str,
         storage_key: str | None = None,
         thumb_storage_key: str | None = None,
+        file_size_bytes: int | None = None,
     ) -> None:
         row = await self.db.get(VaultClip, vault_clip_id)
         if row is None:
@@ -1276,6 +1471,8 @@ class VaultClipRepository:
             row.storage_key = storage_key
         if thumb_storage_key is not None:
             row.thumb_storage_key = thumb_storage_key
+        if file_size_bytes is not None:
+            row.file_size_bytes = file_size_bytes
         await self.db.flush()
 
     async def delete(self, vault_clip_id: str) -> VaultClip | None:

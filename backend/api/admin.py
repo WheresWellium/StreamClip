@@ -5,24 +5,37 @@ Operator-only endpoints. Requires an authenticated user with tier=admin.
 
 POST /api/admin/licenses/{license_id}/revoke — revoke an issued license.
 GET  /api/admin/bug-reports — list recent in-app bug reports.
+PATCH /api/admin/bug-reports/{id} — update ticket status / assignment.
 Revoked rows are retained so future activation attempts fail closed.
 """
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.schemas import BugReportAdminOut
+from backend.api.schemas import BugReportAdminOut, BugReportAdminUpdateRequest
 from backend.db.models import InstallLicense, UserTier
-from backend.db.repositories import BugReportRepository, InstallLicenseRepository, UserRepository
+from backend.db.repositories import (
+    BugReportRepository,
+    InstallLicenseRepository,
+    UserRepository,
+)
 from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from core.errors import StreamClipError
+from core.support.metrics import refresh_support_ticket_metrics
+from core.support.ticket_lifecycle import (
+    UNSET,
+    InvalidBugReportTransition,
+    resolve_next_status,
+)
 
 log = structlog.get_logger(__name__)
 
@@ -52,11 +65,86 @@ async def list_bug_reports(
     admin_id: Annotated[str, Depends(require_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
     limit: int = 50,
+    status: str | None = Query(None, description="open, triage, assigned, resolved"),
+    severity: str | None = Query(None, description="low, medium, high, critical"),
+    assigned_to: str | None = Query(None, description="Filter by assignee user id"),
+    category: str | None = Query(None, description="Filter by category tag"),
+    since: date | None = Query(None, description="Created on or after (ISO date)"),
 ) -> list[BugReportAdminOut]:
     del admin_id
     capped = min(max(limit, 1), 200)
-    reports = await BugReportRepository(db).list_recent(limit=capped)
+    reports = await BugReportRepository(db).list_filtered(
+        limit=capped,
+        status=status,
+        severity=severity,
+        assigned_to=assigned_to,
+        category=category,
+        since=since,
+    )
+    await refresh_support_ticket_metrics(db)
     return [BugReportAdminOut.model_validate(r) for r in reports]
+
+
+@router.patch(
+    "/bug-reports/{report_id}",
+    response_model=BugReportAdminOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_bug_report(
+    report_id: str,
+    body: BugReportAdminUpdateRequest,
+    admin_id: Annotated[str, Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BugReportAdminOut:
+    repo = BugReportRepository(db)
+    report = await repo.get(report_id)
+    if report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bug report not found")
+
+    fields_set = body.model_fields_set
+    assigned_update: str | None | object = UNSET
+    if "assigned_to" in fields_set:
+        assigned_update = body.assigned_to
+    try:
+        next_status = resolve_next_status(
+            report.status,
+            requested_status=body.status,
+            assigned_to=assigned_update,
+        )
+    except InvalidBugReportTransition as exc:
+        raise StreamClipError(
+            str(exc),
+            user_message="That status change is not allowed.",
+            code="invalid_status_transition",
+            http_status=400,
+        ) from exc
+
+    if body.assigned_to is not None:
+        assignee = await UserRepository(db).get(body.assigned_to)
+        if assignee is None or not assignee.is_active:
+            raise StreamClipError(
+                "Assignee not found",
+                user_message="Assigned user was not found.",
+                code="assignee_not_found",
+                http_status=400,
+            )
+
+    updated = await repo.update_ticket(
+        report,
+        status=next_status,
+        assigned_to=assigned_update,
+        resolution_note=body.resolution_note,
+    )
+    await db.commit()
+    await refresh_support_ticket_metrics(db)
+    log.info(
+        "bug_report_updated",
+        report_id=report_id,
+        admin_id=admin_id,
+        status=updated.status,
+        assigned_to=updated.assigned_to,
+    )
+    return BugReportAdminOut.model_validate(updated)
 
 
 @router.post(

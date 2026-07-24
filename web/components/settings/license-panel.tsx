@@ -26,6 +26,7 @@ export function LicensePanel() {
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showInstallId, setShowInstallId] = useState(false);
 
   const loadStatus = async () => {
     const result = await getLicenseStatusAction(machineId);
@@ -90,8 +91,22 @@ export function LicensePanel() {
             <dd>{status.active ? "Yes" : "No"}</dd>
             <dt className="text-muted-foreground">Expires</dt>
             <dd>{status.expires_at ?? "Never (perpetual)"}</dd>
-            <dt className="text-muted-foreground">Machine</dt>
-            <dd className="font-mono text-xs truncate">{status.machine_id ?? machineId}</dd>
+            <dt className="text-muted-foreground">This install</dt>
+            <dd>
+              {showInstallId ? (
+                <span className="font-mono text-xs truncate block">
+                  {status.machine_id ?? machineId}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs text-sky-400 hover:underline"
+                  onClick={() => setShowInstallId(true)}
+                >
+                  Show details
+                </button>
+              )}
+            </dd>
           </dl>
         )}
       </CardContent>

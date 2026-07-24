@@ -17,7 +17,7 @@ from core.tasks import notify_tasks as nt
 
 
 def test_send_bug_report_email_missing_row():
-    with patch.object(nt, "_safe_async", return_value=None):
+    with patch.object(nt, "_safe_async", return_value=(None, [])):
         out = nt.send_bug_report_email("missing-id")
     assert out == {"status": "skipped", "reason": "not_found"}
 
@@ -39,6 +39,9 @@ def test_send_bug_report_email_loads_from_db():
     async def fake_db_session():
         db = AsyncMock()
         db.get = AsyncMock(return_value=report)
+        db.execute = AsyncMock(
+            return_value=SimpleNamespace(scalars=lambda: SimpleNamespace(all=lambda: [])),
+        )
         yield db
 
     with patch.object(nt, "db_session", fake_db_session), \
@@ -61,7 +64,7 @@ def test_send_bug_report_email_sends():
         message="Captions drift",
         environment={"browser": "pytest"},
     )
-    with patch.object(nt, "_safe_async", return_value=report), \
+    with patch.object(nt, "_safe_async", return_value=(report, [])), \
          patch.object(nt, "bug_report_recipient", return_value="bugs@test.local"), \
          patch.object(nt, "send_email", return_value=True) as send:
         out = nt.send_bug_report_email("r1")
@@ -69,6 +72,37 @@ def test_send_bug_report_email_sends():
     assert out["status"] == "sent"
     send.assert_called_once()
     assert "Captions drift" in send.call_args.kwargs["body"]
+
+
+def test_send_bug_report_email_includes_attachment_links():
+    report = SimpleNamespace(
+        id="r1",
+        severity="high",
+        categories=["ui"],
+        user_id="u1",
+        device_id="dev",
+        job_id=None,
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        message="See screenshot",
+        environment={},
+    )
+    attachment = SimpleNamespace(
+        filename="shot.png",
+        storage_key="support/attachments/u1/a1/shot.png",
+    )
+    storage = MagicMock()
+    storage.presigned_get_url.return_value = "https://cdn.example/shot.png"
+
+    with patch.object(nt, "_safe_async", return_value=(report, [attachment])), \
+         patch.object(nt, "bug_report_recipient", return_value="bugs@test.local"), \
+         patch.object(nt, "send_email", return_value=True) as send, \
+         patch.object(nt, "make_storage", return_value=storage):
+        out = nt.send_bug_report_email("r1")
+
+    assert out["status"] == "sent"
+    body = send.call_args.kwargs["body"]
+    assert "Attachments (24h links)" in body
+    assert "https://cdn.example/shot.png" in body
 
 
 def test_send_bug_report_email_skipped_when_smtp_off():
@@ -83,7 +117,7 @@ def test_send_bug_report_email_skipped_when_smtp_off():
         message="Minor UI glitch",
         environment={},
     )
-    with patch.object(nt, "_safe_async", return_value=report), \
+    with patch.object(nt, "_safe_async", return_value=(report, [])), \
          patch.object(nt, "bug_report_recipient", return_value="bugs@test.local"), \
          patch.object(nt, "send_email", return_value=False):
         out = nt.send_bug_report_email("r2")

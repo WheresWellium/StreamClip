@@ -20,6 +20,7 @@ from core.creator_options import (
     is_valid_reframe_preset,
 )
 from core.ingest.url_normalize import normalize_source_url
+from core.support.attachments import ALLOWED_SUPPORT_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES
 
 
 # ─── Job ─────────────────────────────────────────────────────────────────────
@@ -175,6 +176,49 @@ class ClipWordsOut(BaseModel):
     words: list[ClipWordOut]
 
 
+class TranscriptWordOut(BaseModel):
+    """Word-level timestamp from a job transcript."""
+    index: int
+    text: str
+    start: float
+    end: float
+    confidence: float
+
+
+class TranscriptSegmentSummaryOut(BaseModel):
+    id: int
+    text: str
+    start: float
+    end: float
+    word_count: int
+
+
+class TranscriptTimestampsOut(BaseModel):
+    """GET /api/jobs/{job_id}/transcript/timestamps"""
+    job_id: str
+    language: str
+    duration_secs: float
+    words: list[TranscriptWordOut]
+    segments: list[TranscriptSegmentSummaryOut]
+
+
+class CaptionExportRequest(BaseModel):
+    """POST /api/jobs/{job_id}/caption-export"""
+    format: Literal["srt", "vtt", "ttml", "ass", "mp4"]
+    clip_id: str | None = Field(None, max_length=32)
+    style: str | None = Field(None, description="Caption style preset override")
+    word_level: bool = True
+    burn_in: bool = False
+
+
+class CaptionExportOut(BaseModel):
+    job_id: str
+    format: str
+    status: Literal["ready", "queued"]
+    download_url: str | None = None
+    expires_at: datetime | None = None
+
+
 class UpdateJobRequest(BaseModel):
     """Body for PATCH /api/jobs/{id}"""
     display_title: str | None = Field(None, max_length=512)
@@ -209,6 +253,7 @@ class JobOut(BaseModel):
     content_profile: str | None = None
     aspect_ratio: str | None = None
     clips: list[ClipOut] = []
+    title_audit_id: str | None = None
 
 
 class JobListItem(BaseModel):
@@ -407,6 +452,7 @@ class BugReportRequest(BaseModel):
     categories: list[str] = Field(..., min_length=1, max_length=len(BUG_REPORT_CATEGORIES))
     severity: Literal["low", "medium", "high", "critical"] = "medium"
     job_id: str | None = Field(None, max_length=32)
+    attachment_ids: list[str] = Field(default_factory=list, max_length=3)
     environment: dict[str, str] | None = Field(
         None, description="Client-collected context: app version, OS, browser.",
     )
@@ -418,6 +464,11 @@ class BugReportRequest(BaseModel):
         if unknown:
             raise ValueError(f"Unknown categories: {unknown}")
         return list(dict.fromkeys(v))  # dedupe, keep order
+
+    @field_validator("attachment_ids")
+    @classmethod
+    def _dedupe_attachment_ids(cls, v: list[str]) -> list[str]:
+        return list(dict.fromkeys(v))
 
     @field_validator("environment")
     @classmethod
@@ -475,8 +526,45 @@ class BugReportAdminOut(BaseModel):
     user_id: str | None
     device_id: str | None
     job_id: str | None
+    assigned_to: str | None
     environment: dict[str, Any] | None
     created_at: datetime
+
+
+class BugReportAdminUpdateRequest(BaseModel):
+    """Body for PATCH /api/admin/bug-reports/{id}"""
+
+    status: Literal["open", "triage", "assigned", "resolved"] | None = None
+    assigned_to: str | None = Field(None, max_length=32)
+    resolution_note: str | None = Field(None, max_length=2000)
+
+
+class SupportAttachmentInitRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=255)
+    content_type: str = Field(..., max_length=128)
+    size_bytes: int = Field(..., ge=1)
+
+    @field_validator("content_type")
+    @classmethod
+    def _validate_content_type(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        if normalized not in ALLOWED_SUPPORT_ATTACHMENT_TYPES:
+            raise ValueError(f"Unsupported attachment content_type: {v}")
+        return normalized
+
+    @field_validator("size_bytes")
+    @classmethod
+    def _validate_size(cls, v: int) -> int:
+        if v > MAX_ATTACHMENT_BYTES:
+            raise ValueError("Attachment exceeds 5 MB limit")
+        return v
+
+
+class SupportAttachmentInitResponse(BaseModel):
+    attachment_id: str
+    upload_url: str
+    storage_key: str
+    expires_in: int
 
 
 # ─── Privacy / data contribution ──────────────────────────────────────────────
@@ -487,6 +575,78 @@ class PrivacySettingsOut(BaseModel):
 
 class PrivacySettingsRequest(BaseModel):
     data_contribution_opt_in: bool
+
+
+_USER_PREF_LIST_MAX = 50
+_USER_PREF_STRING_MAX = 64
+_ALLOWED_TITLE_STYLES = frozenset({"tutorial", "tip", "explainer", "promo", "gaming"})
+
+
+def _trim_pref_list(values: list[str] | None, *, max_items: int) -> list[str]:
+    if not values:
+        return []
+    out: list[str] = []
+    for raw in values:
+        text = str(raw).strip()[:_USER_PREF_STRING_MAX]
+        if text and text not in out:
+            out.append(text)
+        if len(out) >= max_items:
+            break
+    return out
+
+
+class UserPreferencesOut(BaseModel):
+    memory_enabled: bool = False
+    vocabulary: list[str] = Field(default_factory=list)
+    brand_names: list[str] = Field(default_factory=list)
+    title_style: str = "gaming"
+    preferred_tags: list[str] = Field(default_factory=list)
+    language_hint: str = "en"
+    recent_titles: list[str] = Field(default_factory=list)
+
+    @classmethod
+    def from_storage(cls, raw: dict[str, Any] | None) -> UserPreferencesOut:
+        data = raw or {}
+        style = str(data.get("title_style", "gaming")).strip().lower()
+        if style not in _ALLOWED_TITLE_STYLES:
+            style = "gaming"
+        return cls(
+            memory_enabled=bool(data.get("memory_enabled", False)),
+            vocabulary=_trim_pref_list(data.get("vocabulary"), max_items=_USER_PREF_LIST_MAX),
+            brand_names=_trim_pref_list(data.get("brand_names"), max_items=_USER_PREF_LIST_MAX),
+            title_style=style,
+            preferred_tags=_trim_pref_list(data.get("preferred_tags"), max_items=_USER_PREF_LIST_MAX),
+            language_hint=str(data.get("language_hint", "en")).strip()[:16] or "en",
+            recent_titles=_trim_pref_list(data.get("recent_titles"), max_items=10),
+        )
+
+
+class UserPreferencesUpdateRequest(BaseModel):
+    memory_enabled: bool | None = None
+    vocabulary: list[str] | None = None
+    brand_names: list[str] | None = None
+    title_style: Literal["tutorial", "tip", "explainer", "promo", "gaming"] | None = None
+    preferred_tags: list[str] | None = None
+    language_hint: str | None = Field(None, max_length=16)
+
+    def as_patch(self) -> dict[str, Any]:
+        patch: dict[str, Any] = {}
+        if self.memory_enabled is not None:
+            patch["memory_enabled"] = self.memory_enabled
+        if self.vocabulary is not None:
+            patch["vocabulary"] = _trim_pref_list(self.vocabulary, max_items=_USER_PREF_LIST_MAX)
+        if self.brand_names is not None:
+            patch["brand_names"] = _trim_pref_list(self.brand_names, max_items=_USER_PREF_LIST_MAX)
+        if self.title_style is not None:
+            patch["title_style"] = self.title_style
+        if self.preferred_tags is not None:
+            patch["preferred_tags"] = _trim_pref_list(
+                self.preferred_tags,
+                max_items=_USER_PREF_LIST_MAX,
+            )
+        if self.language_hint is not None:
+            patch["language_hint"] = self.language_hint.strip() or "en"
+        return patch
 
 
 # ─── Templates ────────────────────────────────────────────────────────────────
@@ -744,9 +904,27 @@ class VaultClipOut(BaseModel):
     publish_statuses: list[ClipPublishStatusOut] = Field(default_factory=list)
 
 
-class VaultQuotaOut(BaseModel):
+class VaultQuotaDimensionOut(BaseModel):
     used: int
     limit: int
+    warning: Literal["approaching", "critical", "exceeded"] | None = None
+
+
+class VaultQuotaBytesOut(VaultQuotaDimensionOut):
+    used_human: str
+    limit_human: str
+
+
+class VaultQuotaThresholdsOut(BaseModel):
+    warn_at_pct: int = 75
+    critical_at_pct: int = 90
+
+
+class VaultQuotaOut(BaseModel):
+    clips: VaultQuotaDimensionOut
+    bytes: VaultQuotaBytesOut
+    tier: str
+    thresholds: VaultQuotaThresholdsOut
 
 
 # ─── Distribution ─────────────────────────────────────────────────────────────
@@ -822,3 +1000,20 @@ class BatchPublishClipsRequest(BaseModel):
 class BatchPublishClipsResponse(BaseModel):
     jobs: list[PublishJobOut]
     skipped: int = 0
+
+
+# ─── Title suggestions (§7.1.3) ───────────────────────────────────────────────
+
+class TitleSuggestionOut(BaseModel):
+    rank: int = Field(ge=1, le=3)
+    title: str = Field(max_length=80)
+    confidence: float = Field(ge=0.0, le=1.0)
+    hook: str
+
+
+class TitleSuggestionsResponse(BaseModel):
+    job_id: str
+    tone: str = "gaming"
+    suggestions: list[TitleSuggestionOut]
+    model: str
+    generated_at: datetime

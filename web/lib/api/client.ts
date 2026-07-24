@@ -146,6 +146,26 @@ export const jobsApi = {
       deviceId,
     }),
 
+  titleSuggestions: (
+    jobId: string,
+    authToken?: string,
+    tone = "gaming",
+  ) =>
+    request<{
+      job_id: string;
+      tone: string;
+      suggestions: Array<{
+        rank: number;
+        title: string;
+        hook: string;
+        confidence: number;
+      }>;
+      model: string;
+      generated_at: string;
+    }>(`/api/jobs/${jobId}/title-suggestions?tone=${encodeURIComponent(tone)}`, {
+      authToken,
+    }),
+
   createBatch: (jobs: CreateJobRequest[], authToken?: string) =>
     request<{ jobs: Job[] }>("/api/jobs/batch", {
       method: "POST",
@@ -368,6 +388,16 @@ export type WebhookSettings = {
   configured: boolean;
 };
 
+export type UserPreferences = {
+  memory_enabled: boolean;
+  vocabulary: string[];
+  brand_names: string[];
+  title_style: string;
+  preferred_tags: string[];
+  language_hint: string;
+  recent_titles: string[];
+};
+
 export const settingsApi = {
   submitClipFeedback: (clipId: string, rating: number, authToken?: string) =>
     request<{ clip_id: string; rating: number }>(
@@ -384,6 +414,19 @@ export const settingsApi = {
     request<{ data_contribution_opt_in: boolean }>("/api/settings/privacy", {
       method: "PUT",
       body: JSON.stringify({ data_contribution_opt_in: optIn }),
+      authToken,
+    }),
+  getPreferences: (authToken?: string) =>
+    request<UserPreferences>("/api/settings/preferences", { authToken }),
+  updatePreferences: (patch: Partial<UserPreferences>, authToken?: string) =>
+    request<UserPreferences>("/api/settings/preferences", {
+      method: "PUT",
+      body: JSON.stringify(patch),
+      authToken,
+    }),
+  wipePreferences: (authToken?: string) =>
+    request<UserPreferences>("/api/settings/preferences", {
+      method: "DELETE",
       authToken,
     }),
   updateWebhook: (
@@ -630,12 +673,25 @@ export const assetsApi = {
     }),
 };
 
+export type VaultQuotaResponse = {
+  clips: { used: number; limit: number; warning: string | null };
+  bytes: {
+    used: number;
+    limit: number;
+    used_human: string;
+    limit_human: string;
+    warning: string | null;
+  };
+  tier: string;
+  thresholds: { warn_at_pct: number; critical_at_pct: number };
+};
+
 export const vaultApi = {
   list: (authToken?: string) =>
     request<VaultClip[]>("/api/vault/clips", { authToken }),
 
   quota: (authToken?: string) =>
-    request<{ used: number; limit: number }>("/api/vault/quota", { authToken }),
+    request<VaultQuotaResponse>("/api/vault/quota", { authToken }),
 
   save: (clipId: string, title?: string, authToken?: string) =>
     request<VaultClip>("/api/vault/clips", {

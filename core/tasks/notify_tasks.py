@@ -11,8 +11,9 @@ import tempfile
 from pathlib import Path
 
 import structlog
+from sqlalchemy import select
 
-from backend.db.models import BugReport, Job, User
+from backend.db.models import BugReport, FeedbackAttachment, Job, User
 from backend.db.session import db_session
 from core.celery_app import celery_app
 from core.config import get_settings
@@ -33,11 +34,19 @@ cfg = get_settings()
 def send_bug_report_email(report_id: str) -> dict[str, str]:
     """Email the configured recipient about a new bug report."""
 
-    async def _load() -> BugReport | None:
+    async def _load() -> tuple[BugReport | None, list[FeedbackAttachment]]:
         async with db_session() as db:
-            return await db.get(BugReport, report_id)
+            report = await db.get(BugReport, report_id)
+            if report is None:
+                return None, []
+            result = await db.execute(
+                select(FeedbackAttachment).where(
+                    FeedbackAttachment.bug_report_id == report_id,
+                ),
+            )
+            return report, list(result.scalars().all())
 
-    report = _safe_async(_load())
+    report, attachments = _safe_async(_load())
     if report is None:
         log.warning("bug_report_email_missing_row", report_id=report_id)
         return {"status": "skipped", "reason": "not_found"}
@@ -45,6 +54,15 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
     recipient = bug_report_recipient()
     categories = ", ".join(report.categories or []) or "uncategorized"
     env = json.dumps(report.environment or {}, indent=2)
+    attachment_lines = ""
+    if attachments:
+        storage = make_storage(cfg)
+        ttl = 24 * 3600
+        lines = []
+        for att in attachments:
+            url = storage.presigned_get_url(att.storage_key, expires_in=ttl)
+            lines.append(f"  - {att.filename}: {url}")
+        attachment_lines = "\nAttachments (24h links):\n" + "\n".join(lines) + "\n"
     body = (
         f"New StreamClip bug report {report.id}\n"
         f"\n"
@@ -58,6 +76,7 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
         f"Message:\n{report.message}\n"
         f"\n"
         f"Environment:\n{env}\n"
+        f"{attachment_lines}"
     )
     sent = send_email(
         to=recipient,

@@ -25,6 +25,8 @@ from backend.api.schemas import (
     ClipApprovalRequest,
     ClipApprovalResponse,
     ClipWordsOut,
+    CaptionExportOut,
+    CaptionExportRequest,
     CreateJobRequest,
     JobListItem,
     JobListResponse,
@@ -35,6 +37,7 @@ from backend.api.schemas import (
     RegenerateClipResponse,
     SpliceClipsRequest,
     SpliceClipsResponse,
+    TranscriptTimestampsOut,
     UpdateClipRequest,
     UpdateJobRequest,
 )
@@ -180,9 +183,9 @@ async def update_job(
 ) -> JobOut:
     """Update editable job fields (e.g. display title)."""
     svc = _get_service(db)
-    job = await svc.update_job(job_id, body, scope=scope)
+    job, audit_id = await svc.update_job(job_id, body, scope=scope)
     await db.commit()
-    return await svc.to_dto(job)
+    return await svc.to_dto(job, title_audit_id=audit_id)
 
 
 # ─── DELETE /api/jobs/{job_id} ───────────────────────────────────────────────
@@ -300,6 +303,37 @@ async def get_job_waveform(
         )
     url = storage.presigned_get_url(key, expires_in=cfg.storage.presigned_expiry_secs)
     return {"url": url}
+
+
+@router.get(
+    "/{job_id}/transcript/timestamps",
+    response_model=TranscriptTimestampsOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def get_job_transcript_timestamps(
+    job_id: str,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TranscriptTimestampsOut:
+    """Word-level transcript timestamps for a completed job."""
+    svc = _get_service(db)
+    return await svc.get_job_transcript_timestamps(job_id, scope=scope)
+
+
+@router.post(
+    "/{job_id}/caption-export",
+    response_model=CaptionExportOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def export_job_captions(
+    job_id: str,
+    body: CaptionExportRequest,
+    scope: Annotated[RequestScope, Depends(get_request_scope)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CaptionExportOut:
+    """Export job or clip captions as SRT, VTT, or TTML."""
+    svc = _get_service(db)
+    return await svc.export_job_captions(job_id, body, scope=scope)
 
 
 @router.get(

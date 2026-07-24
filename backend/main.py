@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api import admin, assets, auth, commerce, devices, distribution, health, jobs, license, local_storage, metrics, settings, support, templates, uploads, vault
+from backend.api import admin, assets, auth, commerce, devices, distribution, health, jobs, license, local_storage, metrics, settings, support, templates, title_suggestions, uploads, vault
 from backend.observability import init_opentelemetry
 from core.config import get_settings
 from core.errors import StreamClipError, sanitize_user_message
@@ -187,6 +187,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(jobs.router)
+    app.include_router(title_suggestions.router)
     app.include_router(uploads.router)
     app.include_router(local_storage.router)
     app.include_router(templates.router)

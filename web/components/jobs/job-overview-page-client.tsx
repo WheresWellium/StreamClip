@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { CancelJobButton } from "@/components/jobs/cancel-job-button";
 import { EditableJobTitle } from "@/components/jobs/editable-job-title";
+import { TitleSuggestionsPanel } from "@/components/jobs/title-suggestions-panel";
 import { LiveClipFeed } from "@/components/jobs/live-clip-feed";
 import { LiveProgress } from "@/components/jobs/live-progress";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -13,6 +14,7 @@ import { LegendBadge } from "@/components/ui/legend-badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Button } from "@/components/ui/button";
 import { legendForStatus } from "@/lib/help/legends";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 import {
   isJobNotFound,
   loadJobPageContext,
@@ -107,6 +109,10 @@ export function JobOverviewPageClient() {
         </p>
       </div>
 
+      {(job.status === "done" || job.status === "error") && (
+        <TitleSuggestionsPanel jobId={job.id} />
+      )}
+
       <LiveProgress
         jobId={job.id}
         initialStatus={job.status}
@@ -121,10 +127,16 @@ export function JobOverviewPageClient() {
         showReviewLink
       />
 
-      {job.status === "error" && job.error_message && (
+      {job.status === "error" && (job.error_message || job.error_code) && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
-          <p className="font-medium text-destructive">{job.error_code}</p>
-          <p className="text-destructive/80 mt-0.5">{job.error_message}</p>
+          <p className="font-medium text-destructive">Job failed</p>
+          <p className="text-destructive/80 mt-0.5">
+            {userFacingErrorMessage(
+              job.error_message,
+              job.error_code ?? null,
+              "Job failed.",
+            )}
+          </p>
         </div>
       )}
 

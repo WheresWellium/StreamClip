@@ -368,6 +368,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       API_INTERNAL_URL: http://api:8000
+      NEXT_PUBLIC_DEV_TOOLS: "1"
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./web:/app

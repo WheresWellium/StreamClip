@@ -12,6 +12,8 @@ from backend.api.schemas import (
     ClipFeedbackRequest,
     PrivacySettingsOut,
     PrivacySettingsRequest,
+    UserPreferencesOut,
+    UserPreferencesUpdateRequest,
     WebhookSettingsOut,
     WebhookSettingsRequest,
 )
@@ -107,6 +109,52 @@ async def update_privacy_settings(
     return PrivacySettingsOut(
         data_contribution_opt_in=body.data_contribution_opt_in,
     )
+
+
+@router.get(
+    "/preferences",
+    response_model=UserPreferencesOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def get_user_preferences(
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserPreferencesOut:
+    prefs = await UserRepository(db).get_user_preferences(user_id)
+    return UserPreferencesOut.from_storage(prefs)
+
+
+@router.put(
+    "/preferences",
+    response_model=UserPreferencesOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def update_user_preferences(
+    body: UserPreferencesUpdateRequest,
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserPreferencesOut:
+    patch = body.as_patch()
+    if not patch:
+        prefs = await UserRepository(db).get_user_preferences(user_id)
+        return UserPreferencesOut.from_storage(prefs)
+    merged = await UserRepository(db).update_user_preferences(user_id, patch)
+    await db.commit()
+    return UserPreferencesOut.from_storage(merged)
+
+
+@router.delete(
+    "/preferences",
+    response_model=UserPreferencesOut,
+    dependencies=[Depends(rate_limit_request)],
+)
+async def wipe_user_preferences(
+    user_id: Annotated[str, Depends(require_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserPreferencesOut:
+    await UserRepository(db).wipe_user_preferences(user_id)
+    await db.commit()
+    return UserPreferencesOut()
 
 
 @router.post(

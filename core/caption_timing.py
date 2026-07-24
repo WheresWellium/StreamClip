@@ -24,7 +24,7 @@ def word_overlaps_window(word: Word, window_start: float, window_end: float) -> 
     return word.end > window_start and word.start < window_end
 
 
-def repair_word_timing(word: Word, *, min_duration: float = 0.08) -> Word:
+def repair_word_timing(word: Word, *, min_duration: float = 0.12) -> Word:
     """Fix zero/negative durations and very low-confidence empty tokens."""
     text = word.text.strip()
     if not text:
@@ -112,6 +112,60 @@ def group_words_for_display(
             buf = []
 
     return groups
+
+
+def enforce_min_display_duration(
+    groups: list[WordGroup],
+    *,
+    min_secs: float = 1.0,
+) -> list[WordGroup]:
+    """Extend multi-word on-screen groups to a minimum cue duration."""
+    out: list[WordGroup] = []
+    for group in groups:
+        if len(group.words) > 1 and (group.end - group.start) < min_secs:
+            out.append(
+                WordGroup(
+                    words=group.words,
+                    text=group.text,
+                    start=group.start,
+                    end=group.start + min_secs,
+                ),
+            )
+        else:
+            out.append(group)
+    return out
+
+
+def smooth_flash_cuts(
+    groups: list[WordGroup],
+    *,
+    min_gap: float = 0.15,
+    pad_before: float = 0.05,
+) -> list[WordGroup]:
+    """Reduce sub-frame flashes by extending group end toward the next cue."""
+    if not groups:
+        return groups
+    out: list[WordGroup] = []
+    for i, group in enumerate(groups):
+        end = group.end
+        if i + 1 < len(groups):
+            gap = groups[i + 1].start - group.end
+            if 0 < gap < min_gap:
+                end = max(group.end, groups[i + 1].start - pad_before)
+        out.append(
+            WordGroup(
+                words=group.words,
+                text=group.text,
+                start=group.start,
+                end=end,
+            ),
+        )
+    return out
+
+
+def finalize_display_groups(groups: list[WordGroup]) -> list[WordGroup]:
+    """Apply P2 caption timing heuristics after ``group_words_for_display``."""
+    return enforce_min_display_duration(smooth_flash_cuts(groups))
 
 
 def build_karaoke_text(words: list[Word]) -> str:

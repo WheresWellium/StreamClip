@@ -97,3 +97,33 @@ export async function updatePrivacyOptInAction(
     return { ok: false, message: "Could not update privacy settings." };
   }
 }
+
+export async function updateMemoryPreferencesAction(
+  memoryEnabled: boolean,
+): Promise<{ ok: boolean; memoryEnabled?: boolean; message?: string }> {
+  try {
+    const token = getClientAccessToken();
+    if (!token) {
+      return { ok: false, message: "Sign in to change preferences." };
+    }
+    const result = await settingsApi.updatePreferences({ memory_enabled: memoryEnabled }, token);
+    return { ok: true, memoryEnabled: result.memory_enabled };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not update preferences." };
+  }
+}
+
+export async function wipeUserPreferencesAction(): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const token = getClientAccessToken();
+    if (!token) {
+      return { ok: false, message: "Sign in to wipe preferences." };
+    }
+    await settingsApi.wipePreferences(token);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ApiClientError) return { ok: false, message: err.message };
+    return { ok: false, message: "Could not wipe preferences." };
+  }
+}

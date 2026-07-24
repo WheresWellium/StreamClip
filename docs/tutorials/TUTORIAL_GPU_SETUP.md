@@ -1,8 +1,16 @@
 # Tutorial — GPU Setup
 
-**Time:** ~15 minutes · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md)
+**Time:** ~15 minutes · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md) or [Windows installer](../BETA_DOWNLOAD.md#one-click-installers)
 
-StreamClip is **much faster** with GPU acceleration. Setup differs by platform: **NVIDIA + Docker** on Windows, **CPU default** on macOS Docker beta, with a future **DMG + MPS** path on Apple Silicon.
+StreamClip is **much faster** with **GPU acceleration on**. How you turn it on depends on how you installed:
+
+| Install | Where to check | How to speed up |
+|---------|----------------|-----------------|
+| **Windows `.exe`** | **Settings → Get started** | Follow the in-app ready check; GPU is on when available on your hardware |
+| **Docker (Windows + NVIDIA)** | **Settings → Get started** + steps below | Enable GPU in Docker Desktop, then use the `gpu` compose profile |
+| **Docker (Mac)** | **Settings → Get started** | CPU is expected — use shorter sources or wait longer |
+
+Plain rule: **GPU on = faster**. **CPU = always works**, just slower.
 
 ---
 
@@ -15,11 +23,21 @@ StreamClip is **much faster** with GPU acceleration. Setup differs by platform: 
 | **macOS Docker** | CPU default | ~60–90+ min |
 | **macOS DMG (future)** | MPS / VideoToolbox | TBD |
 
-See [Performance](../PERFORMANCE.md) for SLIs.
+For timing expectations on your hardware, run a short test job and compare — see [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) if jobs are unexpectedly slow.
 
 ---
 
-## Windows — NVIDIA + Docker
+## Windows — one-click installer (`.exe`)
+
+1. Launch StreamClip from the Start menu after install
+2. Open **Settings → Get started** — wait for **Ready**
+3. If processing is still slow on an NVIDIA PC, you may be on the CPU path; use **Help → GPU setup** in the app and reply to your invite email with your GPU model
+
+Docker is **not** required for the `.exe` path.
+
+---
+
+## Windows — NVIDIA + Docker (beta stack)
 
 ### Step 1 — Hardware and drivers
 
@@ -66,9 +84,9 @@ docker compose exec gpu-worker nvidia-smi
 
 You should see your GPU name, driver version, and memory.
 
-### Step 5 — Confirm NVENC in logs
+### Step 5 — Confirm in the app
 
-Run a short test job ([First job](TUTORIAL_FIRST_JOB.md)). Worker logs should show `nvenc` or `cuda` when GPU is active.
+Open **Settings → Get started**. Optional services (AI scoring) can be off — jobs still complete.
 
 !!! warning "No GPU in container"
     If `nvidia-smi` fails inside the container, jobs still run on CPU — see [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
@@ -89,7 +107,7 @@ Apple Silicon and Intel Macs **do not expose NVIDIA/NVENC** inside Docker Deskto
 
 When downloading Docker Desktop, pick **Apple Silicon** (not Intel/Rosetta) on M-series Macs.
 
-### Step 3 — Start the stack (no GPU profile)
+### Step 3 — Start StreamClip (no GPU profile)
 
 ```bash
 docker compose up -d
@@ -103,12 +121,7 @@ Do **not** use `--profile gpu` on Mac — there is no NVIDIA runtime.
 - Use shorter test sources during beta
 - Fan noise and heat are normal under sustained encode
 
-Optional verify:
-
-```bash
-docker compose ps
-curl -s http://localhost:8000/api/health/stack
-```
+Confirm **Settings → Get started** shows **Ready** before your first job.
 
 ---
 
@@ -137,7 +150,7 @@ Run the same ~10 min test clip on your hardware and note wall-clock time:
 | Job stages use GPU | transcribe + render fast | all CPU |
 | 10 min source → clips | ~3–5 min | ~10–15 min |
 
-Report timings via **Help menu (?)** → **Beta feedback**.
+Report timings via **Beta feedback** in the app header.
 
 ---
 

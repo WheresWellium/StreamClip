@@ -142,6 +142,9 @@ class User(Base, IDMixin, TimestampMixin):
     # Channel style learning — optional weight nudges per profile
     style_weights: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
+    # Opt-in personalization (vocabulary, title style) — see TDD §16
+    user_preferences: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
     jobs: Mapped[list["Job"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     templates: Mapped[list["JobTemplate"]] = relationship(
         back_populates="user", cascade="all, delete-orphan",
@@ -400,6 +403,8 @@ class VaultClip(Base, IDMixin, TimestampMixin):
     duration_secs: Mapped[float] = mapped_column(Float, default=0.0)
     storage_key: Mapped[str | None] = mapped_column(String(512))
     thumb_storage_key: Mapped[str | None] = mapped_column(String(512))
+    file_size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    archived_flag: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(16), default=VaultClipStatus.COPYING.value)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     saved_at: Mapped[datetime] = mapped_column(
@@ -490,6 +495,39 @@ class BugReport(Base, IDMixin, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(16), default="open", server_default="open",
     )
+    assigned_to: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True,
+    )
+
+    attachments: Mapped[list["FeedbackAttachment"]] = relationship(
+        back_populates="bug_report",
+        cascade="all, delete-orphan",
+    )
+
+
+class FeedbackAttachment(Base, IDMixin):
+    """Screenshot or log file attached to a bug report."""
+
+    __tablename__ = "feedback_attachments"
+
+    bug_report_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("bug_reports.id", ondelete="CASCADE"), index=True, nullable=True,
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    device_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    storage_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(
+        String(128), default="application/octet-stream", nullable=False,
+    )
+    size_bytes: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+    bug_report: Mapped["BugReport | None"] = relationship(back_populates="attachments")
 
 
 class PasswordResetToken(Base, IDMixin, TimestampMixin):
@@ -505,3 +543,22 @@ class PasswordResetToken(Base, IDMixin, TimestampMixin):
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship()
+
+
+class JobTitleAudit(Base, IDMixin):
+    """Audit trail for job display title changes."""
+
+    __tablename__ = "job_titles_audit"
+
+    job_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("jobs.id", ondelete="CASCADE"), index=True, nullable=False,
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True,
+    )
+    previous_title: Mapped[str | None] = mapped_column(String(512))
+    new_title: Mapped[str | None] = mapped_column(String(512))
+    source: Mapped[str] = mapped_column(String(32), default="user_edit", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )

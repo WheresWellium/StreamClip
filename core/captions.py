@@ -24,6 +24,7 @@ import structlog
 from core.caption_timing import (
     build_karaoke_text,
     collect_words_for_window,
+    finalize_display_groups,
     group_words_for_display,
 )
 from core.config import Settings, CaptionConfig
@@ -318,6 +319,100 @@ def apply_transcript_edits(
 
 # ─── Caption engine public API ─────────────────────────────────────────────────
 
+def build_ass_for_clip_window(
+    transcript: Transcript,
+    *,
+    clip_start: float,
+    clip_end: float,
+    cfg: Settings,
+    emotion: str = "neutral",
+    style: str | None = None,
+    video_w: int | None = None,
+    video_h: int | None = None,
+    clip_transcript: Transcript | None = None,
+    transcript_edits: dict[str, str] | None = None,
+) -> str:
+    """Build ASS subtitle content for a clip window (no FFmpeg burn-in)."""
+    ccfg: CaptionConfig = cfg.caption
+    caption_style = style or ccfg.style
+    if caption_style == "none":
+        return ""
+
+    width = video_w or cfg.reframe.target_width
+    height = video_h or cfg.reframe.target_height
+    min_prob = max(ccfg.min_word_probability, cfg.whisper.min_word_probability)
+
+    if clip_transcript is not None:
+        all_words = collect_words_for_window(
+            clip_transcript,
+            0.0,
+            clip_transcript.duration,
+            rebase_to=0.0,
+            min_probability=min_prob,
+        )
+    else:
+        all_words = collect_words_for_window(
+            transcript,
+            clip_start,
+            clip_end,
+            rebase_to=0.0,
+            min_probability=min_prob,
+        )
+
+    all_words = apply_transcript_edits(all_words, transcript_edits)
+    if ccfg.profanity_filter:
+        all_words = censor_words(
+            all_words, ccfg.profanity_mode, wordlist_path=ccfg.profanity_wordlist,
+        )
+    if not all_words:
+        return ""
+
+    groups = finalize_display_groups(
+        group_words_for_display(all_words, ccfg.words_per_group, ccfg.max_chars_per_line),
+    )
+    style_def = _STYLES.get(caption_style, _STYLES["gaming_impact"])
+    builder = _ASSBuilder(style_def)
+    hold = ccfg.word_hold_secs
+    use_karaoke = ccfg.word_level_sync or caption_style == "karaoke_highlight"
+
+    for group in groups:
+        is_gaming = _is_gaming_term(group.text)
+        emoji = _detect_emoji(group.text) if ccfg.add_emoji else ""
+        end = group.end + hold
+
+        if use_karaoke and len(group.words) > 1:
+            karaoke = build_karaoke_text(group.words)
+            builder.add_karaoke_line(
+                start=group.start,
+                end=end,
+                karaoke_text=karaoke,
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
+        elif ccfg.word_level_sync:
+            word = group.words[0]
+            builder.add_line(
+                start=word.start,
+                end=word.end + hold,
+                text=word.text.upper(),
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
+        else:
+            builder.add_line(
+                start=group.start,
+                end=end,
+                text=group.text,
+                emotion=emotion,
+                is_gaming_term=is_gaming and ccfg.highlight_keywords,
+                emit_emoji=emoji,
+            )
+
+    return builder.render(width, height)
+
+
 def generate_captions(
     clip_path: Path,
     output_path: Path,
@@ -395,8 +490,10 @@ def generate_captions(
         shutil.copy2(clip_path, output_path)
         return output_path
 
-    groups = group_words_for_display(
-        all_words, ccfg.words_per_group, ccfg.max_chars_per_line,
+    groups = finalize_display_groups(
+        group_words_for_display(
+            all_words, ccfg.words_per_group, ccfg.max_chars_per_line,
+        ),
     )
 
     style_def = _STYLES.get(ccfg.style, _STYLES["gaming_impact"])

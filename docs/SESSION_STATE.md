@@ -1,39 +1,36 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-09 (cohort keys regen + henna doc plain-language pass)
+**Last updated:** 2026-07-18
 
 ## Active chats
 
-| Branch | Task | Lock id | Notes |
-|--------|------|---------|-------|
-| `master` (local dirty) | Beta docs + cohort keys | — | |
+None.
 
 ## Current focus
 
-**This turn:**
-- Re-issued 5 admin keys (`beta-phase0-regen-001..005`) → `dist/phase0-invite-pack/`
-- Plain-language pass: `index.md`, `BETA_DOWNLOAD.md`, `BETA_TESTER_QUICKSTART.md`, `TUTORIAL_FIRST_JOB.md`
-- Fixed `prepare_invite_pack.ps1` null name lookup
+Ship **M4 feedback ops**, **M5 account UI**, **P2 quality**, and **external product UI hardening** on `master`. Theme-skins worktree (`feat/theme-skins`) should be rebased/merged after master lands.
 
-## Cohort (private — keys in `tmp/beta-keys.csv`, do not commit)
+## Blockers
 
-| Name | Email |
-|------|-------|
-| Wellium | wellium@pogistudios.com |
-| John Cantwell | johncantwell@odysseylogistics.com |
-| Brandon | greesbr@gmail.com |
-| Matt | matt@maius.com |
-| AJ | anthony.j.orsted@gmail.com |
+- Vercel docs redeploy pending (mkdocs nav trim + beta tutorial copy).
+- Phase 0 exit (T0 cohort) and EV signing (§4.10) unchanged.
 
-## Next
+## Validation
 
-1. ~~Send invite bodies from `dist/phase0-invite-pack/emails/*.txt`~~ invites sent 2026-07-09
-2. Send **BETA TEST INFO** follow-up: `python scripts/send_beta_test_info_emails.py --csv cohort.csv --keys-csv tmp/beta-keys.csv --send` (reuse original keys CSV; SMTP required)
-3. H+0 monitor support reports after sends
+- Run `npm run typecheck` in `web/` after merge.
+- Run `scripts/verify_coverage.ps1` + `scripts/verify_stack.ps1` before beta promotion.
+
+## Next steps
+
+1. Commit master (M4/M5/P2 + external UI + docs).
+2. `mkdocs build --strict` + Vercel deploy docs site.
+3. Rebase `feat/theme-skins` onto master; resolve theme-only deltas.
+4. Desktop installer publish when web changes ship.
 
 ## Key paths
 
-- Keys log: `tmp/beta-keys.csv` (gitignored)
-- Invite pack: `dist/phase0-invite-pack/`
-- Public docs: https://streamclip-henna.vercel.app/
+- `web/lib/dev-tools.ts` — `NEXT_PUBLIC_DEV_TOOLS` product gate
+- `web/app/settings/page.tsx` — M5 sections + external gating
+- `core/support/` — M4 ticket lifecycle
+- `docs/BETA_TESTER_QUICKSTART.md` — app-first Ready check copy

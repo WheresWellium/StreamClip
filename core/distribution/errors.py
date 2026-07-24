@@ -35,6 +35,22 @@ class VaultFullError(StreamClipError):
         )
 
 
+class VaultStorageFullError(StreamClipError):
+    def __init__(self, limit_bytes: int) -> None:
+        from core.vault.quota import format_bytes_human
+
+        human = format_bytes_human(limit_bytes)
+        super().__init__(
+            f"Vault storage limit {limit_bytes} reached",
+            user_message=(
+                f"Your Clip Vault storage is full ({human}). "
+                "Remove clips from Vault to save more."
+            ),
+            code="VAULT_STORAGE_FULL",
+            http_status=400,
+        )
+
+
 class AlreadyInVaultError(StreamClipError):
     def __init__(self) -> None:
         super().__init__(

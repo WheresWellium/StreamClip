@@ -159,11 +159,14 @@ async def test_list_bug_reports_returns_recent():
         user_id="u1",
         device_id="dev1",
         job_id=None,
+        assigned_to=None,
         environment={"page": "/jobs"},
         created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
-    with patch.object(admin_mod, "BugReportRepository") as BR:
-        BR.return_value.list_recent = AsyncMock(return_value=[report])
+    with patch.object(admin_mod, "BugReportRepository") as BR, patch.object(
+        admin_mod, "refresh_support_ticket_metrics", new_callable=AsyncMock,
+    ):
+        BR.return_value.list_filtered = AsyncMock(return_value=[report])
         result = await admin_mod.list_bug_reports(
             admin_id="admin1",
             db=object(),

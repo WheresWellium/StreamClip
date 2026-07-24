@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { metaApi, type ModelsHealthResponse } from "@/lib/api/client";
+import { devToolsEnabled } from "@/lib/dev-tools";
 
 const POLL_MS = 2000;
 const COMPLETE_FLASH_MS = 2500;
@@ -118,16 +119,21 @@ export function ModelWarmupBanner() {
             ? `AI models ready (${finished}/${total})`
             : `Preparing AI models (${finished}/${total})…`}
         </span>
-        {entries.map(([name, s]) => (
-          <span key={name} className={isComplete ? "text-emerald-200/80" : "text-sky-200/80"}>
-            {MODEL_LABELS[name] ?? name}:{" "}
-            {s.state === "downloading" ? (
-              <span className="animate-pulse">downloading</span>
-            ) : (
-              s.state
-            )}
-          </span>
-        ))}
+        {devToolsEnabled
+          ? entries.map(([name, s]) => (
+              <span
+                key={name}
+                className={isComplete ? "text-emerald-200/80" : "text-sky-200/80"}
+              >
+                {MODEL_LABELS[name] ?? name}:{" "}
+                {s.state === "downloading" ? (
+                  <span className="animate-pulse">downloading</span>
+                ) : (
+                  s.state
+                )}
+              </span>
+            ))
+          : null}
         {!isComplete ? (
           <span className="text-sky-200/60">
             You can browse while this finishes — first job waits for models.

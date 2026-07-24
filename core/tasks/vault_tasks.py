@@ -42,6 +42,7 @@ def copy_clip_to_vault(
                 tmp_path = Path(tmp)
                 local_video = tmp_path / "clip.mp4"
                 storage.download(source_video_key, local_video)
+                video_bytes = local_video.stat().st_size
                 storage.upload(video_dest, local_video, content_type="video/mp4")
 
                 saved_thumb: str | None = None
@@ -57,6 +58,7 @@ def copy_clip_to_vault(
                 status="ready",
                 storage_key=video_dest,
                 thumb_storage_key=saved_thumb,
+                file_size_bytes=video_bytes,
             )
             await db.commit()
             log.info("vault_clip_saved", vault_clip_id=vault_clip_id, key=video_dest)

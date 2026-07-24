@@ -32,10 +32,7 @@ function supportDeliveryToast(
     toast("Feedback sent", "Thanks — the team will follow up.");
     return;
   }
-  toast(
-    "Feedback saved",
-    "Routing is not configured on this install yet. Your note is stored locally.",
-  );
+  toast("Feedback saved", "Saved — we'll review it.");
 }
 
 export function BetaFeedbackDialog({

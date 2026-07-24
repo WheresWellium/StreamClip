@@ -69,6 +69,8 @@ def _vault_row(**overrides) -> SimpleNamespace:
         metadata_json={},
         storage_key="vault/clip.mp4",
         thumb_storage_key=None,
+        file_size_bytes=5_000_000,
+        archived_flag=False,
     )
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -299,7 +301,17 @@ def vault_client(app, client, monkeypatch):
             return [r for r in self.rows.values() if r.user_id == user_id]
 
         async def count_for_user(self, user_id):
-            return len([r for r in self.rows.values() if r.user_id == user_id])
+            return len([
+                r for r in self.rows.values()
+                if r.user_id == user_id and not getattr(r, "archived_flag", False)
+            ])
+
+        async def bytes_for_user(self, user_id):
+            return sum(
+                getattr(r, "file_size_bytes", 0)
+                for r in self.rows.values()
+                if r.user_id == user_id and not getattr(r, "archived_flag", False)
+            )
 
         async def get_for_user(self, vault_clip_id, user_id):
             row = self.rows.get(vault_clip_id)
@@ -343,8 +355,10 @@ async def test_vault_quota_reports_usage(vault_client):
     resp = await vault_client.client.get("/api/vault/quota")
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["used"] == 1
-    assert body["limit"] >= 0
+    assert body["clips"]["used"] == 1
+    assert body["clips"]["limit"] >= 0
+    assert "bytes" in body
+    assert body["bytes"]["used_human"]
 
 
 @pytest.mark.asyncio

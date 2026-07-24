@@ -289,14 +289,16 @@ async def test_update_job_display_title():
     svc, db, _, _ = _svc()
     job = SimpleNamespace(id="j1", display_title="Old")
     svc.jobs.get_for_scope = AsyncMock(return_value=job)
-    svc.jobs.get = AsyncMock(return_value=SimpleNamespace(id="j1", clips=[]))
-    updated = await svc.update_job(
+    svc.get_job = AsyncMock(return_value=SimpleNamespace(id="j1", clips=[], config_snapshot={}))
+    svc.title_audit.create = AsyncMock(return_value=SimpleNamespace(id="audit-1"))
+    updated, audit_id = await svc.update_job(
         "j1",
         UpdateJobRequest(display_title="New title"),
         scope=RequestScope(user_id="u1", device_id=None),
     )
     assert job.display_title == "New title"
-    db.flush.assert_awaited()
+    svc.title_audit.create.assert_awaited_once()
+    assert audit_id == "audit-1"
     assert updated.id == "j1"
 
 

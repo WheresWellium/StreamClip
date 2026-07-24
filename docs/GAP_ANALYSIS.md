@@ -29,7 +29,7 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | U17 | Audio upload without feature gate | **Fixed** | P1 | code | `/api/meta` exposes `features.audio_ingest`; create form + `DirectUpload` restrict audio MIME when off |
 | U18 | `ClipEditor` safe zones compile error | **Fixed** | P0 | code | `showSafeZones` state; `npm run typecheck` green |
 | U19 | Words-per-group editor control | **Fixed** | P1 | code | Slider in Style section; saves `caption_words_per_group` |
-| U20 | API docs nav | **Fixed** | P1 | code | Header link to `/docs` (FastAPI OpenAPI UI) |
+| U20 | API docs in shipped app | **Removed** | P1 | code | OpenAPI/Swagger not in external UI; partners request privately; Docker dev may use `:8000/docs` with `STREAMCLIP_EXPOSE_API_DOCS=1` |
 | U21 | `JobCard` nested `<button>` in `<Link>` | **Fixed** | P1 | code | Card uses `role="link"` + router; title edit stops propagation |
 | U22 | Duplicate "Account" in header | **Fixed** | P2 | code | Settings vs Profile/Sign in labels in `header-nav.tsx` |
 | U23 | SSE reconnect / `Last-Event-Id` | **Fixed** | P1 | code | `use-job-progress.ts` keeps EventSource on transient errors; polling after 20s fallback |

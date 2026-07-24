@@ -12,7 +12,10 @@ from backend.api.schemas import (
     SaveVaultClipRequest,
     UpdateVaultClipRequest,
     VaultClipOut,
+    VaultQuotaBytesOut,
+    VaultQuotaDimensionOut,
     VaultQuotaOut,
+    VaultQuotaThresholdsOut,
 )
 from backend.db.models import User, UserTier, VaultClip
 from backend.db.repositories import PublishJobRepository, VaultClipRepository
@@ -23,6 +26,12 @@ from core.billing import get_tier_limits
 from core.config import get_settings
 from core.errors import StreamClipError
 from core.storage import make_storage
+from core.vault.quota import (
+    CRITICAL_AT_PCT,
+    WARN_AT_PCT,
+    format_bytes_human,
+    quota_warning,
+)
 from core.vault.service import VaultService
 
 router = APIRouter(prefix="/api/vault", tags=["vault"])
@@ -92,8 +101,27 @@ async def vault_quota(
     tier = user.tier if user else UserTier.FREE
     limits = get_tier_limits(tier)
     repo = VaultClipRepository(db)
-    used = await repo.count_for_user(user_id)
-    return VaultQuotaOut(used=used, limit=limits.max_vault_clips)
+    used_clips = await repo.count_for_user(user_id)
+    used_bytes = await repo.bytes_for_user(user_id)
+    return VaultQuotaOut(
+        clips=VaultQuotaDimensionOut(
+            used=used_clips,
+            limit=limits.max_vault_clips,
+            warning=quota_warning(used_clips, limits.max_vault_clips),
+        ),
+        bytes=VaultQuotaBytesOut(
+            used=used_bytes,
+            limit=limits.max_vault_bytes,
+            used_human=format_bytes_human(used_bytes),
+            limit_human=format_bytes_human(limits.max_vault_bytes),
+            warning=quota_warning(used_bytes, limits.max_vault_bytes),
+        ),
+        tier=tier.value,
+        thresholds=VaultQuotaThresholdsOut(
+            warn_at_pct=WARN_AT_PCT,
+            critical_at_pct=CRITICAL_AT_PCT,
+        ),
+    )
 
 
 @router.post(

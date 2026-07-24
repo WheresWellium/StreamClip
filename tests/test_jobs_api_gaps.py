@@ -363,6 +363,76 @@ async def test_get_clip_words_delegates(jobs_client):
 
 
 @pytest.mark.asyncio
+async def test_get_transcript_timestamps_delegates(jobs_client):
+    from backend.api.schemas import TranscriptTimestampsOut
+    svc = MagicMock()
+    svc.get_job_transcript_timestamps = AsyncMock(
+        return_value=TranscriptTimestampsOut(
+            job_id="job-tx",
+            language="en",
+            duration_secs=10.0,
+            words=[],
+            segments=[],
+        ),
+    )
+    with patch.object(jobs_api, "_get_service", return_value=svc):
+        resp = await jobs_client.client.get("/api/jobs/job-tx/transcript/timestamps")
+    assert resp.status_code == 200
+    assert resp.json()["job_id"] == "job-tx"
+
+
+@pytest.mark.asyncio
+async def test_caption_export_delegates(jobs_client):
+    from datetime import datetime, timezone
+
+    from backend.api.schemas import CaptionExportOut
+    svc = MagicMock()
+    svc.export_job_captions = AsyncMock(
+        return_value=CaptionExportOut(
+            job_id="job-ce",
+            format="vtt",
+            status="ready",
+            download_url="https://storage/captions.vtt",
+            expires_at=datetime.now(timezone.utc),
+        ),
+    )
+    with patch.object(jobs_api, "_get_service", return_value=svc):
+        resp = await jobs_client.client.post(
+            "/api/jobs/job-ce/caption-export",
+            json={"format": "vtt", "word_level": True},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["format"] == "vtt"
+    assert resp.json()["download_url"]
+
+
+@pytest.mark.asyncio
+async def test_title_suggestions_delegates(jobs_client):
+    from datetime import datetime, timezone
+
+    import backend.api.title_suggestions as title_api
+    from backend.api.schemas import TitleSuggestionOut, TitleSuggestionsResponse
+
+    svc = MagicMock()
+    svc.get_title_suggestions = AsyncMock(
+        return_value=TitleSuggestionsResponse(
+            job_id="job-ts",
+            tone="gaming",
+            suggestions=[
+                TitleSuggestionOut(rank=1, title="Ace", hook="Wow", confidence=0.9),
+            ],
+            model="llama3.2",
+            generated_at=datetime.now(timezone.utc),
+        ),
+    )
+    with patch.object(title_api, "_get_service", return_value=svc):
+        resp = await jobs_client.client.get("/api/jobs/job-ts/title-suggestions")
+    assert resp.status_code == 200
+    assert resp.json()["job_id"] == "job-ts"
+    assert resp.json()["suggestions"][0]["title"] == "Ace"
+
+
+@pytest.mark.asyncio
 async def test_batch_publish_no_clips_raises(dist_client):
     job = MagicMock(clips=[])
     svc = MagicMock()

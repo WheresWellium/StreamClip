@@ -25,7 +25,6 @@ exclude_docs: |
   BETA_GO_LIVE.md
   BETA_ON_CALL.md
   BETA_INVITE_PACK.md
-  BETA_DISTRIBUTION.md
   SESSION_STATE.md
   AGENT_COORDINATION.md
   .agent-lock.example.json
@@ -96,14 +95,6 @@ nav:
       - Clip Vault: tutorials/TUTORIAL_VAULT.md
       - GPU setup: tutorials/TUTORIAL_GPU_SETUP.md
       - Troubleshooting: tutorials/TUTORIAL_TROUBLESHOOTING.md
-  - Architecture:
-      - Technical design: TECHNICAL_DESIGN.md
-      - Creator platform: CREATOR_PLATFORM.md
-      - Performance: PERFORMANCE.md
-      - ADR-001 Desktop packaging: ADR-001-desktop-packaging.md
-  - Operations:
-      - Distribution runbook: distribution-runbook.md
-      - Cloud deploy (design): cloud-deploy.md
   - Design:
       - Figma links: design/FIGMA_LINKS.md
 

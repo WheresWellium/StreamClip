@@ -16,7 +16,10 @@ class TierLimits:
     max_templates: int
     max_assets: int
     max_vault_clips: int
+    max_vault_bytes: int
 
+
+_GB = 1024**3
 
 TIER_LIMITS: dict[UserTier, TierLimits] = {
     UserTier.FREE: TierLimits(
@@ -26,6 +29,7 @@ TIER_LIMITS: dict[UserTier, TierLimits] = {
         max_templates=5,
         max_assets=10,
         max_vault_clips=25,
+        max_vault_bytes=10 * _GB,
     ),
     UserTier.PRO: TierLimits(
         max_target_clips=20,
@@ -34,6 +38,7 @@ TIER_LIMITS: dict[UserTier, TierLimits] = {
         max_templates=20,
         max_assets=50,
         max_vault_clips=500,
+        max_vault_bytes=50 * _GB,
     ),
     UserTier.ADMIN: TierLimits(
         max_target_clips=20,
@@ -42,6 +47,7 @@ TIER_LIMITS: dict[UserTier, TierLimits] = {
         max_templates=100,
         max_assets=500,
         max_vault_clips=5000,
+        max_vault_bytes=500 * _GB,
     ),
 }
 

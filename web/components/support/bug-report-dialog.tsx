@@ -101,10 +101,7 @@ export function BugReportDialog({
     ) {
       toast("Bug report sent", "Thanks — we'll take a look.");
     } else {
-      toast(
-        "Bug report saved locally",
-        "Team routing is not configured on this install yet.",
-      );
+      toast("Bug report saved", "Saved — we'll review it.");
     }
   }
 

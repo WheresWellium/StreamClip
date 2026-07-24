@@ -21,6 +21,8 @@ Welcome to the StreamClip beta. This guide takes you from **zero to your first s
 
 You do **not** need a GitHub account, Python, or coding experience for either path.
 
+**Help in the app:** Open **Help** from the header for quickstart, install, GPU, and troubleshooting — without leaving StreamClip. The shipped app does **not** include OpenAPI/Swagger or operator settings; those are for local development only.
+
 ---
 
 ## Before you start
@@ -76,18 +78,27 @@ If Docker Desktop is not already installed:
 
 ## Step 2 — Get the StreamClip files
 
-**Recommended — Lemon Squeezy checkout (invite email)**
+**Option A — ZIP download (easiest)**
 
-1. Open the **free checkout link** from your invite email
-2. Enter your email and complete checkout ($0)
-3. Download **`streamclip-beta-kit-*.zip`** (Docker) and/or **`StreamClip-Setup-win-x64.exe`** (no Docker)
-4. Your **license key** is in the receipt and order library — save it for Step 6
+Extract the beta `.zip` from your invite email to any folder (e.g. `C:\StreamClip` or `~/StreamClip`).
 
-Extract the beta `.zip` to any folder (e.g. `C:\StreamClip` or `~/StreamClip`).
+**Option B — Private repo link**
 
-**Manual invite (existing cohort only)**
+If your invite included a private repo link, you'll need Git installed:
 
-If your email includes an inline `SCPRO-…` key and a zip attachment/link, use that package. You do **not** need GitHub.
+=== "Windows"
+
+    ```powershell
+    git clone <LINK_FROM_INVITE_EMAIL> streamclip
+    ```
+
+=== "macOS"
+
+    ```bash
+    git clone <LINK_FROM_INVITE_EMAIL> streamclip
+    ```
+
+Replace `<LINK_FROM_INVITE_EMAIL>` with the exact URL from your email. If you're unsure which option you have, reply to your invite email.
 
 ---
 
@@ -130,6 +141,14 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
 
 ## Step 4 — Confirm everything is running
 
+**In the app (all installs):**
+
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Go to **Settings → Get started** (or finish **Onboarding** on first launch)
+3. You should see **Ready** — you can create a job. If you see **Needs attention**, open **Help → Troubleshooting** before submitting URLs.
+
+**Docker beta only (optional deeper check):**
+
 === "Windows"
 
     `start_local.ps1` already runs verify. To re-check:
@@ -138,7 +157,7 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
     .\scripts\verify_stack.ps1
     ```
 
-    All checks should be green. If any fail, **stop here** and open the **Help menu (?)** → **Report a bug** (or reply to your invite email) with the script output before creating jobs.
+    All checks should be green. If any fail, **stop here** and use **Report a bug** in the app header (or reply to your invite email) with the script output before creating jobs.
 
 === "macOS"
 
@@ -150,10 +169,12 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
 
     Containers should be running/healthy and the health endpoint should respond. Optional: `pwsh -File ./scripts/verify_stack.ps1` if PowerShell Core is installed.
 
-You can also open these links to confirm:
+You can also confirm in the browser:
 
-- **App:** [http://localhost:3000](http://localhost:3000) — you should see the StreamClip home screen
-- **API:** [http://localhost:8000/api/health](http://localhost:8000/api/health) — should show `"status": "ok"`
+- **App:** [http://localhost:3000](http://localhost:3000) — StreamClip home screen
+
+!!! note "API health URL (operators only)"
+    `http://localhost:8000/api/health` is for Docker debugging — not shown in the beta app. Desktop `.exe` users can skip it; use **Get started** in Settings instead.
 
 ---
 
@@ -170,22 +191,9 @@ You can also open these links to confirm:
 
 ## Step 6 — Activate your license key (optional)
 
-=== "Lemon Squeezy checkout (new invites)"
-
-    1. Go to **Settings → License**
-    2. Paste the license key from your checkout receipt (format: `SCPRO-…` or LS-issued key)
-    3. Click **Activate** — requires internet once (validates with Lemon Squeezy)
-
-=== "Manual invite (inline key in email)"
-
-    1. Import the key into your local database (one time):
-
-    ```bash
-    docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py \
-      --key SCPRO-XXXX-XXXX-XXXX-XXXX --tier admin
-    ```
-
-    2. Go to **Settings → License** → paste the same key → **Activate**
+1. Go to **Settings → License**
+2. Paste the license key from your invite email (format: `SCPRO-…` with dashes)
+3. Click **Activate** — a confirmation shows your features are unlocked
 
 Your beta key gives you **full access to every feature** — no paywalls, no feature gates. Skip this step if your invite is for technical pipeline testing only (T0-1 … T0-4).
 
@@ -225,7 +233,7 @@ Your beta key gives you **full access to every feature** — no paywalls, no fea
     TikTok direct publish is inbox-only during beta (waiting on app audit). Your clip will be saved to TikTok drafts — complete the post inside the TikTok app.
 
 !!! tip "Scheduled publishes"
-    Docker: keep the `beat` service up (`docker compose ps`). Desktop installer: scheduled posts only fire while the app is running — see [BETA_KNOWN_ISSUES](BETA_KNOWN_ISSUES.md). Details: [distribution-runbook — Celery worker and Beat](distribution-runbook.md#celery-worker-and-beat).
+    Docker: keep the `beat` service up (`docker compose ps`). Desktop installer: scheduled posts only fire while the app is running — see [Known issues](BETA_KNOWN_ISSUES.md).
 
 ---
 
@@ -245,10 +253,10 @@ Your jobs, clips, and settings are saved in Docker volumes and will be there nex
 No. You only need Docker Desktop and the beta package from your invite email. On Mac you also do **not** need an Apple Developer account.
 
 **The download link sent me to GitHub and I got a 404 — what do I do?**
-Use the **Lemon Squeezy checkout link** from your invite email instead. GitHub downloads require a public repo — beta access is via checkout, not GitHub. Reply to your invite email if you need a new link.
+Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run StreamClip.
 
 **My license key isn't working. What format should it be?**
-The key from your beta invite starts with `SCPRO-` (four hex groups with dashes). Paste the entire string. If it still fails, check that your device ID shows in Settings → License and reply to your invite email.
+The key from your beta invite starts with `SCPRO-` (four hex groups with dashes). Paste the entire string. If it still fails, open **Settings → License**, click **Show details** under **This install**, and reply to your invite email with what you see.
 
 **What features does my beta key unlock?**
 Everything — full access, no limits. Your beta key is equivalent to the highest tier.
@@ -273,7 +281,7 @@ docker compose up -d
 ```
 
 **Where do I report bugs or feedback?**
-Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feedback**. Every submission is logged and read. You can also reply to your invite email.
+Use **Report a bug** or **Beta feedback** in the app header (top bar). Every submission is logged and read. You can also reply to your invite email.
 
 **What information should I include in a bug report?**
 - The job ID (shown on the job detail page)
@@ -290,12 +298,13 @@ Open the **Help menu (?)** in the app header → **Report a bug** or **Beta feed
 | Start StreamClip (Windows) | `.\scripts\start_local.ps1` |
 | Start StreamClip (Mac manual) | `docker compose up -d` |
 | Stop StreamClip | `docker compose down` |
-| Check health (Windows) | `.\scripts\verify_stack.ps1` |
-| Check health (Mac) | `docker compose ps` + `curl -s http://localhost:8000/api/health` |
-| View logs | `docker compose logs api worker --tail 50` |
-| Check GPU in worker (NVIDIA hosts) | `docker compose exec worker nvidia-smi` |
+| Check health (Windows, Docker) | `.\scripts\verify_stack.ps1` or **Settings → Get started** |
+| Check health (Mac, Docker) | `docker compose ps` or **Settings → Get started** |
+| Check health (Windows `.exe`) | **Settings → Get started** — should show **Ready** |
+| View logs (Docker) | `docker compose logs api worker --tail 50` |
+| Check GPU in worker (NVIDIA Docker hosts) | `docker compose exec worker nvidia-smi` |
 | App URL | [http://localhost:3000](http://localhost:3000) |
-| API health | [http://localhost:8000/api/health](http://localhost:8000/api/health) |
+| In-app Help | Header → **Help** |
 | Settings → License | Activate your beta key here |
 | Settings → Distribution | Connect YouTube Shorts / TikTok |
 

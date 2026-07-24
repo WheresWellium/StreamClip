@@ -21,6 +21,7 @@ from core.pipeline_metrics import (
     VAULT_SAVES_TOTAL,
     WEBHOOK_DELIVERIES,
 )
+from core.support.metrics import refresh_support_ticket_metrics
 
 log = structlog.get_logger(__name__)
 
@@ -46,6 +47,7 @@ CELERY_TASKS_IN_PROGRESS = Gauge(
 async def _refresh_gauges(db: AsyncSession) -> None:
     jobs = JobRepository(db)
     ACTIVE_JOBS.set(await jobs.count_active())
+    await refresh_support_ticket_metrics(db)
     try:
         from core.celery_app import celery_app
 

@@ -22,7 +22,7 @@ async function revokeLicense(licenseId: string, token: string) {
 
 /** Admin-only license revoke (Settings → Advanced). */
 export function AdminLicensePanel() {
-  const toast = useToastSafe();
+  const { push: toast } = useToastSafe();
   const [licenseId, setLicenseId] = useState("");
   const [busy, setBusy] = useState(false);
 

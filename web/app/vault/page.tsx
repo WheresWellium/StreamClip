@@ -5,13 +5,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { VaultClipsView } from "@/components/vault/vault-clips-view";
-import { vaultApi } from "@/lib/api/client";
+import { vaultApi, type VaultQuotaResponse } from "@/lib/api/client";
 import { getClientAccessToken } from "@/lib/auth/client-session";
+
+function quotaBanner(warning: string | null, label: string) {
+  if (!warning) return null;
+  const tone =
+    warning === "exceeded" || warning === "critical"
+      ? "text-rose-400/90 border-rose-500/30 bg-rose-500/10"
+      : "text-amber-400/90 border-amber-500/30 bg-amber-500/10";
+  const message =
+    warning === "exceeded"
+      ? `${label} quota exceeded — remove clips to save more.`
+      : warning === "critical"
+        ? `${label} quota almost full — free up space soon.`
+        : `${label} quota approaching — consider removing old clips.`;
+  return (
+    <p className={`text-sm rounded-lg border px-4 py-3 ${tone}`}>{message}</p>
+  );
+}
 
 export default function VaultPage() {
   const router = useRouter();
   const [clips, setClips] = useState<Awaited<ReturnType<typeof vaultApi.list>>>([]);
-  const [quota, setQuota] = useState({ used: 0, limit: 25 });
+  const [quota, setQuota] = useState<VaultQuotaResponse | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -50,16 +67,20 @@ export default function VaultPage() {
             Saved clips ready to publish or schedule. Distinct from sticker assets in Settings.
           </p>
         </div>
-        <p className="text-sm font-mono text-muted-foreground">
-          {quota.used} / {quota.limit} clips
-        </p>
+        {quota ? (
+          <div className="text-sm font-mono text-muted-foreground space-y-0.5 text-right">
+            <p>
+              {quota.clips.used} / {quota.clips.limit} clips
+            </p>
+            <p>
+              {quota.bytes.used_human} / {quota.bytes.limit_human}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      {quota.used >= quota.limit * 0.8 && quota.used < quota.limit && (
-        <p className="text-sm text-amber-400/90 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-          Vault almost full — remove clips you no longer need.
-        </p>
-      )}
+      {quota ? quotaBanner(quota.clips.warning, "Clip") : null}
+      {quota ? quotaBanner(quota.bytes.warning, "Storage") : null}
 
       {clips.length === 0 ? (
         <div className="glossy-surface rounded-lg border border-border/60 p-12 text-center space-y-4">

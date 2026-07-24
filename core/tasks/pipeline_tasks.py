@@ -428,6 +428,37 @@ def run_transcribe(self: ProgressTask, job_id: str) -> str:
 
             transcript = transcribe(local_source, cfg, subtitle_path=subtitle_path)
 
+            from core.pipeline_metrics import CONFIDENCE_RERUN_TOTAL, TRANSCRIBE_WER_ESTIMATE
+            from core.wer_estimate import estimate_wer_proxy
+
+            tier_name = str((job.config_snapshot or {}).get("processing_tier", "long"))
+            TRANSCRIBE_WER_ESTIMATE.labels(tier=tier_name).set(
+                estimate_wer_proxy(transcript, min_prob=cfg.whisper.min_word_probability),
+            )
+
+            if cfg.whisper.confidence_rerun_enabled:
+                from core.transcribe_confidence import rerun_low_confidence_segments
+
+                try:
+                    transcript, rerun_count = rerun_low_confidence_segments(
+                        local_source,
+                        transcript,
+                        cfg,
+                    )
+                    if rerun_count:
+                        CONFIDENCE_RERUN_TOTAL.labels(outcome="refined").inc(rerun_count)
+                        TRANSCRIBE_WER_ESTIMATE.labels(tier=tier_name).set(
+                            estimate_wer_proxy(
+                                transcript,
+                                min_prob=cfg.whisper.min_word_probability,
+                            ),
+                        )
+                    else:
+                        CONFIDENCE_RERUN_TOTAL.labels(outcome="skipped").inc()
+                except Exception as exc:
+                    log.warning("confidence_rerun_failed", job_id=job_id, error=str(exc))
+                    CONFIDENCE_RERUN_TOTAL.labels(outcome="error").inc()
+
             # Persist transcript blob to storage for later stages
             storage = make_storage(cfg)
             t_key = job_key(job_id, "transcript", "transcript.json")

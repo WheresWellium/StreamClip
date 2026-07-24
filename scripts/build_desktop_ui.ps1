@@ -16,6 +16,7 @@ $apiMoved = $false
 Write-Host "Building static UI (NEXT_STATIC_EXPORT=1)..." -ForegroundColor Cyan
 Push-Location $webDir
 $env:NEXT_STATIC_EXPORT = "1"
+$env:NEXT_PUBLIC_DEV_TOOLS = "0"
 $env:NEXT_PRIVATE_WORKER_THREADS = "false"
 
 # Next.js static export does not support middleware — stash it for the build.

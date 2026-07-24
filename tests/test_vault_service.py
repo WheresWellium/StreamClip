@@ -10,7 +10,12 @@ import pytest
 import core.vault.service as vault_mod
 from backend.db.models import ApprovalStatus, UserTier, VaultClipStatus
 from core.config import get_settings
-from core.distribution.errors import AlreadyInVaultError, ClipNotApprovedError, VaultFullError
+from core.distribution.errors import (
+    AlreadyInVaultError,
+    ClipNotApprovedError,
+    VaultFullError,
+    VaultStorageFullError,
+)
 from core.errors import StreamClipError
 from core.vault.service import VaultService
 
@@ -28,6 +33,7 @@ def _clip(**overrides):
         title="Title",
         hook="Hook",
         duration_secs=12.0,
+        file_size_bytes=50_000_000,
         ensemble_score=0.8,
         llm_score=0.7,
         emotion="hype",
@@ -60,6 +66,9 @@ class FakeVaultRepo:
 
     async def count_for_user(self, user_id):
         return len([r for r in self.rows if r.user_id == user_id])
+
+    async def bytes_for_user(self, user_id):
+        return sum(getattr(r, "file_size_bytes", 0) for r in self.rows if r.user_id == user_id)
 
     async def create(self, **fields):
         row = SimpleNamespace(id="vc-new", **fields)
@@ -154,9 +163,20 @@ async def test_save_rejects_quota(env, monkeypatch):
     monkeypatch.setattr(
         vault_mod,
         "get_tier_limits",
-        lambda tier: SimpleNamespace(max_vault_clips=0),
+        lambda tier: SimpleNamespace(max_vault_clips=0, max_vault_bytes=10**12),
     )
     with pytest.raises(VaultFullError):
+        await env.svc.save_clip_from_job(user_id=USER, clip_id="clip-1")
+
+
+@pytest.mark.asyncio
+async def test_save_rejects_byte_quota(env, monkeypatch):
+    monkeypatch.setattr(
+        vault_mod,
+        "get_tier_limits",
+        lambda tier: SimpleNamespace(max_vault_clips=100, max_vault_bytes=1_000),
+    )
+    with pytest.raises(VaultStorageFullError):
         await env.svc.save_clip_from_job(user_id=USER, clip_id="clip-1")
 
 
@@ -165,7 +185,7 @@ async def test_save_uses_free_tier_when_user_missing(env, monkeypatch):
     monkeypatch.setattr(
         vault_mod,
         "get_tier_limits",
-        lambda tier: SimpleNamespace(max_vault_clips=0),
+        lambda tier: SimpleNamespace(max_vault_clips=0, max_vault_bytes=10**12),
     )
     env.svc.db = FakeSession()
     env.svc.job_repo.job = SimpleNamespace(id="job-1", owner_id="unknown-user")

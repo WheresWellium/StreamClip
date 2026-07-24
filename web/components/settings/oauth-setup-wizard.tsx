@@ -109,9 +109,9 @@ export function OAuthSetupWizard({ apps, hasPro }: Props) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Platform OAuth apps</CardTitle>
+          <CardTitle>Publish setup</CardTitle>
           <CardDescription>
-            No distribution platforms are enabled on this install.
+            No publish platforms are enabled on this install.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -121,10 +121,10 @@ export function OAuthSetupWizard({ apps, hasPro }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Platform OAuth apps</CardTitle>
+        <CardTitle>Publish setup</CardTitle>
         <CardDescription>
-          Bring your own Google Cloud / TikTok developer credentials. Required before
-          connecting accounts on the Distribution page.
+          Add your YouTube and TikTok developer credentials before connecting
+          accounts on the Distribution page.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

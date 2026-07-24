@@ -11,13 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { distributionApi, jobsApi } from "@/lib/api/client";
+import { distributionApi, jobsApi, vaultApi } from "@/lib/api/client";
 import {
   getClientAccessToken,
   getClientDeviceId,
 } from "@/lib/auth/client-session";
 import { hasDistributionAccess } from "@/lib/distribution/client-access";
 import { getLicenseMachineId } from "@/lib/license-machine-id";
+import {
+  hasDismissedQuotaTooltip,
+  hasSeenVault,
+} from "@/lib/settings-storage";
 
 type CheckItem = {
   id: string;
@@ -78,6 +82,17 @@ export function ActivationChecklist() {
         firstJobDone = false;
       }
 
+      let quotaHealthy = true;
+      if (token) {
+        try {
+          const quota = await vaultApi.quota(token);
+          const hasWarning = Boolean(quota.clips.warning ?? quota.bytes.warning);
+          quotaHealthy = !hasWarning || hasDismissedQuotaTooltip();
+        } catch {
+          quotaHealthy = hasDismissedQuotaTooltip();
+        }
+      }
+
       const next: CheckItem[] = [
         {
           id: "account",
@@ -113,6 +128,22 @@ export function ActivationChecklist() {
           done: firstJobDone,
           hint: firstJobDone ? undefined : "Run a clip job from a VOD or upload.",
           href: "/jobs/new",
+        },
+        {
+          id: "vault-review",
+          label: "Review vault storage",
+          done: hasSeenVault(),
+          hint: hasSeenVault() ? undefined : "See how many clips and GB your plan includes.",
+          href: "/settings?section=vault",
+        },
+        {
+          id: "quota-understood",
+          label: "Understand storage limits",
+          done: quotaHealthy,
+          hint: quotaHealthy
+            ? undefined
+            : "Free: 25 clips and 10 GB. Upgrade for more.",
+          href: "/settings?section=billing",
         },
       ];
       if (!cancelled) setItems(next);

@@ -66,7 +66,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
         {STEPS.map((s) => (
           <div
             key={s}
-            className={`h-1 flex-1 rounded ${stepIndex(s) <= stepIndex(step) ? "bg-sky-400" : "bg-white/10"}`}
+            className={`h-1 flex-1 rounded ${stepIndex(s) <= stepIndex(step) ? "bg-sky-400" : "bg-frame/10"}`}
           />
         ))}
       </div>
@@ -83,9 +83,9 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
 
       {step === "health" && (
         <section className="space-y-4">
-          <h1 className="text-2xl font-semibold">Stack health</h1>
+          <h1 className="text-2xl font-semibold">Ready check</h1>
           <p className="text-sm text-muted-foreground">
-            We verify database, storage, and workers before your first clip job.
+            We make sure StreamClip is ready before your first clip job.
           </p>
           <HealthChecklist
             data={health}

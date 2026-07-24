@@ -5,19 +5,31 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { AdminLicensePanel } from "@/components/settings/admin-license-panel";
-import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { ActivationChecklist } from "@/components/settings/activation-checklist";
+import { BillingPanel } from "@/components/settings/billing-panel";
+import { CreatorToolsCard } from "@/components/settings/creator-tools-card";
 import { DistributionSection } from "@/components/settings/distribution-section";
 import { LicensePanel } from "@/components/settings/license-panel";
 import { OAuthSetupWizard } from "@/components/settings/oauth-setup-wizard";
 import { PrivacyPanel } from "@/components/settings/privacy-panel";
+import { QuotaMeter } from "@/components/settings/quota-meter";
+import { VaultSettingsSection } from "@/components/settings/vault-settings-section";
 import { WebhookPanel } from "@/components/settings/webhook-panel";
+import { Button } from "@/components/ui/button";
+import { devToolsEnabled } from "@/lib/dev-tools";
+import {
+  isDeveloperIntegrationsEnabled,
+  setDeveloperIntegrationsEnabled,
+} from "@/lib/developer-integrations";
 import {
   authApi,
   distributionApi,
   settingsApi,
+  vaultApi,
   type OAuthAppConfig,
+  type UserPreferences,
+  type VaultQuotaResponse,
 } from "@/lib/api/client";
 import {
   Card,
@@ -28,6 +40,7 @@ import {
 } from "@/components/ui/card";
 import { getClientAccessToken } from "@/lib/auth/client-session";
 import { hasDistributionAccess } from "@/lib/distribution/client-access";
+import type { SettingsSection } from "@/components/settings/settings-nav";
 
 const DEFAULT_OAUTH_APPS: OAuthAppConfig[] = [
   {
@@ -43,16 +56,6 @@ const DEFAULT_OAUTH_APPS: OAuthAppConfig[] = [
     configured: false,
   },
 ];
-
-type SettingsSection =
-  | "account"
-  | "get-started"
-  | "license"
-  | "distribution"
-  | "integrations"
-  | "api"
-  | "privacy"
-  | "advanced";
 
 export default function SettingsPage() {
   return (
@@ -73,7 +76,14 @@ function SettingsPageContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [oauthApps, setOauthApps] = useState(DEFAULT_OAUTH_APPS);
   const [privacyOptIn, setPrivacyOptIn] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [vaultQuota, setVaultQuota] = useState<VaultQuotaResponse | null>(null);
+  const [developerIntegrations, setDeveloperIntegrations] = useState(false);
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setDeveloperIntegrations(isDeveloperIntegrationsEnabled());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +94,8 @@ function SettingsPageContent() {
       let admin = false;
       let apps = DEFAULT_OAUTH_APPS;
       let optIn = false;
+      let prefs: UserPreferences | null = null;
+      let quota: VaultQuotaResponse | null = null;
       if (t) {
         pro = await hasDistributionAccess(t);
         try {
@@ -106,6 +118,18 @@ function SettingsPageContent() {
           } catch {
             optIn = false;
           }
+          try {
+            prefs = await settingsApi.getPreferences(t);
+          } catch {
+            prefs = null;
+          }
+        }
+        if (section === "account") {
+          try {
+            quota = await vaultApi.quota(t);
+          } catch {
+            quota = null;
+          }
         }
       }
       if (!cancelled) {
@@ -113,6 +137,8 @@ function SettingsPageContent() {
         setIsAdmin(admin);
         setOauthApps(apps);
         setPrivacyOptIn(optIn);
+        setPreferences(prefs);
+        setVaultQuota(quota);
         setReady(true);
       }
     })();
@@ -121,7 +147,7 @@ function SettingsPageContent() {
     };
   }, [section]);
 
-  if (!ready && (section === "integrations" || section === "privacy")) {
+  if (!ready && (section === "integrations" || section === "privacy" || section === "account")) {
     return <p className="text-sm text-muted-foreground py-8">Loading settings…</p>;
   }
 
@@ -133,6 +159,14 @@ function SettingsPageContent() {
     return <LicensePanel />;
   }
 
+  if (section === "vault") {
+    return <VaultSettingsSection />;
+  }
+
+  if (section === "billing") {
+    return <BillingPanel />;
+  }
+
   if (section === "distribution") {
     return (
       <DistributionSection oauthConnected={oauthConnected} oauthError={oauthError} />
@@ -140,17 +174,43 @@ function SettingsPageContent() {
   }
 
   if (section === "integrations") {
+    const showWebhooks = devToolsEnabled || developerIntegrations;
+
     return (
       <div className="space-y-6">
-        <WebhookPanel isAuthenticated={!!token} />
+        {!devToolsEnabled && hasPro && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Developer integrations</CardTitle>
+              <CardDescription>
+                Webhooks and custom automation for power users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const next = !developerIntegrations;
+                  setDeveloperIntegrationsEnabled(next);
+                  setDeveloperIntegrations(next);
+                }}
+              >
+                {developerIntegrations ? "Hide webhook settings" : "Show webhook settings"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {showWebhooks && <WebhookPanel isAuthenticated={!!token} />}
         {token ? (
           <OAuthSetupWizard apps={oauthApps} hasPro={hasPro} />
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Platform OAuth apps</CardTitle>
+              <CardTitle>Publish setup</CardTitle>
               <CardDescription>
-                Sign in to configure YouTube and TikTok OAuth credentials.
+                Sign in to configure YouTube and TikTok publish credentials.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -159,15 +219,21 @@ function SettingsPageContent() {
     );
   }
 
-  if (section === "api") {
-    return <ApiDocsPanel />;
-  }
-
   if (section === "privacy") {
-    return <PrivacyPanel isAuthenticated={!!token} initialOptIn={privacyOptIn} />;
+    return (
+      <PrivacyPanel
+        isAuthenticated={!!token}
+        initialOptIn={privacyOptIn}
+        initialPreferences={preferences}
+      />
+    );
   }
 
   if (section === "advanced") {
+    if (!devToolsEnabled) {
+      return <CreatorToolsCard />;
+    }
+
     return (
       <div className="space-y-6">
         {isAdmin && token && (
@@ -218,26 +284,16 @@ function SettingsPageContent() {
           </CardContent>
         </Card>
 
-        <p className="text-sm">
-          <Link href="/settings?section=api" className="text-sky-400 hover:underline">
-            API reference →
-          </Link>
-          {" · "}
-          <Link href="/settings/templates" className="text-sky-400 hover:underline">
-            Manage job templates →
-          </Link>
-          {" · "}
-          <Link href="/settings/assets" className="text-sky-400 hover:underline">
-            Overlay assets →
-          </Link>
-        </p>
+        <CreatorToolsCard />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {token && vaultQuota ? <QuotaMeter quota={vaultQuota} /> : null}
       <AuthPanel isAuthenticated={!!token} />
+      <CreatorToolsCard />
       <p className="text-sm text-muted-foreground">
         New here?{" "}
         <Link href="/settings?section=get-started" className="text-sky-400 hover:underline">

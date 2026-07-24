@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { devToolsEnabled } from "@/lib/dev-tools";
+import { helpHref } from "@/lib/docs";
 import { cn } from "@/lib/utils/format";
 
 export type StackHealthSnapshot = {
@@ -21,31 +24,31 @@ type CheckRow = {
 const CHECK_LABELS: Record<string, { label: string; hint: string }> = {
   database: {
     label: "Database",
-    hint: "Postgres or SQLite must accept connections.",
+    hint: "Job history and clip metadata must be reachable.",
   },
   redis: {
-    label: "Redis / queue broker",
-    hint: "Required for Docker beta; skipped in desktop in-process mode.",
+    label: "Job queue",
+    hint: "Required for multi-service installs; skipped in desktop mode.",
   },
   storage: {
-    label: "Object storage",
-    hint: "MinIO or local storage for uploads and renders.",
+    label: "Cloud storage",
+    hint: "Uploads and finished renders need storage.",
   },
   ollama: {
-    label: "LLM (Ollama)",
+    label: "AI scoring (optional)",
     hint: "Optional — virality scoring falls back without it.",
   },
   cuda: {
-    label: "CUDA (NVIDIA GPU)",
+    label: "GPU acceleration (optional)",
     hint: "Optional — CPU path works but is slower.",
   },
   nvenc: {
-    label: "NVENC encode",
-    hint: "Optional on Windows/Linux Docker with NVIDIA.",
+    label: "Fast video encode (optional)",
+    hint: "Optional on Windows/Linux with a supported GPU.",
   },
   mps: {
-    label: "MPS (Apple Silicon)",
-    hint: "Optional — Metal ML on macOS desktop; Docker on Mac uses CPU.",
+    label: "Apple GPU (optional)",
+    hint: "Optional — Metal acceleration on macOS desktop builds.",
   },
 };
 
@@ -64,26 +67,91 @@ function rowsFromSnapshot(data: StackHealthSnapshot | null): CheckRow[] {
   if (data.worker != null) {
     rows.push({
       id: "worker",
-      label: "Celery worker",
+      label: "Background worker",
       ok: data.worker,
-      hint: "Processes clip jobs off the API queue.",
+      hint: "Processes clip jobs off the main app.",
     });
   }
   return rows;
+}
+
+function coreServicesOk(data: StackHealthSnapshot, rows: CheckRow[]): boolean {
+  return (
+    data.status === "ok" &&
+    rows
+      .filter(
+        (r) =>
+          r.id !== "ollama" &&
+          r.id !== "cuda" &&
+          r.id !== "nvenc" &&
+          r.id !== "mps",
+      )
+      .every((r) => r.ok)
+  );
 }
 
 type Props = {
   data: StackHealthSnapshot | null;
   loading?: boolean;
   onRetry?: () => void;
+  /** Product builds use a single Ready / Needs attention status. */
+  compact?: boolean;
 };
 
-export function HealthChecklist({ data, loading, onRetry }: Props) {
+export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
+  const isCompact = compact ?? !devToolsEnabled;
   const rows = rowsFromSnapshot(data);
-  const allRequiredOk =
-    data != null &&
-    data.status === "ok" &&
-    rows.filter((r) => r.id !== "ollama" && r.id !== "cuda" && r.id !== "nvenc" && r.id !== "mps").every((r) => r.ok);
+  const allRequiredOk = data != null && coreServicesOk(data, rows);
+
+  if (isCompact) {
+    return (
+      <div className="space-y-4">
+        {loading && (
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Checking services…
+          </p>
+        )}
+
+        {!loading && data && (
+          <p
+            className={cn(
+              "text-sm font-medium flex items-center gap-2",
+              allRequiredOk ? "text-emerald-400" : "text-amber-300",
+            )}
+          >
+            {allRequiredOk ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Ready — you can create a job.
+              </>
+            ) : (
+              <>
+                <CircleAlert className="h-4 w-4 shrink-0" />
+                Needs attention — check Help before your first job.
+              </>
+            )}
+          </p>
+        )}
+
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry} disabled={loading}>
+            Re-check
+          </Button>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          <Link
+            href={helpHref("/tutorials/TUTORIAL_TROUBLESHOOTING/")}
+            className="underline hover:text-foreground"
+          >
+            How to fix common issues
+          </Link>{" "}
+          in the Help center.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -137,24 +205,20 @@ export function HealthChecklist({ data, loading, onRetry }: Props) {
 
       <p className="text-xs text-muted-foreground">
         GPU checks are optional. See{" "}
-        <a
-          href="https://streamclip-henna.vercel.app/tutorials/TUTORIAL_GPU_SETUP/"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={helpHref("/tutorials/TUTORIAL_GPU_SETUP/")}
           className="underline hover:text-foreground"
         >
           GPU setup
-        </a>{" "}
+        </Link>{" "}
         or{" "}
-        <a
-          href="https://streamclip-henna.vercel.app/tutorials/TUTORIAL_TROUBLESHOOTING/"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={helpHref("/tutorials/TUTORIAL_TROUBLESHOOTING/")}
           className="underline hover:text-foreground"
         >
           troubleshooting
-        </a>
-        .
+        </Link>{" "}
+        in the in-app Help center.
       </p>
     </div>
   );

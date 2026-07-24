@@ -1,8 +1,22 @@
 # Tutorial — Troubleshooting
 
-**Quick reference** for the most common Phase 0 beta failures. Always run [Install](TUTORIAL_INSTALL.md) verify before deep debugging.
+**Quick reference** for the most common Phase 0 beta failures.
 
 Full platform limits: [Known issues](../BETA_KNOWN_ISSUES.md)
+
+---
+
+## Start in the app
+
+Before terminal commands:
+
+1. Open **Help** → [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) (embedded in the app)
+2. Check **Settings → Get started** — **Ready** means you can create jobs; **Needs attention** means fix setup first
+3. Use **Report a bug** or **Beta feedback** in the header (saved even when email routing is not configured)
+
+**Windows `.exe` users:** you usually do **not** need Docker or `verify_stack.ps1` — use the steps above and [Get StreamClip](../BETA_DOWNLOAD.md#one-click-installers).
+
+**Docker beta users:** run [Install](TUTORIAL_INSTALL.md) verify if the in-app check stays on **Needs attention**.
 
 ---
 
@@ -17,7 +31,7 @@ Full platform limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 | 5 | Clips extremely slow | CPU-only path; GPU not passed to Docker | Windows: enable GPU in Docker Desktop + `--profile gpu`; Mac: expected — use shorter source |
 | 6 | `nvidia-smi` fails in worker | GPU not shared with containers | Docker Desktop → Resources → GPU; update NVIDIA drivers; restart Docker |
 | 7 | SSE progress frozen | Browser tab backgrounded; api restart | Refresh page; check api logs; UI falls back to polling after ~20 s |
-| 8 | License key rejected | Wrong format; typo | Paste full key including dashes (`SCPRO-…`); check device ID in Settings → License |
+| 8 | License key rejected | Wrong format; typo | Paste full key including dashes (`SCPRO-…`); under **Settings → License**, use **Show details** on **This install** if support asks |
 | 9 | YouTube OAuth redirect error | Redirect URI mismatch | Google Console URI must match `WEB_ORIGIN` + `/api/distribution/oauth/youtube/callback` |
 | 10 | Publish fails immediately | Token expired; quota; clip not approved | Reconnect YouTube; approve clip; check Distribution → Queue error message |
 | 11 | Vault save fails | Quota exceeded | Delete old vault clips; activate beta key for higher limit |
@@ -28,7 +42,9 @@ Full platform limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 
 ---
 
-## Diagnostic commands
+## Diagnostic commands (Docker operators)
+
+These are for **Docker beta** debugging — not shown in the shipped app.
 
 === "Windows"
 
@@ -78,7 +94,7 @@ Include in your report:
 3. Output of `docker compose logs api worker --tail 50`
 4. What you expected vs. what happened
 
-Open the **Help menu (?)** → **Report a bug** — submissions persist locally even without SMTP.
+Use **Report a bug** in the app header — you'll see **Saved — we'll review it** when your note is stored locally.
 
 ---
 

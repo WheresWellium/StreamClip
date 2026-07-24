@@ -206,6 +206,8 @@ Real DMG still needs a Mac host (§5.2–5.3).
 | 6.10 | ~~`CREATOR_PLATFORM.md` sync~~ ✅ asset vault end-to-end + desktop §4.1–4.5 marked shipped; Next section updated to §4.6–4.13 | ✅ | — |
 | 6.11 | ~~`.cursor/skills/streamclip-development/SKILL.md`~~ ✅ desktop profile section added (SQLite, inprocess queue, sidecar, static UI, verify scripts) | ✅ | — |
 | 6.12 | ~~`docs/BETA_TESTER_PLAN.md` §2~~ ✅ hard blocker 4.0 marked accepted 2026-07-07 | ✅ | — |
+| 6.13 | ~~**External product UI posture**~~ ✅ `NEXT_PUBLIC_DEV_TOOLS`; API/OpenAPI removed from shipped UI; operator Advanced gated; beta docs app-first copy (`BETA_TESTER_QUICKSTART`, tutorials) | ✅ | S |
+| 6.14 | **Redeploy public MkDocs on Vercel** after Architecture/Operations nav trim (2026-07-18) | 🟡 | S |
 
 ## 7. Cleanup
 
@@ -251,7 +253,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
-| 9.1 | **`/api/health/stack` deep probe** — ✅ documented in `BETA_TESTER_QUICKSTART.md` §4; prod compose + `verify_stack.ps1` hit `/api/health/stack` (database, redis, cuda/nvenc flags) | 🟢 | S |
+| 9.1 | **`/api/health/stack` deep probe** — Docker operators only; beta users use **Settings → Get started** (Ready / Needs attention). Documented in `BETA_TESTER_QUICKSTART.md` §4 | 🟢 | S |
 | 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers — see §8.19 week-before checklist; `BETA_GO_LIVE` §3 | 🟢 | S |
 | 9.3 | **MkDocs internal docs site** — maintain `mkdocs.yml`, Vercel deploy, keep `GAP_ANALYSIS` / `MASTER_TODO` in `exclude_docs` (`docs/INTERNAL.md`) | 🟢 | S |
 

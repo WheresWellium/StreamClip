@@ -113,7 +113,7 @@ if (-not $setup) {
 if ($setup) {
     $setupMB = [math]::Round($setup.Length / 1MB)
     if ($setupMB -lt 50) {
-        Write-Host "ERROR: Installer suspiciously small ($setupMB MB) — bundle may be incomplete." -ForegroundColor Red
+        Write-Host ("ERROR: Installer suspiciously small ({0} MB) - bundle may be incomplete." -f $setupMB) -ForegroundColor Red
         exit 1
     }
     Write-Host ""
@@ -122,7 +122,7 @@ if ($setup) {
         Write-Host "Verifying Authenticode signature on installer..." -ForegroundColor Cyan
         & "$PSScriptRoot\sign_windows_artifact.ps1" -Path $setup.FullName -VerifyOnly
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "NOTE: sign_windows_artifact verify failed — electron-builder may have signed during dist." -ForegroundColor Yellow
+            Write-Host "NOTE: sign_windows_artifact verify failed - electron-builder may have signed during dist." -ForegroundColor Yellow
         }
     }
 } else {

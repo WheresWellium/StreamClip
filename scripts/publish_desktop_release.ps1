@@ -33,7 +33,7 @@ Write-Host "  $installer"
 if (Test-Path $latestYml) {
     Write-Host "  $latestYml"
 } else {
-    Write-Host "WARNING: latest.yml missing — electron-updater auto-update metadata will not ship." -ForegroundColor Yellow
+    Write-Host "WARNING: latest.yml missing - electron-updater auto-update metadata will not ship." -ForegroundColor Yellow
 }
 Write-Host ""
 Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColor Cyan
@@ -55,14 +55,14 @@ if (Test-Path $latestYml) { $assets += $latestYml }
 
 Write-Host "Publishing release $tag ..." -ForegroundColor Cyan
 $releaseNotes = @"
-Windows 64-bit installer. SmartScreen may warn on unsigned beta builds — More info → Run anyway.
+Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway.
 
 Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 "@
 
 $existing = gh release view $tag 2>$null
 if ($LASTEXITCODE -eq 0 -and $existing) {
-    Write-Host "Release $tag exists — uploading assets with --clobber" -ForegroundColor Yellow
+    Write-Host "Release $tag exists - uploading assets with --clobber" -ForegroundColor Yellow
     gh release upload $tag @assets --clobber
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } else {
@@ -82,11 +82,17 @@ if (-not $NoDocsBump) {
         $today = Get-Date -Format "yyyy-MM-dd"
         $raw = Get-Content $docsPath -Raw
         if ($raw -notmatch [regex]::Escape($Version)) {
-            $banner = "> **Current Windows installer:** ``$Version`` ($today) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)`r`n`r`n"
-            if ($raw -match '(?m)^# Get StreamClip') {
-                $raw = $raw -replace '(?m)^(#[^\r\n]+)\r?\n', "`$1`r`n`r`n$banner"
+            $download = "https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe"
+            $bannerLine = "> **Current Windows installer:** ``$Version`` ($today) - [download Setup exe]($download)"
+            $marker = "# Get StreamClip"
+            $idx = $raw.IndexOf($marker)
+            if ($idx -ge 0) {
+                $lineEnd = $raw.IndexOf("`n", $idx)
+                if ($lineEnd -lt 0) { $lineEnd = $raw.Length - 1 }
+                $insertAt = $lineEnd + 1
+                $raw = $raw.Substring(0, $insertAt) + "`n" + $bannerLine + "`n" + $raw.Substring($insertAt)
             } else {
-                $raw = $banner + $raw
+                $raw = $bannerLine + "`n`n" + $raw
             }
             Set-Content -Path $docsPath -Value $raw -Encoding utf8 -NoNewline
             Write-Host "Bumped docs/BETA_DOWNLOAD.md to $Version" -ForegroundColor Green

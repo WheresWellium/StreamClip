@@ -1,6 +1,6 @@
 {
   "name": "streamclip-desktop",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.4",
   "description": "StreamClip desktop tray app — embedded sidecar + BrowserWindow UI",
   "author": "StreamClip",
   "main": "dist/main.js",

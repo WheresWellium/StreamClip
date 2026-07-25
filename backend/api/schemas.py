@@ -494,7 +494,23 @@ class BetaFeedbackRequest(BaseModel):
     """Body for POST /api/support/beta-feedback"""
 
     message: str = Field(..., min_length=10, max_length=5000)
-    topic: Literal["question", "idea", "help", "other"] = "help"
+    topic: Literal["question", "idea", "help", "praise", "other"] = "help"
+    area: (
+        Literal[
+            "getting_started",
+            "ingest",
+            "clipping",
+            "captions",
+            "reframe",
+            "vault",
+            "distribution",
+            "license_billing",
+            "performance",
+            "ui",
+            "other",
+        ]
+        | None
+    ) = None
     environment: dict[str, str] | None = None
 
     @field_validator("environment")

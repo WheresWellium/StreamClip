@@ -47,6 +47,21 @@ _FEEDBACK_TOPIC_CATEGORY: dict[str, str] = {
     "question": "other",
     "idea": "other",
     "help": "ui",
+    "praise": "other",
+    "other": "other",
+}
+
+_FEEDBACK_AREA_CATEGORY: dict[str, str] = {
+    "getting_started": "ui",
+    "ingest": "ingest",
+    "clipping": "other",
+    "captions": "captions",
+    "reframe": "reframe",
+    "vault": "vault",
+    "distribution": "distribution",
+    "license_billing": "license_billing",
+    "performance": "performance",
+    "ui": "ui",
     "other": "other",
 }
 
@@ -204,7 +219,10 @@ async def submit_beta_feedback(
     user_id: Annotated[str | None, Depends(get_current_user_id)] = None,
     device_id: Annotated[str | None, Depends(get_device_id)] = None,
 ) -> BetaFeedbackOut:
-    category = _FEEDBACK_TOPIC_CATEGORY.get(body.topic, "other")
+    if body.area and body.area in _FEEDBACK_AREA_CATEGORY:
+        category = _FEEDBACK_AREA_CATEGORY[body.area]
+    else:
+        category = _FEEDBACK_TOPIC_CATEGORY.get(body.topic, "other")
     report = await BugReportRepository(db).create(
         user_id=user_id,
         device_id=device_id,

@@ -1,4 +1,5 @@
 import { ApiClientError, settingsApi, supportApi } from "@/lib/api/client";
+import type { BetaFeedbackArea, BetaFeedbackTopic } from "@/lib/api/client";
 import {
   ensureClientDeviceId,
   getClientAccessToken,
@@ -53,13 +54,17 @@ export async function submitBugReportAction(
 
 export type BetaFeedbackInput = {
   message: string;
-  topic: "question" | "idea" | "help" | "other";
+  topic: BetaFeedbackTopic;
+  area: BetaFeedbackArea;
   environment?: Record<string, string>;
 };
 
 export async function submitBetaFeedbackAction(
   input: BetaFeedbackInput,
 ): Promise<{ ok: boolean; message?: string; opsNotification?: string }> {
+  if (!input.area) {
+    return { ok: false, message: "Pick the part of StreamClip this is about." };
+  }
   if (input.message.trim().length < 10) {
     return { ok: false, message: "Please write at least 10 characters." };
   }
@@ -70,6 +75,7 @@ export async function submitBetaFeedbackAction(
       {
         message: input.message.trim(),
         topic: input.topic,
+        area: input.area,
         environment: input.environment ?? null,
       },
       token,

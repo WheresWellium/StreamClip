@@ -724,9 +724,30 @@ export type BugReportPayload = {
   environment?: Record<string, string> | null;
 };
 
+export type BetaFeedbackTopic =
+  | "question"
+  | "idea"
+  | "help"
+  | "praise"
+  | "other";
+
+export type BetaFeedbackArea =
+  | "getting_started"
+  | "ingest"
+  | "clipping"
+  | "captions"
+  | "reframe"
+  | "vault"
+  | "distribution"
+  | "license_billing"
+  | "performance"
+  | "ui"
+  | "other";
+
 export type BetaFeedbackPayload = {
   message: string;
-  topic: "question" | "idea" | "help" | "other";
+  topic: BetaFeedbackTopic;
+  area?: BetaFeedbackArea | null;
   environment?: Record<string, string> | null;
 };
 

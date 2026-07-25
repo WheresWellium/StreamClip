@@ -9,28 +9,26 @@ None.
 
 ## Current focus
 
-Ship **M4 feedback ops**, **M5 account UI**, **P2 quality**, and **external product UI hardening** on `master`. Theme-skins worktree (`feat/theme-skins`) should be rebased/merged after master lands.
+`master` @ `34d6fd2` + follow-up: beta feedback area routing, MASTER_TODO §6.14. `feat/theme-skins` merged with master @ `3bffbbe` — open PR for theme system + ship hardening.
 
 ## Blockers
 
-- Vercel docs redeploy pending (mkdocs nav trim + beta tutorial copy).
 - Phase 0 exit (T0 cohort) and EV signing (§4.10) unchanged.
 
 ## Validation
 
-- Run `npm run typecheck` in `web/` after merge.
-- Run `scripts/verify_coverage.ps1` + `scripts/verify_stack.ps1` before beta promotion.
+- `npm run typecheck` in `web/` on master and theme-skins
+- `scripts/verify_coverage.ps1` + `scripts/verify_stack.ps1` before beta promotion
 
 ## Next steps
 
-1. Commit master (M4/M5/P2 + external UI + docs).
-2. `mkdocs build --strict` + Vercel deploy docs site.
-3. Rebase `feat/theme-skins` onto master; resolve theme-only deltas.
-4. Desktop installer publish when web changes ship.
+1. Push `master` and `feat/theme-skins`; open theme-skins PR.
+2. Desktop installer publish after web changes ship to master.
+3. M4 admin ticket UI (optional).
 
 ## Key paths
 
-- `web/lib/dev-tools.ts` — `NEXT_PUBLIC_DEV_TOOLS` product gate
-- `web/app/settings/page.tsx` — M5 sections + external gating
+- `web/lib/dev-tools.ts` — external product gate
+- `web/lib/themes.ts` + `globals.css` — theme system (theme-skins branch)
+- `web/components/support/beta-feedback-dialog.tsx` — area + topic routing
 - `core/support/` — M4 ticket lifecycle
-- `docs/BETA_TESTER_QUICKSTART.md` — app-first Ready check copy

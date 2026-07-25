@@ -207,7 +207,7 @@ Real DMG still needs a Mac host (§5.2–5.3).
 | 6.11 | ~~`.cursor/skills/streamclip-development/SKILL.md`~~ ✅ desktop profile section added (SQLite, inprocess queue, sidecar, static UI, verify scripts) | ✅ | — |
 | 6.12 | ~~`docs/BETA_TESTER_PLAN.md` §2~~ ✅ hard blocker 4.0 marked accepted 2026-07-07 | ✅ | — |
 | 6.13 | ~~**External product UI posture**~~ ✅ `NEXT_PUBLIC_DEV_TOOLS`; API/OpenAPI removed from shipped UI; operator Advanced gated; beta docs app-first copy (`BETA_TESTER_QUICKSTART`, tutorials) | ✅ | S |
-| 6.14 | **Redeploy public MkDocs on Vercel** after Architecture/Operations nav trim (2026-07-18) | 🟡 | S |
+| 6.14 | ~~**Redeploy public MkDocs on Vercel**~~ ✅ 2026-07-18 — `streamclip-henna.vercel.app` (Architecture/Operations nav trimmed) | ✅ | S |
 
 ## 7. Cleanup
 

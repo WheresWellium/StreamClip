@@ -28,12 +28,17 @@
       "output": "release",
       "buildResources": "assets"
     },
-    "files": ["dist/**/*", "assets/**/*"],
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
     "extraResources": [
       {
         "from": ".staging/sidecar",
         "to": "sidecar",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "publish": {
@@ -46,7 +51,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "StreamClip-Setup-win-x64.${ext}",
@@ -59,7 +66,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "StreamClip",
-      "installerLanguages": ["en_US"],
+      "installerLanguages": [
+        "en_US"
+      ],
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false
     },
@@ -67,7 +76,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "artifactName": "StreamClip-mac-{arch}.${ext}",
@@ -78,7 +89,9 @@
       "entitlementsInherit": "assets/entitlements.mac.plist"
     },
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     }
   }
 }

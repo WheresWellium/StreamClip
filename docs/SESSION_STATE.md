@@ -9,30 +9,29 @@ None.
 
 ## Current focus
 
-**Desktop release track** — ship Windows unsigned beta (+ harden macOS CI scaffold) for Mac/Windows testers. Coverage gate green at 96.08%. Packaging/CI gaps fixed; next: rebuild/publish Windows installer `1.0.0-beta.4`.
+**Desktop release:** Windows `v1.0.0-beta.4` published (Setup + `latest.yml`). Packaging/CI hardened for Win + macOS scaffold. Mac DMG still needs Apple Silicon host + Developer ID.
 
 ## Blockers
 
-- EV Authenticode cert (§4.10) — external purchase; unsigned SmartScreen OK for wave‑1.
-- macOS DMG + notarization (§5.2–5.3) — needs Mac host / green `macos-installer` CI + Apple Developer.
-- Phase 0 exit still needs T0 cohort results (§8.16).
+- EV Authenticode cert (§4.10) — SmartScreen warns until signed.
+- macOS DMG + notarization (§5.2–5.3) — Mac host + Apple Developer.
+- Phase 0 exit — T0 cohort results (§8.16).
 
 ## Validation
 
-- `scripts/verify_coverage.ps1` ✅ 96.08% (2026-07-24)
-- `web` typecheck ✅
-- Next: `scripts/verify_desktop.ps1` → `publish_desktop_release.ps1 -Version 1.0.0-beta.4`
+- Coverage ✅ 96.08%
+- `verify_desktop.ps1` ✅
+- Windows installer ✅ https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.4
 
 ## Next steps
 
-1. Commit packaging + test fixes; push `master`.
-2. Build/publish Windows installer beta.4 (Setup + `latest.yml`); bump `BETA_DOWNLOAD.md`.
-3. Trigger `desktop-release.yml` macOS job (continue-on-error) and triage DMG failures on Apple Silicon.
-4. Buy EV cert; Apple Developer for Gatekeeper-clean Mac.
+1. Redeploy MkDocs so `BETA_DOWNLOAD` shows beta.4.
+2. Buy EV cert; configure `WINDOWS_CSC_*` secrets.
+3. Run/triage `desktop-release.yml` macOS job on Apple Silicon; notarize when Apple ID ready.
+4. Optional: real app icons (`icon.ico` / `icon.icns`).
 
 ## Key paths
 
-- `scripts/build_desktop_installer.ps1` / `publish_desktop_release.ps1`
-- `scripts/build_desktop_installer_macos.sh` / `download_ffmpeg_macos.sh` / `build_desktop_ui.sh`
-- `.github/workflows/desktop-release.yml`
-- `packaging/installer/{README,MACOS,RELEASE_CHECKLIST}.md`
+- Release: `scripts/publish_desktop_release.ps1`
+- CI: `.github/workflows/desktop-release.yml`
+- Mac: `scripts/build_desktop_installer_macos.sh`, `download_ffmpeg_macos.sh`

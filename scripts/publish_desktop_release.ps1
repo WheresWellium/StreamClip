@@ -60,8 +60,13 @@ Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More in
 Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 "@
 
-$existing = gh release view $tag 2>$null
-if ($LASTEXITCODE -eq 0 -and $existing) {
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+gh release view $tag 1>$null 2>$null
+$releaseExists = $LASTEXITCODE -eq 0
+$ErrorActionPreference = $prevEap
+
+if ($releaseExists) {
     Write-Host "Release $tag exists - uploading assets with --clobber" -ForegroundColor Yellow
     gh release upload $tag @assets --clobber
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -80,23 +85,37 @@ if (-not $NoDocsBump) {
     $docsPath = Join-Path $root "docs\BETA_DOWNLOAD.md"
     if (Test-Path $docsPath) {
         $today = Get-Date -Format "yyyy-MM-dd"
-        $raw = Get-Content $docsPath -Raw
-        if ($raw -notmatch [regex]::Escape($Version)) {
-            $download = "https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe"
-            $bannerLine = "> **Current Windows installer:** ``$Version`` ($today) - [download Setup exe]($download)"
-            $marker = "# Get StreamClip"
-            $idx = $raw.IndexOf($marker)
-            if ($idx -ge 0) {
-                $lineEnd = $raw.IndexOf("`n", $idx)
-                if ($lineEnd -lt 0) { $lineEnd = $raw.Length - 1 }
-                $insertAt = $lineEnd + 1
-                $raw = $raw.Substring(0, $insertAt) + "`n" + $bannerLine + "`n" + $raw.Substring($insertAt)
-            } else {
-                $raw = $bannerLine + "`n`n" + $raw
-            }
-            Set-Content -Path $docsPath -Value $raw -Encoding utf8 -NoNewline
-            Write-Host "Bumped docs/BETA_DOWNLOAD.md to $Version" -ForegroundColor Green
-        }
+        # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
+        $py = @"
+from pathlib import Path
+p = Path(r'$docsPath')
+text = p.read_text(encoding='utf-8')
+version = '$Version'
+if version in text:
+    print('docs already mention version')
+else:
+    today = '$today'
+    banner = f'> **Current Windows installer:** ``{version}`` ({today}) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)\n'
+    lines = text.splitlines(keepends=True)
+    out = []
+    done = False
+    for line in lines:
+        out.append(line)
+        if not done and line.startswith('# Get StreamClip'):
+            nl = '\r\n' if line.endswith('\r\n') else '\n'
+            out.append(nl)
+            out.append(banner.replace('\n', nl))
+            out.append(nl)
+            done = True
+    if done:
+        p.write_text(''.join(out), encoding='utf-8', newline='')
+        print('bumped')
+    else:
+        raise SystemExit('title not found in BETA_DOWNLOAD.md')
+"@
+        $result = $py | python -
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Write-Host "BETA_DOWNLOAD.md: $result" -ForegroundColor Green
     }
 }
 

@@ -1,5 +1,9 @@
 # Get StreamClip — Beta Access
 
+
+> **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)
+
+
 **StreamClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
 
 **New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).

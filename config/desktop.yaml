@@ -11,7 +11,7 @@
 #   set STREAMCLIP_DATABASE__SYNC_URL=sqlite:///C:/path/to/streamclip.db
 
 database:
-  # Workspace-relative DB for dev; production desktop may use %LOCALAPPDATA%/JetStream/
+  # Workspace-relative DB for dev; production desktop uses %LOCALAPPDATA%\StreamClip (or ~/Library/Application Support/StreamClip)
   url: sqlite+aiosqlite:///./workspace/streamclip.db
   sync_url: sqlite:///./workspace/streamclip.db
 

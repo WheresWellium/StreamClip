@@ -43,6 +43,9 @@ async def test_metrics_endpoint(metrics_client, monkeypatch):
             return 3
 
     monkeypatch.setattr(metrics_api, "JobRepository", FakeJobRepo)
+    monkeypatch.setattr(
+        metrics_api, "refresh_support_ticket_metrics", AsyncMock(return_value=None)
+    )
     with patch("core.celery_app.celery_app") as celery:
         celery.control.inspect.return_value.active.return_value = {"w1": [{"id": "t1"}]}
         resp = await metrics_client.get("/metrics")
@@ -61,6 +64,9 @@ async def test_metrics_celery_inspect_failure(metrics_client, monkeypatch):
             return 0
 
     monkeypatch.setattr(metrics_api, "JobRepository", FakeJobRepo)
+    monkeypatch.setattr(
+        metrics_api, "refresh_support_ticket_metrics", AsyncMock(return_value=None)
+    )
     with patch("core.celery_app.celery_app") as celery:
         celery.control.inspect.side_effect = OSError("no broker")
         resp = await metrics_client.get("/metrics")
@@ -95,6 +101,9 @@ async def test_metrics_accepts_valid_api_key(metrics_client, monkeypatch):
             return 0
 
     monkeypatch.setattr(metrics_api, "JobRepository", FakeJobRepo)
+    monkeypatch.setattr(
+        metrics_api, "refresh_support_ticket_metrics", AsyncMock(return_value=None)
+    )
     with patch("core.celery_app.celery_app") as celery:
         celery.control.inspect.return_value.active.return_value = {}
         resp = await metrics_client.get("/metrics", headers={"Authorization": "Bearer secret-key"})

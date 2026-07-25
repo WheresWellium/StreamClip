@@ -1,7 +1,7 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-18
+**Last updated:** 2026-07-24
 
 ## Active chats
 
@@ -9,26 +9,30 @@ None.
 
 ## Current focus
 
-`master` @ `34d6fd2` + follow-up: beta feedback area routing, MASTER_TODO §6.14. `feat/theme-skins` merged with master @ `3bffbbe` — open PR for theme system + ship hardening.
+**Desktop release track** — ship Windows unsigned beta (+ harden macOS CI scaffold) for Mac/Windows testers. Coverage gate green at 96.08%. Packaging/CI gaps fixed; next: rebuild/publish Windows installer `1.0.0-beta.4`.
 
 ## Blockers
 
-- Phase 0 exit (T0 cohort) and EV signing (§4.10) unchanged.
+- EV Authenticode cert (§4.10) — external purchase; unsigned SmartScreen OK for wave‑1.
+- macOS DMG + notarization (§5.2–5.3) — needs Mac host / green `macos-installer` CI + Apple Developer.
+- Phase 0 exit still needs T0 cohort results (§8.16).
 
 ## Validation
 
-- `npm run typecheck` in `web/` on master and theme-skins
-- `scripts/verify_coverage.ps1` + `scripts/verify_stack.ps1` before beta promotion
+- `scripts/verify_coverage.ps1` ✅ 96.08% (2026-07-24)
+- `web` typecheck ✅
+- Next: `scripts/verify_desktop.ps1` → `publish_desktop_release.ps1 -Version 1.0.0-beta.4`
 
 ## Next steps
 
-1. Push `master` and `feat/theme-skins`; open theme-skins PR.
-2. Desktop installer publish after web changes ship to master.
-3. M4 admin ticket UI (optional).
+1. Commit packaging + test fixes; push `master`.
+2. Build/publish Windows installer beta.4 (Setup + `latest.yml`); bump `BETA_DOWNLOAD.md`.
+3. Trigger `desktop-release.yml` macOS job (continue-on-error) and triage DMG failures on Apple Silicon.
+4. Buy EV cert; Apple Developer for Gatekeeper-clean Mac.
 
 ## Key paths
 
-- `web/lib/dev-tools.ts` — external product gate
-- `web/lib/themes.ts` + `globals.css` — theme system (theme-skins branch)
-- `web/components/support/beta-feedback-dialog.tsx` — area + topic routing
-- `core/support/` — M4 ticket lifecycle
+- `scripts/build_desktop_installer.ps1` / `publish_desktop_release.ps1`
+- `scripts/build_desktop_installer_macos.sh` / `download_ffmpeg_macos.sh` / `build_desktop_ui.sh`
+- `.github/workflows/desktop-release.yml`
+- `packaging/installer/{README,MACOS,RELEASE_CHECKLIST}.md`

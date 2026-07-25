@@ -114,9 +114,13 @@ async def test_submit_bug_report_creates_row_and_enqueues_email(client):
 
 @pytest.mark.asyncio
 async def test_submit_bug_report_skips_email_when_smtp_unconfigured(client):
-    with patch("backend.api.support.send_bug_report_email") as email_task, patch(
-        "backend.api.support.send_ops_webhook",
-    ) as ops_task:
+    with patch(
+        "backend.api.support.bug_report_email_status",
+        return_value="skipped_unconfigured",
+    ), patch(
+        "backend.api.support.ops_webhook_status",
+        return_value="skipped_unconfigured",
+    ), patch("backend.api.support.dispatch_task") as dispatch:
         resp = await client.post(
             "/api/support/bug-reports",
             json={
@@ -129,8 +133,7 @@ async def test_submit_bug_report_skips_email_when_smtp_unconfigured(client):
     body = resp.json()
     assert body["email_notification"] == "skipped_unconfigured"
     assert body["ops_notification"] == "skipped_unconfigured"
-    email_task.apply_async.assert_not_called()
-    ops_task.apply_async.assert_not_called()
+    dispatch.assert_not_called()
 
 
 @pytest.mark.asyncio

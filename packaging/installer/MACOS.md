@@ -50,9 +50,8 @@ Expected output:
 
 `apps/desktop/release/StreamClip-mac-arm64.dmg`
 
-Static UI today is built via `scripts/build_desktop_ui.ps1` — on Mac install
-[PowerShell Core](https://github.com/PowerShell/PowerShell) (`pwsh`) or pre-copy
-`static/ui` from a Windows/CI build.
+Static UI is built via `scripts/build_desktop_ui.sh` (no PowerShell required).
+Windows operators can still use `scripts/build_desktop_ui.ps1`.
 
 ### Sidecar binary name
 
@@ -111,8 +110,7 @@ Users open unsigned apps via **right-click → Open** the first time.
 | `APPLE_TEAM_ID` | Team ID |
 
 When these are unset, the script **fails soft** (unsigned DMG). When set, electron-builder
-codesigns with Hardened Runtime (`build/entitlements.mac.plist`) and can notarize if
-Apple ID env is present.
+codesigns with Hardened Runtime and can notarize if Apple ID env is present.
 
 Entitlements live at `apps/desktop/assets/entitlements.mac.plist` (JIT / dyld needed for
 Electron + native ML libs).
@@ -133,9 +131,10 @@ User data: `~/Library/Application Support/StreamClip/` (§5.4).
 
 ## CI note
 
-Windows release job (`.github/workflows/desktop-release.yml`) stays unchanged. A future
-`macos-latest` job should call `build_desktop_installer_macos.sh` without breaking the
-Windows NSIS path.
+`.github/workflows/desktop-release.yml` runs a `macos-installer` job on `macos-latest`
+(arm64-capable runners). It installs `requirements-desktop.txt`, downloads Darwin ffmpeg,
+builds UI via `build_desktop_ui.sh`, and produces a DMG. The job uses
+`continue-on-error: true` until §5.2–5.3 are green so Windows releases are not blocked.
 
 ## Related
 

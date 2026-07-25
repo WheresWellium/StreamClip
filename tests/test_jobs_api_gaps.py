@@ -278,7 +278,7 @@ async def test_update_job_title(jobs_client):
                  source_duration_secs=None, status="queued", progress=0.0,
                  current_stage="queued", created_at=now)
     svc = MagicMock()
-    svc.update_job = AsyncMock(return_value=job)
+    svc.update_job = AsyncMock(return_value=(job, None))
     svc.get_job = AsyncMock(return_value=job)
     svc.to_dto = AsyncMock(return_value=dto)
     with patch.object(jobs_api, "_get_service", return_value=svc):
@@ -287,6 +287,7 @@ async def test_update_job_title(jobs_client):
             json={"display_title": "My title"},
         )
     assert resp.status_code == 200
+    svc.to_dto.assert_awaited_once_with(job, title_audit_id=None)
 
 
 @pytest.mark.asyncio

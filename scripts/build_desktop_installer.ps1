@@ -39,6 +39,19 @@ function Test-DesktopStaticUi {
 
 Write-Host "=== StreamClip desktop installer build ===" -ForegroundColor Cyan
 
+$ffmpegExe = Join-Path $root "bin\ffmpeg\ffmpeg.exe"
+$ffprobeExe = Join-Path $root "bin\ffmpeg\ffprobe.exe"
+if (-not ((Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe))) {
+    Write-Host ""
+    Write-Host "=== ffmpeg binaries missing — downloading ===" -ForegroundColor Cyan
+    & "$PSScriptRoot\download_ffmpeg_windows.ps1"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+if (-not ((Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe))) {
+    Write-Host "ERROR: bin\ffmpeg\ffmpeg.exe and ffprobe.exe required before sidecar build." -ForegroundColor Red
+    exit 1
+}
+
 if (-not $SkipUi) {
     Write-Host ""
     Write-Host "=== Static UI ===" -ForegroundColor Cyan

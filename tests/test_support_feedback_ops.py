@@ -175,7 +175,7 @@ async def test_support_attachment_init_and_bug_report_link(client):
             "/api/support/bug-reports",
             json={
                 "message": "Export button fails after the latest deploy.",
-                "categories": ["export"],
+                "categories": ["other"],
                 "severity": "high",
                 "attachment_ids": [attachment_id],
             },

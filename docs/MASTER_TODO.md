@@ -163,7 +163,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |
-| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` orchestrates UI + sidecar + stage + Setup exe; `sign_windows_artifact.ps1` + operator checklist in `packaging/installer/README.md` (CSC_LINK / CSC_KEY_PASSWORD, `signtool verify`, SmartScreen, CI secrets `WINDOWS_CSC_*`). **Remaining:** purchase EV cert + first signed release; GitHub Releases publish for auto-update | 🟡 | M |
+| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` (auto-fetches ffmpeg, fails closed if missing); `publish_desktop_release.ps1` uploads Setup + `latest.yml`; CI `desktop-release.yml` Node-safe version/signing JSON. **Remaining:** purchase EV cert + first signed release; republish after product changes (`1.0.0-beta.4`) | 🟡 | M |
 | 4.11 | **GPU detection**: ✅ `core/gpu_profile.py` — CUDA + NVENC probes, safe fallbacks in `export_video`/`transcribe`, env defaults in desktop sidecar, `cuda`/`nvenc` in `/api/health/stack`. Config defaults remain CPU/libx264 | 🟢 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
@@ -184,8 +184,8 @@ Real DMG still needs a Mac host (§5.2–5.3).
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 5.1 | ~~ffmpeg with VideoToolbox hw accel~~ ✅ `core/gpu_profile.py` — `videotoolbox_available` + `effective_export_codec` prefers `h264_videotoolbox` on Darwin when NVENC N/A; `export_video` `-q:v` args; `libx264` ultimate fallback; tests mock `is_darwin` | ✅ | — |
-| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — **docs:** scaffold vs Mac-host requirements in `packaging/installer/MACOS.md` / `docs/MACOS_INSTALLER.md`; runtime MPS probe already in `gpu_profile` | 🟡 | M |
-| 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper | 🔴 | M |
+| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — CI scaffold: `desktop-release.yml` macOS job installs `requirements-desktop.txt`, `download_ffmpeg_macos.sh`, `build_desktop_ui.sh` (`continue-on-error` until green). Live MPS/CTranslate2 smoke still needs Mac host | 🟡 | M |
+| 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper — script + entitlements ready; Apple Developer + notarize secrets still external | 🔴 | M |
 | 5.4 | Paths: `~/Library/Application Support/StreamClip`; no `%LOCALAPPDATA%` | 🟢 | S |
 | 5.5 | arm64 Apple Silicon first; universal2 / x86_64 later (documented) | 🟢 | S |
 | 5.6 | In-process worker from 4.2 is cross-platform ✅ (no Memurai/Redis broker required on desktop) | 🟢 | — |

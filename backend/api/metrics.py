@@ -47,7 +47,10 @@ CELERY_TASKS_IN_PROGRESS = Gauge(
 async def _refresh_gauges(db: AsyncSession) -> None:
     jobs = JobRepository(db)
     ACTIVE_JOBS.set(await jobs.count_active())
-    await refresh_support_ticket_metrics(db)
+    try:
+        await refresh_support_ticket_metrics(db)
+    except Exception:
+        log.debug("support_ticket_metrics_refresh_failed", exc_info=True)
     try:
         from core.celery_app import celery_app
 

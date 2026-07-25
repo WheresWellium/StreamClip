@@ -94,21 +94,30 @@ echo "=== StreamClip macOS desktop installer build ==="
 echo "Arch preference: arm64 (Apple Silicon first; universal2 later — §5.5)"
 preflight
 
+# --- ffmpeg (Darwin) ---
+if [[ ! -x "$ROOT/bin/ffmpeg/ffmpeg" || ! -x "$ROOT/bin/ffmpeg/ffprobe" ]]; then
+  echo ""
+  echo "=== ffmpeg binaries missing — downloading ==="
+  chmod +x "$ROOT/scripts/download_ffmpeg_macos.sh"
+  "$ROOT/scripts/download_ffmpeg_macos.sh"
+fi
+if [[ ! -x "$ROOT/bin/ffmpeg/ffmpeg" || ! -x "$ROOT/bin/ffmpeg/ffprobe" ]]; then
+  echo "ERROR: bin/ffmpeg/ffmpeg and ffprobe required before sidecar build." >&2
+  exit 1
+fi
+
 # --- Static UI ---
 if [[ "$SKIP_UI" -eq 0 ]]; then
   echo ""
   echo "=== Static UI ==="
-  if [[ -f "$ROOT/scripts/build_desktop_ui.ps1" ]] && command -v pwsh >/dev/null 2>&1; then
+  if [[ -f "$ROOT/scripts/build_desktop_ui.sh" ]]; then
+    chmod +x "$ROOT/scripts/build_desktop_ui.sh"
+    "$ROOT/scripts/build_desktop_ui.sh"
+  elif [[ -f "$ROOT/scripts/build_desktop_ui.ps1" ]] && command -v pwsh >/dev/null 2>&1; then
     pwsh -File "$ROOT/scripts/build_desktop_ui.ps1"
-  elif [[ -f "$ROOT/scripts/build_desktop_ui.ps1" ]] && command -v powershell >/dev/null 2>&1; then
-    powershell -File "$ROOT/scripts/build_desktop_ui.ps1"
   else
-    echo "NOTE: build_desktop_ui.ps1 needs PowerShell Core (pwsh), or pre-build static/ui." >&2
-    echo "      Falling back: expect static/ui already present." >&2
-    if [[ ! -d "$ROOT/static/ui" ]]; then
-      echo "ERROR: static/ui missing. Install pwsh or run UI build on Windows first." >&2
-      exit 1
-    fi
+    echo "ERROR: static UI build script missing and no fallback." >&2
+    exit 1
   fi
 else
   echo "Skipping static UI build (--skip-ui)."
@@ -123,8 +132,8 @@ if [[ "$SKIP_SIDECAR" -eq 0 ]]; then
     echo "STREAMCLIP_SKIP_PYINSTALLER=1 — skipping PyInstaller."
   else
     if ! command -v pyinstaller >/dev/null 2>&1; then
-      echo "Installing packaging requirements..."
-      python3 -m pip install -r requirements-packaging.txt -q
+      echo "Installing desktop + packaging requirements..."
+      python3 -m pip install -r requirements-desktop.txt -r requirements-packaging.txt -q
     fi
     python3 -m PyInstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
   fi

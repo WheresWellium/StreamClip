@@ -1,19 +1,25 @@
 # Build Windows installer locally and optionally upload to GitHub Releases.
+# Also uploads latest.yml (electron-updater) when present and bumps BETA_DOWNLOAD.md.
 param(
-    [string]$Version = "1.0.0-beta.2",
+    [string]$Version = "1.0.0-beta.4",
     [switch]$SkipBuild,
-    [switch]$PublishOnly
+    [switch]$PublishOnly,
+    [switch]$NoDocsBump
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$installer = Join-Path $root "apps\desktop\release\StreamClip-Setup-win-x64.exe"
+$releaseDir = Join-Path $root "apps\desktop\release"
+$installer = Join-Path $releaseDir "StreamClip-Setup-win-x64.exe"
+$latestYml = Join-Path $releaseDir "latest.yml"
 
-if (-not $PublishOnly) {
+if (-not $PublishOnly -and -not $SkipBuild) {
     Write-Host "=== Building StreamClip Windows installer ===" -ForegroundColor Cyan
     & "$PSScriptRoot\build_desktop_installer.ps1"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} elseif ($SkipBuild -and -not $PublishOnly) {
+    Write-Host "Skipping build (-SkipBuild); publishing existing installer if present." -ForegroundColor Yellow
 }
 
 if (-not (Test-Path $installer)) {
@@ -24,6 +30,11 @@ $mb = [math]::Round((Get-Item $installer).Length / 1MB)
 Write-Host ""
 Write-Host "Installer ready ($mb MB):" -ForegroundColor Green
 Write-Host "  $installer"
+if (Test-Path $latestYml) {
+    Write-Host "  $latestYml"
+} else {
+    Write-Host "WARNING: latest.yml missing — electron-updater auto-update metadata will not ship." -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColor Cyan
 Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe"
@@ -39,18 +50,48 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 }
 
 $tag = "v$Version"
+$assets = @($installer)
+if (Test-Path $latestYml) { $assets += $latestYml }
+
 Write-Host "Publishing release $tag ..." -ForegroundColor Cyan
 $releaseNotes = @"
-Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway.
+Windows 64-bit installer. SmartScreen may warn on unsigned beta builds — More info → Run anyway.
 
 Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 "@
-gh release create $tag $installer `
-    --title "StreamClip $tag" `
-    --notes $releaseNotes
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Release failed. If tag exists, use: gh release upload $tag `"$installer`" --clobber" -ForegroundColor Yellow
-    exit $LASTEXITCODE
+
+$existing = gh release view $tag 2>$null
+if ($LASTEXITCODE -eq 0 -and $existing) {
+    Write-Host "Release $tag exists — uploading assets with --clobber" -ForegroundColor Yellow
+    gh release upload $tag @assets --clobber
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} else {
+    gh release create $tag @assets `
+        --title "StreamClip $tag" `
+        --notes $releaseNotes `
+        --latest
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Release create failed. Retry upload: gh release upload $tag `"$installer`" --clobber" -ForegroundColor Yellow
+        exit $LASTEXITCODE
+    }
+}
+
+if (-not $NoDocsBump) {
+    $docsPath = Join-Path $root "docs\BETA_DOWNLOAD.md"
+    if (Test-Path $docsPath) {
+        $today = Get-Date -Format "yyyy-MM-dd"
+        $raw = Get-Content $docsPath -Raw
+        if ($raw -notmatch [regex]::Escape($Version)) {
+            $banner = "> **Current Windows installer:** ``$Version`` ($today) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)`r`n`r`n"
+            if ($raw -match '(?m)^# Get StreamClip') {
+                $raw = $raw -replace '(?m)^(#[^\r\n]+)\r?\n', "`$1`r`n`r`n$banner"
+            } else {
+                $raw = $banner + $raw
+            }
+            Set-Content -Path $docsPath -Value $raw -Encoding utf8 -NoNewline
+            Write-Host "Bumped docs/BETA_DOWNLOAD.md to $Version" -ForegroundColor Green
+        }
+    }
 }
 
 Write-Host "Published. Download link is live on BETA_DOWNLOAD.md." -ForegroundColor Green

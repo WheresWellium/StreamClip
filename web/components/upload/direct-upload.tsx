@@ -117,8 +117,8 @@ export function DirectUpload({
         type="file"
         accept={
           allowAudio
-            ? "video/mp4,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/flac"
-            : "video/mp4,video/quicktime,video/x-matroska"
+            ? "video/mp4,video/quicktime,video/webm,video/x-matroska,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/flac"
+            : "video/mp4,video/quicktime,video/webm,video/x-matroska"
         }
         className="absolute inset-0 cursor-pointer opacity-0"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}

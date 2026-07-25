@@ -32,7 +32,7 @@ Before terminal commands:
 | 6 | `nvidia-smi` fails in worker | GPU not shared with containers | Docker Desktop → Resources → GPU; update NVIDIA drivers; restart Docker |
 | 7 | SSE progress frozen | Browser tab backgrounded; api restart | Refresh page; check api logs; UI falls back to polling after ~20 s |
 | 8 | License key rejected | Wrong format; typo | Paste full key including dashes (`SCPRO-…`); under **Settings → License**, use **Show details** on **This install** if support asks |
-| 9 | YouTube OAuth redirect error | Redirect URI mismatch | Google Console URI must match `WEB_ORIGIN` + `/api/distribution/oauth/youtube/callback` |
+| 9 | YouTube OAuth redirect error | Redirect URI mismatch | Google Console URI must match `WEB_ORIGIN` + `/api/distribution/oauth/youtube_shorts/callback` (Docker: `http://localhost:3000…`; desktop: `http://127.0.0.1:8765…`) |
 | 10 | Publish fails immediately | Token expired; quota; clip not approved | Reconnect YouTube; approve clip; check Distribution → Queue error message |
 | 11 | Vault save fails | Quota exceeded | Delete old vault clips; activate beta key for higher limit |
 | 12 | TikTok "inbox only" | Beta scope limitation | **Not a bug** — finish post in TikTok app. See [Known issues](../BETA_KNOWN_ISSUES.md) |

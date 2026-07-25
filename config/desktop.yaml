@@ -48,3 +48,12 @@ rate_limit:
 web:
   serve_static: true
   static_dir: static/ui
+
+# Social distribution (OAuth redirects must match the Electron UI origin).
+# Generate Fernet key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+#   set STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY=...
+distribution:
+  web_origin: http://127.0.0.1:8765
+  youtube_publish_enabled: true
+  # Keep off until TikTok developer app audit grants video.publish / inbox approval.
+  tiktok_publish_enabled: false

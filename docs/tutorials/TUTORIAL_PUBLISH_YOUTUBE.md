@@ -28,7 +28,8 @@ Skip this if you're testing on localhost with the bundled dev config.
 3. Add authorized redirect URI:
 
    ```
-   http://localhost:3000/api/distribution/oauth/youtube/callback
+   http://localhost:3000/api/distribution/oauth/youtube_shorts/callback
+   # Desktop installer (Electron): http://127.0.0.1:8765/api/distribution/oauth/youtube_shorts/callback
    ```
 
    For hosted installs, replace `localhost:3000` with your `WEB_ORIGIN`.

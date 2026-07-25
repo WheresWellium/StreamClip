@@ -9,7 +9,8 @@
 
 | Area | Behavior |
 |------|----------|
-| TikTok | **Inbox upload only** until app audit grants `video.publish` scope; finish posting in TikTok app |
+| TikTok | **Off by default** (`TIKTOK_PUBLISH_ENABLED=false`). When enabled: **inbox upload only** until app audit grants `video.publish`; finish posting in TikTok app |
+| YouTube Shorts | **Supported** with BYO Google OAuth app + Fernet `TOKEN_ENCRYPTION_KEY` + Pro/install license + clip **approved**. Desktop OAuth URI must use `http://127.0.0.1:8765/.../youtube_shorts/callback` |
 | Instagram | **Not supported** — no Reels adapter in beta |
 | Cloud multi-tenant | **Not supported** — stub removed; self-host / desktop only (see `docs/cloud-deploy.md` design notes) |
 | Commerce | Lemon Squeezy one-time keys; license email on `order_created` fallback ✅ (`MASTER_TODO` §2.3, `tests/test_license_hardening.py`) |
@@ -49,6 +50,8 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
 - Auto-update is a **stub** — manual reinstall until §4.10 / §5
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
+- **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir. Docker/MinIO uses a single browser PUT (no resume) — flaky networks may need a retry
+- **Distribution on desktop** requires `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` (Fernet). `config/desktop.yaml` sets `web_origin` to `http://127.0.0.1:8765` for OAuth redirects
 
 ## Reporting bugs
 

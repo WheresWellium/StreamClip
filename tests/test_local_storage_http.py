@@ -86,13 +86,40 @@ async def test_local_storage_put_oserror(local_storage_env, monkeypatch):
     app = create_app()
     transport = ASGITransport(app=app)
 
-    def boom(self, data):  # noqa: ANN001
+    def boom(self, *args, **kwargs):  # noqa: ANN001
         raise OSError("disk full")
 
-    monkeypatch.setattr(Path, "write_bytes", boom)
+    monkeypatch.setattr(Path, "open", boom)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.put("/storage/uploads/fail.bin?upload=1", content=b"x")
     assert resp.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_local_storage_put_rejects_over_max(local_storage_env, monkeypatch):
+    cfg, root = local_storage_env
+    monkeypatch.setattr(cfg.storage, "max_upload_bytes", 16)
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        too_big = await client.put(
+            "/storage/uploads/over.bin?upload=1",
+            content=b"x" * 32,
+            headers={"Content-Length": "32"},
+        )
+        assert too_big.status_code == 413
+
+        ok = await client.put(
+            "/storage/uploads/ok.bin?upload=1",
+            content=b"x" * 8,
+            headers={"Content-Length": "8"},
+        )
+        assert ok.status_code == 200
+
+    assert not (root / "uploads" / "over.bin").exists()
+    assert not list(root.rglob("*.partial"))
+    assert (root / "uploads" / "ok.bin").exists()
 
 
 @pytest.mark.asyncio

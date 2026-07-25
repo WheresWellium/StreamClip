@@ -1,4 +1,4 @@
-# Build the StreamClip Windows desktop installer (ADR-001 §4.10).
+# Build the StreamClip Windows desktop installer (ADR-001 section 4.10).
 #
 # Pipeline: static UI -> PyInstaller sidecar -> stage -> electron-builder (NSIS).
 # Code signing (optional): set CSC_LINK (path to .pfx) and CSC_KEY_PASSWORD.
@@ -27,11 +27,11 @@ function Test-DesktopStaticUi {
     $uiIndex = Join-Path $root "static\ui\index.html"
     $uiNext = Join-Path $root "static\ui\_next"
     if (-not (Test-Path $uiIndex)) {
-        Write-Host "ERROR: static/ui/index.html missing — UI build failed or was skipped." -ForegroundColor Red
+        Write-Host "ERROR: static/ui/index.html missing - UI build failed or was skipped." -ForegroundColor Red
         exit 1
     }
     if (-not (Test-Path $uiNext)) {
-        Write-Host "ERROR: static/ui/_next missing — static export incomplete." -ForegroundColor Red
+        Write-Host "ERROR: static/ui/_next missing - static export incomplete." -ForegroundColor Red
         exit 1
     }
     Write-Host "Static UI OK" -ForegroundColor Green
@@ -43,7 +43,7 @@ $ffmpegExe = Join-Path $root "bin\ffmpeg\ffmpeg.exe"
 $ffprobeExe = Join-Path $root "bin\ffmpeg\ffprobe.exe"
 if (-not ((Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe))) {
     Write-Host ""
-    Write-Host "=== ffmpeg binaries missing — downloading ===" -ForegroundColor Cyan
+    Write-Host "=== ffmpeg binaries missing - downloading ===" -ForegroundColor Cyan
     & "$PSScriptRoot\download_ffmpeg_windows.ps1"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
@@ -113,7 +113,7 @@ if (-not $setup) {
 if ($setup) {
     $setupMB = [math]::Round($setup.Length / 1MB)
     if ($setupMB -lt 50) {
-        Write-Host ("ERROR: Installer suspiciously small ({0} MB) - bundle may be incomplete." -f $setupMB) -ForegroundColor Red
+        Write-Host ('ERROR: Installer suspiciously small ({0} MB) - bundle may be incomplete.' -f $setupMB) -ForegroundColor Red
         exit 1
     }
     Write-Host ""

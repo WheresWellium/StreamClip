@@ -1,20 +1,21 @@
 ---
 name: streamclip-copy-messaging
 description: >-
-  Authors and reviews StreamClip / Jet Stream product copy and UX messaging.
+  Authors and reviews qClip product copy and UX messaging.
   Positions the product as an all-in-one clip studio for any creator — long,
   medium, or short form — with auto-reframe to any aspect ratio and comparative
   virality scores. Use when editing hero headlines, onboarding, create-job form,
   legends, tooltips, or any user-facing text that frames who the product is for.
 ---
 
-# StreamClip Copy & Messaging
+# qClip Copy & Messaging
 
-Product UI brand: **Jet Stream**. Repo / docs may still say StreamClip — keep UI-facing copy on Jet Stream unless the user asks otherwise.
+Product UI brand: **qClip**. Never use StreamClip or Jet Stream in user-facing copy.
+Internal package/module names may still say streamclip.
 
 ## Product positioning
 
-Jet Stream is the **all-in-one clip studio for creators** — not a “viral shorts factory” and not a streamers-only tool.
+qClip is the **all-in-one clip studio for creators** — not a “viral shorts factory” and not a streamers-only tool.
 
 It helps anyone who makes video (podcasts, uploads, VODs, streams, short clips) **cut the good parts, reframe to any aspect ratio, and rank what to ship first**. Virality score is a **comparative performance signal** across your clips for a platform — not a promise that something will go viral.
 

@@ -12,6 +12,7 @@ from backend.db.repositories import JobTemplateRepository
 from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from backend.services.quota import resolve_user_limits
 from core.errors import StreamClipError
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
@@ -43,10 +44,11 @@ async def create_template(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> JobTemplateOut:
     repo = JobTemplateRepository(db)
+    limits = await resolve_user_limits(db, user_id)
     templates = await repo.list_for_user(user_id)
-    if len(templates) >= 20:
+    if len(templates) >= limits.max_templates:
         raise StreamClipError(
-            "Template limit reached (20)",
+            f"Template limit reached ({limits.max_templates})",
             user_message="Delete an existing template before saving a new one.",
         )
     tpl = await repo.create(user_id, body.name, body.config_json)

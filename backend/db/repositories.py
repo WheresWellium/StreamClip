@@ -502,6 +502,31 @@ class ClipFeedbackRepository:
 
 # ─── User repository ─────────────────────────────────────────────────────────
 
+QUOTA_PERIOD_DAYS = 30
+
+
+def roll_quota_period(user: User, *, now: datetime | None = None) -> bool:
+    """Reset monthly counters when the user's quota period has lapsed.
+
+    Counters are rolled lazily rather than by a scheduled task so desktop
+    installs — which have no always-on scheduler — expire quotas exactly like
+    the server profile. Returns True when a reset happened.
+    """
+    moment = now or datetime.now(timezone.utc)
+    started = user.quota_period_start
+    if started is None:
+        user.quota_period_start = moment
+        return False
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=timezone.utc)
+    if (moment - started).days < QUOTA_PERIOD_DAYS:
+        return False
+    user.jobs_used_this_month = 0
+    user.minutes_processed_this_month = 0.0
+    user.quota_period_start = moment
+    return True
+
+
 class UserRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -521,15 +546,24 @@ class UserRepository:
         await self.db.flush()
         return user
 
+    async def get_with_fresh_quota(self, user_id: str) -> User | None:
+        """Load a user with monthly counters rolled over if the period lapsed."""
+        user = await self.get(user_id)
+        if user is not None:
+            roll_quota_period(user)
+        return user
+
     async def increment_jobs_used(self, user_id: str) -> None:
         user = await self.get(user_id)
         if user:
+            roll_quota_period(user)
             user.jobs_used_this_month += 1
             await self.db.flush()
 
     async def increment_minutes_processed(self, user_id: str, minutes: float) -> None:
         user = await self.get(user_id)
         if user:
+            roll_quota_period(user)
             user.minutes_processed_this_month += max(0.0, minutes)
             await self.db.flush()
 

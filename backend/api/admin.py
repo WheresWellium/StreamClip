@@ -29,7 +29,9 @@ from backend.db.repositories import (
 from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from core.config import get_settings
 from core.errors import StreamClipError
+from core.licensing import renewal_window_days
 from core.support.metrics import refresh_support_ticket_metrics
 from core.support.ticket_lifecycle import (
     UNSET,
@@ -194,12 +196,13 @@ async def revoke_license(
         already_revoked=already,
         hash_prefix=lic.license_key_hash[:12],
     )
+    cfg = get_settings()
     return {
         "license_id": license_id,
         "status": "revoked",
         "note": (
-            "Issued entitlement JWTs remain valid until their exp claim. "
-            "A jti blocklist is required to invalidate them immediately — "
-            "see BETA_KNOWN_ISSUES.md."
+            "The linked account is downgraded immediately. An install that is "
+            "already running keeps its entitlement token until it re-verifies, "
+            f"at most {renewal_window_days(cfg)} day(s)."
         ),
     }

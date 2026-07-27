@@ -1,4 +1,4 @@
-# Jet Stream docs
+# qClip docs
 
 **StreamClip** turns long videos into short vertical clips on **your own computer**. Nothing is uploaded to our servers unless you choose to publish to YouTube or TikTok.
 

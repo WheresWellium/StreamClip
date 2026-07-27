@@ -18,7 +18,13 @@ from backend.db.models import InstallLicense, User, UserTier
 from backend.db.session import get_sessionmaker
 from core.commerce.lemon_squeezy_client import LSActivateResult
 from core.config import get_settings
-from core.licensing import PERPETUAL_DAYS, activate_license_key, hash_license_key
+from core.licensing import (
+    PERPETUAL_DAYS,
+    activate_license_key,
+    hash_license_key,
+    license_is_perpetual,
+    renewal_window_days,
+)
 from test_license_chain import FakeLicenseRepo, _sign as chain_sign, license_env
 
 WEBHOOK_SECRET = "hardening-test-secret"
@@ -66,6 +72,9 @@ async def _seed_license(**overrides) -> str:
 
 
 # ─── Perpetual entitlement ────────────────────────────────────────────────────
+#
+# `license_expires_at` is the end of the purchase; `expires_at` is only the
+# token's re-verification deadline, which is what makes revocation effective.
 
 def test_activation_issues_perpetual_entitlement_by_default(tmp_path):
     cfg = get_settings()
@@ -78,8 +87,27 @@ def test_activation_issues_perpetual_entitlement_by_default(tmp_path):
             "SCPRO-AAAA-BBBB-CCCC-DDDD", "machine-1", tier=UserTier.PRO, cfg=cfg,
         )
         horizon = datetime.now(timezone.utc) + timedelta(days=PERPETUAL_DAYS - 30)
-        assert ent.expires_at is not None
-        assert ent.expires_at > horizon  # effectively perpetual (~100 years)
+        assert ent.license_expires_at is not None
+        assert ent.license_expires_at > horizon  # effectively perpetual (~100 years)
+        assert license_is_perpetual(ent)
+    finally:
+        cfg.licensing.license_file = old_file
+        cfg.licensing.entitlement_days = old_days
+
+
+def test_perpetual_token_still_expires_within_the_renewal_window(tmp_path):
+    cfg = get_settings()
+    old_file = cfg.licensing.license_file
+    old_days = cfg.licensing.entitlement_days
+    cfg.licensing.license_file = tmp_path / "license.json"
+    cfg.licensing.entitlement_days = 0
+    try:
+        _, ent = activate_license_key(
+            "SCPRO-AAAA-BBBB-CCCC-DDDD", "machine-1", tier=UserTier.PRO, cfg=cfg,
+        )
+        window = timedelta(days=renewal_window_days(cfg))
+        delta = ent.expires_at - datetime.now(timezone.utc)
+        assert timedelta(0) < delta <= window
     finally:
         cfg.licensing.license_file = old_file
         cfg.licensing.entitlement_days = old_days
@@ -95,11 +123,29 @@ def test_activation_honors_subscription_days(tmp_path):
         _, ent = activate_license_key(
             "SCPRO-EEEE-FFFF-GGGG-HHHH", "machine-2", tier=UserTier.PRO, cfg=cfg,
         )
-        delta = ent.expires_at - datetime.now(timezone.utc)
+        delta = ent.license_expires_at - datetime.now(timezone.utc)
         assert timedelta(days=29) < delta < timedelta(days=31)
+        assert not license_is_perpetual(ent)
     finally:
         cfg.licensing.license_file = old_file
         cfg.licensing.entitlement_days = old_days
+
+
+def test_entitlement_token_carries_a_unique_id(tmp_path):
+    cfg = get_settings()
+    old_file = cfg.licensing.license_file
+    cfg.licensing.license_file = tmp_path / "license.json"
+    try:
+        _, first = activate_license_key(
+            "SCPRO-1111-2222-3333-4444", "machine-3", tier=UserTier.PRO, cfg=cfg,
+        )
+        _, second = activate_license_key(
+            "SCPRO-1111-2222-3333-4444", "machine-3", tier=UserTier.PRO, cfg=cfg,
+        )
+        assert first.token_id and second.token_id
+        assert first.token_id != second.token_id
+    finally:
+        cfg.licensing.license_file = old_file
 
 
 # ─── Hash collision retry ─────────────────────────────────────────────────────

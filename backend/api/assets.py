@@ -12,6 +12,7 @@ from backend.db.repositories import AssetRepository
 from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id, require_user_id
 from backend.middleware.rate_limit import rate_limit_request
+from backend.services.quota import resolve_user_limits
 from core.errors import StreamClipError
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -43,10 +44,11 @@ async def create_asset(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> AssetOut:
     repo = AssetRepository(db)
+    limits = await resolve_user_limits(db, user_id)
     owned = [a for a in await repo.list_for_user(user_id) if a.owner_id == user_id]
-    if len(owned) >= 50:
+    if len(owned) >= limits.max_assets:
         raise StreamClipError(
-            "Asset limit reached (50)",
+            f"Asset limit reached ({limits.max_assets})",
             user_message="Remove unused assets before uploading more.",
             code="asset_limit",
             http_status=400,

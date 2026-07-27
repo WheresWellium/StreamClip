@@ -128,6 +128,16 @@
       );
   }
 
+  /* Electron frameless window: drag the header; keep controls clickable. */
+  .desktop-titlebar-drag {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .desktop-titlebar-no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
   /* Legacy glow alias — now a flat white frame emphasis. */
   .sky-glow {
     box-shadow: 3px 3px 0 0 hsl(186 60% 3% / 0.9);

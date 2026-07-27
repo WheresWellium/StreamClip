@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qClip</title>
+    <style>
+      :root {
+        --bg0: #0b1220;
+        --bg1: #122033;
+        --fg: #e8eef7;
+        --muted: #9aa8bc;
+        --accent: #38bdf8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+        color: var(--fg);
+        background: radial-gradient(120% 80% at 50% 0%, #1a2b44 0%, var(--bg0) 55%, #070b12 100%);
+      }
+      .wrap {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        padding: 2rem;
+        text-align: center;
+        -webkit-app-region: drag;
+      }
+      .mark {
+        width: 56px;
+        height: 56px;
+        border: 2px solid var(--accent);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 1.75rem;
+        letter-spacing: -0.04em;
+        color: var(--accent);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .brand {
+        font-size: 1.75rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      .phase {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        min-height: 1.4em;
+      }
+      .bar {
+        width: min(280px, 70vw);
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+        border-radius: 999px;
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        width: 35%;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        animation: slide 1.2s ease-in-out infinite;
+      }
+      @keyframes slide {
+        0% {
+          transform: translateX(-120%);
+        }
+        100% {
+          transform: translateX(320%);
+        }
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="mark" aria-hidden="true">q</div>
+      <h1 class="brand">qClip</h1>
+      <p class="phase" id="phase">Starting local engine</p>
+      <div class="bar" aria-hidden="true"><span></span></div>
+    </div>
+    <script>
+      const phases = [
+        "Starting local engine",
+        "Preparing your workspace",
+        "Ready",
+      ];
+      const el = document.getElementById("phase");
+      let i = 0;
+      window.qclipSetPhase = function (label) {
+        if (el && label) el.textContent = label;
+      };
+      // Soft cycle until main process overrides via executeJavaScript
+      setInterval(function () {
+        if (!window.__qclipPhaseLocked) {
+          i = (i + 1) % (phases.length - 1);
+          el.textContent = phases[i];
+        }
+      }, 2200);
+    </script>
+  </body>
+</html>

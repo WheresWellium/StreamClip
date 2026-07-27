@@ -1,13 +1,19 @@
-"""Self-hosted license activation and entitlement verification."""
+"""Self-hosted license activation and entitlement verification.
+
+A purchase is perpetual, but the *token* that proves it is deliberately
+short-lived. The install renews it against the issuing records while the
+license is still valid, so revoking a key stops working within one renewal
+window instead of remaining valid for the life of the JWT.
+"""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
 
 import jwt
 
@@ -21,6 +27,10 @@ class Entitlement:
     machine_id: str
     expires_at: datetime | None
     license_key_hash: str
+    # Absolute end of the purchase (None = perpetual). Distinct from the
+    # token's own `exp`, which is only the re-verification deadline.
+    license_expires_at: datetime | None = None
+    token_id: str = ""
 
 
 def hash_license_key(license_key: str) -> str:
@@ -28,8 +38,18 @@ def hash_license_key(license_key: str) -> str:
 
 
 # One-time purchases promise a perpetual entitlement (MASTER_TODO §8.6).
-# JWT requires a numeric exp, so "perpetual" is a 100-year horizon.
+# JWT requires a numeric exp, so "perpetual" is a 100-year horizon on the
+# licence itself; the token still expires on the renewal window below.
 PERPETUAL_DAYS = 36500
+
+
+def renewal_window_days(cfg: Settings) -> int:
+    """How long a token stays usable before the install must re-verify.
+
+    Mirrors the offline grace period: a user can stay offline that long and
+    keep working, but a revoked key cannot outlive the window.
+    """
+    return max(1, int(cfg.licensing.offline_grace_days))
 
 
 def create_entitlement_token(
@@ -42,19 +62,19 @@ def create_entitlement_token(
 ) -> str:
     cfg = cfg or get_settings()
     now = datetime.now(timezone.utc)
-    exp = expires_at or (now + timedelta(days=PERPETUAL_DAYS))
+    license_exp = expires_at or (now + timedelta(days=PERPETUAL_DAYS))
+    # The token expires at the renewal deadline, never past the licence end.
+    token_exp = min(license_exp, now + timedelta(days=renewal_window_days(cfg)))
     payload = {
         "type": "entitlement",
         "tier": tier.value,
         "machine_id": machine_id,
         "license_key_hash": license_key_hash,
+        "license_exp": int(license_exp.timestamp()),
+        "jti": uuid.uuid4().hex,
         "iat": now,
-        "exp": exp,
+        "exp": token_exp,
     }
-    # TODO: implement jti blocklist for revoke — no jti claim is included here,
-    # so revoking a license does not invalidate the issued JWT until it expires
-    # naturally (up to 100 years for perpetual purchases). A Redis jti set keyed
-    # by license_key_hash would allow instant revocation without key rotation.
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 
@@ -70,11 +90,17 @@ def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | Non
         raise ValueError("License bound to a different machine")
     exp = payload.get("exp")
     expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else None
+    license_exp = payload.get("license_exp")
+    license_expires_at = (
+        datetime.fromtimestamp(license_exp, tz=timezone.utc) if license_exp else None
+    )
     return Entitlement(
         tier=UserTier(payload["tier"]),
         machine_id=machine_id,
         expires_at=expires_at,
         license_key_hash=payload["license_key_hash"],
+        license_expires_at=license_expires_at,
+        token_id=str(payload.get("jti") or ""),
     )
 
 
@@ -105,14 +131,20 @@ def activate_license_key(
         cfg=cfg,
     )
     entitlement = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
-    _persist_license_file(token, cfg)
+    persist_entitlement_token(token, cfg)
     return token, entitlement
 
 
-def _persist_license_file(token: str, cfg: Settings) -> None:
+def persist_entitlement_token(token: str, cfg: Settings | None = None) -> None:
+    """Write the entitlement token this install should present from now on."""
+    cfg = cfg or get_settings()
     path = cfg.licensing.license_file
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"entitlement_jwt": token}, indent=2), encoding="utf-8")
+
+
+# Retained for existing callers/tests that import the original private name.
+_persist_license_file = persist_entitlement_token
 
 
 def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:
@@ -125,6 +157,24 @@ def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:
     except (json.JSONDecodeError, OSError):
         return None
     return data.get("entitlement_jwt")
+
+
+def clear_persisted_entitlement(cfg: Settings | None = None) -> None:
+    """Drop the local token so a revoked install falls back to FREE at once."""
+    cfg = cfg or get_settings()
+    path = cfg.licensing.license_file
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def license_is_perpetual(entitlement: Entitlement) -> bool:
+    """True when the purchase has no real end date (one-time purchase)."""
+    if entitlement.license_expires_at is None:
+        return True
+    horizon = datetime.now(timezone.utc) + timedelta(days=PERPETUAL_DAYS - 365)
+    return entitlement.license_expires_at > horizon
 
 
 def get_install_tier(machine_id: str, cfg: Settings | None = None) -> UserTier:

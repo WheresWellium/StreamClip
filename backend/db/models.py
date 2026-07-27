@@ -131,9 +131,13 @@ class User(Base, IDMixin, TimestampMixin):
     # API integrations
     twitch_user_id: Mapped[str | None] = mapped_column(String(64), index=True)
 
-    # Quotas
+    # Quotas. Counters are scoped to quota_period_start; a rollover past the
+    # period resets them lazily on next read/increment (see UserRepository).
     jobs_used_this_month: Mapped[int] = mapped_column(Integer, default=0)
     minutes_processed_this_month: Mapped[float] = mapped_column(Float, default=0.0)
+    quota_period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
 
     # Per-user webhook overrides (SaaS / power users)
     webhook_url: Mapped[str | None] = mapped_column(String(512))

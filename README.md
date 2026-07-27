@@ -1,6 +1,6 @@
-# Jet Stream
+# qClip
 
-*(formerly StreamClip — internal identifiers, env vars, and Docker services keep the `streamclip` name.)*
+*(Internal identifiers, env vars, Docker services, and GitHub repo may still use `streamclip` / StreamClip.)*
 
 **Clip any length. Frame any ratio. Rank what wins.**
 

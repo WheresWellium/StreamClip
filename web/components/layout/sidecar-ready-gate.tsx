@@ -46,7 +46,7 @@ export function SidecarReadyGate({ children }: { children: React.ReactNode }) {
           aria-hidden
         />
         <div>
-          <p className="font-medium text-foreground">Starting StreamClip…</p>
+          <p className="font-medium text-foreground">Starting qClip…</p>
           <p className="text-sm text-muted-foreground mt-1">
             Waiting for the local engine
             {attempt > 1 ? ` (${attempt}/${MAX_ATTEMPTS})` : ""}

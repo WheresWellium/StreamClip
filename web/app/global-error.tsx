@@ -16,7 +16,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-8">
-        <h1 className="text-xl font-semibold mb-2">StreamClip hit an error</h1>
+        <h1 className="text-xl font-semibold mb-2">qClip hit an error</h1>
         <p className="text-sm text-muted-foreground max-w-md text-center mb-6">
           Refresh the page or restart the app. If this keeps happening, use Report a bug
           from the header.

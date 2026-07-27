@@ -155,7 +155,7 @@ export function BetaFeedbackDialog({
 
   async function handleSubmit() {
     if (!area) {
-      setError("Pick the part of StreamClip this is about.");
+      setError("Pick the part of qClip this is about.");
       return;
     }
     setPending(true);

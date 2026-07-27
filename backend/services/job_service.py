@@ -111,7 +111,7 @@ class JobService:
         # Per-minute Redis rate limiting stays in backend/middleware/rate_limit.py
         # and remains gated on cfg.rate_limit.enabled.
         if owner_id:
-            user = await self.users.get(owner_id)
+            user = await self.users.get_with_fresh_quota(owner_id)
             if user:
                 limits = get_tier_limits(user.tier)
                 if user.jobs_used_this_month >= limits.max_jobs_per_month:

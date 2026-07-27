@@ -1,10 +1,11 @@
-# Get StreamClip — Beta Access
+# Get qClip — Beta Access
 
 
 > **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)
+> *(Next publish ships as `qClip-Setup-win-x64.exe`; beta.4 artifact name remains StreamClip until republished.)*
 
 
-**StreamClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
+**qClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
 
 **New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
 
@@ -276,4 +277,4 @@ See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users shoul
 
 ---
 
-*Jet Stream / StreamClip · Phase 0 creator beta · [Known issues](BETA_KNOWN_ISSUES.md) · [Full quickstart](BETA_TESTER_QUICKSTART.md)*
+*qClip · Phase 0 creator beta · [Known issues](BETA_KNOWN_ISSUES.md) · [Full quickstart](BETA_TESTER_QUICKSTART.md)*

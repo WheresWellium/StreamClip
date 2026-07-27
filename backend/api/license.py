@@ -6,6 +6,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
@@ -13,6 +14,7 @@ from backend.api.schemas import (
     LicenseActivateResponse,
     LicenseStatusOut,
 )
+from backend.db.models import InstallLicense
 from backend.db.repositories import InstallLicenseRepository, UserRepository
 from backend.db.session import get_db
 from backend.middleware.auth import get_current_user_id
@@ -28,9 +30,13 @@ from core.errors import (
 )
 from core.licensing import (
     activate_license_key,
+    clear_persisted_entitlement,
+    create_entitlement_token,
     get_install_tier,
     hash_license_key,
+    license_is_perpetual,
     load_persisted_entitlement,
+    persist_entitlement_token,
     verify_entitlement_token,
 )
 
@@ -154,18 +160,74 @@ async def activate_license(
 )
 async def license_status(
     machine_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> LicenseStatusOut:
+    """Report the local entitlement, re-verifying it against issued records.
+
+    Tokens are deliberately short-lived: this endpoint renews a still-valid
+    licence and tears down a revoked one, so revocation takes effect within a
+    renewal window instead of lasting for the life of the JWT.
+    """
     cfg = get_settings()
     token = load_persisted_entitlement(cfg)
     if not token:
         return LicenseStatusOut(active=False, tier=get_install_tier(machine_id, cfg).value)
+
     try:
         ent = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
-        return LicenseStatusOut(
-            active=True,
-            tier=ent.tier.value,
-            expires_at=ent.expires_at,
-            machine_id=ent.machine_id,
-        )
     except ValueError:
+        # Expired or malformed: fall back to the issued records if we can.
+        renewed = await _renew_from_records(db, machine_id, cfg)
+        if renewed is not None:
+            return renewed
         return LicenseStatusOut(active=False, tier="free")
+
+    lic = await InstallLicenseRepository(db).get_by_key_hash(ent.license_key_hash)
+    if lic is not None and lic.status == "revoked":
+        clear_persisted_entitlement(cfg)
+        log.info("license_status_revoked", hash_prefix=ent.license_key_hash[:12])
+        return LicenseStatusOut(active=False, tier="free", revoked=True)
+
+    return LicenseStatusOut(
+        active=True,
+        tier=ent.tier.value,
+        expires_at=ent.expires_at,
+        machine_id=ent.machine_id,
+        perpetual=license_is_perpetual(ent),
+    )
+
+
+async def _renew_from_records(
+    db: AsyncSession,
+    machine_id: str,
+    cfg,
+) -> LicenseStatusOut | None:
+    """Re-issue a token for a machine whose licence is still activated."""
+    result = await db.execute(
+        select(InstallLicense).where(
+            InstallLicense.machine_id == machine_id,
+            InstallLicense.status == "activated",
+        ).limit(1),
+    )
+    lic = result.scalar_one_or_none()
+    if lic is None:
+        clear_persisted_entitlement(cfg)
+        return None
+
+    token = create_entitlement_token(
+        tier=lic.tier,
+        machine_id=machine_id,
+        license_key_hash=lic.license_key_hash,
+        expires_at=None if cfg.licensing.entitlement_days == 0 else lic.expires_at,
+        cfg=cfg,
+    )
+    ent = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
+    persist_entitlement_token(token, cfg)
+    log.info("license_token_renewed", hash_prefix=lic.license_key_hash[:12])
+    return LicenseStatusOut(
+        active=True,
+        tier=ent.tier.value,
+        expires_at=ent.expires_at,
+        machine_id=machine_id,
+        perpetual=license_is_perpetual(ent),
+    )

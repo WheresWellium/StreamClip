@@ -1,6 +1,6 @@
 /**
  * Product docs (MkDocs on Vercel). Prefer in-app `/help` routes so desktop
- * users stay inside StreamClip instead of bouncing to a browser.
+ * users stay inside qClip instead of bouncing to a browser.
  */
 import { devToolsEnabled } from "@/lib/dev-tools";
 export const DOCS_BASE =
@@ -24,7 +24,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: "install",
     label: "Install",
-    description: "Set up StreamClip and confirm the local engine is healthy.",
+    description: "Set up qClip and confirm the local engine is healthy.",
     docsPath: "/tutorials/TUTORIAL_INSTALL/",
   },
   {

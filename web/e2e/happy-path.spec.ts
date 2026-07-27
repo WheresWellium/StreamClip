@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Jet Stream happy path", () => {
+test.describe("qClip happy path", () => {
   test.skip(
     !process.env.E2E_RUN,
     "Set E2E_RUN=1 with stack running to execute",
@@ -26,7 +26,7 @@ test.describe("Jet Stream happy path", () => {
 
   test("home page loads dashboard", async ({ page }) => {
     await page.goto("http://localhost:3000");
-    await expect(page.getByRole("link", { name: "Jet Stream" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "qClip" })).toBeVisible();
     await expect(page.getByRole("link", { name: /start a clip job/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /view all jobs/i })).toBeVisible();
   });

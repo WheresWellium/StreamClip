@@ -20,7 +20,7 @@
 
 | Area | Behavior |
 |------|----------|
-| License revoke / JWT invalidation | Revoking a license via `POST /api/admin/licenses/{id}/revoke` immediately downgrades the linked user's tier to FREE and blocks re-activation. However, any **entitlement JWT** previously issued at activation time (stored in the license file or passed as a Bearer token) remains cryptographically valid until its `exp` claim — up to 100 years for one-time-purchase perpetual tokens. Full immediate invalidation requires a server-side **jti blocklist** (not yet implemented — `MASTER_TODO §10.9`). Practical mitigation: the JWT is machine-bound (`machine_id` claim), so revoked-tier API calls still fail the DB tier check; the JWT only unlocks the desktop entitlement path. |
+| License revoke / JWT invalidation | Revoking a license via `POST /api/admin/licenses/{id}/revoke` immediately downgrades the linked user's tier to FREE and blocks re-activation. Desktop entitlement JWTs are now **short-lived** (renewal window ≈ `licensing.offline_grace_days`, not 100-year perpetual tokens). `GET /api/license/status` renews a valid token or **clears** a revoked/expired one from the license file. Tokens still carry `jti` + `machine_id`; a server-side jti blocklist remains optional hardening (`MASTER_TODO §10.9`). API tier checks continue to enforce FREE after revoke even before the local file is cleared. |
 
 ## Performance expectations (informal SLIs)
 

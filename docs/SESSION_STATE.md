@@ -1,37 +1,42 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-24
+**Last updated:** 2026-07-27
 
 ## Active chats
 
-None.
+| Chat | Branch | Focus |
+|------|--------|-------|
+| cloud-desktop-first | `cursor/desktop-first-completion-39d9` | Desktop-first plan + qClip rebrand |
 
 ## Current focus
 
-**Desktop release:** Windows `v1.0.0-beta.4` published (Setup + `latest.yml`). Packaging/CI hardened for Win + macOS scaffold. Mac DMG still needs Apple Silicon host + Developer ID.
+**Desktop-first completion** (plan `desktop_first_completion_df79ca40`): one Windows `.exe`, capability licenses, fast boot, hardware onboarding, local storage UX. External brand: **qClip** (wipe StreamClip / Jet Stream from user-facing UI).
 
 ## Blockers
 
-- EV Authenticode cert (§4.10) — SmartScreen warns until signed.
-- macOS DMG + notarization (§5.2–5.3) — Mac host + Apple Developer.
-- Phase 0 exit — T0 cohort results (§8.16).
+- EV Authenticode cert (§4.10) — SmartScreen until signed.
+- macOS DMG + notarization — Apple Silicon host + Developer ID.
+- Phase 0 exit — T0 cohort (§8.16); clean-VM `verify_stack.ps1`.
 
-## Validation
+## Validation (this branch)
 
-- Coverage ✅ 96.08%
-- `verify_desktop.ps1` ✅
-- Windows installer ✅ https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.4
+- Quota + license revocation tests: 30 passed (`test_quota_limits`, `test_license_revocation`, `test_license_hardening`).
+- Alembic `0012_quota_period_start` added (lazy 30-day quota roll).
+- Coverage / full stack gates not re-run this turn.
 
-## Next steps
+## Next steps (plan order)
 
-1. Redeploy MkDocs so `BETA_DOWNLOAD` shows beta.4.
-2. Buy EV cert; configure `WINDOWS_CSC_*` secrets.
-3. Run/triage `desktop-release.yml` macOS job on Apple Silicon; notarize when Apple ID ready.
-4. Optional: real app icons (`icon.ico` / `icon.icns`).
+1. Finish WS0 docs truth (MASTER_TODO / GAP / BETA version drift).
+2. WS2 desktop boot: splash phases, frameless maximized shell, boot timings.
+3. WS3 hardware-aware setup hub; WS4 local storage UX.
+4. WS1 capability entitlements (`studio` / `publisher` / `audio_ingest`).
+5. WS5 publisher OAuth after first clip; WS6 E2E/perf gates.
+6. qClip rebrand across installers, splash, onboarding, docs download banner.
 
 ## Key paths
 
-- Release: `scripts/publish_desktop_release.ps1`
-- CI: `.github/workflows/desktop-release.yml`
-- Mac: `scripts/build_desktop_installer_macos.sh`, `download_ffmpeg_macos.sh`
+- Desktop: `apps/desktop/src/main.ts`, `splash.html`, `package.json`
+- Quotas: `backend/services/quota.py`, `alembic/versions/0012_quota_period_start.py`
+- Licensing: `core/licensing.py`, `backend/api/license.py`
+- Brand UI: `web/app/layout.tsx`, onboarding, sidecar gate

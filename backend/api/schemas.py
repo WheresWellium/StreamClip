@@ -862,8 +862,13 @@ class LicenseActivateRequest(BaseModel):
 class LicenseStatusOut(BaseModel):
     active: bool
     tier: str
+    # End of the current verification window, not the end of the purchase.
     expires_at: datetime | None = None
     machine_id: str | None = None
+    # True for one-time purchases: the licence itself never lapses.
+    perpetual: bool = False
+    # Set when the install had a token but the key is no longer valid.
+    revoked: bool = False
 
 
 class LicenseActivateResponse(BaseModel):

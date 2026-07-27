@@ -47,6 +47,7 @@ async def test_create_job_quota_exceeded():
         tier=UserTier.FREE,
         jobs_used_this_month=9999,
         minutes_processed_this_month=0.0,
+        quota_period_start=None,
     )
     svc.users.get = AsyncMock(return_value=user)
     svc.jobs.create = AsyncMock()
@@ -66,6 +67,7 @@ async def test_create_job_target_clips_quota():
         tier=UserTier.FREE,
         jobs_used_this_month=0,
         minutes_processed_this_month=0.0,
+        quota_period_start=None,
     )
     svc.users.get = AsyncMock(return_value=user)
     svc.jobs.create = AsyncMock()
@@ -91,6 +93,7 @@ async def test_create_job_minutes_quota_exceeded():
         tier=UserTier.FREE,
         jobs_used_this_month=0,
         minutes_processed_this_month=120.0,
+        quota_period_start=None,
     )
     svc.users.get = AsyncMock(return_value=user)
     svc.jobs.create = AsyncMock()
@@ -263,6 +266,7 @@ async def test_create_job_increments_owner_usage():
     svc, _, _, _ = _svc()
     svc.users.get = AsyncMock(return_value=SimpleNamespace(
         id="u1", tier=UserTier.FREE, jobs_used_this_month=0, minutes_processed_this_month=0.0,
+        quota_period_start=None,
     ))
     svc.users.increment_jobs_used = AsyncMock()
     svc.jobs.create = AsyncMock(return_value=SimpleNamespace(id="j1"))

@@ -113,7 +113,7 @@ export function PrivacyPanel({ isAuthenticated, initialOptIn, initialPreferences
               />
               <span className="text-sm">
                 <span className="font-medium flex items-center gap-2">
-                  Contribute anonymized data to improve StreamClip
+                  Contribute anonymized data to improve qClip
                   {pending && <Loader2 className="h-3 w-3 animate-spin" />}
                 </span>
                 <span className="block text-xs text-muted-foreground mt-1">
@@ -179,7 +179,7 @@ export function PrivacyPanel({ isAuthenticated, initialOptIn, initialPreferences
                 {memoryPending && <Loader2 className="h-3 w-3 animate-spin" />}
               </span>
               <span className="block text-xs text-muted-foreground mt-1">
-                When enabled, StreamClip can apply your vocabulary, brand names, and
+                When enabled, qClip can apply your vocabulary, brand names, and
                 title style on future jobs. Off by default.
               </span>
             </span>

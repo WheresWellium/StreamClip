@@ -12,7 +12,15 @@ Measured on the Electron shell (`apps/desktop`). Timings are logged as
 | `first_paint` | Main window loaded UI | < 10 s | < 60 s |
 | `updater` | Deferred auto-update check | after first paint (+8 s) | same |
 
-Regression: fail a desktop smoke when splash is not shown before sidecar wait,
-or when the main window is exclusive-fullscreen instead of maximized/resizable.
+## Smoke checklist (Windows)
+
+1. Launch installer / `npm start` → splash shows **qClip** immediately (never a blank wait).
+2. Main window is **maximized**, resizable, no File/Edit/View menu bar.
+3. Onboarding health step shows device recommendation; storage step shows **Saved on this device** path.
+4. Settings → Get started shows the same device + storage cards.
+5. Activate a Pro/Studio key → License panel lists `studio` and `publisher` capabilities.
+6. Console/`[boot]` lines present for splash → sidecar_ready → first_paint.
+
+Regression: fail when splash is not shown before sidecar wait, or when the main window is exclusive-fullscreen instead of maximized/resizable.
 
 See also `docs/PERFORMANCE.md` for pipeline SLIs (ingest → clip render).

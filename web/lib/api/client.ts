@@ -476,12 +476,16 @@ export type LicenseStatus = {
   tier: string;
   expires_at: string | null;
   machine_id: string | null;
+  perpetual?: boolean;
+  revoked?: boolean;
+  capabilities?: string[];
 };
 
 export type LicenseActivateResult = {
   tier: string;
   expires_at: string | null;
   entitlement_jwt: string;
+  capabilities?: string[];
 };
 
 export const licenseApi = {

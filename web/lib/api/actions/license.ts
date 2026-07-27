@@ -59,6 +59,7 @@ export async function activateLicenseAction(
         tier: result.tier,
         expires_at: result.expires_at,
         machine_id: machineId,
+        capabilities: result.capabilities ?? [],
       },
     };
   } catch (err) {

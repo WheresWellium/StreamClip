@@ -21,17 +21,16 @@
 
 ## Validation (this branch)
 
-- Quota + license revocation tests: passed.
+- Quota + license revocation + commerce capabilities: 34 passed after alembic `0013`.
 - Device profile + storage status + health stack + sidecar packaging: 29 passed.
-- Desktop `tsc --noEmit` clean (prior commit).
-- Alembic `0012_quota_period_start` on branch.
+- Desktop `tsc --noEmit` clean (earlier).
+- Migrations: `0012_quota_period_start`, `0013_license_capabilities`.
 
 ## Next steps (plan order)
 
-1. WS1 capability entitlements (`studio` / `publisher` / `audio_ingest`).
-2. WS5 publisher OAuth after first clip; WS6 E2E/perf gates.
-3. Finish remaining StreamClip/Jet Stream strings in operator docs.
-4. Windows smoke: splash → maximized frameless → device recommendation → local path.
+1. WS5 publisher OAuth after first clip; WS6 E2E smoke + coverage gate.
+2. Finish remaining StreamClip/Jet Stream strings in operator docs.
+3. Windows smoke: splash → frameless maximize → device recommendation → local path → license capabilities.
 
 ## Key paths
 

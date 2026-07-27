@@ -53,7 +53,7 @@ export function LicensePanel() {
     setKey("");
     toast(
       "License activated",
-      `${(result.license?.tier ?? "pro").toUpperCase()} tier is now active on this machine.`,
+      `Unlocked: ${(result.license?.capabilities ?? ["studio"]).join(", ") || result.license?.tier || "studio"}.`,
     );
     void loadStatus();
   };
@@ -63,7 +63,8 @@ export function LicensePanel() {
       <CardHeader>
         <CardTitle>License</CardTitle>
         <CardDescription>
-          Pro tier unlocks higher clip counts and monthly quotas on this install.
+          Activate a one-time key on this machine. Studio unlocks the clip
+          workspace; Publisher and Audio are add-on capabilities on the same app.
           Keys work offline after first activation.
         </CardDescription>
       </CardHeader>
@@ -87,6 +88,15 @@ export function LicensePanel() {
           <dl className="text-sm grid grid-cols-2 gap-2">
             <dt className="text-muted-foreground">Tier</dt>
             <dd className="uppercase">{status.tier}</dd>
+            <dt className="text-muted-foreground">Capabilities</dt>
+            <dd className="font-mono text-xs">
+              {(status.capabilities && status.capabilities.length > 0
+                ? status.capabilities
+                : status.active
+                  ? ["studio", "publisher"]
+                  : []
+              ).join(", ") || "—"}
+            </dd>
             <dt className="text-muted-foreground">Active</dt>
             <dd>{status.active ? "Yes" : "No"}</dd>
             <dt className="text-muted-foreground">Expires</dt>

@@ -11,27 +11,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const TIERS = [
+const PLANS = [
   {
-    name: "Free",
+    name: "Evaluation",
+    includes: "Limited sample workflow on the same app",
     clips: "25",
     storage: "10 GB",
     jobs: "30 / month",
-    highlights: "Core clip pipeline, vault saves within quota",
   },
   {
-    name: "Pro",
+    name: "Studio",
+    includes: "Clip pipeline, captions, vault, templates, exports",
     clips: "500",
     storage: "50 GB",
     jobs: "500 / month",
-    highlights: "Distribution, higher quotas, OAuth integrations",
   },
   {
-    name: "Enterprise",
-    clips: "5,000",
-    storage: "500 GB",
-    jobs: "Custom",
-    highlights: "Dedicated limits — contact sales (coming soon)",
+    name: "Publisher add-on",
+    includes: "Connected accounts, schedule queue, local OAuth",
+    clips: "Same as Studio",
+    storage: "Same as Studio",
+    jobs: "Same as Studio",
+  },
+  {
+    name: "Audio add-on",
+    includes: "Audio-to-video / slate workflow",
+    clips: "Same as Studio",
+    storage: "Same as Studio",
+    jobs: "Same as Studio",
   },
 ] as const;
 
@@ -42,28 +49,30 @@ export function BillingPanel() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Plan comparison</CardTitle>
-          <CardDescription>Vault clip and storage limits by tier.</CardDescription>
+          <CardTitle>Licenses & capabilities</CardTitle>
+          <CardDescription>
+            One qClip executable — a license unlocks capabilities, not a different app.
+          </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-muted-foreground border-b border-border/60">
-                <th className="pb-2 pr-4 font-medium">Plan</th>
+                <th className="pb-2 pr-4 font-medium">License</th>
+                <th className="pb-2 pr-4 font-medium">Includes</th>
                 <th className="pb-2 pr-4 font-medium">Vault clips</th>
                 <th className="pb-2 pr-4 font-medium">Storage</th>
-                <th className="pb-2 pr-4 font-medium">Jobs</th>
-                <th className="pb-2 font-medium">Notes</th>
+                <th className="pb-2 font-medium">Jobs</th>
               </tr>
             </thead>
             <tbody>
-              {TIERS.map((tier) => (
-                <tr key={tier.name} className="border-b border-border/40 last:border-0">
-                  <td className="py-3 pr-4 font-medium">{tier.name}</td>
-                  <td className="py-3 pr-4 font-mono text-xs">{tier.clips}</td>
-                  <td className="py-3 pr-4 font-mono text-xs">{tier.storage}</td>
-                  <td className="py-3 pr-4 font-mono text-xs">{tier.jobs}</td>
-                  <td className="py-3 text-muted-foreground text-xs">{tier.highlights}</td>
+              {PLANS.map((plan) => (
+                <tr key={plan.name} className="border-b border-border/40 last:border-0">
+                  <td className="py-3 pr-4 font-medium">{plan.name}</td>
+                  <td className="py-3 pr-4 text-muted-foreground text-xs">{plan.includes}</td>
+                  <td className="py-3 pr-4 font-mono text-xs">{plan.clips}</td>
+                  <td className="py-3 pr-4 font-mono text-xs">{plan.storage}</td>
+                  <td className="py-3 font-mono text-xs">{plan.jobs}</td>
                 </tr>
               ))}
             </tbody>
@@ -76,7 +85,7 @@ export function BillingPanel() {
         <Link href="/settings?section=license" className="text-sky-400 hover:underline">
           License
         </Link>{" "}
-        or your purchase email from Lemon Squeezy.
+        or your purchase email from Lemon Squeezy. Existing Pro keys unlock Studio + Publisher.
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreenProvider } from "@/components/loading-screen";
 import { AppTooltipProvider } from "@/components/providers/tooltip-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { TokenRefreshProvider } from "@/components/providers/token-refresh";
@@ -14,7 +15,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     <AppTooltipProvider>
       <ToastProvider>
         <DeviceIdProvider>
-          <TokenRefreshProvider>{children}</TokenRefreshProvider>
+          <TokenRefreshProvider>
+            <LoadingScreenProvider>{children}</LoadingScreenProvider>
+          </TokenRefreshProvider>
         </DeviceIdProvider>
       </ToastProvider>
     </AppTooltipProvider>

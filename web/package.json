@@ -9,6 +9,7 @@
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:unit": "node --experimental-strip-types --test components/loading-screen/__tests__/*.test.ts",
     "test:e2e": "playwright test",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },

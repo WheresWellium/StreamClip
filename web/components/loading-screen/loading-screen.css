@@ -1,0 +1,158 @@
+/* Cinematic loading-screen motion — transform/opacity only.
+   Scoped under .ls-root; respects .ls-root--reduced and prefers-reduced-motion. */
+
+.ls-root {
+  color: hsl(var(--foreground));
+}
+
+.ls-root--entering .ls-content__inner {
+  animation: ls-content-in var(--ls-entrance-ms, 800ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ls-root--entering .ls-cover__image--motion {
+  animation: ls-cover-in 4.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ls-root:not(.ls-root--exiting):not(.ls-root--reduced) .ls-cover__image--motion {
+  animation: ls-cover-in 4.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    ls-cover-drift 18s ease-in-out 4.5s infinite alternate;
+}
+
+.ls-root--exiting {
+  animation: ls-root-out var(--ls-exit-ms, 560ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+.ls-root--exiting .ls-content__inner {
+  animation: ls-content-out var(--ls-exit-ms, 560ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ls-grain {
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: 0.045;
+}
+
+.ls-ellipsis span {
+  opacity: 0.2;
+  animation: ls-ellipsis 1.4s infinite;
+}
+
+.ls-ellipsis span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ls-ellipsis span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.ls-progress__fill--ease {
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ls-progress__indeterminate {
+  animation: ls-progress-slide 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.ls-cover__image {
+  transition: opacity 600ms ease;
+  will-change: transform, opacity;
+}
+
+@keyframes ls-content-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--ls-content-y, 14px), 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ls-content-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(1.015);
+  }
+}
+
+@keyframes ls-root-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ls-cover-in {
+  from {
+    transform: scale(var(--ls-cover-from, 1.06));
+  }
+  to {
+    transform: scale(var(--ls-cover-to, 1));
+  }
+}
+
+@keyframes ls-cover-drift {
+  from {
+    transform: scale(var(--ls-cover-to, 1)) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.03) translate3d(0, var(--ls-cover-drift, 12px), 0);
+  }
+}
+
+@keyframes ls-ellipsis {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes ls-progress-slide {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  100% {
+    transform: translate3d(320%, 0, 0);
+  }
+}
+
+.ls-root--reduced .ls-cover__image--motion,
+.ls-root--reduced .ls-content__inner,
+.ls-root--reduced .ls-progress__indeterminate,
+.ls-root--reduced .ls-ellipsis span {
+  animation: none !important;
+}
+
+.ls-root--reduced.ls-root--entering .ls-content__inner,
+.ls-root--reduced.ls-root--exiting,
+.ls-root--reduced.ls-root--exiting .ls-content__inner {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+
+.ls-root--reduced.ls-root--exiting {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-root:not(.ls-root--reduced) .ls-cover__image--motion,
+  .ls-root:not(.ls-root--reduced) .ls-progress__indeterminate,
+  .ls-root:not(.ls-root--reduced) .ls-ellipsis span {
+    animation: none !important;
+  }
+}

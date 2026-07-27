@@ -21,7 +21,12 @@ from backend.middleware.auth import get_current_user_id
 from backend.middleware.rate_limit import rate_limit_request
 from backend.services.license_link import link_license_to_user
 from core.commerce.lemon_squeezy_client import activate_license_with_ls
-from core.commerce.entitlements import variant_tier
+from core.commerce.entitlements import (
+    resolve_capabilities,
+    tag_audio_order_id,
+    variant_grants_audio_ingest,
+    variant_tier,
+)
 from core.config import get_settings
 from core.errors import (
     ActivationLimitError,
@@ -76,11 +81,20 @@ async def activate_license(
         if ls_result.ok:
             tier = variant_tier(ls_result.variant_id, cfg)
             order_id = str(ls_result.order_id) if ls_result.order_id else None
+            caps = resolve_capabilities(
+                tier=tier,
+                order_id=order_id,
+                variant_id=ls_result.variant_id,
+                cfg=cfg,
+            )
+            if variant_grants_audio_ingest(ls_result.variant_id, cfg) and order_id:
+                order_id = tag_audio_order_id(order_id)
             lic = await repo.create_issued(
                 license_key_hash=key_hash,
                 tier=tier,
                 order_id=order_id,
                 customer_email=ls_result.customer_email,
+                capabilities=caps,
             )
             audit.info(
                 "license_ls_activate_seeded",
@@ -109,10 +123,20 @@ async def activate_license(
         )
         raise ActivationLimitError()
 
+    caps = resolve_capabilities(
+        tier=lic.tier,
+        stored=getattr(lic, "capabilities", None),
+        order_id=lic.order_id,
+        cfg=cfg,
+    )
+    if not lic.capabilities:
+        lic.capabilities = caps
+
     token, entitlement = activate_license_key(
         body.license_key,
         body.machine_id,
         tier=lic.tier,
+        capabilities=caps,
         cfg=cfg,
     )
     await repo.mark_activated(
@@ -150,6 +174,7 @@ async def activate_license(
         tier=entitlement.tier.value,
         expires_at=entitlement.expires_at,
         entitlement_jwt=token,
+        capabilities=list(entitlement.capabilities),
     )
 
 
@@ -171,7 +196,11 @@ async def license_status(
     cfg = get_settings()
     token = load_persisted_entitlement(cfg)
     if not token:
-        return LicenseStatusOut(active=False, tier=get_install_tier(machine_id, cfg).value)
+        return LicenseStatusOut(
+            active=False,
+            tier=get_install_tier(machine_id, cfg).value,
+            capabilities=[],
+        )
 
     try:
         ent = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
@@ -180,13 +209,22 @@ async def license_status(
         renewed = await _renew_from_records(db, machine_id, cfg)
         if renewed is not None:
             return renewed
-        return LicenseStatusOut(active=False, tier="free")
+        return LicenseStatusOut(active=False, tier="free", capabilities=[])
 
     lic = await InstallLicenseRepository(db).get_by_key_hash(ent.license_key_hash)
     if lic is not None and lic.status == "revoked":
         clear_persisted_entitlement(cfg)
         log.info("license_status_revoked", hash_prefix=ent.license_key_hash[:12])
-        return LicenseStatusOut(active=False, tier="free", revoked=True)
+        return LicenseStatusOut(active=False, tier="free", revoked=True, capabilities=[])
+
+    caps = list(ent.capabilities)
+    if lic is not None:
+        caps = resolve_capabilities(
+            tier=lic.tier,
+            stored=getattr(lic, "capabilities", None) or caps,
+            order_id=lic.order_id,
+            cfg=cfg,
+        )
 
     return LicenseStatusOut(
         active=True,
@@ -194,6 +232,7 @@ async def license_status(
         expires_at=ent.expires_at,
         machine_id=ent.machine_id,
         perpetual=license_is_perpetual(ent),
+        capabilities=caps,
     )
 
 
@@ -214,11 +253,21 @@ async def _renew_from_records(
         clear_persisted_entitlement(cfg)
         return None
 
+    caps = resolve_capabilities(
+        tier=lic.tier,
+        stored=getattr(lic, "capabilities", None),
+        order_id=lic.order_id,
+        cfg=cfg,
+    )
+    if not lic.capabilities:
+        lic.capabilities = caps
+
     token = create_entitlement_token(
         tier=lic.tier,
         machine_id=machine_id,
         license_key_hash=lic.license_key_hash,
         expires_at=None if cfg.licensing.entitlement_days == 0 else lic.expires_at,
+        capabilities=caps,
         cfg=cfg,
     )
     ent = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
@@ -230,4 +279,5 @@ async def _renew_from_records(
         expires_at=ent.expires_at,
         machine_id=machine_id,
         perpetual=license_is_perpetual(ent),
+        capabilities=caps,
     )

@@ -895,12 +895,15 @@ class LicenseStatusOut(BaseModel):
     perpetual: bool = False
     # Set when the install had a token but the key is no longer valid.
     revoked: bool = False
+    # Consumer capabilities unlocked by this install (studio/publisher/audio).
+    capabilities: list[str] = Field(default_factory=list)
 
 
 class LicenseActivateResponse(BaseModel):
     tier: str
     expires_at: datetime | None
     entitlement_jwt: str
+    capabilities: list[str] = Field(default_factory=list)
 
 
 # ─── Stack health ─────────────────────────────────────────────────────────────

@@ -9,9 +9,19 @@ export type DistributionSession =
   | { ok: true; token: string }
   | { ok: false; message: string };
 
+function hasPublisherCapability(status: {
+  active?: boolean;
+  tier?: string;
+  capabilities?: string[];
+}): boolean {
+  if (!status.active) return false;
+  if (status.capabilities?.includes("publisher")) return true;
+  return Boolean(status.tier && PRO_TIERS.has(status.tier));
+}
+
 /** Auth + Pro gate for distribution server actions (matches backend `require_distribution_access`). */
 export async function requireDistributionSession(
-  proMessage = "Pro license required.",
+  proMessage = "Publisher license required.",
 ): Promise<DistributionSession> {
   const token = await getAccessToken();
   if (!token) {
@@ -25,7 +35,8 @@ export async function requireDistributionSession(
 }
 
 /** Matches backend `require_distribution_access` — user Pro tier or install license. */
-export async function hasDistributionAccess(token?: string): Promise<boolean> {  const authToken = token ?? (await getAccessToken());
+export async function hasDistributionAccess(token?: string): Promise<boolean> {
+  const authToken = token ?? (await getAccessToken());
   if (!authToken) return false;
 
   try {
@@ -47,8 +58,12 @@ export async function hasDistributionAccess(token?: string): Promise<boolean> { 
       { cache: "no-store" },
     );
     if (res.ok) {
-      const status = (await res.json()) as { active?: boolean; tier?: string };
-      if (status.active && status.tier && PRO_TIERS.has(status.tier)) return true;
+      const status = (await res.json()) as {
+        active?: boolean;
+        tier?: string;
+        capabilities?: string[];
+      };
+      if (hasPublisherCapability(status)) return true;
     }
   } catch {
     /* no pro access */

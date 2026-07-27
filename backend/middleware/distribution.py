@@ -11,27 +11,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.db.models import InstallLicense, User, UserTier
 from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
+from core.commerce.entitlements import (
+    CAPABILITY_PUBLISHER,
+    has_capability,
+    resolve_capabilities,
+    tier_implies_publisher,
+)
 from core.distribution.errors import DistributionProRequired
 
 
-async def _install_has_pro_license(db: AsyncSession) -> bool:
+async def _install_has_publisher(db: AsyncSession) -> bool:
     result = await db.execute(
-        select(InstallLicense.id).where(
-            InstallLicense.tier.in_([UserTier.PRO, UserTier.ADMIN]),
+        select(InstallLicense).where(
             InstallLicense.status == "activated",
-        ).limit(1),
+        ).limit(20),
     )
-    return result.scalar_one_or_none() is not None
+    for lic in result.scalars().all():
+        caps = resolve_capabilities(
+            tier=lic.tier,
+            stored=getattr(lic, "capabilities", None),
+            order_id=lic.order_id,
+        )
+        if has_capability(caps, CAPABILITY_PUBLISHER) or tier_implies_publisher(lic.tier):
+            return True
+    return False
 
 
 async def require_distribution_access(
     user_id: Annotated[str, Depends(require_user_id)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> str:
-    """Pro SaaS tier, admin, or active self-hosted Pro install license."""
+    """Publisher capability, Pro/Admin user tier, or active install license."""
     user = await db.get(User, user_id)
-    if user and user.tier in (UserTier.PRO, UserTier.ADMIN):
+    if user and tier_implies_publisher(user.tier):
         return user_id
-    if await _install_has_pro_license(db):
+    if await _install_has_publisher(db):
         return user_id
     raise DistributionProRequired()

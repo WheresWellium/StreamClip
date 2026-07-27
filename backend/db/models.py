@@ -200,6 +200,9 @@ class InstallLicense(Base, IDMixin, TimestampMixin):
     order_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     activation_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Consumer capability claims (studio / publisher / audio_ingest). Empty or
+    # null means "derive from tier + order_id" for legacy rows.
+    capabilities: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     # Master-identity linkage: set at activation (authed) or register (email match).
     # Never used to delete users — soft-disable via users.is_active only.
     user_id: Mapped[str | None] = mapped_column(

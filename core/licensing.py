@@ -11,13 +11,14 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import jwt
 
 from backend.db.models import UserTier
+from core.commerce.entitlements import capabilities_for_tier, normalize_capabilities
 from core.config import Settings, get_settings
 
 
@@ -31,6 +32,7 @@ class Entitlement:
     # token's own `exp`, which is only the re-verification deadline.
     license_expires_at: datetime | None = None
     token_id: str = ""
+    capabilities: tuple[str, ...] = field(default_factory=tuple)
 
 
 def hash_license_key(license_key: str) -> str:
@@ -58,6 +60,7 @@ def create_entitlement_token(
     machine_id: str,
     license_key_hash: str,
     expires_at: datetime | None,
+    capabilities: list[str] | tuple[str, ...] | None = None,
     cfg: Settings | None = None,
 ) -> str:
     cfg = cfg or get_settings()
@@ -65,12 +68,14 @@ def create_entitlement_token(
     license_exp = expires_at or (now + timedelta(days=PERPETUAL_DAYS))
     # The token expires at the renewal deadline, never past the licence end.
     token_exp = min(license_exp, now + timedelta(days=renewal_window_days(cfg)))
+    caps = normalize_capabilities(capabilities)
     payload = {
         "type": "entitlement",
         "tier": tier.value,
         "machine_id": machine_id,
         "license_key_hash": license_key_hash,
         "license_exp": int(license_exp.timestamp()),
+        "capabilities": caps,
         "jti": uuid.uuid4().hex,
         "iat": now,
         "exp": token_exp,
@@ -94,6 +99,11 @@ def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | Non
     license_expires_at = (
         datetime.fromtimestamp(license_exp, tz=timezone.utc) if license_exp else None
     )
+    raw_caps = payload.get("capabilities")
+    caps = normalize_capabilities(raw_caps if isinstance(raw_caps, list) else None)
+    if not caps:
+        # Legacy tokens: derive from tier so publisher/studio keep working.
+        caps = capabilities_for_tier(UserTier(payload["tier"]))
     return Entitlement(
         tier=UserTier(payload["tier"]),
         machine_id=machine_id,
@@ -101,6 +111,7 @@ def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | Non
         license_key_hash=payload["license_key_hash"],
         license_expires_at=license_expires_at,
         token_id=str(payload.get("jti") or ""),
+        capabilities=tuple(caps),
     )
 
 
@@ -109,6 +120,7 @@ def activate_license_key(
     machine_id: str,
     *,
     tier: UserTier,
+    capabilities: list[str] | tuple[str, ...] | None = None,
     cfg: Settings | None = None,
 ) -> tuple[str, Entitlement]:
     """Issue a signed entitlement JWT for a key already verified against
@@ -123,11 +135,14 @@ def activate_license_key(
     expires_at = (
         datetime.now(timezone.utc) + timedelta(days=days) if days > 0 else None
     )
+    if capabilities is None:
+        capabilities = capabilities_for_tier(tier)
     token = create_entitlement_token(
         tier=tier,
         machine_id=machine_id,
         license_key_hash=key_hash,
         expires_at=expires_at,
+        capabilities=capabilities,
         cfg=cfg,
     )
     entitlement = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)

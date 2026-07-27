@@ -794,6 +794,7 @@ class InstallLicenseRepository:
         tier,
         order_id: str | None = None,
         customer_email: str | None = None,
+        capabilities: list[str] | None = None,
     ) -> InstallLicense:
         """Record a commerce-issued key that hasn't been activated yet."""
         lic = InstallLicense(
@@ -801,6 +802,7 @@ class InstallLicenseRepository:
             tier=tier,
             order_id=order_id,
             customer_email=customer_email,
+            capabilities=capabilities,
             status="issued",
         )
         self.db.add(lic)

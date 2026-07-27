@@ -7,9 +7,19 @@ export type DistributionSession =
   | { ok: true; token: string }
   | { ok: false; message: string };
 
+function hasPublisherCapability(status: {
+  active?: boolean;
+  tier?: string;
+  capabilities?: string[];
+}): boolean {
+  if (!status.active) return false;
+  if (status.capabilities?.includes("publisher")) return true;
+  return Boolean(status.tier && PRO_TIERS.has(status.tier));
+}
+
 /** Auth + Pro gate for client mutations (browser / static export). */
 export async function requireDistributionClientSession(
-  proMessage = "Pro license required.",
+  proMessage = "Publisher license required.",
 ): Promise<DistributionSession> {
   const token = getClientAuth().token;
   if (!token) {
@@ -49,8 +59,12 @@ export async function hasDistributionAccessClient(
       { cache: "no-store" },
     );
     if (res.ok) {
-      const status = (await res.json()) as { active?: boolean; tier?: string };
-      if (status.active && status.tier && PRO_TIERS.has(status.tier)) return true;
+      const status = (await res.json()) as {
+        active?: boolean;
+        tier?: string;
+        capabilities?: string[];
+      };
+      if (hasPublisherCapability(status)) return true;
     }
   } catch {
     /* no pro access */

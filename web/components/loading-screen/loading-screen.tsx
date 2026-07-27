@@ -66,7 +66,7 @@ export function LoadingScreen({
   return (
     <div
       className={cn(
-        "ls-root fixed inset-0 z-[100] flex min-h-screen w-full overflow-hidden bg-background",
+        "ls-root fixed inset-0 z-[200] flex min-h-screen w-full overflow-hidden bg-background",
         exiting && "ls-root--exiting",
         entering && "ls-root--entering",
         reducedMotion && "ls-root--reduced",

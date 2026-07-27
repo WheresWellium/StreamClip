@@ -56,7 +56,7 @@ export function WebhookPanel({ isAuthenticated }: { isAuthenticated: boolean }) 
         <CardTitle>Webhooks</CardTitle>
         <CardDescription>
           POST job.completed and publish events to your endpoint. Payloads are
-          signed with the secret (X-StreamClip-Signature).
+          signed with the secret (X-qClip-Signature).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -70,7 +70,7 @@ export function WebhookPanel({ isAuthenticated }: { isAuthenticated: boolean }) 
               </label>
               <Input
                 id="webhook-url"
-                placeholder="https://example.com/hooks/streamclip"
+                placeholder="https://example.com/hooks/qclip"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />

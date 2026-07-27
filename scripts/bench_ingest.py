@@ -67,7 +67,7 @@ def run_bench(*, url: str | None, storage_key: str | None, job_id: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark StreamClip ingest")
+    parser = argparse.ArgumentParser(description="Benchmark qClip ingest")
     parser.add_argument("--url", help="Source URL to download")
     parser.add_argument("--storage-key", help="MinIO storage key for upload ingest")
     parser.add_argument("--job-id", default="bench-ingest", help="Synthetic job id")

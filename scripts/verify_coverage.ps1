@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "=== StreamClip coverage gate (backend + core, not desktop) ===" -ForegroundColor Cyan
+Write-Host "=== qClip coverage gate (backend + core, not desktop) ===" -ForegroundColor Cyan
 Write-Host "See docs/MASTER_TODO.md section 3.10 for scope and footguns." -ForegroundColor DarkGray
 Write-Host ""
 

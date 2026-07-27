@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping StreamClip beta. Fill every section you can — **job id** and **steps** matter most.
+        Thanks for helping qClip beta. Fill every section you can — **job id** and **steps** matter most.
         Prefer in-app **Report a bug** / **Beta feedback** when the stack is up; use this issue when the app cannot submit or you need a public thread.
 
   - type: dropdown

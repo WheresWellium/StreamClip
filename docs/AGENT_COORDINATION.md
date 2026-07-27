@@ -1,6 +1,6 @@
 # Agent coordination (parallel Cursor chats)
 
-When multiple agents work on StreamClip at once, conflicts come from **shared mutable files**, not from code compilation. This convention keeps chats from overwriting each other’s context.
+When multiple agents work on qClip at once, conflicts come from **shared mutable files**, not from code compilation. This convention keeps chats from overwriting each other’s context.
 
 **Related:** `docs/SESSION_STATE.md` (compaction anchor) · `AGENTS.md` (durable prefs) · `.cursor/rules/conversation-compaction.mdc`
 
@@ -30,7 +30,7 @@ Runtime config uses **relative** paths (`workspace/`, `output/`, `.cache/`) reso
 3. **One deploy owner** — only one chat runs `npx vercel --prod`, `gh release create`, or pushes doc deploys to production.
 4. **Update SESSION_STATE** before compaction; include your row in **Active chats**.
 5. **Release locks** when done or when `expires_at` passes (stale locks may be cleared by the next agent).
-6. **Never use the C: StreamClip skeleton** — if a chat’s workspace root is under `C:\Users\locat\Projects\streamclip`, stop and reopen `D:\Projects\streamclip`.
+6. **Never use the C: qClip skeleton** — if a chat’s workspace root is under `C:\Users\locat\Projects\streamclip`, stop and reopen `D:\Projects\streamclip`.
 
 ---
 

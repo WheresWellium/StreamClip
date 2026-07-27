@@ -40,11 +40,11 @@ def deliver_webhook(
     body = json.dumps(body_payload, separators=(",", ":")).encode()
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "StreamClip-Webhook/1.0",
+        "User-Agent": "qClip-Webhook/1.0",
     }
     signature = _sign_payload(body, secret)
     if signature:
-        headers["X-StreamClip-Signature"] = signature
+        headers["X-qClip-Signature"] = signature
 
     for attempt in range(max_retries):
         try:

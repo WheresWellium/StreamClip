@@ -1,4 +1,4 @@
-# StreamClip Cloud MVP — Multi-tenant Architecture
+# qClip Cloud MVP — Multi-tenant Architecture
 
 > **Status: design-stage only — nothing here is implemented.** The former `backend/cloud/tenant.py` stub and `docker-compose.cloud.yml` were **removed** (MASTER §2.10, 2026-07-09). No code reads `STREAMCLIP_CLOUD_MODE`. Stripe has been removed from the product (Lemon Squeezy is the billing provider). This doc is a future-architecture sketch only.
 

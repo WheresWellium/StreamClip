@@ -43,8 +43,8 @@ as needed. `config/desktop.yaml` keeps its dev-relative defaults.
 | Scenario | Data dir |
 |----------|----------|
 | `STREAMCLIP_DESKTOP_DATA_DIR` set (any mode) | that path |
-| Frozen, Windows | `%LOCALAPPDATA%\StreamClip` |
-| Frozen, macOS | `~/Library/Application Support/StreamClip` |
+| Frozen, Windows | `%LOCALAPPDATA%\qClip` |
+| Frozen, macOS | `~/Library/Application Support/qClip` |
 | Frozen, other / no `LOCALAPPDATA` | `~/.streamclip` |
 | Dev (not frozen, no override) | none — dev-relative `./workspace/` |
 
@@ -92,7 +92,7 @@ Build:
 .\scripts\build_desktop_installer.ps1
 ```
 
-Output: `apps/desktop/release/StreamClip Setup <version>.exe`. Signing and auto-update: `packaging/installer/README.md`.
+Output: `apps/desktop/release/qClip Setup <version>.exe`. Signing and auto-update: `packaging/installer/README.md`.
 
 Preload exposes `window.streamclip.sidecar.{start,stop,health}` and `window.streamclip.version()`.
 

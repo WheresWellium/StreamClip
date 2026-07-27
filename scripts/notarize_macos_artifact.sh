@@ -5,7 +5,7 @@
 # Requires: xcrun notarytool, Developer ID cert via CSC_LINK/CSC_NAME.
 #
 # Usage:
-#   ./scripts/notarize_macos_artifact.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+#   ./scripts/notarize_macos_artifact.sh apps/desktop/release/qClip-mac-arm64.dmg
 
 set -euo pipefail
 

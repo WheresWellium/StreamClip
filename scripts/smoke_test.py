@@ -1,4 +1,4 @@
-"""End-to-end API smoke test for StreamClip."""
+"""End-to-end API smoke test for qClip."""
 from __future__ import annotations
 
 import json

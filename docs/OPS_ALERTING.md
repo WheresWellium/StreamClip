@@ -1,4 +1,4 @@
-# StreamClip — autonomous ops alerting (internal)
+# qClip — autonomous ops alerting (internal)
 
 **Not published** on the public docs site. Webhook secrets live in env only.
 

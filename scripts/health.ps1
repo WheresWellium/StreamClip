@@ -1,7 +1,7 @@
-# StreamClip — check stack health (run in a second terminal while start.ps1 is running)
+# qClip — check stack health (run in a second terminal while start.ps1 is running)
 $ErrorActionPreference = "SilentlyContinue"
 
-Write-Host "StreamClip health check" -ForegroundColor Cyan
+Write-Host "qClip health check" -ForegroundColor Cyan
 Write-Host ""
 
 function Test-Port($port) {

@@ -2,7 +2,7 @@
 
 > **macOS DMG:** see [MACOS.md](./MACOS.md) (`scripts/build_desktop_installer_macos.sh`, Mac host required).
 
-StreamClip ships as an **NSIS installer** produced by [electron-builder](https://www.electron.build/)
+qClip ships as an **NSIS installer** produced by [electron-builder](https://www.electron.build/)
 from `apps/desktop`. The installer bundles:
 
 1. **Electron shell** — tray app + `BrowserWindow` UI
@@ -18,11 +18,11 @@ cd D:\Projects\streamclip
 .\scripts\build_desktop_installer.ps1
 ```
 
-Output: `apps/desktop/release/StreamClip-Setup-win-x64.exe`
+Output: `apps/desktop/release/qClip-Setup-win-x64.exe`
 
 Stable public download URL (after GitHub Release):
 
-`https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe`
+`https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe`
 
 Docs landing page: `docs/BETA_DOWNLOAD.md` → https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 
@@ -73,14 +73,14 @@ $env:CSC_KEY_PASSWORD = "<pfx-password>"
 .\scripts\build_desktop_installer.ps1
 
 # Optional manual re-sign of a single PE (sidecar, Setup exe, etc.):
-.\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\StreamClip-Setup-win-x64.exe
+.\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\qClip-Setup-win-x64.exe
 ```
 
 ### Verify signature
 
 ```powershell
 # After Windows SDK install (signtool on PATH or set SIGNTOOL):
-signtool verify /pa /v apps\desktop\release\StreamClip-Setup-win-x64.exe
+signtool verify /pa /v apps\desktop\release\qClip-Setup-win-x64.exe
 ```
 
 Expect: successful Authenticode chain, publisher matching your cert subject, and a
@@ -138,15 +138,15 @@ MSIX remains an option for Microsoft Store distribution but adds complexity for 
 ## Install layout
 
 ```
-C:\Program Files\StreamClip\
-  StreamClip.exe
+C:\Program Files\qClip\
+  qClip.exe
   resources\
     sidecar\
       streamclip-sidecar.exe
       _internal\   (PyInstaller bundle)
 ```
 
-User data (SQLite, models, workspace): `%LOCALAPPDATA%\StreamClip\` (§4.18).
+User data (SQLite, models, workspace): `%LOCALAPPDATA%\qClip\` (§4.18).
 
 ## macOS
 

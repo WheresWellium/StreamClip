@@ -1,4 +1,4 @@
-# StreamClip — Creator Platform Vision
+# qClip — Creator Platform Vision
 
 **Status:** Active (2026-06-29)  
 **Audience:** Product, engineering, creators evaluating self-hosted clip tooling
@@ -9,7 +9,7 @@ Give **every content creator** — gamers, IRL streamers, podcasters, educators,
 
 ## Who we serve
 
-| Creator vertical | Primary signals | StreamClip today |
+| Creator vertical | Primary signals | qClip today |
 |------------------|-----------------|------------------|
 | Twitch / YouTube gaming | Chat spikes, motion, audio peaks | `content_profile: gaming`, hybrid peak discovery |
 | IRL / Just Chatting | Dialogue energy, reactions | `content_profile: irl` |

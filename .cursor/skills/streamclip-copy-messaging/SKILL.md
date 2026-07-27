@@ -10,7 +10,7 @@ description: >-
 
 # qClip Copy & Messaging
 
-Product UI brand: **qClip**. Never use StreamClip or Jet Stream in user-facing copy.
+Product UI brand: **qClip**. Never use qClip or qClip in user-facing copy.
 Internal package/module names may still say streamclip.
 
 ## Product positioning
@@ -46,7 +46,7 @@ Current implementation: `web/app/page.tsx`.
 
 ### Preferred hero subtext
 
-> Paste a URL or upload a file. Jet Stream finds the moments, reframes to any aspect ratio, and scores each clip so you know which cuts should outperform the rest.
+> Paste a URL or upload a file. qClip finds the moments, reframes to any aspect ratio, and scores each clip so you know which cuts should outperform the rest.
 
 ### Preferred meta description
 
@@ -151,9 +151,9 @@ Copy review:
 - [ ] Not tunnel-visioned on vertical shorts as the whole product?
 - [ ] Inclusive of non-stream sources (no accidental “streams only”)?
 - [ ] Clip Vault ≠ asset vault in labels?
-- [ ] Sounds like Jet Stream (specific, catchy) — not generic AI clipper copy?
+- [ ] Sounds like qClip (specific, catchy) — not generic AI clipper copy?
 - [ ] Tooltips in legends.ts if new concepts need help?
-- [ ] Error messages actionable (match StreamClipError user_message style)?
+- [ ] Error messages actionable (match <<<TYPE_qClipError>>> user_message style)?
 ```
 
 ## Examples
@@ -192,7 +192,7 @@ Copy review:
 
 **Good (onboarding)**
 
-> Welcome to Jet Stream — the clip studio for any length of footage. Auto-reframe to any ratio, caption and overlay in one pass, then rank what wins before you publish.
+> Welcome to qClip — the clip studio for any length of footage. Auto-reframe to any ratio, caption and overlay in one pass, then rank what wins before you publish.
 
 **Avoid**
 

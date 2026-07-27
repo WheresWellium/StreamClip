@@ -19,7 +19,7 @@ function Write-DebugLog {
     #endregion
 }
 
-Write-Host "=== StreamClip low-memory VM build ===" -ForegroundColor Cyan
+Write-Host "=== qClip low-memory VM build ===" -ForegroundColor Cyan
 Write-Host "Building images ONE AT A TIME (COMPOSE_PARALLEL_LIMIT=1)" -ForegroundColor Yellow
 
 $env:COMPOSE_PARALLEL_LIMIT = "1"

@@ -2,7 +2,7 @@
 
 **Time:** ~15 minutes · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md) or [Windows installer](../BETA_DOWNLOAD.md#one-click-installers)
 
-StreamClip is **much faster** with **GPU acceleration on**. How you turn it on depends on how you installed:
+qClip is **much faster** with **GPU acceleration on**. How you turn it on depends on how you installed:
 
 | Install | Where to check | How to speed up |
 |---------|----------------|-----------------|
@@ -29,7 +29,7 @@ For timing expectations on your hardware, run a short test job and compare — s
 
 ## Windows — one-click installer (`.exe`)
 
-1. Launch StreamClip from the Start menu after install
+1. Launch qClip from the Start menu after install
 2. Open **Settings → Get started** — wait for **Ready**
 3. If processing is still slow on an NVIDIA PC, you may be on the CPU path; use **Help → GPU setup** in the app and reply to your invite email with your GPU model
 
@@ -54,7 +54,7 @@ Docker is **not** required for the `.exe` path.
 
 ### Step 3 — Start the GPU worker profile
 
-From your StreamClip folder:
+From your qClip folder:
 
 ```powershell
 docker compose --profile gpu up -d --build
@@ -107,7 +107,7 @@ Apple Silicon and Intel Macs **do not expose NVIDIA/NVENC** inside Docker Deskto
 
 When downloading Docker Desktop, pick **Apple Silicon** (not Intel/Rosetta) on M-series Macs.
 
-### Step 3 — Start StreamClip (no GPU profile)
+### Step 3 — Start qClip (no GPU profile)
 
 ```bash
 docker compose up -d

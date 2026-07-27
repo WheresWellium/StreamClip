@@ -1,10 +1,10 @@
 # Clean-VM stack verification (MASTER_TODO §3.8)
 
-**Purpose:** Phase 0 beta invite gate. Proves StreamClip installs and verifies on a **fresh Windows 11 VM**, not a long-lived dev machine.
+**Purpose:** Phase 0 beta invite gate. Proves qClip installs and verifies on a **fresh Windows 11 VM**, not a long-lived dev machine.
 
 ## Prerequisites
 
-- Windows 11 VM (clean snapshot: no prior StreamClip clone, no Docker layers from dev)
+- Windows 11 VM (clean snapshot: no prior qClip clone, no Docker layers from dev)
 - Git, Docker Desktop (WSL2 backend), PowerShell 7+
 - Network access to pull images / GHCR if using prod compose
 

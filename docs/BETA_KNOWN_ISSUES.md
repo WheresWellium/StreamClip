@@ -1,4 +1,4 @@
-# StreamClip — Beta Known Issues
+# qClip — Beta Known Issues
 
 **Audience:** Phase 0–2 beta testers · **Owner:** core team  
 **Update:** when shipping a beta wave or closing a blocker

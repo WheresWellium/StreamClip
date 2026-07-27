@@ -96,7 +96,7 @@ Use Mode=Source (default) or clone https://github.com/WheresWellium/StreamClip
 }
 
 @"
-StreamClip Phase 0 beta kit ($Mode)
+qClip Phase 0 beta kit ($Mode)
 Generated: $(Get-Date -Format o)
 Commit: $commit
 Tag: $(if ($Tag) { $Tag } else { "(none)" })

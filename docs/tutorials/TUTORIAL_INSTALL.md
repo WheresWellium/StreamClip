@@ -1,11 +1,11 @@
-# Tutorial — Install StreamClip (Docker)
+# Tutorial — Install qClip (Docker)
 
 **Time:** ~15 minutes · **Prerequisite:** [Beta quickstart](../BETA_TESTER_QUICKSTART.md)
 
 This tutorial walks through the **recommended install path** for Phase 0 beta: Docker Desktop + `start_local.ps1` on Windows, with macOS equivalents where they differ.
 
 !!! tip "Windows one-click installer"
-    Using the `.exe` from [Get StreamClip](../BETA_DOWNLOAD.md#one-click-installers)? Skip Docker steps — open the app and use **Settings → Get started** until you see **Ready**.
+    Using the `.exe` from [Get qClip](../BETA_DOWNLOAD.md#one-click-installers)? Skip Docker steps — open the app and use **Settings → Get started** until you see **Ready**.
 
 ---
 
@@ -20,7 +20,7 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 | Accounts | **None required** to install or run | Same |
 
 !!! tip "No GitHub account needed"
-    Use the `.zip` from your invite email — [Get StreamClip](../BETA_DOWNLOAD.md).
+    Use the `.zip` from your invite email — [Get qClip](../BETA_DOWNLOAD.md).
 
 ## Step 1 — Install Docker Desktop
 
@@ -39,12 +39,12 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 
 ---
 
-## Step 2 — Get the StreamClip files
+## Step 2 — Get the qClip files
 
 Extract the beta `.zip` from your invite email to a folder, for example:
 
-- Windows: `C:\StreamClip`
-- macOS: `~/StreamClip`
+- Windows: `C:\qClip`
+- macOS: `~/qClip`
 
 If your invite included a private repo link, clone with Git. When unsure, reply to your invite email.
 
@@ -54,7 +54,7 @@ If your invite included a private repo link, clone with Git. When unsure, reply 
 
 === "Windows"
 
-    Open **PowerShell**, `cd` into your StreamClip folder, then run:
+    Open **PowerShell**, `cd` into your qClip folder, then run:
 
     ```powershell
     .\scripts\start_local.ps1
@@ -73,7 +73,7 @@ If your invite included a private repo link, clone with Git. When unsure, reply 
     Docker Desktop does not ship PowerShell by default. Use the manual equivalent:
 
     ```bash
-    cd ~/StreamClip
+    cd ~/qClip
     cp .env.example .env    # skip if .env already exists
     docker compose up -d --build
     docker compose exec -T api alembic upgrade head
@@ -123,7 +123,7 @@ If your invite included a private repo link, clone with Git. When unsure, reply 
 | Check | Expected |
 |-------|----------|
 | **Settings → Get started** | **Ready** |
-| [http://localhost:3000](http://localhost:3000) | StreamClip home screen |
+| [http://localhost:3000](http://localhost:3000) | qClip home screen |
 
 !!! warning "Stop if not ready"
     Do **not** create jobs until **Get started** shows **Ready** (or Docker verify passes). Post output via **Report a bug** or your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).

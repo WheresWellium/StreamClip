@@ -7,34 +7,33 @@
 
 | Chat | Branch | Focus |
 |------|--------|-------|
-| cloud-desktop-first | `cursor/desktop-first-completion-39d9` | Desktop-first plan + qClip rebrand |
+| cloud-desktop-first | `cursor/desktop-first-completion-39d9` | qClip brand lock + desktop-first |
 
 ## Current focus
 
-**Desktop-first completion** (plan `desktop_first_completion_df79ca40`): one Windows `.exe`, capability licenses, fast boot, hardware onboarding, local storage UX. External brand: **qClip** (wipe StreamClip / Jet Stream from user-facing UI).
+**qClip brand lock** — external UI, installers, published docs, and emails use **qClip** only. Users must not see StreamClip or Jet Stream. GitHub repository path remains `WheresWellium/StreamClip` (hosting only).
 
 ## Blockers
 
-- EV Authenticode cert (§4.10) — SmartScreen until signed.
+- EV Authenticode cert — SmartScreen until signed.
 - macOS DMG + notarization — Apple Silicon host + Developer ID.
-- Phase 0 exit — T0 cohort (§8.16); clean-VM `verify_stack.ps1`.
+- Phase 0 exit — T0 cohort; clean-VM `verify_stack.ps1`.
+- Republish Windows installer so GitHub Releases asset is `qClip-Setup-win-x64.exe`.
 
-## Validation (this branch)
+## Validation
 
-- Quota + license revocation + commerce capabilities: 34 passed after alembic `0013`.
-- Device profile + storage status + health stack + sidecar packaging: 29 passed.
-- Desktop `tsc --noEmit` clean (earlier).
-- Migrations: `0012_quota_period_start`, `0013_license_capabilities`.
+- Webhook signature header `X-qClip-Signature` tests pass.
+- UI/header/splash/onboarding/billing show qClip.
+- Installer `productName` / NSIS / `appId` (`io.qclip.desktop`) / artifacts → qClip.
 
-## Next steps (plan order)
+## Next steps
 
-1. WS5 publisher OAuth after first clip; WS6 E2E smoke + coverage gate.
-2. Finish remaining StreamClip/Jet Stream strings in operator docs.
-3. Windows smoke: splash → frameless maximize → device recommendation → local path → license capabilities.
+1. Republish desktop release so download URLs resolve to `qClip-Setup-win-x64.exe`.
+2. Optional: rename GitHub repo when ready (docs links still use current path).
+3. Publisher OAuth polish; full coverage/stack gates.
 
 ## Key paths
 
-- Desktop: `apps/desktop/src/main.ts`, `splash.html`, `package.json`
-- Quotas: `backend/services/quota.py`, `alembic/versions/0012_quota_period_start.py`
-- Licensing: `core/licensing.py`, `backend/api/license.py`
-- Brand UI: `web/app/layout.tsx`, onboarding, sidecar gate
+- Brand UI: `web/app/layout.tsx`, splash, onboarding, Settings
+- Installer: `apps/desktop/package.json`
+- Docs: `docs/BETA_DOWNLOAD.md`, `mkdocs.yml`, tutorials

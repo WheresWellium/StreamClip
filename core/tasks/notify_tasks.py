@@ -64,7 +64,7 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
             lines.append(f"  - {att.filename}: {url}")
         attachment_lines = "\nAttachments (24h links):\n" + "\n".join(lines) + "\n"
     body = (
-        f"New StreamClip bug report {report.id}\n"
+        f"New qClip bug report {report.id}\n"
         f"\n"
         f"Severity:   {report.severity}\n"
         f"Categories: {categories}\n"
@@ -80,7 +80,7 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
     )
     sent = send_email(
         to=recipient,
-        subject=f"[StreamClip] Bug report ({report.severity}): {categories}",
+        subject=f"[qClip] Bug report ({report.severity}): {categories}",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "report_id": report_id}
@@ -213,7 +213,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
     the store (LS delivers keys natively otherwise).
     """
     body = (
-        "Thanks for purchasing StreamClip Pro!\n"
+        "Thanks for purchasing qClip Studio!\n"
         "\n"
         f"Your license key:\n\n    {license_key}\n"
         "\n"
@@ -223,7 +223,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
     )
     sent = send_email(
         to=recipient,
-        subject="Your StreamClip Pro license key",
+        subject="Your qClip Studio license key",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "order_id": order_id or ""}
@@ -236,7 +236,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
 )
 def send_password_reset_email(recipient: str, reset_url: str) -> dict[str, str]:
     body = (
-        "You requested a password reset for your StreamClip account.\n"
+        "You requested a password reset for your qClip account.\n"
         "\n"
         f"Reset your password:\n{reset_url}\n"
         "\n"
@@ -245,7 +245,7 @@ def send_password_reset_email(recipient: str, reset_url: str) -> dict[str, str]:
     )
     sent = send_email(
         to=recipient,
-        subject="Reset your StreamClip password",
+        subject="Reset your qClip password",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "recipient": recipient}

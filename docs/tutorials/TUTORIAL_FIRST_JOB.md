@@ -8,7 +8,7 @@ This walks you through turning **one video link** into short clips.
 
 ## Before you start
 
-- StreamClip is running — you opened [http://localhost:3000](http://localhost:3000) and it loaded
+- qClip is running — you opened [http://localhost:3000](http://localhost:3000) and it loaded
 - You have a **public** video link (anyone can watch it without logging in)
 
 !!! tip "Using a Mac without a graphics card?"
@@ -45,7 +45,7 @@ Stages you will see, in order:
 download → transcribe → detect highlights → render clips
 ```
 
-- **Download** — StreamClip saves the source video to your machine
+- **Download** — qClip saves the source video to your machine
 - **Transcribe** — speech is turned into text
 - **Detect highlights** — software picks exciting moments
 - **Render clips** — short vertical videos are created

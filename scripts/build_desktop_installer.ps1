@@ -1,4 +1,4 @@
-# Build the StreamClip Windows desktop installer (ADR-001 section 4.10).
+# Build the qClip Windows desktop installer (ADR-001 section 4.10).
 #
 # Pipeline: static UI -> PyInstaller sidecar -> stage -> electron-builder (NSIS).
 # Code signing (optional): set CSC_LINK (path to .pfx) and CSC_KEY_PASSWORD.
@@ -37,7 +37,7 @@ function Test-DesktopStaticUi {
     Write-Host "Static UI OK" -ForegroundColor Green
 }
 
-Write-Host "=== StreamClip desktop installer build ===" -ForegroundColor Cyan
+Write-Host "=== qClip desktop installer build ===" -ForegroundColor Cyan
 
 $ffmpegExe = Join-Path $root "bin\ffmpeg\ffmpeg.exe"
 $ffprobeExe = Join-Path $root "bin\ffmpeg\ffprobe.exe"
@@ -101,11 +101,11 @@ $distOk = $LASTEXITCODE -eq 0
 Pop-Location
 if (-not $distOk) { exit $LASTEXITCODE }
 
-$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
+$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "qClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 if (-not $setup) {
-    $setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip Setup *.exe" -ErrorAction SilentlyContinue |
+    $setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "qClip Setup *.exe" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
 }

@@ -1,4 +1,4 @@
-"""Issue StreamClip license keys (email-bound or one-time) with JSONL activity log.
+"""Issue qClip license keys (email-bound or one-time) with JSONL activity log.
 
 Examples (repo root, API container running):
 

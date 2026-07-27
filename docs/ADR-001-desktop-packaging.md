@@ -6,7 +6,7 @@
 
 ## Context
 
-We want to ship Jet Stream as a Windows desktop executable for end users, with a
+We want to ship qClip as a Windows desktop executable for end users, with a
 macOS port to follow. The current `apps/desktop` Electron shell is a *Docker
 launcher*: it requires Docker Desktop and `docker-compose.prod.yml`, which pulls
 `ghcr.io/streamclip/*` images that do not exist. That is not distributable to
@@ -25,7 +25,7 @@ NVENC via ffmpeg) on a dedicated queue.
 | Postgres | SQLite via `aiosqlite` (same SQLAlchemy models; audit Alembic for Postgres-only DDL) | 4.1 |
 | Celery + Redis | **In-process worker** behind the existing task interface (thread pool for CPU/IO, single-slot executor for GPU stages to mirror the `gpu` queue) | 4.2 |
 | Redis pub/sub (SSE progress) | In-process event bus feeding the same SSE endpoints | 4.2 |
-| MinIO | Existing `LocalStorage` backend; workspace under `%LOCALAPPDATA%\JetStream` | 4.3, 4.8 |
+| MinIO | Existing `LocalStorage` backend; workspace under `%LOCALAPPDATA%\qClip` | 4.3, 4.8 |
 | Ollama | Optional: user-supplied OpenAI/Anthropic key or local Ollama URL; virality already degrades to score 0 | 4.4 |
 | ffmpeg on PATH | Bundled `ffmpeg.exe`/`ffprobe.exe` resolved relative to the app dir | 4.5 |
 | Python in container | PyInstaller one-dir build of FastAPI + worker as a **sidecar process**; UI shell (keep Electron; Tauri optional later) spawns and supervises it | 4.6, 4.7 |

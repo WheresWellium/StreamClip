@@ -21,7 +21,7 @@ function Write-DebugLog {
     #endregion
 }
 
-Write-Host "=== StreamClip VM Docker diagnose ===" -ForegroundColor Cyan
+Write-Host "=== qClip VM Docker diagnose ===" -ForegroundColor Cyan
 Write-Host "Logging to: $LogFile"
 
 # Hypothesis A/B: RAM pressure

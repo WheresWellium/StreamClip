@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "=== StreamClip hot-path branch coverage (§3.7) ===" -ForegroundColor Cyan
+Write-Host "=== qClip hot-path branch coverage (§3.7) ===" -ForegroundColor Cyan
 Write-Host "Modules: pipeline_tasks, sse, job_service, core/distribution" -ForegroundColor DarkGray
 Write-Host ""
 

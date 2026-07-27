@@ -1,6 +1,6 @@
 # Phase 0 operator runbook
 
-**Audience:** StreamClip operators during Docker / creator beta.  
+**Audience:** qClip operators during Docker / creator beta.  
 **Ops alerts:** set `OPS_WEBHOOK_URL` and follow [OPS_ALERTING.md](OPS_ALERTING.md).
 
 ---
@@ -100,14 +100,14 @@ Beta feedback rows have `environment->>'kind' = 'beta_feedback'`.
 
 ## 4. Invite email template (manual send)
 
-Subject: **StreamClip Phase 0 beta — your access**
+Subject: **qClip Phase 0 beta — your access**
 
 Body (replace placeholders):
 
 ```
 Hi {name},
 
-You're in — welcome to the StreamClip Phase 0 beta.
+You're in — welcome to the qClip Phase 0 beta.
 
 Get started (no GitHub account needed):
 https://streamclip-henna.vercel.app/BETA_DOWNLOAD/

@@ -1,4 +1,4 @@
-# Issue a StreamClip license key via Docker API container.
+# Issue a qClip license key via Docker API container.
 # Usage:
 #   .\scripts\issue_access_key.ps1
 #   .\scripts\issue_access_key.ps1 -Email you@example.com

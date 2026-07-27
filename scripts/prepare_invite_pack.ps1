@@ -88,7 +88,7 @@ if ($Mode -eq "Manual" -and $keysPath) {
 $manualTemplate = @"
 Hi {name},
 
-You're in - welcome to the StreamClip Phase 0 beta.
+You're in - welcome to the qClip Phase 0 beta.
 
 Get started (no GitHub account needed):
 {henna_base}/BETA_DOWNLOAD/
@@ -114,7 +114,7 @@ Wellium
 $lsTemplate = @"
 Hi {name},
 
-You're in - welcome to the StreamClip Phase 0 beta.
+You're in - welcome to the qClip Phase 0 beta.
 
 1. Complete your free checkout (downloads + license key):
 {checkout_url}
@@ -133,7 +133,7 @@ Thanks,
 Wellium
 "@
 
-$subject = "StreamClip Phase 0 beta - your access"
+$subject = "qClip Phase 0 beta - your access"
 $count = 0
 $index = New-Object System.Collections.Generic.List[string]
 $index.Add("Subject: $subject")

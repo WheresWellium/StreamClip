@@ -1,5 +1,5 @@
 """
-StreamClip — Thin SMTP email notifier
+qClip — Thin SMTP email notifier
 
 Configured entirely through environment variables so no secrets live in
 config.yaml:

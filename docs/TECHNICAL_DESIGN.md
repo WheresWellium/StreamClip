@@ -1,11 +1,11 @@
-# StreamClip — Technical Design
+# qClip — Technical Design
 
 **Revision:** 4 (2026-07-01)  
 **Status:** Active
 
 ## 1. Purpose & scope
 
-StreamClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders social-ready clips (9:16 default; 1:1, 4:5, 16:9, 2:3 selectable) with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
+qClip is a self-hosted pipeline that ingests long-form video (gaming, IRL, podcast, esports, and more), detects highlights, scores virality post-hoc, and renders social-ready clips (9:16 default; 1:1, 4:5, 16:9, 2:3 selectable) with reframing, karaoke captions, and optional meme overlays — then distributes them to YouTube and TikTok.
 
 **In scope:** ingest, transcription, highlight discovery, post-hoc virality (profile-aware, context-enriched), per-clip render, JWT auth API, web UI with contextual legends, REST API, Docker deployment, Prometheus metrics, optional webhooks, **social distribution** (YouTube publish, TikTok OAuth, scheduling, Clip Vault), style learning from explicit + implicit feedback.  
 **Out of scope (roadmap):** speaker diarization, TikTok direct-post (inbox upload shipped behind `TIKTOK_PUBLISH_ENABLED`, default off pending TikTok app approval; direct public posting needs the `video.publish` scope audit), Instagram Reels, multi-aspect export (1:1 / 16:9). Billing is Lemon Squeezy (license keys); Stripe was dropped.
@@ -266,7 +266,7 @@ Supports `Last-Event-Id` replay via Redis seq counter (`backend/services/sse.py`
 | Prod | `allow_anonymous: false`, strong `STREAMCLIP_AUTH__SECRET_KEY` |
 | Authenticated | JWT bearer; jobs scoped to `owner_id` |
 | Quotas | `jobs_used_this_month` on create; minutes on `finalise_job` |
-| Webhooks | HMAC-SHA256 body signature in `X-StreamClip-Signature` |
+| Webhooks | HMAC-SHA256 body signature in `X-qClip-Signature` |
 | Rate limit | Optional per-IP (`rate_limit.enabled`) |
 
 **Implementation:** `backend/api/auth.py`, `backend/services/auth_service.py`, `backend/api/jobs.py`
@@ -365,7 +365,7 @@ Set per job (`CreateJobRequest.aspect_ratio`, snapshotted in `config_snapshot`) 
 }
 ```
 
-Verify: `HMAC-SHA256(secret, raw_body)` compared to `X-StreamClip-Signature: sha256=...`
+Verify: `HMAC-SHA256(secret, raw_body)` compared to `X-qClip-Signature: sha256=...`
 
 ### 12.4 Module map
 

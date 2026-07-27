@@ -1,5 +1,5 @@
 /**
- * StreamClip — API Client
+ * qClip — API Client
  *
  * Two base URLs:
  *   • Server-side (RSC, Server Actions, Route Handlers): API_INTERNAL_URL

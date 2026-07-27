@@ -1,7 +1,7 @@
-# StreamClip — Master TODO (Release Readiness)
+# qClip — Master TODO (Release Readiness)
 
 **Living document — running list of everything left before packaging and distributing
-StreamClip as a Windows desktop executable, with a macOS port to follow.**
+qClip as a Windows desktop executable, with a macOS port to follow.**
 
 Last updated: 2026-07-07 (MASTER consolidation + coverage truth §3.10) · Owner: core team  
 Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M (1–3d) L (1w+)
@@ -172,7 +172,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 | 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
 | 4.17 | **Full in-process parity**: ✅ all direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault, CLI) routed through `core/task_dispatch.py` / `task_runner`; in-process Beat loop fires scheduled publishes + cleanup (`queue.inprocess_beat`, only while app runs — see BETA_KNOWN_ISSUES) | 🟢 | M |
 | 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; BFF routes moved to `web/app/_api_bff/` | 🟢 | L |
-| 4.18 | **Production desktop config profile** — ✅ frozen builds (or `STREAMCLIP_DESKTOP_DATA_DIR`) resolve DB/storage/workspace/cache under `%LOCALAPPDATA%\StreamClip` (`~/.streamclip` fallback) via env overrides in `desktop_sidecar/run.py`; config file keeps dev defaults | 🟢 | S |
+| 4.18 | **Production desktop config profile** — ✅ frozen builds (or `STREAMCLIP_DESKTOP_DATA_DIR`) resolve DB/storage/workspace/cache under `%LOCALAPPDATA%\qClip` (`~/.streamclip` fallback) via env overrides in `desktop_sidecar/run.py`; config file keeps dev defaults | 🟢 | S |
 
 ## 5. macOS port (after Windows)
 
@@ -186,7 +186,7 @@ Real DMG still needs a Mac host (§5.2–5.3).
 | 5.1 | ~~ffmpeg with VideoToolbox hw accel~~ ✅ `core/gpu_profile.py` — `videotoolbox_available` + `effective_export_codec` prefers `h264_videotoolbox` on Darwin when NVENC N/A; `export_video` `-q:v` args; `libx264` ultimate fallback; tests mock `is_darwin` | ✅ | — |
 | 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — CI scaffold: `desktop-release.yml` macOS job installs `requirements-desktop.txt`, `download_ffmpeg_macos.sh`, `build_desktop_ui.sh` (`continue-on-error` until green). Live MPS/CTranslate2 smoke still needs Mac host | 🟡 | M |
 | 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper — script + entitlements ready; Apple Developer + notarize secrets still external | 🔴 | M |
-| 5.4 | Paths: `~/Library/Application Support/StreamClip`; no `%LOCALAPPDATA%` | 🟢 | S |
+| 5.4 | Paths: `~/Library/Application Support/qClip`; no `%LOCALAPPDATA%` | 🟢 | S |
 | 5.5 | arm64 Apple Silicon first; universal2 / x86_64 later (documented) | 🟢 | S |
 | 5.6 | In-process worker from 4.2 is cross-platform ✅ (no Memurai/Redis broker required on desktop) | 🟢 | — |
 

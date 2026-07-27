@@ -1,4 +1,4 @@
-# StreamClip — start full stack (Docker)
+# qClip — start full stack (Docker)
 # Usage: .\scripts\start.ps1
 
 $ErrorActionPreference = "Stop"
@@ -32,7 +32,7 @@ if (-not $docker) {
 }
 
 Write-Host "Using Docker: $docker" -ForegroundColor Cyan
-Write-Host "Building and starting StreamClip (first run may take several minutes)..." -ForegroundColor Cyan
+Write-Host "Building and starting qClip (first run may take several minutes)..." -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Web UI:    http://localhost:3000"
 Write-Host "  API docs:  http://localhost:8000/docs"

@@ -1,4 +1,4 @@
-# StreamClip — Contributing
+# qClip — Contributing
 
 ## Development setup
 
@@ -20,7 +20,7 @@ Official guide: [Next.js — Debugging server-side code](https://nextjs.org/docs
 ### VS Code / Cursor
 
 1. Stop the Docker `web` service if it owns port 3000: `docker compose stop web`
-2. Open **Run and Debug** (`Ctrl+Shift+D`) and start **StreamClip: debug server-side**
+2. Open **Run and Debug** (`Ctrl+Shift+D`) and start **qClip: debug server-side**
 3. Set breakpoints in Server Components, Server Actions (`web/app/actions/`), and route handlers
 
 Configs live in `.vscode/launch.json` at the repo root (`cwd` is `web/`).

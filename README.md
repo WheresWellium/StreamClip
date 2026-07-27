@@ -1,6 +1,6 @@
 # qClip
 
-*(Internal identifiers, env vars, Docker services, and GitHub repo may still use `streamclip` / StreamClip.)*
+*(Technical internals — env vars, Docker service names, and the GitHub repository path — may still use the historical `streamclip` identifier. The product brand is **qClip**.)*
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
@@ -373,7 +373,7 @@ Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should
 | Upload to CDN | ~2–5s | ~2–5s |
 | **Total** | **~30–55s** | **~10–20s** |
 
-No Jet Stream docs project exists on Vercel yet — first deploy creates metrics baseline.
+No qClip docs project exists on Vercel yet — first deploy creates metrics baseline.
 
 ### Deploy docs (GitHub Pages — optional backup)
 

@@ -22,7 +22,7 @@
     "typescript": "^5.7.2"
   },
   "build": {
-    "appId": "io.streamclip.desktop",
+    "appId": "io.qclip.desktop",
     "productName": "qClip",
     "directories": {
       "output": "release",

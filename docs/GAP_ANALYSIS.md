@@ -1,4 +1,4 @@
-# StreamClip Gap Analysis
+# qClip Gap Analysis
 
 **Last run:** 2026-07-07 (revision 7 — MASTER consolidation + coverage truth)
 

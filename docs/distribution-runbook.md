@@ -1,4 +1,4 @@
-# StreamClip Distribution — Operations Runbook
+# qClip Distribution — Operations Runbook
 
 Operations guide for social publish (YouTube Shorts, TikTok), Clip Vault, Celery workers, and OAuth.
 
@@ -91,7 +91,7 @@ Beat schedule entry: `process_due_scheduled_jobs` every 60 seconds (see `core/ce
 2. Set redirect URI: `{WEB_ORIGIN}/api/distribution/oauth/{platform}/callback`
    - YouTube: `youtube_shorts`
    - TikTok: `tiktok`
-3. In StreamClip **Settings**, save Client ID + Secret per platform.
+3. In qClip **Settings**, save Client ID + Secret per platform.
 4. User connects from **Distribution → Connections**.
 
 ### Cloud (managed)
@@ -144,7 +144,7 @@ Signed JSON POST to global webhook URL and/or per-user webhook (Settings).
 | `publish.failed` | Terminal failure |
 | `publish.cancelled` | User cancelled scheduled/pending job |
 
-Header: `X-StreamClip-Signature: sha256=<hmac>` when secret configured.
+Header: `X-qClip-Signature: sha256=<hmac>` when secret configured.
 
 ## Prometheus metrics
 

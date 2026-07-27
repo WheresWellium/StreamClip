@@ -1,13 +1,13 @@
 """
-StreamClip — CLI Entry Point
+qClip — CLI Entry Point
 
 Thin CLI on top of the Celery task chain. Use this for one-off local runs;
 production goes through the FastAPI endpoint.
 
 Usage:
-    streamclip "https://www.twitch.tv/videos/123"
-    streamclip ./recording.mp4 --clips 7 --preset battle_royale
-    streamclip ./recording.mp4 --watch  # tail the SSE stream until done
+    python pipeline.py "https://www.twitch.tv/videos/123"
+    python pipeline.py ./recording.mp4 --clips 7 --preset battle_royale
+    python pipeline.py ./recording.mp4 --watch  # tail the SSE stream until done
 """
 
 from __future__ import annotations
@@ -178,7 +178,7 @@ async def _print_summary(job_id: str) -> None:
 @click.option("--watch/--no-watch", default=True,
               help="Tail the progress stream until done")
 def main(source: str, clips: int, style: str, preset: str, watch: bool) -> None:
-    """StreamClip — AI video clip pipeline CLI."""
+    """qClip — AI video clip pipeline CLI."""
 
     async def _run() -> None:
         job_id = await _create_and_dispatch(

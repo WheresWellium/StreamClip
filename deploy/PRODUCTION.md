@@ -1,4 +1,4 @@
-# StreamClip — Production deployment
+# qClip — Production deployment
 
 Self-hosted AI clip pipeline: Next.js → FastAPI → Celery → Redis → Postgres → MinIO.
 
@@ -30,7 +30,7 @@ clip.example.com {
 }
 ```
 
-5. Enable TLS automatically via Caddy. For SSE, ensure `flush_interval -1` is not buffering — StreamClip sets `X-Accel-Buffering: no` on progress routes.
+5. Enable TLS automatically via Caddy. For SSE, ensure `flush_interval -1` is not buffering — qClip sets `X-Accel-Buffering: no` on progress routes.
 6. Start: `docker compose up -d --build`
 7. Run migrations once: `docker compose exec api alembic upgrade head`
 
@@ -109,7 +109,7 @@ webhooks:
 ```
 
 Payload: `job.completed` with `job_id`, `status`, `clips_done`, `clips_failed`.  
-Verify `X-StreamClip-Signature: sha256=<hmac>` over the raw JSON body.
+Verify `X-qClip-Signature: sha256=<hmac>` over the raw JSON body.
 
 Prometheus: `streamclip_webhook_deliveries_total{result="success|failure"}`.
 

@@ -1,10 +1,10 @@
-# StreamClip — Performance Doctrine
+# qClip — Performance Doctrine
 
 Pipeline wall-clock throughput is the primary product constraint. For **desktop boot** phase budgets (splash → sidecar → first paint), see [`DESKTOP_STARTUP.md`](DESKTOP_STARTUP.md).
 
 **Status:** Active (2026-06-29)
 
-Pure performance is the **primary design constraint** for StreamClip. Features that slow the pipeline without a measurable quality gain are deferred. Every PR touching `core/` or workers should cite which hot path it affects and how it was validated.
+Pure performance is the **primary design constraint** for qClip. Features that slow the pipeline without a measurable quality gain are deferred. Every PR touching `core/` or workers should cite which hot path it affects and how it was validated.
 
 ## North-star metrics
 

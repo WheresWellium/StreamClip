@@ -11,11 +11,11 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 $releaseDir = Join-Path $root "apps\desktop\release"
-$installer = Join-Path $releaseDir "StreamClip-Setup-win-x64.exe"
+$installer = Join-Path $releaseDir "qClip-Setup-win-x64.exe"
 $latestYml = Join-Path $releaseDir "latest.yml"
 
 if (-not $PublishOnly -and -not $SkipBuild) {
-    Write-Host "=== Building StreamClip Windows installer ===" -ForegroundColor Cyan
+    Write-Host "=== Building qClip Windows installer ===" -ForegroundColor Cyan
     & "$PSScriptRoot\build_desktop_installer.ps1"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } elseif ($SkipBuild -and -not $PublishOnly) {
@@ -37,7 +37,7 @@ if (Test-Path $latestYml) {
 }
 Write-Host ""
 Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColor Cyan
-Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe"
+Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe"
 Write-Host ""
 Write-Host "Docs page:" -ForegroundColor Cyan
 Write-Host "  https://streamclip-henna.vercel.app/BETA_DOWNLOAD/"
@@ -45,7 +45,7 @@ Write-Host ""
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     Write-Host "Install GitHub CLI (gh) to publish, or upload manually:" -ForegroundColor Yellow
-    Write-Host "  gh release create v$Version `"$installer`" --title `"StreamClip v$Version`""
+    Write-Host "  gh release create v$Version `"$installer`" --title `"qClip v$Version`""
     exit 0
 }
 
@@ -72,7 +72,7 @@ if ($releaseExists) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } else {
     gh release create $tag @assets `
-        --title "StreamClip $tag" `
+        --title "qClip $tag" `
         --notes $releaseNotes `
         --latest
     if ($LASTEXITCODE -ne 0) {
@@ -95,13 +95,13 @@ if version in text:
     print('docs already mention version')
 else:
     today = '$today'
-    banner = f'> **Current Windows installer:** ``{version}`` ({today}) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)\n'
+    banner = f'> **Current Windows installer:** ``{version}`` ({today}) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)\n'
     lines = text.splitlines(keepends=True)
     out = []
     done = False
     for line in lines:
         out.append(line)
-        if not done and line.startswith('# Get StreamClip'):
+        if not done and line.startswith('# Get qClip'):
             nl = '\r\n' if line.endswith('\r\n') else '\n'
             out.append(nl)
             out.append(banner.replace('\n', nl))

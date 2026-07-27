@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the StreamClip macOS desktop DMG (MASTER_TODO §5 / ADR-001).
+# Build the qClip macOS desktop DMG (MASTER_TODO §5 / ADR-001).
 #
 # Pipeline: static UI -> PyInstaller sidecar -> stage (no .exe) -> electron-builder --mac.
 # Requires a macOS host (Apple Silicon preferred; arm64-first per §5.5).
@@ -90,7 +90,7 @@ verify_static_ui() {
   echo "Static UI OK ($(du -sh "$ROOT/static/ui" | awk '{print $1}'))"
 }
 
-echo "=== StreamClip macOS desktop installer build ==="
+echo "=== qClip macOS desktop installer build ==="
 echo "Arch preference: arm64 (Apple Silicon first; universal2 later — §5.5)"
 preflight
 
@@ -193,8 +193,8 @@ popd >/dev/null
 
 DMG=""
 shopt -s nullglob
-for f in "$DESKTOP_DIR"/release/StreamClip-mac-arm64.dmg \
-         "$DESKTOP_DIR"/release/StreamClip-mac-*.dmg; do
+for f in "$DESKTOP_DIR"/release/qClip-mac-arm64.dmg \
+         "$DESKTOP_DIR"/release/qClip-mac-*.dmg; do
   if [[ -f "$f" ]]; then
     DMG="$f"
     break
@@ -218,7 +218,7 @@ if [[ -n "$DMG" ]]; then
     "$ROOT/scripts/notarize_macos_artifact.sh" "$DMG"
   fi
 else
-  echo "electron-builder finished but no StreamClip-mac-*.dmg under apps/desktop/release/" >&2
+  echo "electron-builder finished but no qClip-mac-*.dmg under apps/desktop/release/" >&2
   exit 1
 fi
 

@@ -1,5 +1,5 @@
 """
-StreamClip — operator ops webhook (autonomous alerting)
+qClip — operator ops webhook (autonomous alerting)
 
 Configure via environment (never commit the URL):
 
@@ -52,7 +52,7 @@ def post_ops_webhook(payload: dict[str, object], *, max_retries: int = 3) -> boo
     req = urllib.request.Request(
         url,
         data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "StreamClip-Ops/1.0"},
+        headers={"Content-Type": "application/json", "User-Agent": "qClip-Ops/1.0"},
         method="POST",
     )
 

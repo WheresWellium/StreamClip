@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# StreamClip production installer — Docker prereq checks, health validation, compose up
+# qClip production installer — Docker prereq checks, health validation, compose up
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> StreamClip install"
+echo "==> qClip install"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERROR: Docker is required. Install Docker Desktop or docker-ce first."
@@ -52,7 +52,7 @@ done
 
 WEB_PORT="${WEB_PORT:-3000}"
 echo ""
-echo "StreamClip is running:"
+echo "qClip is running:"
 echo "  Web UI:  http://localhost:${WEB_PORT}"
 echo "  API:     http://localhost:${API_PORT:-8000}/docs"
 echo ""

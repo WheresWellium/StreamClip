@@ -1,4 +1,4 @@
-# Build StreamClip desktop sidecar with PyInstaller (ADR-001 section 4.6).
+# Build qClip desktop sidecar with PyInstaller (ADR-001 section 4.6).
 # Full ML bundle by default (CPU-only torch). Env toggles:
 #   STREAMCLIP_SKIP_PYINSTALLER=1  scaffold tests only, no build
 #   STREAMCLIP_LITE=1              API-only bundle without the ML stack (fast smoke)

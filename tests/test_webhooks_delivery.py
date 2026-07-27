@@ -41,7 +41,7 @@ def test_deliver_webhook_success():
             max_retries=1,
         )
     assert ok is True
-    assert "X-StreamClip-Signature" in client.post.call_args.kwargs["headers"]
+    assert "X-qClip-Signature" in client.post.call_args.kwargs["headers"]
 
 
 def test_deliver_webhook_retries_on_http_error():

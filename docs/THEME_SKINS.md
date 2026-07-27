@@ -1,4 +1,4 @@
-# StreamClip Theme Skins
+# qClip Theme Skins
 
 Five executive-level Figma design system skins for the in-app theme switcher. Each skin lives in its own Figma file with identical page structure.
 
@@ -11,11 +11,11 @@ Five executive-level Figma design system skins for the in-app theme switcher. Ea
 
 | # | Skin | Slug | Figma URL | File Key |
 |---|------|------|-----------|----------|
-| 1 | Tape Maroon Manga | `tape-maroon-manga` | [Open in Figma](https://www.figma.com/design/h7gWNvmKOkn4eG9qYhmpql/StreamClip-Design-System-v3-Tape-Maroon-Manga) | `h7gWNvmKOkn4eG9qYhmpql` |
-| 2 | Warm Tape Parlor | `warm-tape-parlor` | [Open in Figma](https://www.figma.com/design/YNC1P3ttppxui88kLfB4TU/StreamClip-Theme-Warm-Tape-Parlor) | `YNC1P3ttppxui88kLfB4TU` |
-| 3 | Midnight Lounge | `midnight-lounge` | [Open in Figma](https://www.figma.com/design/vW0k1WSeEoTRMNPB2QjWUG/StreamClip-Theme-Midnight-Lounge) | `vW0k1WSeEoTRMNPB2QjWUG` |
-| 4 | Signal Cathedral | `signal-cathedral` | [Open in Figma](https://www.figma.com/design/NRarnlPtQWmGsdhIilRMYf/StreamClip-Theme-Signal-Cathedral) | `NRarnlPtQWmGsdhIilRMYf` |
-| 5 | Kinetic Storm Manga | `kinetic-storm-manga` | [Open in Figma](https://www.figma.com/design/2eHw3cEKm8xJbB4Y15swyR/StreamClip-Theme-Kinetic-Storm-Manga) | `2eHw3cEKm8xJbB4Y15swyR` |
+| 1 | Tape Maroon Manga | `tape-maroon-manga` | [Open in Figma](https://www.figma.com/design/h7gWNvmKOkn4eG9qYhmpql/qClip-Design-System-v3-Tape-Maroon-Manga) | `h7gWNvmKOkn4eG9qYhmpql` |
+| 2 | Warm Tape Parlor | `warm-tape-parlor` | [Open in Figma](https://www.figma.com/design/YNC1P3ttppxui88kLfB4TU/qClip-Theme-Warm-Tape-Parlor) | `YNC1P3ttppxui88kLfB4TU` |
+| 3 | Midnight Lounge | `midnight-lounge` | [Open in Figma](https://www.figma.com/design/vW0k1WSeEoTRMNPB2QjWUG/qClip-Theme-Midnight-Lounge) | `vW0k1WSeEoTRMNPB2QjWUG` |
+| 4 | Signal Cathedral | `signal-cathedral` | [Open in Figma](https://www.figma.com/design/NRarnlPtQWmGsdhIilRMYf/qClip-Theme-Signal-Cathedral) | `NRarnlPtQWmGsdhIilRMYf` |
+| 5 | Kinetic Storm Manga | `kinetic-storm-manga` | [Open in Figma](https://www.figma.com/design/2eHw3cEKm8xJbB4Y15swyR/qClip-Theme-Kinetic-Storm-Manga) | `2eHw3cEKm8xJbB4Y15swyR` |
 
 **State ledger:** `tmp/dsb-state-streamclip-themes.json`
 
@@ -27,7 +27,7 @@ Five executive-level Figma design system skins for the in-app theme switcher. Ea
 - **Emotion:** Warm tape nostalgia meets manga pop energy
 - **Shape:** 8px radius · 2px maroon borders · Ben-Day halftone · katakana accents
 - **Palette:** cream `#FAF6F0`, maroon `#7A2838`, rose `#C97068`, sage `#8B9E7E`, ink `#2C1810`
-- **When to use:** Default StreamClip skin — creator-facing flows, onboarding, viral clip moments
+- **When to use:** Default qClip skin — creator-facing flows, onboarding, viral clip moments
 - **Theme switcher:** `data-theme="tape-maroon-manga"`
 
 ---

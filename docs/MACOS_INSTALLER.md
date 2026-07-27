@@ -1,6 +1,6 @@
 # macOS installer — builder notes
 
-**End users:** you do **not** need this page. Install with Docker on Mac — see [Get StreamClip](BETA_DOWNLOAD.md) (macOS tab).
+**End users:** you do **not** need this page. Install with Docker on Mac — see [Get qClip](BETA_DOWNLOAD.md) (macOS tab).
 
 **Builders / friends with a Mac:** use this when producing an unsigned `.dmg` for the future one-click path (MASTER_TODO §5).
 
@@ -8,9 +8,9 @@
 
 ## What you are building
 
-Electron shell + PyInstaller sidecar → `apps/desktop/release/StreamClip-mac-arm64.dmg` (Apple Silicon first).
+Electron shell + PyInstaller sidecar → `apps/desktop/release/qClip-mac-arm64.dmg` (Apple Silicon first).
 
-This is **not** required for beta testers to run StreamClip today.
+This is **not** required for beta testers to run qClip today.
 
 ## Prerequisites
 
@@ -37,10 +37,10 @@ Post-build verification (also runs automatically at end of the build script):
 
 ```bash
 chmod +x scripts/verify_desktop_installer_macos.sh
-./scripts/verify_desktop_installer_macos.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
 ```
 
-Expected artifact: `apps/desktop/release/StreamClip-mac-arm64.dmg`
+Expected artifact: `apps/desktop/release/qClip-mac-arm64.dmg`
 
 First open of an unsigned app: **right-click → Open**.
 
@@ -69,6 +69,6 @@ Full matrix: `packaging/installer/MACOS.md` (§5.1 / §5.2 sections).
 
 ## Related
 
-- [Get StreamClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
+- [Get qClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
 - [Beta quickstart](BETA_TESTER_QUICKSTART.md)
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

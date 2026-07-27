@@ -1,9 +1,9 @@
-# StreamClip production installer (Windows)
+# qClip production installer (Windows)
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
-Write-Host "==> StreamClip install"
+Write-Host "==> qClip install"
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
   Write-Error "Docker is required. Install Docker Desktop first."
@@ -57,7 +57,7 @@ if (-not $healthy) {
 }
 
 Write-Host ""
-Write-Host "StreamClip is running:"
+Write-Host "qClip is running:"
 Write-Host "  Web UI:  http://localhost:$WebPort"
 Write-Host "  API:     http://localhost:$ApiPort/docs"
 Write-Host ""

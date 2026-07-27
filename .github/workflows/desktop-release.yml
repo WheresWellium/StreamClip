@@ -1,6 +1,6 @@
 # Build Windows NSIS installer and publish to GitHub Releases.
 # Trigger: push tag v* (e.g. v1.0.0) or manual workflow_dispatch.
-# Download URL (stable): .../releases/latest/download/StreamClip-Setup-win-x64.exe
+# Download URL (stable): .../releases/latest/download/qClip-Setup-win-x64.exe
 name: Desktop release
 
 on:
@@ -99,7 +99,7 @@ jobs:
       - name: Verify installer + update metadata
         shell: pwsh
         run: |
-          $exe = Get-ChildItem apps/desktop/release -Filter "StreamClip-Setup-win-x64.exe" -ErrorAction Stop
+          $exe = Get-ChildItem apps/desktop/release -Filter "qClip-Setup-win-x64.exe" -ErrorAction Stop
           $mb = [math]::Round($exe.Length / 1MB)
           Write-Host "Installer: $($exe.FullName) ($mb MB)"
           if (-not (Test-Path apps/desktop/release/latest.yml)) {
@@ -110,9 +110,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', github.event.inputs.version) }}
-          name: StreamClip ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.version }}
+          name: qClip ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.version }}
           files: |
-            apps/desktop/release/StreamClip-Setup-win-x64.exe
+            apps/desktop/release/qClip-Setup-win-x64.exe
             apps/desktop/release/latest.yml
           generate_release_notes: true
           draft: ${{ github.event_name == 'workflow_dispatch' }}
@@ -196,8 +196,8 @@ jobs:
 
       - name: Verify DMG artifact
         run: |
-          if [ -f apps/desktop/release/StreamClip-mac-arm64.dmg ]; then
-            ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+          if [ -f apps/desktop/release/qClip-mac-arm64.dmg ]; then
+            ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
           else
             echo "::error::DMG not produced — check PyInstaller sidecar + electron-builder logs"
             exit 1
@@ -208,6 +208,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: apps/desktop/release/StreamClip-mac-arm64.dmg
+          files: apps/desktop/release/qClip-mac-arm64.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "=== StreamClip Docker stack verify (Phase 0) ===" -ForegroundColor Cyan
+Write-Host "=== qClip Docker stack verify (Phase 0) ===" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "Docker services:" -ForegroundColor Cyan

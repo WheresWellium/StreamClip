@@ -4,7 +4,7 @@
 see [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md) (macOS tab) and
 [docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).
 
-StreamClip on macOS follows the same **Electron shell + PyInstaller sidecar** layout as
+qClip on macOS follows the same **Electron shell + PyInstaller sidecar** layout as
 Windows ([ADR-001](../../docs/ADR-001-desktop-packaging.md)). This document covers the
 DMG **build** path; Windows NSIS remains in [README.md](./README.md).
 
@@ -20,13 +20,13 @@ preferred). Running `scripts/build_desktop_installer_macos.sh` on Windows exits 
 | Rationale | MPS / CTranslate2 arm64 wheels; smaller artifact; matches current creator hardware |
 
 `apps/desktop/package.json` `build.mac` targets `dmg` + `arch: ["arm64"]` with
-`artifactName: StreamClip-mac-{arch}.${ext}`.
+`artifactName: qClip-mac-{arch}.${ext}`.
 
 ## Data directory (§5.4)
 
 Frozen sidecar uses:
 
-`~/Library/Application Support/StreamClip`
+`~/Library/Application Support/qClip`
 
 (override with `STREAMCLIP_DESKTOP_DATA_DIR`). See `packaging/README.md`.
 
@@ -48,7 +48,7 @@ Reuse existing artifacts:
 
 Expected output:
 
-`apps/desktop/release/StreamClip-mac-arm64.dmg`
+`apps/desktop/release/qClip-mac-arm64.dmg`
 
 Static UI is built via `scripts/build_desktop_ui.sh` (no PowerShell required).
 Windows operators can still use `scripts/build_desktop_ui.ps1`.
@@ -118,16 +118,16 @@ Electron + native ML libs).
 ## Install layout (target)
 
 ```
-StreamClip.app/
+qClip.app/
   Contents/
-    MacOS/StreamClip
+    MacOS/qClip
     Resources/
       sidecar/
         streamclip-sidecar
         _internal/
 ```
 
-User data: `~/Library/Application Support/StreamClip/` (§5.4).
+User data: `~/Library/Application Support/qClip/` (§5.4).
 
 ## CI note
 

@@ -1,4 +1,4 @@
-# StreamClip — Figma Diagrams
+# qClip — Figma Diagrams
 
 Visual references for architecture, pipeline, UX, and modules. Generated in FigJam.
 
@@ -21,4 +21,4 @@ Separate design file for v2 component library, motion specs, and flagship screen
 
 | Artifact | URL | Status |
 |----------|-----|--------|
-| Design System v2 | https://www.figma.com/design/xOMtagKsZ5bMLnWYX9jKcq/StreamClip-Design-System-v2 | **Industrial Manga v2.1 complete.** 143 variables rebound. 22 component families (incl. Drawer/Dialog/Select). Top Sheet: audit + a11y + Code Connect map. Health 82%. Code Connect API needs Figma Enterprise. State: `tmp/dsb-state-streamclip-v2.json`. |
+| Design System v2 | https://www.figma.com/design/xOMtagKsZ5bMLnWYX9jKcq/qClip-Design-System-v2 | **Industrial Manga v2.1 complete.** 143 variables rebound. 22 component families (incl. Drawer/Dialog/Select). Top Sheet: audit + a11y + Code Connect map. Health 82%. Code Connect API needs Figma Enterprise. State: `tmp/dsb-state-streamclip-v2.json`. |

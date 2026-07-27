@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { DEFAULT_LOADING_SCREEN_CONFIG } from "../defaults.ts";
+import { DEFAULT_LOADING_SCREEN_CONFIG } from "../defaults";
 import {
   clampProgress,
   resolveLoadingScreenConfig,
   softIndeterminateProgress,
-} from "../resolve-config.ts";
+} from "../resolve-config";
 
 describe("resolveLoadingScreenConfig", () => {
   it("returns defaults when given an empty override", () => {

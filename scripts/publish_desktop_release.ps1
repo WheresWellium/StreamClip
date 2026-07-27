@@ -1,7 +1,7 @@
 # Build Windows installer locally and optionally upload to GitHub Releases.
 # Also uploads latest.yml (electron-updater) when present and bumps BETA_DOWNLOAD.md.
 param(
-    [string]$Version = "1.0.0-beta.4",
+    [string]$Version = "1.0.0-beta.5",
     [switch]$SkipBuild,
     [switch]$PublishOnly,
     [switch]$NoDocsBump

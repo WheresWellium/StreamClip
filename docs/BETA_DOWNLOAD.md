@@ -1,7 +1,7 @@
 # Get qClip — Beta Access
 
 
-> **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — product name **qClip**. Download the latest Setup exe from [GitHub Releases](https://github.com/WheresWellium/StreamClip/releases/latest) (artifact: `qClip-Setup-win-x64.exe` after republish).
+> **Current Windows installer:** `1.0.0-beta.5` (2026-07-27) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
 
 
 **qClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
@@ -263,10 +263,10 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | [`qClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
+| Windows | [`qClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.5** published — unsigned; SmartScreen may warn → More info → Run anyway |
 | macOS | `qClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
-**Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
+**Release page:** [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5)
 
 Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
 

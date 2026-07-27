@@ -37,6 +37,10 @@ async def test_health_ollama_failure(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_health_stack_includes_worker_check(client, monkeypatch):
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
     with patch("httpx.Client") as hc:
         inst = hc.return_value.__enter__.return_value
         inst.get.return_value = MagicMock(is_success=True)
@@ -48,11 +52,43 @@ async def test_health_stack_includes_worker_check(client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_health_stack_worker_unreachable(client):
+async def test_health_stack_worker_unreachable(client, monkeypatch):
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "celery")
     with patch("httpx.Client") as hc:
         hc.return_value.__enter__.return_value.get.side_effect = OSError("no flower")
         resp = await client.get("/api/health/stack")
     assert resp.json()["worker"] is False
+
+
+@pytest.mark.asyncio
+async def test_health_stack_inprocess_marks_worker_ok(client, monkeypatch):
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    resp = await client.get("/api/health/stack")
+    assert resp.json()["worker"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_device_and_storage_status(client, tmp_path, monkeypatch):
+    from core.config import get_settings
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.storage, "backend", "local")
+    monkeypatch.setattr(cfg.storage, "local_root", str(tmp_path / "storage"))
+    device = await client.get("/api/health/device")
+    assert device.status_code == 200
+    body = device.json()
+    assert "recommendation" in body
+    assert body["cpu_cores"] >= 1
+
+    storage = await client.get("/api/storage/status")
+    assert storage.status_code == 200
+    assert storage.json()["label"] == "Saved on this device"
 
 
 @pytest.mark.asyncio
@@ -115,6 +151,7 @@ async def test_health_all_ok_returns_ok_status(client, monkeypatch):
 
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.queue, "backend", "inprocess")
+    monkeypatch.setattr(cfg.llm, "provider", "openai")
     with patch("backend.api.health.make_storage") as ms:
         ms.return_value.list_prefix.return_value = []
         resp = await client.get("/api/health")

@@ -31,8 +31,8 @@ const CHECK_LABELS: Record<string, { label: string; hint: string }> = {
     hint: "Required for multi-service installs; skipped in desktop mode.",
   },
   storage: {
-    label: "Cloud storage",
-    hint: "Uploads and finished renders need storage.",
+    label: "Clip storage",
+    hint: "Uploads and finished renders need a writable storage location.",
   },
   ollama: {
     label: "AI scoring (optional)",

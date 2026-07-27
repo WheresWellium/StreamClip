@@ -323,6 +323,32 @@ export interface ModelsHealthResponse {
   models: Record<string, ModelPrefetchStatus>;
 }
 
+export type DeviceProfile = {
+  cpu_model: string;
+  cpu_cores: number;
+  ram_total_gb: number | null;
+  disk_path: string;
+  disk_total_gb: number;
+  disk_free_gb: number;
+  cuda: boolean;
+  nvenc: boolean;
+  mps: boolean;
+  processing_mode: string;
+  recommendation: string;
+  recommendation_detail: string;
+};
+
+export type StorageStatus = {
+  backend: string;
+  label: string;
+  root: string | null;
+  used_bytes: number | null;
+  free_bytes: number | null;
+  total_bytes: number | null;
+  human_root: string | null;
+  advanced: boolean;
+};
+
 export const metaApi = {
   health: () => request<Record<string, unknown>>("/api/health"),
   stackHealth: () =>
@@ -334,6 +360,8 @@ export const metaApi = {
       worker?: boolean | null;
     }>("/api/health/stack"),
   modelsHealth: () => request<ModelsHealthResponse>("/api/health/models"),
+  deviceProfile: () => request<DeviceProfile>("/api/health/device"),
+  storageStatus: () => request<StorageStatus>("/api/storage/status"),
   meta: () => request<Record<string, unknown>>("/api/meta"),
 };
 

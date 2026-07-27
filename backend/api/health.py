@@ -16,9 +16,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.schemas import HealthResponse, StackHealthResponse
+from backend.api.schemas import (
+    DeviceProfileResponse,
+    HealthResponse,
+    StackHealthResponse,
+    StorageStatusResponse,
+)
 from backend.db.session import get_db
 from core.config import get_settings
+from core.device_profile import build_device_profile, build_storage_status
 from core.model_prefetch import snapshot as model_prefetch_snapshot
 from core.storage import make_storage
 
@@ -118,13 +124,17 @@ async def health_stack(
     cfg = get_settings()
 
     worker_ok: bool | None = None
-    try:
-        import httpx
-        with httpx.Client(timeout=2.0) as client:
-            resp = client.get("http://flower:5555/api/workers")
-        worker_ok = resp.is_success
-    except Exception:
-        worker_ok = False
+    if cfg.queue.backend == "inprocess":
+        # Desktop sidecar runs jobs in-process — no Flower worker to probe.
+        worker_ok = True
+    else:
+        try:
+            import httpx
+            with httpx.Client(timeout=2.0) as client:
+                resp = client.get("http://flower:5555/api/workers")
+            worker_ok = resp.is_success
+        except Exception:
+            worker_ok = False
 
     checks = {
         "database": base.database,
@@ -159,6 +169,19 @@ async def health_stack(
         beat=None,
         web=None,
     )
+
+
+@router.get("/health/device", response_model=DeviceProfileResponse)
+async def health_device() -> DeviceProfileResponse:
+    """Hardware profile + processing recommendation for first-run setup."""
+    profile = build_device_profile()
+    return DeviceProfileResponse(**profile.as_dict())
+
+
+@router.get("/storage/status", response_model=StorageStatusResponse)
+async def storage_status() -> StorageStatusResponse:
+    """Human-readable clip storage location and capacity."""
+    return StorageStatusResponse(**build_storage_status())
 
 
 @router.get("/meta")

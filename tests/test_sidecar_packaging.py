@@ -54,15 +54,28 @@ def test_desktop_data_dir_frozen_uses_localappdata(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    assert sidecar.desktop_data_dir() == tmp_path / "StreamClip"
+    assert sidecar.desktop_data_dir() == tmp_path / "qClip"
+
+
+def test_desktop_data_dir_frozen_reuses_legacy_streamclip(tmp_path, monkeypatch):
+    monkeypatch.delenv("STREAMCLIP_DESKTOP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    legacy = tmp_path / "StreamClip"
+    legacy.mkdir()
+    assert sidecar.desktop_data_dir() == legacy
 
 
 def test_desktop_data_dir_frozen_darwin_uses_application_support(monkeypatch):
     monkeypatch.delenv("STREAMCLIP_DESKTOP_DATA_DIR", raising=False)
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "platform", "darwin")
-    expected = Path.home() / "Library" / "Application Support" / "StreamClip"
-    assert sidecar.desktop_data_dir() == expected
+    expected = Path.home() / "Library" / "Application Support" / "qClip"
+    # Prefer qClip when neither exists; if legacy exists on the machine, accept either.
+    result = sidecar.desktop_data_dir()
+    legacy = Path.home() / "Library" / "Application Support" / "StreamClip"
+    assert result in (expected, legacy)
 
 
 def test_desktop_data_dir_frozen_fallback_without_localappdata(monkeypatch):
@@ -70,7 +83,10 @@ def test_desktop_data_dir_frozen_fallback_without_localappdata(monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.delenv("LOCALAPPDATA", raising=False)
-    assert sidecar.desktop_data_dir() == Path.home() / ".streamclip"
+    result = sidecar.desktop_data_dir()
+    assert result in (Path.home() / ".qclip", Path.home() / ".streamclip")
+    if not (Path.home() / ".streamclip").exists():
+        assert result == Path.home() / ".qclip"
 
 
 def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):

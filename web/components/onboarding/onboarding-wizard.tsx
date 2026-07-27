@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { completeOnboardingAction } from "@/lib/api/actions/onboarding";
 import { markOnboardingComplete } from "@/lib/auth/client-session";
 import { HealthChecklist, type StackHealthSnapshot } from "@/components/onboarding/health-checklist";
+import {
+  DeviceProfileCard,
+  StorageStatusCard,
+} from "@/components/onboarding/device-storage-cards";
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { Button } from "@/components/ui/button";
 import { metaApi } from "@/lib/api/client";
@@ -87,6 +91,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
           <p className="text-sm text-muted-foreground">
             We make sure qClip is ready before your first clip job.
           </p>
+          <DeviceProfileCard />
           <HealthChecklist
             data={health}
             loading={checking}
@@ -97,11 +102,12 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
 
       {step === "storage" && (
         <section className="space-y-4">
-          <h1 className="text-2xl font-semibold">Storage</h1>
+          <h1 className="text-2xl font-semibold">Saved on this device</h1>
           <p className="text-muted-foreground">
-            Clips and uploads are stored locally (MinIO) or your configured S3 bucket.
-            Ensure Docker volumes have enough free space for your typical VOD length.
+            Projects, uploads, and finished clips stay on your computer. Advanced
+            team storage (S3 / MinIO) is optional and never required for the desktop app.
           </p>
+          <StorageStatusCard />
         </section>
       )}
 

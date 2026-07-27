@@ -21,18 +21,17 @@
 
 ## Validation (this branch)
 
-- Quota + license revocation tests: 30 passed (`test_quota_limits`, `test_license_revocation`, `test_license_hardening`).
-- Alembic `0012_quota_period_start` added (lazy 30-day quota roll).
-- Coverage / full stack gates not re-run this turn.
+- Quota + license revocation tests: passed.
+- Device profile + storage status + health stack + sidecar packaging: 29 passed.
+- Desktop `tsc --noEmit` clean (prior commit).
+- Alembic `0012_quota_period_start` on branch.
 
 ## Next steps (plan order)
 
-1. Finish WS0 docs truth (MASTER_TODO / GAP / BETA version drift).
-2. WS2 desktop boot: splash phases, frameless maximized shell, boot timings.
-3. WS3 hardware-aware setup hub; WS4 local storage UX.
-4. WS1 capability entitlements (`studio` / `publisher` / `audio_ingest`).
-5. WS5 publisher OAuth after first clip; WS6 E2E/perf gates.
-6. qClip rebrand across installers, splash, onboarding, docs download banner.
+1. WS1 capability entitlements (`studio` / `publisher` / `audio_ingest`).
+2. WS5 publisher OAuth after first clip; WS6 E2E/perf gates.
+3. Finish remaining StreamClip/Jet Stream strings in operator docs.
+4. Windows smoke: splash → maximized frameless → device recommendation → local path.
 
 ## Key paths
 

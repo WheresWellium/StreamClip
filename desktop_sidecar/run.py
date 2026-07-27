@@ -17,7 +17,8 @@ log = structlog.get_logger(__name__)
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
-APP_DATA_DIR_NAME = "StreamClip"
+APP_DATA_DIR_NAME = "qClip"
+LEGACY_APP_DATA_DIR_NAME = "StreamClip"
 
 
 def app_root() -> Path:
@@ -35,28 +36,39 @@ def app_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _platform_app_data_candidates() -> list[Path]:
+    """Preferred qClip dir first, then legacy StreamClip for existing installs."""
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+        return [base / APP_DATA_DIR_NAME, base / LEGACY_APP_DATA_DIR_NAME]
+    if sys.platform == "win32":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            base = Path(local_app_data)
+            return [base / APP_DATA_DIR_NAME, base / LEGACY_APP_DATA_DIR_NAME]
+    return [Path.home() / ".qclip", Path.home() / ".streamclip"]
+
+
 def desktop_data_dir() -> Path | None:
     """Per-user data dir for packaged installs (MASTER_TODO §4.18 / §5.4).
 
     Resolution order:
       1. ``STREAMCLIP_DESKTOP_DATA_DIR`` env override (any platform, incl. dev)
       2. When frozen (PyInstaller):
-         - Windows: ``%LOCALAPPDATA%\\StreamClip``
-         - macOS: ``~/Library/Application Support/StreamClip``
-         - else / missing LOCALAPPDATA: ``~/.streamclip``
+         - Prefer ``qClip`` app-data folder
+         - Reuse legacy ``StreamClip`` folder if it already exists
+         - else / missing LOCALAPPDATA: ``~/.qclip`` (legacy ``~/.streamclip``)
       3. Dev (not frozen, no override): ``None`` — config defaults apply
     """
     override = os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR")
     if override:
         return Path(override)
     if getattr(sys, "frozen", False):
-        if sys.platform == "darwin":
-            return Path.home() / "Library" / "Application Support" / APP_DATA_DIR_NAME
-        if sys.platform == "win32":
-            local_app_data = os.environ.get("LOCALAPPDATA")
-            if local_app_data:
-                return Path(local_app_data) / APP_DATA_DIR_NAME
-        return Path.home() / ".streamclip"
+        candidates = _platform_app_data_candidates()
+        for path in candidates:
+            if path.exists():
+                return path
+        return candidates[0]
     return None
 
 

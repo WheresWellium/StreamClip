@@ -413,6 +413,32 @@ class StackHealthResponse(BaseModel):
     web: bool | None = None
 
 
+class DeviceProfileResponse(BaseModel):
+    cpu_model: str
+    cpu_cores: int
+    ram_total_gb: float | None = None
+    disk_path: str
+    disk_total_gb: float
+    disk_free_gb: float
+    cuda: bool
+    nvenc: bool
+    mps: bool
+    processing_mode: str
+    recommendation: str
+    recommendation_detail: str
+
+
+class StorageStatusResponse(BaseModel):
+    backend: str
+    label: str
+    root: str | None = None
+    used_bytes: int | None = None
+    free_bytes: int | None = None
+    total_bytes: int | None = None
+    human_root: str | None = None
+    advanced: bool = False
+
+
 # ─── Progress events (SSE payload) ───────────────────────────────────────────
 
 class ProgressEvent(BaseModel):

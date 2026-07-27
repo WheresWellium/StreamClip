@@ -21,7 +21,7 @@ const ALL_SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "account", label: "Account" },
   { id: "get-started", label: "Get started" },
   { id: "license", label: "License" },
-  { id: "vault", label: "Vault & Storage" },
+  { id: "vault", label: "Vault & local storage" },
   { id: "billing", label: "Billing" },
   { id: "distribution", label: "Distribution" },
   { id: "integrations", label: "Integrations" },

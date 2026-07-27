@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/card";
 import { distributionApi, jobsApi, vaultApi } from "@/lib/api/client";
 import {
+  DeviceProfileCard,
+  StorageStatusCard,
+} from "@/components/onboarding/device-storage-cards";
+import {
   getClientAccessToken,
   getClientDeviceId,
 } from "@/lib/auth/client-session";
@@ -160,38 +164,48 @@ export function ActivationChecklist() {
   const doneCount = items.filter((i) => i.done).length;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Activation checklist</CardTitle>
-        <CardDescription>
-          {doneCount} of {items.length} complete — finish setup to publish clips.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-start gap-3 text-sm">
-            {item.done ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-            ) : (
-              <Circle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            )}
-            <div className="min-w-0">
-              {item.href && !item.done ? (
-                <Link href={item.href} className="text-sky-400 hover:underline">
-                  {item.label}
-                </Link>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Set up qClip</h2>
+        <p className="text-sm text-muted-foreground">
+          Confirm this device and where clips are saved, then finish activation.
+        </p>
+        <DeviceProfileCard />
+        <StorageStatusCard />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Activation checklist</CardTitle>
+          <CardDescription>
+            {doneCount} of {items.length} complete — finish setup to publish clips.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-start gap-3 text-sm">
+              {item.done ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
               ) : (
-                <span className={item.done ? "text-foreground" : "text-muted-foreground"}>
-                  {item.label}
-                </span>
+                <Circle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               )}
-              {item.hint ? (
-                <p className="text-xs text-muted-foreground mt-0.5">{item.hint}</p>
-              ) : null}
+              <div className="min-w-0">
+                {item.href && !item.done ? (
+                  <Link href={item.href} className="text-sky-400 hover:underline">
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className={item.done ? "text-foreground" : "text-muted-foreground"}>
+                    {item.label}
+                  </span>
+                )}
+                {item.hint ? (
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.hint}</p>
+                ) : null}
+              </div>
             </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { QuotaMeter } from "@/components/settings/quota-meter";
 import { VaultClipsView } from "@/components/vault/vault-clips-view";
 import {
+  DeviceProfileCard,
+  StorageStatusCard,
+} from "@/components/onboarding/device-storage-cards";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -52,22 +56,33 @@ export function VaultSettingsSection() {
   const token = getClientAccessToken();
   if (!token) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Vault &amp; Storage</CardTitle>
-          <CardDescription>Sign in to view saved clips and storage usage.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/login?next=/settings?section=vault" className="text-sky-400 hover:underline text-sm">
-            Sign in →
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Saved on this device</h2>
+          <StorageStatusCard />
+          <DeviceProfileCard />
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Clip vault</CardTitle>
+            <CardDescription>Sign in to view saved clips and plan quotas.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/login?next=/settings?section=vault" className="text-sky-400 hover:underline text-sm">
+              Sign in →
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Saved on this device</h2>
+        <StorageStatusCard />
+      </div>
       {quota ? <QuotaMeter quota={quota} /> : null}
 
       <Card>

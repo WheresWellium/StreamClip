@@ -11,7 +11,7 @@ know beta succeeded — aligned with MASTER_TODO release readiness and a
 
 ## 1. Entry gate — “110% coverage” (do not invite testers before this)
 
-Line coverage caps at 100%. **110%** means the full row below. **Canonical measurement:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10** (command, scope, footguns, phase waivers).
+Line coverage caps at 100%. **110%** means the full row below. **Canonical measurement:** run `scripts/verify_coverage.ps1` (operator detail: [MASTER_TODO §3.10 on GitHub](https://github.com/WheresWellium/StreamClip/blob/master/docs/MASTER_TODO.md)).
 
 | Milestone | Gate | Current (2026-07-07) |
 |-----------|------|----------------------|

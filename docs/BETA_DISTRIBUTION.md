@@ -1,7 +1,7 @@
 # Beta distribution — operator runbook (Lemon Squeezy)
 
 **Audience:** Operator only (not published on henna).  
-**Companion:** [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md), [BETA_OPS_PHASE0.md](BETA_OPS_PHASE0.md) §6
+**Companion:** [BETA_INVITE_PACK.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_INVITE_PACK.md), [BETA_OPS_PHASE0.md §6 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_OPS_PHASE0.md)
 
 ---
 

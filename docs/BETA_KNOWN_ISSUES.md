@@ -3,7 +3,7 @@
 **Audience:** Phase 0–2 beta testers · **Owner:** core team  
 **Last updated:** 2026-07-28  
 **Update:** when shipping a beta wave or closing a blocker  
-**Go-live / exit:** [`BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · evidence pack [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md)
+**Go-live / exit:** [Beta test plan §4.5 exit criteria](BETA_TESTER_PLAN.md#45-exit-criteria-phase-1) · evidence pack [BETA_COHORT_EXIT.md](BETA_COHORT_EXIT.md)
 
 ---
 

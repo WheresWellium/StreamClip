@@ -93,7 +93,7 @@ Beat schedule entry: `process_due_scheduled_jobs` every 60 seconds (see `core/ce
 operators: in-app bug reports, beta feedback, proactive `job_failed`, and Beat
 `stack_degraded`. Set on **api**, **worker**, and **beat**.
 
-Canonical contract: [OPS_ALERTING.md](OPS_ALERTING.md) — unsigned JSON POST,
+Canonical contract: [OPS_ALERTING.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/OPS_ALERTING.md) — unsigned JSON POST,
 `Content-Type: application/json`, `User-Agent: StreamClip-Ops/1.0`, up to 3
 retries, 15s timeout. Prefer Zapier/Make Catch Hook or a custom JSON inbox;
 native Discord/Slack hooks need an adapter.
@@ -124,7 +124,7 @@ API keys, or operator inboxes. Verify locally with:
 .\scripts\verify_ops_webhook.ps1
 ```
 
-Full operator checklist: [OPS_ALERTING.md](OPS_ALERTING.md).
+Full operator checklist: [OPS_ALERTING.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/OPS_ALERTING.md).
 
 ## OAuth setup
 
@@ -259,7 +259,7 @@ Suggested alerts:
 - If pointing at Discord/Slack directly, expect `ops_webhook_bad_status` —
   use a Catch Hook/adapter that accepts StreamClip JSON (no HMAC signature).
 - Check logs for `ops_webhook_skipped_unconfigured`, `ops_webhook_failed`, or
-  `ops_webhook_bad_status`. See [OPS_ALERTING.md](OPS_ALERTING.md).
+  `ops_webhook_bad_status`. See [OPS_ALERTING.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/OPS_ALERTING.md).
 
 ### Token key rotation
 

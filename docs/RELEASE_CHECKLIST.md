@@ -1,9 +1,11 @@
 # Release readiness checklist (operator)
 
 Run before expanding beta cohort or tagging a new desktop release. Companion: `packaging/installer/RELEASE_CHECKLIST.md`, `docs/BETA_GO_LIVE.md`.  
-**Human smoke:** [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) · boot budgets: [DESKTOP_STARTUP.md](DESKTOP_STARTUP.md).
+**Human smoke:** [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) · boot budgets: [DESKTOP_STARTUP.md](DESKTOP_STARTUP.md).  
+**Phase E — signing / notarization (post-cohort scripts):** [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md) — not required for first internal solo beta; required before wide cohort.
 
-**Product gate is desktop-first:** Windows `.exe` + macOS `.dmg` are required. Docker/`verify_stack` is an optional operator path, not a beta blocker.
+**Product gate is desktop-first:** Windows `.exe` + macOS `.dmg` are required. Docker/`verify_stack` is an optional operator path, not a beta blocker.  
+**Solo gate tracker:** [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) · kit: `./scripts/package_desktop_solo_kit.sh`
 
 ## Engineering gates
 
@@ -18,16 +20,16 @@ Run before expanding beta cohort or tagging a new desktop release. Companion: `p
 - [x] Artifact name `qClip-Setup-win-x64.exe` + `latest.yml` on GitHub Release
 - [x] `docs/BETA_DOWNLOAD.md` version, size, and download notes current (beta.5, ~487 MB)
 - [ ] Human smoke (Windows Explorer): [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) — install → splash→UI → license → short job → play clip → logs
-- [x] SmartScreen: documented More info → Run anyway (`BETA_DOWNLOAD.md`, `BETA_KNOWN_ISSUES.md`) until EV signing lands
-- [ ] EV Authenticode signing for production-quality SmartScreen reputation
+- [x] SmartScreen: documented More info → Run anyway (`BETA_DOWNLOAD.md`, `BETA_KNOWN_ISSUES.md`) until EV signing lands — ops: [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md)
+- [ ] EV Authenticode signing for production-quality SmartScreen reputation ([DESKTOP_SIGNING.md](DESKTOP_SIGNING.md): `CSC_*`, `verify_desktop_signing_ready.ps1`, `sign_windows_artifact.ps1`)
 - [ ] Logs verified on host: `%LOCALAPPDATA%\qClip\logs\` (`sidecar.log`, `electron.log`)
 
 ## Desktop macOS (required)
 
-- [ ] DMG built on Apple Silicon host (`./scripts/build_desktop_installer_macos.sh`)
-- [ ] Notarization / Developer ID when distributing outside local builds
+- [ ] DMG built on Apple Silicon host (`./scripts/build_macos_solo.sh`)
+- [ ] Notarization / Developer ID when distributing outside local builds ([DESKTOP_SIGNING.md](DESKTOP_SIGNING.md): `CSC_NAME`/`CSC_LINK`, Apple notary vars, `notarize_macos_artifact.sh`)
 - [ ] Human smoke (Finder): [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)
-- [x] Until ready: BETA_DOWNLOAD macOS row kept as Coming soon
+- [x] Product docs treat DMG as the Mac path (unsigned → right-click Open) until notarized
 
 ## Distribution / secrets
 
@@ -56,4 +58,4 @@ Run before expanding beta cohort or tagging a new desktop release. Companion: `p
 |-------|-------|
 | Date | 2026-07-28 |
 | Verdict | **CONDITIONAL GO** |
-| Notes | Desktop-first gate: win exe shipped (beta.5); macOS DMG build path ready (host must produce artifact). Open: Windows Explorer smoke, EV signing, notarization, LS prod secrets. Docker `verify_stack` optional for operators. |
+| Notes | Solo kit built (Win exe inside `dist/qclip-beta-kit-DesktopSolo-*.zip`). Open: Windows Explorer smoke, Mac `build_macos_solo.sh`, kit upload, then merge/tag beta.6. Signing: [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md). Tracker: [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md). |

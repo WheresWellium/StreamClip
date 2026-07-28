@@ -7,33 +7,36 @@
 
 | Chat | Branch | Focus |
 |------|--------|-------|
-| cloud-desktop-first | `cursor/desktop-first-completion-39d9` | Desktop-only Win+mac packaging (no Docker) |
+| cloud-desktop-first | `cursor/desktop-first-completion-39d9` | Desktop solo gate (no Docker) |
 
 ## Current focus
 
-**Desktop distribution gate:** ship Windows `.exe` + macOS `.dmg` without Docker. Docker is operator-only.
+Implement [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md): Windows fetch + kit done; Mac DMG + Explorer/Finder smoke need human hosts.
 
-## Blockers
+## Blockers (human hosts)
 
-- macOS DMG must be built on Apple Silicon host (CI soft-path improved; needs green artifact).
-- EV Authenticode (Windows SmartScreen) + Apple notarization (Gatekeeper).
-- Human smoke: [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md).
+- Windows Explorer smoke (A3–A5) on clean Win11.
+- `./scripts/build_macos_solo.sh` on Apple Silicon (B1–B5).
+- Operator upload of `dist/qclip-beta-kit-DesktopSolo-*.zip` (C4).
+- Merge PR #7 + tag beta.6 after A (+B) PASS (D).
 
-## Validation
+## Validation (agent)
 
-- Windows beta.5 installer published; packaging scripts fail-closed on missing exe/ffmpeg/`latest.yml`.
-- macOS: arm64 ffmpeg download, unsigned CSC clear, `requirements-desktop-macos.txt`, entitlements/docs flipped to DMG-first.
-- Desktop runtime: whisper medium/int8 defaults, HF cache in app-data, auto Fernet key, license status mismatch no longer wipes entitlement.
-- Opsera unavailable → pip-audit/npm-audit report in `/opt/cursor/artifacts/security-scan-desktop.md`.
+- Fetched `qClip-Setup-win-x64.exe` + `latest.yml` → `apps/desktop/release/`.
+- Built kit: `dist/qclip-beta-kit-DesktopSolo-*.zip` (Win installer inside).
+- Scripts: `fetch_desktop_artifacts.*`, `package_desktop_solo_kit.sh`, `build_macos_solo.sh`.
+- Docs: DESKTOP_SOLO_GATE, DESKTOP_SIGNING, RELEASE_NOTES_beta.6.
+- PR #7 CI previously green; Docker not required for creators.
 
 ## Next steps
 
-1. On Mac: `./scripts/build_desktop_installer_macos.sh` → attach `qClip-mac-arm64.dmg`.
-2. `.\scripts\prepare_beta_kit.ps1 -IncludeInstaller` (Win + mac when present).
-3. Human smoke both platforms; then merge PR #7.
+1. Human: Windows smoke → fill DESKTOP_SOLO_GATE A evidence.
+2. Human: Mac `./scripts/build_macos_solo.sh` → Finder smoke → re-run kit.
+3. Upload kit; merge PR #7; tag `v1.0.0-beta.6`.
 
 ## Key paths
 
-- Build: `scripts/build_desktop_installer.ps1`, `scripts/build_desktop_installer_macos.sh`
-- Runtime: `config/desktop.yaml`, `desktop_sidecar/run.py`, `apps/desktop/src/main.ts`
-- Docs: `BETA_DOWNLOAD.md`, `RELEASE_CHECKLIST.md`, `HUMAN_DESKTOP_SMOKE.md`
+- Gate: `docs/DESKTOP_SOLO_GATE.md`
+- Kit: `./scripts/package_desktop_solo_kit.sh`
+- Mac: `./scripts/build_macos_solo.sh`
+- Smoke: `docs/HUMAN_DESKTOP_SMOKE.md`

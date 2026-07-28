@@ -58,6 +58,30 @@ App data: `~/Library/Application Support/qClip/`.
 
 ---
 
+## Evidence capture (required for DESKTOP_SOLO_GATE)
+
+After a pass or fail, record results in [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md).
+
+**Windows — zip logs**
+
+```powershell
+$logDir = Join-Path $env:LOCALAPPDATA "qClip\logs"
+if (-not (Test-Path $logDir)) { $logDir = Join-Path $env:LOCALAPPDATA "StreamClip\logs" }
+Compress-Archive -Path $logDir -DestinationPath "$env:USERPROFILE\Desktop\qclip-smoke-win-logs.zip" -Force
+Write-Host "Wrote Desktop\qclip-smoke-win-logs.zip"
+```
+
+**macOS — zip logs**
+
+```bash
+LOGDIR="$HOME/Library/Application Support/qClip/logs"
+test -d "$LOGDIR" || LOGDIR="$HOME/Library/Application Support/StreamClip/logs"
+zip -r ~/Desktop/qclip-smoke-mac-logs.zip "$LOGDIR"
+echo "Wrote ~/Desktop/qclip-smoke-mac-logs.zip"
+```
+
+---
+
 ## Fail / escalate
 
 - Splash never appears, or blank wait past cold budget → capture `electron.log` + `sidecar.log` and file in-app **Report a bug**.

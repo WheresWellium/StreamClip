@@ -25,16 +25,19 @@ Use before tagging `v*` for GitHub Releases.
   - **Windows job** — required; publishes Setup exe + `latest.yml`
   - **macOS job** — scaffold on `macos-latest` with `continue-on-error: true` until §5.2–5.3 (MPS wheels + notarization) are green
 
-## Beta kit (Docker + Windows installer)
+## Beta kit (desktop solo — preferred)
 
 The GitHub repo is **private** — anonymous release download URLs **404**. Do not send bare GitHub `/releases/.../download/...` links to testers.
 
-```powershell
-.\scripts\prepare_beta_kit.ps1 -Mode Source   # default runnable tree
-.\scripts\prepare_beta_kit.ps1 -Mode Source -IncludeInstaller   # + installers/qClip-Setup-win-x64.exe
-.\scripts\prepare_beta_kit.ps1 -Mode ProdImages
+```bash
+./scripts/fetch_desktop_artifacts.sh v1.0.0-beta.5
+./scripts/package_desktop_solo_kit.sh v1.0.0-beta.5
+# → dist/qclip-beta-kit-DesktopSolo-*.zip with installers/
 ```
 
-`-IncludeInstaller` copies from `apps/desktop/release/` or falls back to `gh release download` (collaborator auth). Attach the zip / `installers/` via invite pack, Lemon Squeezy, or Drive.
+```powershell
+.\scripts\fetch_desktop_artifacts.ps1 -Tag v1.0.0-beta.5
+.\scripts\prepare_beta_kit.ps1 -Mode Source -IncludeInstaller
+```
 
-Testers run `.\scripts\start_local.ps1` then `.\scripts\verify_stack.ps1` (Docker), or run `installers\qClip-Setup-win-x64.exe` (desktop; SmartScreen → More info → Run anyway).
+Testers run `installers\qClip-Setup-win-x64.exe` or `installers/qClip-mac-arm64.dmg` — **no Docker**. See `docs/DESKTOP_SOLO_GATE.md`.

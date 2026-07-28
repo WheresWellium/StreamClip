@@ -160,7 +160,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            requirements-desktop.txt
+            requirements-desktop-macos.txt
             requirements-packaging.txt
 
       - uses: actions/setup-node@v4

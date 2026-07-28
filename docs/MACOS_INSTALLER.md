@@ -25,7 +25,21 @@ Electron shell + PyInstaller sidecar → `apps/desktop/release/qClip-mac-arm64.d
 **Accounts:** none for an unsigned local DMG. Apple Developer Program only when you want
 Gatekeeper-clean notarization.
 
-## Build
+## One command (operators)
+
+On an Apple Silicon Mac, from the repo root:
+
+```bash
+./scripts/build_macos_solo.sh
+```
+
+Prints prerequisites, builds the DMG, verifies
+`apps/desktop/release/qClip-mac-arm64.dmg`, then reminds you to run Finder smoke
+([HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)) and copy the DMG into the invite kit.
+
+## Build (advanced)
+
+Same pipeline without the solo wrapper:
 
 ```bash
 cd /path/to/streamclip
@@ -36,7 +50,7 @@ chmod +x scripts/build_desktop_installer_macos.sh
 The script fails closed with clear errors if ffmpeg, static UI, or the sidecar binary
 is missing. It auto-downloads arm64 ffmpeg via `scripts/download_ffmpeg_macos.sh`.
 
-Post-build verification (also runs automatically):
+Post-build verification (also runs from `build_macos_solo.sh`):
 
 ```bash
 ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg

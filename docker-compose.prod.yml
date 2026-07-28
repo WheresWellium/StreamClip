@@ -35,6 +35,10 @@ x-streamclip-distribution-env: &streamclip-distribution-env
   STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY:-}
   STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET: ${STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET:-}
 
+x-streamclip-auth-env: &streamclip-auth-env
+  STREAMCLIP_ENVIRONMENT: production
+  STREAMCLIP_AUTH__SECRET_KEY: ${STREAMCLIP_AUTH_SECRET_KEY:?set STREAMCLIP_AUTH_SECRET_KEY}
+
 x-streamclip-smtp-env: &streamclip-smtp-env
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
@@ -125,9 +129,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env]
-      STREAMCLIP_ENVIRONMENT: production
-      STREAMCLIP_AUTH__SECRET_KEY: ${STREAMCLIP_AUTH_SECRET_KEY:?set STREAMCLIP_AUTH_SECRET_KEY}
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env, *streamclip-auth-env]
       STREAMCLIP_AUTH__ALLOW_ANONYMOUS: ${STREAMCLIP_AUTH_ALLOW_ANONYMOUS:-true}
       STREAMCLIP_AUTH__DEVICE_SCOPED_ANONYMOUS: "true"
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
@@ -161,7 +163,7 @@ services:
                --queues=$${STREAMCLIP_WORKER_QUEUES:-default,gpu}
                --concurrency=4"
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env]
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-smtp-env, *streamclip-auth-env]
       # Default is CPU-safe all-in-one (consumes both queues so GPU-routed tasks like
       # run_transcribe/process_clip still execute without a GPU worker). Operators
       # running an isolated `gpu-worker` (--profile gpu) should set this to "default"
@@ -188,7 +190,7 @@ services:
                --concurrency=1
                --max-tasks-per-child=20"
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env]
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-distribution-env, *streamclip-auth-env]
       STREAMCLIP_LLM__BASE_URL: http://ollama:11434
       STREAMCLIP_WHISPER__DEVICE: cuda
       STREAMCLIP_WHISPER__COMPUTE_TYPE: float16
@@ -210,12 +212,20 @@ services:
     image: ${STREAMCLIP_IMAGE_PREFIX:-ghcr.io/streamclip}/worker:${STREAMCLIP_VERSION:-latest}
     command: celery -A core.celery_app.celery_app beat --loglevel=info
     environment:
-      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-smtp-env]
+      <<: [*streamclip-db-env, *streamclip-redis-env, *streamclip-storage-env, *streamclip-smtp-env, *streamclip-auth-env]
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    # Override the image's HEALTHCHECK (curl to the API on :8000) — beat runs
+    # no HTTP server. PID 1 is the beat process, so probe its cmdline instead.
+    healthcheck:
+      test: ["CMD-SHELL", "grep -qa beat /proc/1/cmdline || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     restart: unless-stopped
 
   web:

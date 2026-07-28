@@ -12,6 +12,9 @@ Legacy alias (deprecated, still read for one release):
 
 This module does **not** depend on n8n. Route destinations (email, Slack,
 agent MCP, etc.) live in whatever receives the webhook.
+
+``deliver_ops_event`` prefers the webhook and falls back to SMTP email, so an
+operator can run alerting with SMTP alone and no third-party connector.
 """
 
 from __future__ import annotations
@@ -39,6 +42,38 @@ def ops_webhook_status() -> str:
     if not ops_webhook_url():
         return "skipped_unconfigured"
     return "queued"
+
+
+def _email_body_from_payload(payload: dict[str, object]) -> str:
+    lines = [f"{key}: {json.dumps(value, default=str)}" for key, value in sorted(payload.items())]
+    return "qClip ops alert\n\n" + "\n".join(lines) + "\n"
+
+
+def deliver_ops_event(payload: dict[str, object]) -> str:
+    """
+    Deliver an ops event by the best configured channel.
+
+    Webhook wins when ``OPS_WEBHOOK_URL`` is set; otherwise falls back to SMTP so
+    an email-only operator still receives ``job_failed`` / ``stack_degraded``
+    (SMTP-only is the supported Phase 0 path — docs/OPS_ALERTING.md).
+    """
+    event = str(payload.get("event") or "ops")
+    if ops_webhook_url():
+        return "sent" if post_ops_webhook(payload) else "failed"
+
+    # Imported lazily: email config is env-only and unused on webhook installs.
+    from core.notify.email import bug_report_recipient, send_email, smtp_settings_from_env
+
+    recipient = bug_report_recipient()
+    if not smtp_settings_from_env().configured or not recipient:
+        log.info("ops_alert_skipped_unconfigured", ops_event=event)
+        return "skipped"
+    ok = send_email(
+        to=recipient,
+        subject=f"[qClip ops] {event}",
+        body=_email_body_from_payload(payload),
+    )
+    return "emailed" if ok else "failed"
 
 
 def post_ops_webhook(payload: dict[str, object], *, max_retries: int = 3) -> bool:

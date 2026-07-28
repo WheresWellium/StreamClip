@@ -5,40 +5,75 @@ import { useEffect, useState } from "react";
 
 import { CreateJobForm } from "@/components/jobs/create-job-form";
 import { StackPreflightBanner } from "@/components/jobs/stack-preflight-banner";
+import { Button } from "@/components/ui/button";
 import { metaApi, templatesApi } from "@/lib/api/client";
 import type { JobTemplate, StreamClipMeta } from "@/lib/api/meta-types";
 import { getClientAccessToken } from "@/lib/auth/client-session";
 import { normalizeStreamClipMeta } from "@/lib/normalize-meta";
+import { userFacingErrorMessage } from "@/lib/help/user-errors";
 
 export default function NewJobPage() {
   const [meta, setMeta] = useState<StreamClipMeta | null>(null);
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [token, setToken] = useState<string | undefined>();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const t = getClientAccessToken();
     setToken(t);
+    setLoadError(null);
     void (async () => {
-      const rawMeta = await metaApi.meta();
-      const normalized = normalizeStreamClipMeta(rawMeta);
-      let tpls: JobTemplate[] = [];
-      if (t) {
-        try {
-          tpls = await templatesApi.list(t);
-        } catch {
-          tpls = [];
+      try {
+        const rawMeta = await metaApi.meta();
+        const normalized = normalizeStreamClipMeta(rawMeta);
+        let tpls: JobTemplate[] = [];
+        if (t) {
+          try {
+            tpls = await templatesApi.list(t);
+          } catch {
+            tpls = [];
+          }
         }
-      }
-      if (!cancelled) {
-        setMeta(normalized);
-        setTemplates(tpls);
+        if (!cancelled) {
+          setMeta(normalized);
+          setTemplates(tpls);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMeta(null);
+          setLoadError(
+            userFacingErrorMessage(
+              err instanceof Error ? err.message : null,
+              null,
+              "Studio API is unreachable. Start the stack and try again.",
+            ),
+          );
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryKey]);
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 py-8">
+        <StackPreflightBanner />
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {loadError}
+        </div>
+        <Button type="button" variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   if (!meta) {
     return <p className="text-sm text-muted-foreground py-8">Loading…</p>;

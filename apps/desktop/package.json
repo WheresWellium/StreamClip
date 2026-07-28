@@ -1,8 +1,8 @@
 {
   "name": "streamclip-desktop",
   "version": "1.0.0-beta.4",
-  "description": "StreamClip desktop tray app — embedded sidecar + BrowserWindow UI",
-  "author": "StreamClip",
+  "description": "qClip desktop tray app — embedded sidecar + BrowserWindow UI",
+  "author": "qClip",
   "main": "dist/main.js",
   "private": true,
   "scripts": {
@@ -23,7 +23,7 @@
   },
   "build": {
     "appId": "io.streamclip.desktop",
-    "productName": "StreamClip",
+    "productName": "qClip",
     "directories": {
       "output": "release",
       "buildResources": "assets"
@@ -56,7 +56,7 @@
           ]
         }
       ],
-      "artifactName": "StreamClip-Setup-win-x64.${ext}",
+      "artifactName": "qClip-Setup-win-x64.${ext}",
       "signAndEditExecutable": false
     },
     "nsis": {
@@ -65,7 +65,7 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "StreamClip",
+      "shortcutName": "qClip",
       "installerLanguages": [
         "en_US"
       ],
@@ -81,7 +81,7 @@
           ]
         }
       ],
-      "artifactName": "StreamClip-mac-{arch}.${ext}",
+      "artifactName": "qClip-mac-{arch}.${ext}",
       "category": "public.app-category.video",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

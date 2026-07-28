@@ -1,7 +1,9 @@
-# StreamClip — Beta Known Issues
+# qClip — Beta Known Issues
 
 **Audience:** Phase 0–2 beta testers · **Owner:** core team  
-**Update:** when shipping a beta wave or closing a blocker
+**Last updated:** 2026-07-27  
+**Update:** when shipping a beta wave or closing a blocker  
+**Go-live / exit:** [`BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · evidence pack [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md)
 
 ---
 
@@ -20,7 +22,7 @@
 
 | Area | Behavior |
 |------|----------|
-| License revoke / JWT invalidation | Revoking a license via `POST /api/admin/licenses/{id}/revoke` immediately downgrades the linked user's tier to FREE and blocks re-activation. However, any **entitlement JWT** previously issued at activation time (stored in the license file or passed as a Bearer token) remains cryptographically valid until its `exp` claim — up to 100 years for one-time-purchase perpetual tokens. Full immediate invalidation requires a server-side **jti blocklist** (not yet implemented — `MASTER_TODO §10.9`). Practical mitigation: the JWT is machine-bound (`machine_id` claim), so revoked-tier API calls still fail the DB tier check; the JWT only unlocks the desktop entitlement path. |
+| License revoke / JWT invalidation | Revoking via `POST /api/admin/licenses/{id}/revoke` downgrades the linked user's tier to FREE, blocks re-activation, and **blocklists the `license_key_hash`** in Redis / the in-process KV set (`streamclip:revoked_license_hashes`). `verify_entitlement_token` rejects blocklisted hashes immediately (including perpetual JWTs). If the blocklist store is unreachable, verification fail-opens and logs a warning — authenticated API paths still enforce DB tier. |
 
 ## Performance expectations (informal SLIs)
 

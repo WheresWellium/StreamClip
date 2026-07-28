@@ -96,9 +96,17 @@ type Props = {
   templates: JobTemplate[];
   isAuthenticated: boolean;
   defaultSourceUrl?: string;
+  /** Called before navigating to the new job (e.g. mark onboarding complete). */
+  onJobCreated?: (jobId: string) => void | Promise<void>;
 };
 
-export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceUrl }: Props) {
+export function CreateJobForm({
+  meta,
+  templates,
+  isAuthenticated,
+  defaultSourceUrl,
+  onJobCreated,
+}: Props) {
   const router = useRouter();
   const [state, formAction] = React.useActionState(createJobAction, INITIAL_STATE);
   const [mode, setMode] = React.useState<"url" | "upload">("url");
@@ -141,10 +149,20 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
   }, []);
 
   React.useEffect(() => {
-    if (state.status === "ok" && state.jobId) {
-      router.push(`/jobs/${state.jobId}`);
-    }
-  }, [state.status, state.jobId, router]);
+    if (state.status !== "ok" || !state.jobId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await onJobCreated?.(state.jobId!);
+      } catch {
+        // Navigation still proceeds — caller failures must not trap the user.
+      }
+      if (!cancelled) router.push(`/jobs/${state.jobId}`);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.status, state.jobId, router, onJobCreated]);
 
   const selectedProfile = meta.content_profiles.find((p) => p.id === contentProfile);
 
@@ -240,6 +258,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
                     key={m}
                     type="button"
                     onClick={() => setMode(m)}
+                    aria-pressed={active}
                     className={cn(
                       "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors first:border-r first:border-frame/25",
                       active
@@ -423,6 +442,7 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
             <button
               type="button"
               onClick={() => setShowAdvanced((v) => !v)}
+              aria-expanded={showAdvanced}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronDown
@@ -505,8 +525,19 @@ export function CreateJobForm({ meta, templates, isAuthenticated, defaultSourceU
           </div>
 
           {state.status === "error" && state.message && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {state.message}
+            <div
+              role="alert"
+              data-testid="create-job-error"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive space-y-1"
+            >
+              <p>{state.message}</p>
+              {state.errors
+                ? Object.entries(state.errors).map(([field, msgs]) => (
+                    <p key={field} className="text-xs opacity-90">
+                      {field}: {msgs.join(", ")}
+                    </p>
+                  ))
+                : null}
             </div>
           )}
 

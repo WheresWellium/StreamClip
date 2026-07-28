@@ -15,7 +15,7 @@ export default function HomePage() {
     <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
       <section className="space-y-3 pt-1">
         <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border border-sky-400/40 bg-sky-400/10 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-400">
-          Jet Stream — all-in-one clip studio
+          qClip — all-in-one clip studio
         </div>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
           Clip any length.{" "}

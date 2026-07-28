@@ -1,10 +1,10 @@
-# Get StreamClip — Beta Access
+# Get qClip — Beta Access
 
 
-> **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)
+> **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
 
 
-**StreamClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
+**qClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
 
 **New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
 
@@ -30,7 +30,7 @@ Both options are free. You do **not** need a GitHub account.
 | **Windows one-click installer (.exe)** | ✅ Ready (unsigned beta) | Creators who want no Docker — SmartScreen may warn |
 | **macOS one-click installer (.dmg)** | 🔜 Coming soon | General creators — scaffold in progress |
 
-**Phase 0 testers:** Docker is still the most complete path. The Windows `.exe` works well for quick trials without Docker.
+**Phase 0 testers:** The Windows `.exe` is the primary path — no Docker required. Docker self-host remains available for operators who prefer it.
 
 ---
 
@@ -38,7 +38,7 @@ Both options are free. You do **not** need a GitHub account.
 
 If you prefer **not** to install Docker:
 
-1. Download **[StreamClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe)** (about 390 MB)
+1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 490 MB)
 2. Run the installer
 
 **If Windows shows "Windows protected your PC"**
@@ -47,7 +47,7 @@ This is normal for an unsigned beta build. It does **not** mean the file is a vi
 
 1. Click **More info**
 2. Click **Run anyway**
-3. Finish install and open StreamClip from the Start menu
+3. Finish install and open qClip from the Start menu
 4. Sign up or log in, then paste your license key in **Settings → License**
 
 The desktop app runs everything locally. You still need your **license key** from your invite email.
@@ -86,7 +86,7 @@ Pick your platform below.
     Copy-Item .env.example .env
     ```
 
-    ### Step 3 — Start StreamClip
+    ### Step 3 — Start qClip
 
     ```powershell
     docker compose up -d
@@ -146,7 +146,7 @@ Pick your platform below.
 
     Defaults work for local beta — no API keys required to start.
 
-    ### Step 4 — Start StreamClip
+    ### Step 4 — Start qClip
 
     ```bash
     docker compose up -d
@@ -164,7 +164,7 @@ Pick your platform below.
     open http://localhost:3000
     ```
 
-    You want containers **healthy** / **running**, health JSON with an OK-style status, and the StreamClip UI in the browser.
+    You want containers **healthy** / **running**, health JSON with an OK-style status, and the qClip UI in the browser.
 
     Optional (if you installed [PowerShell Core](https://github.com/PowerShell/PowerShell)):
 
@@ -207,7 +207,7 @@ Pick your platform below.
 !!! note "TikTok"
     TikTok direct publish is inbox-upload only during beta (awaiting app audit). Your clip will be saved to TikTok drafts — finish posting inside the TikTok app.
 
-### Stop StreamClip
+### Stop qClip
 
 === "Windows"
 
@@ -263,10 +263,10 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | [`StreamClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.2** published — unsigned; SmartScreen may warn → More info → Run anyway |
-| macOS | `StreamClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
+| Windows | [`qClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.4** published — unsigned; SmartScreen may warn → More info → Run anyway |
+| macOS | `qClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
-**Release page:** [v1.0.0-beta.2](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.2)
+**Release page:** [v1.0.0-beta.4](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.4)
 
 Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
 
@@ -276,4 +276,4 @@ See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users shoul
 
 ---
 
-*Jet Stream / StreamClip · Phase 0 creator beta · [Known issues](BETA_KNOWN_ISSUES.md) · [Full quickstart](BETA_TESTER_QUICKSTART.md)*
+*qClip · Phase 0 creator beta · [Known issues](BETA_KNOWN_ISSUES.md) · [Full quickstart](BETA_TESTER_QUICKSTART.md)*

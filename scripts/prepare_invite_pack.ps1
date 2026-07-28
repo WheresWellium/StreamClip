@@ -21,7 +21,8 @@ param(
     [string]$CohortCsv = "cohort.csv",
     [string]$OutDir = "dist/phase0-invite-pack",
     [string]$CheckoutUrl = "",
-    [string]$HennaBase = "https://streamclip-henna.vercel.app"
+    [string]$HennaBase = "https://streamclip-henna.vercel.app",
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,9 +56,11 @@ if ($Mode -eq "Manual") {
     }
 }
 
-New-Item -ItemType Directory -Force -Path (Join-Path $root $OutDir) | Out-Null
 $emailsDir = Join-Path (Join-Path $root $OutDir) "emails"
-New-Item -ItemType Directory -Force -Path $emailsDir | Out-Null
+if (-not $DryRun) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $root $OutDir) | Out-Null
+    New-Item -ItemType Directory -Force -Path $emailsDir | Out-Null
+}
 
 function Get-CohortRows {
     Import-Csv $cohortPath | ForEach-Object {
@@ -74,6 +77,17 @@ function Get-CohortRows {
     }
 }
 
+function Get-KeyLast4 {
+    param([string]$LicenseKey)
+    if (-not $LicenseKey) {
+        return ""
+    }
+    if ($LicenseKey.Length -le 4) {
+        return $LicenseKey
+    }
+    return $LicenseKey.Substring($LicenseKey.Length - 4)
+}
+
 $keyByEmail = @{}
 if ($Mode -eq "Manual" -and $keysPath) {
     Import-Csv $keysPath | ForEach-Object {
@@ -85,10 +99,34 @@ if ($Mode -eq "Manual" -and $keysPath) {
     }
 }
 
+$cohortRows = @(Get-CohortRows | Where-Object { $_.Email -and $_.Email -ne "email" })
+if ($cohortRows.Count -eq 0) {
+    Write-Host "FAIL: no cohort rows found in $cohortPath" -ForegroundColor Red
+    exit 1
+}
+
+if ($Mode -eq "Manual") {
+    $missing = New-Object System.Collections.Generic.List[string]
+    foreach ($member in $cohortRows) {
+        $lookup = $member.Email.ToLowerInvariant()
+        if (-not $keyByEmail.ContainsKey($lookup)) {
+            $missing.Add($member.Email)
+        }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Host "FAIL: cohort/key mismatch. Missing license_key for $($missing.Count) cohort email(s):" -ForegroundColor Red
+        foreach ($email in $missing) {
+            Write-Host "  $email" -ForegroundColor Red
+        }
+        Write-Host "Do not re-run issue_beta_keys.py for re-send. Use the original keys CSV or fix cohort.csv." -ForegroundColor Yellow
+        exit 1
+    }
+}
+
 $manualTemplate = @"
 Hi {name},
 
-You're in - welcome to the StreamClip Phase 0 beta.
+You're in - welcome to the qClip Phase 0 beta.
 
 Get started (no GitHub account needed):
 {henna_base}/BETA_DOWNLOAD/
@@ -114,7 +152,7 @@ Wellium
 $lsTemplate = @"
 Hi {name},
 
-You're in - welcome to the StreamClip Phase 0 beta.
+You're in - welcome to the qClip Phase 0 beta.
 
 1. Complete your free checkout (downloads + license key):
 {checkout_url}
@@ -133,22 +171,13 @@ Thanks,
 Wellium
 "@
 
-$subject = "StreamClip Phase 0 beta - your access"
+$subject = "qClip Phase 0 beta - your access"
 $count = 0
-$index = New-Object System.Collections.Generic.List[string]
-$index.Add("Subject: $subject")
-$index.Add("Mode: $Mode")
-$index.Add("")
-if ($Mode -eq "Manual") {
-    $index.Add("email,name,license_key,email_file")
-} else {
-    $index.Add("email,name,checkout_url,email_file")
-}
+$indexRows = New-Object System.Collections.Generic.List[object]
 
-foreach ($member in Get-CohortRows) {
+foreach ($member in $cohortRows) {
     $email = $member.Email
     $name = $member.Name
-    if (-not $email -or $email -eq "email") { continue }
 
     $safe = ($email -replace '[^a-zA-Z0-9._@-]', '_')
 
@@ -162,7 +191,12 @@ foreach ($member in Get-CohortRows) {
         $body = $manualTemplate.Replace("{name}", $name)
         $body = $body.Replace("{license_key}", $key)
         $body = $body.Replace("{henna_base}", $HennaBase.TrimEnd("/"))
-        $index.Add("$email,$name,$key,emails/$safe")
+        $indexRows.Add([PSCustomObject]@{
+            email             = $email
+            name              = $name
+            license_key_last4 = Get-KeyLast4 $key
+            email_file        = "emails/$safe.txt"
+        })
     } else {
         $checkoutOut = & python "$root/scripts/build_ls_checkout_url.py" --base-url $checkoutBase --email $email --name $name 2>&1
         if ($LASTEXITCODE -ne 0) {
@@ -173,12 +207,19 @@ foreach ($member in Get-CohortRows) {
         $body = $lsTemplate.Replace("{name}", $name)
         $body = $body.Replace("{checkout_url}", $checkoutLink)
         $body = $body.Replace("{henna_base}", $HennaBase.TrimEnd("/"))
-        $index.Add("$email,$name,$checkoutLink,emails/$safe")
+        $indexRows.Add([PSCustomObject]@{
+            email        = $email
+            name         = $name
+            checkout_url = $checkoutLink
+            email_file   = "emails/$safe.txt"
+        })
     }
 
     $file = Join-Path $emailsDir "$safe.txt"
     $content = "To: $email`r`nSubject: $subject`r`n`r`n$body"
-    Set-Content -Path $file -Value $content -Encoding utf8
+    if (-not $DryRun) {
+        Set-Content -Path $file -Value $content -Encoding utf8
+    }
     $count++
 }
 
@@ -190,20 +231,42 @@ $checklist = @(
     "Count: $count",
     "",
     "Before send:",
+    "- [ ] Rebuild this pack from cohort.csv + the original keys CSV",
+    "- [ ] Dry-run this script and confirm cohort count matches output count",
+    "- [ ] Compare index.csv last4 values against keys CSV (never paste full keys into docs/chat)",
+    "- [ ] Open spot-check email bodies locally for name/key/download links",
     "- [ ] verify_ls_beta_config.ps1 (LemonSqueezy mode)",
     "- [ ] OPS_WEBHOOK_URL set (optional) - docs/OPS_ALERTING.md",
-    "- [ ] Keys/checkout stored securely (do not commit dist/)",
+    "- [ ] Keys/checkout stored securely (do not commit dist/ or tmp/)",
     "",
     "After send:",
     "- [ ] H+0 monitor: docker compose exec -e PYTHONPATH=/app api python scripts/list_support_reports.py --limit 20"
 ) -join "`r`n"
 
 $outRoot = Join-Path $root $OutDir
-Set-Content -Path (Join-Path $outRoot "index.csv") -Value ($index -join "`n") -Encoding utf8
+if ($DryRun) {
+    Write-Host "DRY-RUN: would prepare $count email(s), mode=$Mode, out=$OutDir" -ForegroundColor Cyan
+    if ($Mode -eq "Manual") {
+        foreach ($row in $indexRows) {
+            Write-Host "  $($row.email) key-last4=$($row.license_key_last4)"
+        }
+    }
+    exit 0
+}
+
+$indexRows | Export-Csv -Path (Join-Path $outRoot "index.csv") -NoTypeInformation -Encoding utf8
+Set-Content -Path (Join-Path $outRoot "PACK_SUMMARY.txt") -Value @(
+    "Subject: $subject",
+    "Mode: $Mode",
+    "Generated: $when",
+    "Count: $count",
+    "Index redacts manual license keys to last4."
+) -Encoding utf8
 Set-Content -Path (Join-Path $outRoot "SEND_CHECKLIST.txt") -Value $checklist -Encoding utf8
 
 Write-Host "Invite pack ready: $OutDir ($count emails, mode=$Mode)" -ForegroundColor Green
 Write-Host "  index:     $OutDir\index.csv"
+Write-Host "  summary:   $OutDir\PACK_SUMMARY.txt"
 Write-Host "  checklist: $OutDir\SEND_CHECKLIST.txt"
 Write-Host "  bodies:    $OutDir\emails\"
 exit 0

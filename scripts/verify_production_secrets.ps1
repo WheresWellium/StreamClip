@@ -82,6 +82,26 @@ if (-not $vars["OPS_WEBHOOK_URL"]) {
     $warnings += "OPS_WEBHOOK_URL unset - no Discord/Slack/agent inbox for bug_report / job_failed / stack_degraded (docs/OPS_ALERTING.md)"
 }
 
+$smtpHost = $vars["SMTP_HOST"]
+$bugReportTo = $vars["BUG_REPORT_TO"]
+if ($smtpHost -and -not $bugReportTo) {
+    $warnings += "SMTP_HOST set but BUG_REPORT_TO unset - bug reports persist but no operator email is sent"
+}
+if ($bugReportTo -and -not $smtpHost) {
+    $warnings += "BUG_REPORT_TO set but SMTP_HOST unset - bug reports persist but no operator email is sent"
+}
+if ($smtpHost -eq "smtp.resend.com") {
+    if ($vars["SMTP_USER"] -ne "resend") {
+        $warnings += "Resend SMTP requires SMTP_USER=resend"
+    }
+    if (-not $vars["SMTP_PASSWORD"]) {
+        $warnings += "Resend SMTP requires SMTP_PASSWORD=<resend_api_key>"
+    }
+    if (-not $vars["SMTP_FROM"] -or $vars["SMTP_FROM"] -eq "streamclip@localhost") {
+        $warnings += "Resend SMTP requires SMTP_FROM from a verified sending domain"
+    }
+}
+
 if (-not $vars["STREAMCLIP_OBSERVABILITY__SENTRY_DSN"]) {
     $warnings += "STREAMCLIP_OBSERVABILITY__SENTRY_DSN unset - API/worker crashes will not appear in Sentry"
 }

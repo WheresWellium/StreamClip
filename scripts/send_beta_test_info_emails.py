@@ -5,7 +5,7 @@ Does **not** issue or regenerate keys — pass the same ``keys.csv`` / ``tmp/bet
 from the original cohort issuance (e.g. ``beta-phase0-regen-001..005``).
 
 Email body mirrors the henna getting-started flow (index + quickstart):
-  Get StreamClip → Quickstart → paste license key → run locally.
+  Get qClip → Quickstart → paste license key → run locally.
 
 Prepares gitignored bodies under dist/phase0-beta-test-info/emails/ and optionally
 sends via SMTP (same env vars as core.notify.email).
@@ -53,12 +53,12 @@ DEFAULT_KEYS_CANDIDATES = (
 BODY_TEMPLATE_LS = """\
 Hi {name},
 
-You're in — welcome to the StreamClip Phase 0 beta.
+You're in — welcome to the qClip Phase 0 beta.
 
 1. Complete your free checkout (downloads + license key):
    {checkout_url}
 
-2. Get StreamClip — pick Windows or Mac:
+2. Get qClip — pick Windows or Mac:
    {henna_base}/BETA_DOWNLOAD/
 
 3. Quickstart — install to your first clip (~15 min):
@@ -76,11 +76,11 @@ Wellium
 BODY_TEMPLATE = """\
 Hi {name},
 
-You're in — welcome to the StreamClip Phase 0 beta.
+You're in — welcome to the qClip Phase 0 beta.
 
 Getting started (same flow as the docs site — no GitHub account needed):
 
-1. Get StreamClip — pick Windows or Mac:
+1. Get qClip — pick Windows or Mac:
    {henna_base}/BETA_DOWNLOAD/
 
 2. Quickstart — install to your first clip (~15 min):

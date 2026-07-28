@@ -1,74 +1,124 @@
-# macOS installer — builder notes
+# macOS installer — 30-minute builder runbook
 
-**End users:** you do **not** need this page. Install with Docker on Mac — see [Get StreamClip](BETA_DOWNLOAD.md) (macOS tab).
+**End users:** you do **not** need this page. Install with Docker on Mac — see
+[Get qClip](BETA_DOWNLOAD.md) (macOS tab).
 
-**Builders / friends with a Mac:** use this when producing an unsigned `.dmg` for the future one-click path (MASTER_TODO §5).
+**Builders with a borrowed Mac:** this is the complete path to an unsigned arm64
+`.dmg` in ~30 minutes. Notarization (Gatekeeper-clean) is an optional extra step
+after you have an Apple Developer ID.
+
+Companion detail: [`packaging/installer/MACOS.md`](../packaging/installer/MACOS.md) ·
+ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
 
 ---
 
-## What you are building
+## Status
 
-Electron shell + PyInstaller sidecar → `apps/desktop/release/StreamClip-mac-arm64.dmg` (Apple Silicon first).
-
-This is **not** required for beta testers to run StreamClip today.
-
-## Prerequisites
-
-| Need | Notes |
+| Item | State |
 |------|--------|
-| Mac host | Apple Silicon preferred |
-| Xcode Command Line Tools | `xcode-select --install` |
-| Node.js 20+ | [nodejs.org](https://nodejs.org) or Homebrew |
+| electron-builder `mac` target `dmg` + `arch: ["arm64"]` | ✅ Committed (`apps/desktop/package.json`) |
+| Entitlements + hardenedRuntime | ✅ `apps/desktop/assets/entitlements.mac.plist` |
+| Build script | ✅ `scripts/build_desktop_installer_macos.sh` |
+| Verify script | ✅ `scripts/verify_desktop_installer_macos.sh` |
+| Notarize script (skips if no Apple secrets) | ✅ `scripts/notarize_macos_artifact.sh` |
+| Live `.dmg` on GitHub Releases | ❌ Needs Mac host (cannot build on Windows) |
+| Notarized / Gatekeeper-clean | ❌ Needs Apple Developer Program |
+
+Beta testers today use **Docker on Mac** — the DMG is Phase 2 polish, not a Phase 0 blocker.
+
+---
+
+## 30-minute unsigned DMG (no Apple account)
+
+### Prerequisites (once per Mac)
+
+| Need | Check |
+|------|--------|
+| Apple Silicon Mac | Preferred; Intel not first-ship |
+| macOS 12+ | — |
+| Xcode CLT | `xcode-select --install` |
+| Node.js 20+ | `node -v` |
 | Python 3.11+ | `python3 --version` |
-| ~15 GB free disk | Sidecar + Electron are large |
-| PowerShell Core (optional) | `brew install --cask powershell` — for `build_desktop_ui.ps1`, or pre-copy `static/ui` |
+| ~15 GB free | Sidecar + Electron are large |
 
-**Accounts:** none for an unsigned local DMG. No Apple Developer Program required until you want Gatekeeper-clean notarization.
-
-## Build
+### Build
 
 ```bash
 cd /path/to/streamclip
-chmod +x scripts/build_desktop_installer_macos.sh
+chmod +x scripts/build_desktop_installer_macos.sh \
+         scripts/verify_desktop_installer_macos.sh \
+         scripts/notarize_macos_artifact.sh \
+         scripts/download_ffmpeg_macos.sh
+
 ./scripts/build_desktop_installer_macos.sh
 ```
 
-Post-build verification (also runs automatically at end of the build script):
+Expected artifact: `apps/desktop/release/qClip-mac-arm64.dmg`
+
+Post-build verify (also runs at end of build script):
 
 ```bash
-chmod +x scripts/verify_desktop_installer_macos.sh
-./scripts/verify_desktop_installer_macos.sh apps/desktop/release/StreamClip-mac-arm64.dmg
+./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
 ```
 
-Expected artifact: `apps/desktop/release/StreamClip-mac-arm64.dmg`
+First open of an **unsigned** app: **right-click → Open** (Gatekeeper).
 
-First open of an unsigned app: **right-click → Open**.
+### Timing budget
 
-## Signing (optional, later)
+| Step | ~Minutes |
+|------|----------|
+| CLT / Node / Python if missing | 5–10 |
+| `npm ci` + sidecar PyInstaller | 10–15 |
+| electron-builder DMG | 5 |
+| Verify + smoke open | 2 |
+| **Total (warm machine)** | **~25–30** |
 
-Set only when you have a Developer ID certificate:
+---
+
+## Optional: Developer ID sign + notarize (~15 min more)
+
+Requires Apple Developer Program membership.
 
 | Variable | Purpose |
 |----------|---------|
-| `CSC_LINK` / `CSC_KEY_PASSWORD` | `.p12` signing |
+| `CSC_LINK` / `CSC_KEY_PASSWORD` | `.p12` Developer ID Application cert |
 | `CSC_NAME` | Keychain identity instead of `CSC_LINK` |
-| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` | Notarization |
+| `APPLE_ID` | Apple ID email |
+| `APPLE_APP_SPECIFIC_PASSWORD` | app-specific password (not account password) |
+| `APPLE_TEAM_ID` | 10-char team id |
 
-Unset → script builds an **unsigned** DMG (`CSC_IDENTITY_AUTO_DISCOVERY=false`).
+```bash
+export CSC_LINK=/secure/DeveloperID.p12
+export CSC_KEY_PASSWORD='…'
+export APPLE_ID='you@example.com'
+export APPLE_APP_SPECIFIC_PASSWORD='…'
+export APPLE_TEAM_ID='XXXXXXXXXX'
+
+./scripts/build_desktop_installer_macos.sh
+./scripts/notarize_macos_artifact.sh apps/desktop/release/qClip-mac-arm64.dmg
+```
+
+Unset Apple vars → build stays unsigned; `notarize_macos_artifact.sh` exits 0 with a skip note
+(safe for CI / borrowed Mac without a Developer ID).
+
+---
 
 ## Known gaps (scaffold vs Mac host)
 
 | Item | Done without Mac | Still needs Mac host |
 |------|------------------|----------------------|
 | §5.1 VideoToolbox encode selection | ✅ `gpu_profile` / `export_video` + tests | Bundle Darwin ffmpeg; live encode smoke |
-| §5.2 MPS Whisper / YOLO | ✅ device probe + auto fallback | arm64 Torch + CTranslate2 wheels in sidecar; MPS smoke |
-| §5.3 Gatekeeper | Unsigned DMG script | Developer ID sign + notarize |
-| DMG build | Script + CI scaffold | Successful arm64 `.dmg` on a Mac runner |
+| §5.2 MPS Whisper / YOLO | ✅ device probe + auto fallback | arm64 Torch + CTranslate2 in sidecar; MPS smoke |
+| §5.3 Gatekeeper | Unsigned DMG script + notarize skip-path | Successful notarized arm64 `.dmg` |
+| DMG build | Script + CI scaffold | Successful arm64 `.dmg` on a Mac |
 
-Full matrix: `packaging/installer/MACOS.md` (§5.1 / §5.2 sections).
+Full matrix: `packaging/installer/MACOS.md`.
+
+---
 
 ## Related
 
-- [Get StreamClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
+- [Get qClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
 - [Beta quickstart](BETA_TESTER_QUICKSTART.md)
+- [Windows EV signing](DESKTOP_SIGNING.md)
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

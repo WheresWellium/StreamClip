@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import { ClipCard } from "@/components/clips/clip-card";
 import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
@@ -21,10 +21,10 @@ import { statusColors } from "@/lib/utils/format";
 
 export function JobClipsPageClient() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const jobId = params.id;
   const [ctx, setCtx] = useState<JobPageContext | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +35,7 @@ export function JobClipsPageClient() {
       .catch((err) => {
         if (cancelled) return;
         if (isJobNotFound(err)) {
-          router.replace("/jobs");
+          setMissing(true);
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load job");
@@ -43,7 +43,25 @@ export function JobClipsPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [jobId, router]);
+  }, [jobId]);
+
+  if (missing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+        <h1 className="text-3xl font-semibold">Job not found</h1>
+        <p className="text-muted-foreground max-w-sm">
+          We couldn&apos;t find this job. It may have been deleted or you may not have
+          access.
+        </p>
+        <Link
+          href="/jobs"
+          className="text-sky-400 hover:underline text-sm"
+        >
+          Back to jobs
+        </Link>
+      </div>
+    );
+  }
 
   if (error) {
     return (

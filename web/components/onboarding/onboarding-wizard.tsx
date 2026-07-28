@@ -73,7 +73,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
 
       {step === "welcome" && (
         <section className="space-y-4">
-          <h1 className="text-2xl font-semibold">Welcome to Jet Stream</h1>
+          <h1 className="text-2xl font-semibold">Welcome to qClip</h1>
           <p className="text-muted-foreground">
             The clip studio for any length of footage — auto-reframe to any ratio,
             caption and overlay in one pass, then rank what wins before you publish.
@@ -85,7 +85,7 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
         <section className="space-y-4">
           <h1 className="text-2xl font-semibold">Ready check</h1>
           <p className="text-sm text-muted-foreground">
-            We make sure StreamClip is ready before your first clip job.
+            We make sure qClip is ready before your first clip job.
           </p>
           <HealthChecklist
             data={health}
@@ -116,6 +116,12 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
             templates={[]}
             isAuthenticated={false}
             defaultSourceUrl={sampleUrl}
+            onJobCreated={async () => {
+              // Cookie must be set before navigating to /jobs/[id] or
+              // middleware bounces the user back to onboarding (GAP T60).
+              markOnboardingComplete();
+              await completeOnboardingAction();
+            }}
           />
         </section>
       )}

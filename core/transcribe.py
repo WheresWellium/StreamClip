@@ -9,13 +9,11 @@ Gaming terminology is hot-word boosted to reduce transcription errors
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from pathlib import Path
-from typing import Iterator
 
 import structlog
-from faster_whisper import WhisperModel, BatchedInferencePipeline
+from faster_whisper import WhisperModel
 
 from core.caption_timing import repair_word_timing
 from core.config import Settings, WhisperConfig
@@ -222,7 +220,10 @@ def transcribe(
     return transcript
 
 
-def _parse_segments(segments_iter, wcfg: WhisperConfig) -> list[TranscriptSegment]:
+def _parse_segments(
+    segments_iter,
+    _wcfg: WhisperConfig,
+) -> list[TranscriptSegment]:
     """Build segments with repaired word timings from a faster-whisper iterator."""
     segments: list[TranscriptSegment] = []
     for i, seg in enumerate(segments_iter):
@@ -278,36 +279,3 @@ def transcribe_clip(video_path: Path, cfg: Settings) -> Transcript:
         duration=info.duration,
         source_path=video_path,
     )
-
-
-# ─── SRT / VTT export ─────────────────────────────────────────────────────────
-
-def _fmt_ts(secs: float, separator: str = ",") -> str:
-    h = int(secs // 3600)
-    m = int((secs % 3600) // 60)
-    s = int(secs % 60)
-    ms = int((secs % 1) * 1000)
-    return f"{h:02d}:{m:02d}:{s:02d}{separator}{ms:03d}"
-
-
-def export_srt(transcript: Transcript, out_path: Path) -> Path:
-    """Export transcript as an SRT subtitle file."""
-    lines: list[str] = []
-    for seg in transcript.segments:
-        lines.append(str(seg.id + 1))
-        lines.append(f"{_fmt_ts(seg.start)} --> {_fmt_ts(seg.end)}")
-        lines.append(seg.text)
-        lines.append("")
-    out_path.write_text("\n".join(lines), encoding="utf-8")
-    return out_path
-
-
-def export_word_level_json(transcript: Transcript, out_path: Path) -> Path:
-    """Export every word with its timestamp — used by the caption engine."""
-    data = [
-        {"word": w.text, "start": w.start, "end": w.end, "confidence": w.probability}
-        for seg in transcript.segments
-        for w in seg.words
-    ]
-    out_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    return out_path

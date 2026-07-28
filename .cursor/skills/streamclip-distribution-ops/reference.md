@@ -12,11 +12,16 @@
 | `STREAMCLIP_DISTRIBUTION__YOUTUBE_CLIENT_SECRET` | Managed | Cloud OAuth |
 | `STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_KEY` | Managed | Cloud OAuth |
 | `STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET` | Managed | Cloud OAuth |
-| `STREAMCLIP_WEBHOOKS__ENABLED` | No | Global webhook delivery |
-| `STREAMCLIP_WEBHOOKS__URL` | No | Global webhook endpoint |
-| `STREAMCLIP_WEBHOOKS__SECRET` | No | HMAC signing secret |
+| `STREAMCLIP_WEBHOOKS__ENABLED` | No | Global publish webhook delivery |
+| `STREAMCLIP_WEBHOOKS__URL` | No | Global publish webhook endpoint |
+| `STREAMCLIP_WEBHOOKS__SECRET` | No | HMAC signing secret (`X-StreamClip-Signature`) |
+| `OPS_WEBHOOK_URL` | No (recommended Phase 0) | Operator alerts — unsigned JSON POST (`bug_report`, `beta_feedback`, `job_failed`, `stack_degraded`). See `docs/OPS_ALERTING.md` |
+| `SMTP_HOST` … `SMTP_FROM`, `SMTP_STARTTLS` | No | Outbound mail (bug reports, password reset, LS license fallback) |
+| `BUG_REPORT_TO` | No | Bug-report email recipient (requires SMTP) |
 
 Config class: `DistributionConfig` in `core/config.py`. API error when key missing: code `distribution_not_configured`, HTTP 503.
+
+**Ops vs publish webhooks:** publish may sign with HMAC; ops webhook (`core/notify/ops_webhook.py`) never signs — URL is the secret. Prefer Zapier/Make Catch Hook or custom JSON inbox over raw Discord/Slack incoming URLs.
 
 ## Celery tasks (`core/tasks/publish_tasks.py`)
 
@@ -101,4 +106,4 @@ vault_copy_failed
 | `require_distribution_access` | `backend/middleware/distribution.py` | Pro or install license |
 | `require_user_id` | `backend/middleware/auth.py` | Authenticated user |
 
-Web mirror: `web/lib/distribution/access.ts` → `hasDistributionAccess()`.
+Web mirror: `web/lib/distribution/client-access.ts` → `hasDistributionAccess()`.

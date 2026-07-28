@@ -10,7 +10,7 @@ function Test-DockerRunning {
     return $LASTEXITCODE -eq 0
 }
 
-Write-Host "Jet Stream / StreamClip — local stack" -ForegroundColor Cyan
+Write-Host "qClip — local stack" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-DockerRunning)) {

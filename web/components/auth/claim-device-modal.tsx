@@ -53,9 +53,19 @@ export function ClaimDeviceModal({ deviceId }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="claim-device-title"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
       <div className="glossy-surface max-w-md w-full p-6 space-y-4">
-        <h2 className="text-lg font-medium">Claim your local jobs?</h2>
+        <h2 id="claim-device-title" className="text-lg font-medium">
+          Claim your local jobs?
+        </h2>
         <p className="text-sm text-muted-foreground">
           You have anonymous jobs on this device. Link them to your account so they
           follow you across sessions.
@@ -77,7 +87,7 @@ export function ClaimDeviceModal({ deviceId }: Props) {
         )}
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Skip
+            {status === "done" ? "Close" : "Skip"}
           </Button>
           <Button onClick={() => void handleClaim()} disabled={status === "claiming" || status === "done"}>
             {status === "claiming" ? "Linking…" : status === "done" ? "Done" : "Link jobs"}

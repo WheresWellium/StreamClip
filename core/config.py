@@ -140,7 +140,6 @@ class ExportConfig(BaseModel):
     fps: int = Field(60, ge=60, le=120)
     audio_bitrate: str = "256k"
     pixel_format: str = "yuv420p"
-    two_pass: bool = False
 
 
 class FfmpegConfig(BaseModel):
@@ -239,6 +238,47 @@ class QueueConfig(BaseModel):
     )
 
 
+# Known placeholders / example values that must never ship outside development.
+_WEAK_AUTH_SECRET_EXACT = frozenset(
+    {
+        "",
+        "CHANGE_ME_IN_PRODUCTION",
+        "change-me-use-openssl-rand-hex-32",
+        "change-me-in-production-use-openssl-rand",
+        "change-me-in-production",
+        "secret",
+        "changeme",
+    }
+)
+# Minimum length for a production JWT secret (openssl rand -hex 16 → 32 chars).
+AUTH_SECRET_MIN_LENGTH = 32
+
+
+def auth_secret_weak_reason(secret_key: str) -> str | None:
+    """Return a non-secret reason if *secret_key* is unsafe for JWT signing."""
+    key = (secret_key or "").strip()
+    if not key:
+        return "missing"
+    lowered = key.lower()
+    if key in _WEAK_AUTH_SECRET_EXACT or lowered in _WEAK_AUTH_SECRET_EXACT:
+        return "placeholder"
+    # Catch variants like "change-me-..." / "CHANGE_ME_..." from examples.
+    if "change_me" in lowered or "change-me" in lowered or "changeme" in lowered:
+        return "placeholder"
+    if len(key) < AUTH_SECRET_MIN_LENGTH:
+        return "too_short"
+    return None
+
+
+def is_weak_auth_secret(secret_key: str) -> bool:
+    """Return True if *secret_key* is empty, a known placeholder, or too short.
+
+    Used by Settings validation to fail closed outside development and by
+    startup logging to warn local developers without exposing the secret.
+    """
+    return auth_secret_weak_reason(secret_key) is not None
+
+
 class AuthConfig(BaseModel):
     secret_key: str = "CHANGE_ME_IN_PRODUCTION"
     algorithm: str = "HS256"
@@ -257,7 +297,6 @@ class OnboardingConfig(BaseModel):
 
 class LicensingConfig(BaseModel):
     enabled: bool = True
-    public_key_pem: str = ""
     license_file: Path = Path("workspace/.streamclip-license.json")
     offline_grace_days: int = Field(7, ge=1, le=30)
     max_activations: int = Field(3, ge=1, le=10)
@@ -317,7 +356,6 @@ class ObservabilityConfig(BaseModel):
     sentry_dsn: str = ""
     otel_endpoint: str = ""
     enable_metrics: bool = True
-    metrics_port: int = 9090
     # If set, the /metrics endpoint requires this value as a Bearer token or
     # X-Metrics-Key header. In development with no key set, loopback-only access
     # is enforced when environment != "development". Set via
@@ -387,6 +425,19 @@ class Settings(BaseSettings):
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
         return cls(**data)
+
+    @model_validator(mode="after")
+    def _reject_weak_auth_secret_outside_development(self) -> "Settings":
+        reason = auth_secret_weak_reason(self.auth.secret_key)
+        if self.environment != "development" and reason is not None:
+            length = len((self.auth.secret_key or "").strip())
+            raise ValueError(
+                "STREAMCLIP_AUTH__SECRET_KEY must be set to a strong random value "
+                f"in {self.environment} (reason={reason}, length={length}, "
+                f"min_length={AUTH_SECRET_MIN_LENGTH}). Generate one with: "
+                "openssl rand -hex 32"
+            )
+        return self
 
     def ensure_dirs(self) -> None:
         for d in (self.workspace_dir, self.output_dir, self.cache_dir):

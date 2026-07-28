@@ -14,6 +14,8 @@ export type DistributionContext = {
   platforms: Awaited<ReturnType<typeof distributionApi.platforms>>;
   connections: Awaited<ReturnType<typeof distributionApi.connections>>;
   hasPro: boolean;
+  /** Set when platforms/connections fetch failed (not when signed out). */
+  loadError?: string;
 };
 
 export async function getDistributionContextAction(): Promise<DistributionContext> {
@@ -28,8 +30,16 @@ export async function getDistributionContextAction(): Promise<DistributionContex
       distributionApi.connections(token),
     ]);
     return { platforms, connections, hasPro };
-  } catch {
-    return { platforms: [], connections: [], hasPro };
+  } catch (err) {
+    return {
+      platforms: [],
+      connections: [],
+      hasPro,
+      loadError:
+        err instanceof Error
+          ? err.message
+          : "Could not load distribution status. Try again.",
+    };
   }
 }
 

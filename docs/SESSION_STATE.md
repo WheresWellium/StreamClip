@@ -1,37 +1,42 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-24
+**Last updated:** 2026-07-28 (T66 mock UI e2e green; Phase 0 agent gaps closed)
 
 ## Active chats
 
-None.
+| Branch | Task | Lock id | Paths / notes |
+|--------|------|---------|----------------|
+| `cursor/phase0-exit-and-beta-hardening` | Phase 0 / T66 closeout | — | e2e + ops/SMTP already landed |
 
 ## Current focus
 
-**Desktop release:** Windows `v1.0.0-beta.4` published (Setup + `latest.yml`). Packaging/CI hardened for Win + macOS scaffold. Mac DMG still needs Apple Silicon host + Developer ID.
+Agent-owned UX/reliability + **T66 UI journey e2e** are done. Mock-API Playwright suite **23/23 PASS** (`npm run test:e2e:ui-journey`). Remaining work is human ops/hardware.
 
-## Blockers
+## Blockers (human-only — cannot automate)
 
-- EV Authenticode cert (§4.10) — SmartScreen warns until signed.
-- macOS DMG + notarization (§5.2–5.3) — Mac host + Apple Developer.
-- Phase 0 exit — T0 cohort results (§8.16).
+- O12 — merge/publish desktop → `1.0.0-beta.5` when ready.
+- O6 — send invite pack.
+- ~~O7~~ ✅ SMTP-only alerting verified live.
+- O5 — fill on-call `<…_NAME>` tokens.
+- O4 — run `capture_phase0_evidence.ps1` during live cohort windows.
+- O11 — buy EV / Azure Trusted Signing.
+- O14 — Mac host builds live `.dmg`.
+- ~~T66~~ ✅ mock UI journey (create→review→publish + failure + onboarding).
+- GPU hardware smoke (NVENC/CUDA) — needs GPU box.
 
 ## Validation
 
-- Coverage ✅ 96.08%
-- `verify_desktop.ps1` ✅
-- Windows installer ✅ https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.4
+- Licensing blocklist ✅ · SMTP alerting live PASS · ops delivery fallback ✅
+- **UI e2e 23/23** — journey + failure-paths + onboarding (`web/e2e/`, `test:e2e:ui-journey`)
+- Note: Docker web `.next` anonymous volume can go stale vs source — wipe `/app/.next/*` + restart web if brand/UI drifts
 
 ## Next steps
 
-1. Redeploy MkDocs so `BETA_DOWNLOAD` shows beta.4.
-2. Buy EV cert; configure `WINDOWS_CSC_*` secrets.
-3. Run/triage `desktop-release.yml` macOS job on Apple Silicon; notarize when Apple ID ready.
-4. Optional: real app icons (`icon.ico` / `icon.icns`).
+1. User: review/merge branch; O12 publish; O5/O6 ops.
+2. Optional: GPU smoke when hardware available; re-run `verify_coverage.ps1` after backend commit.
 
 ## Key paths
 
-- Release: `scripts/publish_desktop_release.ps1`
-- CI: `.github/workflows/desktop-release.yml`
-- Mac: `scripts/build_desktop_installer_macos.sh`, `download_ffmpeg_macos.sh`
+- E2E: `web/e2e/journey-create-review.spec.ts`, `failure-paths.spec.ts`, `onboarding-first-run.spec.ts`, `support/mock-api.ts`
+- Gaps: `docs/GAP_ANALYSIS.md` · Exit: `docs/BETA_COHORT_EXIT.md`

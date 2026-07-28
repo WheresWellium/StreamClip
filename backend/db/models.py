@@ -30,6 +30,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -201,6 +202,39 @@ class InstallLicense(Base, IDMixin, TimestampMixin):
     user_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True,
     )
+
+
+class InstallLicenseActivation(Base, IDMixin, TimestampMixin):
+    """One active or released device seat for an install license."""
+
+    __tablename__ = "install_license_activations"
+    __table_args__ = (
+        UniqueConstraint(
+            "license_id",
+            "machine_id",
+            name="uq_install_license_activation_machine",
+        ),
+    )
+
+    license_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("install_licenses.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    machine_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active")
+    activated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Job(Base, IDMixin, TimestampMixin):

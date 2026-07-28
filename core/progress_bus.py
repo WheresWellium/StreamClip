@@ -48,6 +48,39 @@ class MemoryKVStore:
     def expire(self, key: str, secs: int) -> None:  # noqa: ARG002
         return
 
+    def sadd(self, key: str, *members: str) -> int:
+        with self._lock:
+            raw = self._data.get(key)
+            current: set[str] = set(json.loads(raw)) if raw else set()
+            before = len(current)
+            current.update(str(m) for m in members)
+            self._data[key] = json.dumps(sorted(current))
+            return len(current) - before
+
+    def sismember(self, key: str, member: str) -> bool:
+        with self._lock:
+            raw = self._data.get(key)
+            if not raw:
+                return False
+            try:
+                return str(member) in set(json.loads(raw))
+            except (json.JSONDecodeError, TypeError):
+                return False
+
+    def srem(self, key: str, *members: str) -> int:
+        with self._lock:
+            raw = self._data.get(key)
+            if not raw:
+                return 0
+            try:
+                current = set(json.loads(raw))
+            except (json.JSONDecodeError, TypeError):
+                return 0
+            before = len(current)
+            current.difference_update(str(m) for m in members)
+            self._data[key] = json.dumps(sorted(current))
+            return before - len(current)
+
 
 class MemoryProgressBus:
     """Thread-safe in-memory pub/sub with snapshot + monotonic event ids."""

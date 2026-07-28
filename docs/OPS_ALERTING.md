@@ -7,6 +7,26 @@
 Notify operators **before** testers file bugs — and forward in-app support
 forms — without n8n or any middleman workflow tool.
 
+## Choose a channel
+
+**Phase 0 default: SMTP email only — no webhook, no third-party connector.**
+
+| Channel | Setup | Covers |
+|---------|-------|--------|
+| **SMTP email** (recommended) | `SMTP_*` + `BUG_REPORT_TO` | all four events — `job_failed` / `stack_degraded` fall back to email when `OPS_WEBHOOK_URL` is unset (`core/notify/ops_webhook.py` `deliver_ops_event`) |
+| Webhook | `OPS_WEBHOOK_URL` | all four events; wins over email when set |
+| Neither | — | forms still persist to `bug_reports`; no proactive notification |
+
+Verify email in one command (inspects the running containers, not `.env`):
+
+```powershell
+.\scripts\verify_smtp_alerting.ps1 -DryRun   # show config, send nothing
+.\scripts\verify_smtp_alerting.ps1           # send one real test email
+.\scripts\verify_smtp_alerting.ps1 -Service worker
+```
+
+A webhook is **optional** — skip the receiver section below entirely if you use email.
+
 | Source | `event` field |
 |--------|----------------|
 | `POST /api/support/beta-feedback` | `beta_feedback` |
@@ -15,9 +35,54 @@ forms — without n8n or any middleman workflow tool.
 | Beat stack probe (DB/Redis/storage) | `stack_degraded` |
 | Celery task crash (when Sentry DSN set) | Sentry issue (not webhook) |
 
+## Operator checklist (do this once)
+
+Secrets stay in **local** `.env` / `.env.production`. Never commit real URLs or API keys.
+
+### Email path (default)
+
+| Step | Action | Expect |
+|------|--------|--------|
+| 1 | Stack up: `docker compose up -d api worker beat` | `api` running |
+| 2 | Set `SMTP_*` + `BUG_REPORT_TO` in **local** `.env` / `.env.production` | never commit keys |
+| 3 | `.\scripts\verify_smtp_alerting.ps1 -DryRun` | `READY - config present` |
+| 4 | `.\scripts\verify_smtp_alerting.ps1` | `PASS: test email accepted` |
+| 5 | Repeat for the worker: `-Service worker` | `PASS` (worker sends support email) |
+| 6 | Optional `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | API + worker crashes in Sentry |
+| 7 | Live check: Help (?) → **Beta feedback** | email arrives at `BUG_REPORT_TO` |
+
+### Webhook path (optional alternative)
+
+| Step | Action | Expect |
+|------|--------|--------|
+| 1 | Preflight: `.\scripts\verify_ops_webhook.ps1 -DryRun` | `READY` (or clear SKIP + fix) |
+| 2 | Mock path: `.\scripts\verify_ops_webhook.ps1` | `PASS: OPS webhook path verified` |
+| 3 | Create Catch Hook / JSON inbox (see receivers below) | operator-owned URL |
+| 4 | Paste real `OPS_WEBHOOK_URL` into **local** `.env` / `.env.production` | never commit the real URL |
+| 5 | Restart env readers | `docker compose up -d api worker beat` |
+| 6 | Live check: Help (?) → **Beta feedback** | receiver JSON; API `ops_notification: "queued"` |
+
+Help / dry-run (no stack required for `-Help`; `-DryRun` tolerates down stack):
+
+```powershell
+.\scripts\verify_ops_webhook.ps1 -Help
+.\scripts\verify_ops_webhook.ps1 -DryRun
+```
+
+Mock verify injects a temporary URL into the `api` container — **local
+`OPS_WEBHOOK_URL` may be unset**. Exit `2` = SKIP (toolchain/stack missing),
+not a broken webhook path.
+
+Production secrets lint (warns if webhook/Sentry/Resend incomplete):
+
+```powershell
+.\scripts\verify_production_secrets.ps1 -EnvFile .env.production
+```
+
 ## Environment
 
-Set on **api** and **worker**:
+Set on **api**, **worker**, and **beat**. Support forms queue from the API to the
+worker; stack probes run from Beat.
 
 ```bash
 OPS_WEBHOOK_URL=https://<your-endpoint>/hooks/streamclip-ops
@@ -26,8 +91,29 @@ OPS_WEBHOOK_URL=https://<your-endpoint>/hooks/streamclip-ops
 Optional SMTP (Docker self-host only) for bug-report email:
 
 ```bash
-SMTP_HOST=...
-BUG_REPORT_TO=...
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=streamclip@example.com
+SMTP_STARTTLS=true
+BUG_REPORT_TO=ops@example.com
+```
+
+### Resend SMTP (same code path)
+
+1. In Resend: verify the sending domain.
+2. Create an API key; use it only as `SMTP_PASSWORD` (never commit).
+3. Set on **api** and **worker**:
+
+```bash
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=<resend_api_key>
+SMTP_FROM=alerts@your-verified-domain.example
+SMTP_STARTTLS=true
+BUG_REPORT_TO=ops@your-domain.example
 ```
 
 Optional Sentry (API + workers):
@@ -36,17 +122,23 @@ Optional Sentry (API + workers):
 STREAMCLIP_OBSERVABILITY__SENTRY_DSN=https://...@o....ingest.sentry.io/...
 ```
 
+### Legacy env alias (do not set new installs)
+
+`core/notify/ops_webhook.py` still reads **`N8N_OPS_WEBHOOK_URL`** if
+`OPS_WEBHOOK_URL` is empty (one-release compat). Prefer `OPS_WEBHOOK_URL` only.
+Do not reintroduce n8n workflows. Cleanup of the alias is tracked as GAP **O13**.
+
 ## Receiver options (pick one)
+
+StreamClip POSTs **unsigned** JSON (`Content-Type: application/json`,
+`User-Agent: StreamClip-Ops/1.0`). The URL is the secret — there is no HMAC.
 
 | Receiver | How |
 |----------|-----|
-| **Discord / Slack** | Paste the platform's incoming webhook URL into `OPS_WEBHOOK_URL` |
-| **Zapier Catch Hook** | Create a Catch Hook; map fields → Outlook/Teams; paste URL |
-| **Custom agent inbox** | Any HTTPS POST JSON endpoint your autonomous agent owns |
+| **Zapier / Make Catch Hook** | **Preferred.** Create a Catch Hook; map fields → Outlook/Teams/Discord/Slack; paste URL into `OPS_WEBHOOK_URL` |
+| **Custom agent inbox** | Any HTTPS endpoint that accepts arbitrary JSON POSTs |
+| **Native Discord / Slack incoming webhook** | **Not drop-in.** Those platforms reject StreamClip-shaped JSON — put an adapter in front that maps to `content` / `text` |
 | **SMTP only** | Leave `OPS_WEBHOOK_URL` unset; set `SMTP_*` + `BUG_REPORT_TO` |
-
-There is **no n8n dependency**. Do not reintroduce `N8N_OPS_WEBHOOK_URL`
-except as a temporary alias (still read for one release).
 
 ## Sample payloads
 
@@ -96,14 +188,15 @@ except as a temporary alias (still read for one release).
 Requires Beat (Docker `beat` service) or desktop `queue.inprocess_beat`. Task:
 `core.tasks.notify_tasks.probe_stack_health_ops_alert`.
 
-## Verification
+## Extended verification
 
-1. Set `OPS_WEBHOOK_URL` (and optionally `STREAMCLIP_OBSERVABILITY__SENTRY_DSN`) in `.env` / `.env.production`
-2. Restart `api` + `worker` + `beat` (`docker compose up -d api worker beat`)
-3. Open **Help menu (?)** → **Beta feedback** or **Report a bug**
-4. Confirm the receiver got the JSON
-5. Force a failing job (or mock) and confirm `job_failed` arrives
-6. Optional: stop Postgres briefly and wait ≤5 min for `stack_degraded` (or run the task once via Flower/celery call)
+After checklist step 9:
+
+1. Force a failing job (or mock) and confirm `job_failed` arrives.
+2. Optional: stop Postgres briefly and wait ≤5 min for `stack_degraded` (or run
+   the task once via Flower/celery call).
+3. Log greps (worker): `ops_webhook_sent`, `ops_webhook_failed`,
+   `ops_webhook_skipped_unconfigured`, `ops_webhook_bad_status`.
 
 ## Privacy
 

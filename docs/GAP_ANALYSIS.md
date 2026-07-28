@@ -1,17 +1,55 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-07-07 (revision 7 — MASTER consolidation + coverage truth)
+**Last run:** 2026-07-28 (revision 10 — full dual-track audit: 23-claim technical matrix + 30-row UX sweep)
 
 ## Executive summary
 
-The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-to-end**. The **95% line-coverage gate is the active target** (`fail_under=95` in `.coveragerc`); last full Docker suite reached **95.01%** — **gate GREEN** (2026-07-07). **Canonical measurement:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10**. Remaining stretch is **110%** (100% lines, hot-path branches, Playwright smoke) tracked in MASTER §3.5–§3.7, §8.1.
+The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-to-end**. Phase 0 **engineering invite gates are green** (coverage ≥95%, clean-slate stack). Remaining work is mostly **ops truth, cohort exit evidence, desktop trust (EV signing), and license/notify leftovers**. Coverage snapshot in SESSION_STATE ≈**96%**; Phase 1 still needs the **110%** row (MASTER §3.10 / §8.1).
+
+### Open register (2026-07-28)
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| O1 | `BETA_GO_LIVE` invites Blocked vs SENT | P0 | doc | **Fixed** this revision |
+| O2 | `BETA_DOWNLOAD` table still beta.2 | P1 | doc | **Fixed** this revision |
+| O3 | Quickstart missing `import_invite_license` | P1 | doc | **Fixed** this revision |
+| O4 | Cohort H+2/H+24/H+72 + T0 exit evidence | P0 | ops | Tooling ✅ `scripts/capture_phase0_evidence.ps1` + `docs/evidence/` — ☐ operator runs T0…H72 + fills OPERATOR FILL in [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) |
+| O5 | On-call roles TBD | P0 | ops | Scaffold ✅ placeholders `<PRIMARY_ONCALL_NAME>` etc. in [`BETA_ON_CALL.md`](BETA_ON_CALL.md) §1 + exit pack — ☐ operator fills real names (2 min; do not invent) |
+| O6 | Invite pack email bodies vs keys.csv freshness | P0 | ops | **Verify PASS** (2026-07-27) — 8/8 match; re-send pack `tmp/phase0-invite-pack-resend/` · `tmp/invite-pack-status.md`; do not re-issue keys; send still user-gated |
+| O7 | Ops alerting channel unconfigured | P1 | ops/code | **Closed via SMTP-only path** (2026-07-28) — no third-party connector. Resend SMTP live **PASS** from `api` + `worker` (`scripts/verify_smtp_alerting.ps1`); `job_failed`/`stack_degraded` now fall back to email via `deliver_ops_event`. `OPS_WEBHOOK_URL` optional. |
+| O8 | Weak default AUTH secret (length not warned) | P1 | code | **Fixed** — non-dev settings reject missing/placeholder/short secrets; dev startup logs redacted `SECURITY_WARNING`; `tests/test_auth_secret_strength.py` |
+| O9 | No seat-release UX (max 3 activations) | P1 | code | **Fixed** — Settings → License seat list/release + confirm; migration `0012_license_activation_seats` applied (head); same-machine activate upserts one seat row |
+| O10 | Revoke ≠ jti blocklist for entitlement JWT | P1 | code | **Fixed** — `revoke_entitlement_hash` + verify check (`core/licensing.py`); admin revoke writes Redis/in-process set; `tests/test_licensing_blocklist.py` |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D (thumbprint + Azure Trusted Signing) — ☐ buy/install cert (MASTER §4.10); beta.4 stays unsigned |
+| O12 | Loader / desktop publish tree cleanliness | P1 | ops | Polish ✅; coverage **PASS 96%** — ☐ user commit + desktop publish → beta.5; UI journey e2e now green without `E2E_RUN` (`test:e2e:ui-journey`) |
+| O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
+| O14 | macOS DMG + notarization | P2 | ops | Scaffold ✅ 30-min runbook [`MACOS_INSTALLER.md`](MACOS_INSTALLER.md) + build/verify/notarize scripts — ☐ borrowed Mac host builds live `.dmg` |
+| O15 | GAP / 110% Phase 1 coverage stretch | P2 | test | Defer — not Phase 0 blocker |
+
+### New gaps from revision 10 audit (2026-07-28)
+
+| ID | Gap | Sev | Fix | Evidence |
+|----|-----|-----|-----|----------|
+| T60 | Onboarding first-job trap — sample job redirect to `/jobs/{id}` fires before onboarding cookie set; middleware bounces user back to wizard step 1, job orphaned from view | **P0** | code | **Fixed** — `CreateJobForm.onJobCreated` marks onboarding complete before navigate (`create-job-form.tsx`, `onboarding-wizard.tsx`) |
+| T61 | API-down handling inconsistent — `/jobs/new` + `/onboarding` hang on infinite "Loading…" (no `.catch` on `metaApi.meta()`); vault shows fake-empty; destinations drawer shows misleading "Connect platforms"; jobs list leaks raw "Failed to fetch" | P1 | code | **Fixed** — retryable error states on jobs/new + onboarding; vault loadError; distribution `loadError` + sign-in vs Pro copy |
+| T62 | Stalled-job UX absent — worker death w/o terminal SSE event = eternal spinner; poll errors swallowed | P1 | code | **Fixed** — `useJobProgress.stalled` after 3 min / 3 poll failures; LiveProgress amber notice |
+| T63 | `jobs/[id]/not-found.tsx` dead code — clients silently `router.replace("/jobs")` on 404 | P1 | code | **Fixed** — overview + clips clients render not-found UI in place |
+| T64 | Token refresh only on window focus; `clearAuthTokens()` on any non-OK (incl. 5xx) → silent logout | P1 | code | **Fixed** — clear tokens only on 401/403 (`token-refresh.tsx`) |
+| T65 | `caption.refine_clip_transcript: true` default = N per-clip Whisper passes, contradicting "single full transcribe" perf headline | P1 | code/doc | **Doc** — config.yaml comment documents throughput tradeoff (default kept for caption sync) |
+| T66 | E2E is smoke-only, gated `E2E_RUN=1`; zero UI coverage of create→review→publish journey | P1 | test | **Fixed** — mock-API Playwright suite: `journey-create-review` + `failure-paths` + `onboarding-first-run` (23/23 PASS); helpers in `web/e2e/support/mock-api.ts`; run via `npm run test:e2e:ui-journey` (web on :3000 only; no GPU). Live-stack smoke remains `E2E_RUN=1`. |
+| T67 | Dead config keys: `export.two_pass`, `licensing.public_key_pem`, `observability.metrics_port` | P2 | code | **Fixed** — removed unused fields |
+| T68 | Entitlement JWTs signed with symmetric `auth.secret_key`; planned asymmetric signing never landed (dead `public_key_pem`) | P2 | code | Accepted — `public_key_pem` removed; O10 blocklist shipped for revoke |
+| T69 | README documents 5 reframe presets + auto; code ships 9 (4 undocumented) | P2 | doc | **Fixed** — README preset table lists all 9 |
+| T70 | Modals lack focus traps; `ClaimDeviceModal` missing `role="dialog"`; misc a11y (aria-pressed/aria-expanded on create form toggles; drawer tabs icon-only on mobile) | P2 | code | **Fixed** — dialog roles, Escape, aria-pressed/expanded/label; full focus-trap deferred |
+| T71 | Anonymous user shown "Publishing requires Pro" when real blocker is sign-in; schedule datetime allows past dates | P2 | code | **Fixed** — sign-in branch + `min` on datetime-local |
+| T72 | Field-level zod validation errors returned but never rendered (generic "Validation failed") | P2 | code | **Fixed** — field errors listed under form alert |
 
 ## Technical gaps
 
 | ID | Claim | Status | Sev | Fix | Evidence |
 |----|-------|--------|-----|-----|----------|
 | T1–T52 | (prior revisions) | Mostly **Fixed** | — | — | See revision 4 |
-| T53 | Coverage gate `fail_under=95` | **Done** | P1 | code | 95.01% Docker 2026-07-07; run `scripts/verify_coverage.ps1` to reconfirm |
+| T53 | Coverage gate `fail_under=95` | **Done** | P1 | code | 95.01% Docker 2026-07-07; **reconfirm PASS 96%** 2026-07-27 (`verify_coverage.ps1`) |
 | T54 | README project layout | **Fixed** | P2 | doc | MASTER §6.7 — layout refreshed |
 | T55 | Export codec default | **Fixed** | P2 | code | `ExportConfig.codec` default `libx264` matches `config.yaml` / README (`core/config.py:135`) |
 | T56 | GPU queue isolation | **Fixed** | P2 | code | `worker` queues now `${STREAMCLIP_WORKER_QUEUES:-default,gpu}`; set `default` with `--profile gpu` for isolation |
@@ -44,7 +82,6 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | Area | Finding | Severity | Recommendation |
 |------|---------|----------|----------------|
 | Publish routing | Job-scoped vs hub publish endpoints both delegate to `DistributionService` | P2 | Keep batch on jobs router; single-clip deprecated (MASTER §7.6) |
-| `core/ingest.py` shim | Legacy re-export alongside `core/ingest/` package | P2 | README documents package; shim kept for imports |
 | Coverage vs velocity | Prior notify/ingest modules under-tested | **Fixed** | Batches 5–6 + ratchet; see MASTER §3.10 |
 
 ## Creator-platform gaps (mastery trajectory)
@@ -61,9 +98,9 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 
 **Authoritative definition:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10**.
 
-| Milestone | Target | Current (2026-07-07) |
+| Milestone | Target | Current (2026-07-27) |
 |-----------|--------|----------------------|
-| Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | **95.01%** — gate GREEN (2026-07-07) |
+| Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | **96%** — gate GREEN (reconfirm 2026-07-27; was 95.01% 2026-07-07) |
 | Hot-path branches | ≥85% on pipeline_tasks, sse, distribution, job_service | Not measured (`branch = True` commented in `.coveragerc`) |
 | Playwright smoke | `E2E_RUN=1` happy path | Scaffold exists; optional in Phase 0 |
 | Web build | `npx next build` | **Green** |
@@ -72,6 +109,7 @@ See `docs/BETA_GO_LIVE.md`, `docs/BETA_TESTER_PLAN.md` §1.
 
 ## Resolved since revision 6 (2026-07-07)
 
+- O8 — Weak AUTH secret warning (`core.config.is_weak_auth_secret`; startup `SECURITY_WARNING` outside development; covers `.env.example` placeholders + length < 32)
 - T54 — README layout (MASTER §6.7)
 - U25 — Create-job asset pack + profanity mode (MASTER §2.15)
 - Distribution test debt — `tests/test_distribution_service.py`, `tests/test_distribution_vault_http.py`, OAuth helpers

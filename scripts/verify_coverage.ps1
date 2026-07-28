@@ -19,6 +19,13 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
+# Stale parallel coverage DBs can race (coverage sqlite "no such table: meta").
+Write-Host "Cleaning stale coverage data files in API container..." -ForegroundColor DarkGray
+docker compose exec -T api sh -c "rm -f /app/.coverage /app/.coverage.* 2>/dev/null; true"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "WARN: could not clean .coverage* (continuing)" -ForegroundColor Yellow
+}
+
 $covOutput = & docker compose exec -T api pytest tests/ -m "not desktop" -q `
     --cov=backend --cov=core --cov-report=term-missing:skip-covered 2>&1
 $covText = ($covOutput | Out-String)

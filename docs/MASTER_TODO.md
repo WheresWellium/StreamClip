@@ -66,7 +66,6 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 ### 2d. Verified fine (audit false alarms — no action)
 
-- `core/ingest.py` — intentional re-export shim, not a duplicate
 - `core/export_bundle.py`, `core/splice.py` — implemented and tested
 - `core/style_learning.py` — implemented + wired (GAP doc C9 "research" is stale)
 - Per-clip webhooks — implemented (`pipeline_tasks.py:776+`; GAP C8 stale)
@@ -98,13 +97,13 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 | E2E smoke | Playwright `E2E_RUN=1` | **CI-required** (`test.yml` `e2e`); local also via `verify_stack.ps1 -RunE2E` | Required |
 | Stack verify | `verify_stack.ps1` | Required (tests default `--no-cov`; does **not** prove coverage %) | Required + `-WithCoverage` before invites |
 
-**Current measured line coverage (2026-07-07):** **95.40%** (400 miss / 8699) — **gate GREEN**. Re-verify with `verify_coverage.ps1`.
+**Current measured line coverage (2026-07-27):** **96%** (372 miss / 10358; `verify_coverage.ps1 -SkipBuild`) — **gate GREEN**.
 
 **110% progress (estimated composite ~91/110):**
 
 | Pillar | Target | Current | Remaining |
 |--------|--------|---------|-----------|
-| Line | 100% (Phase 1+) | **95.91%** (2026-07-09) | ~376 stmts |
+| Line | 100% (Phase 1+) | **96%** (2026-07-27 SkipBuild) | 372 stmts |
 | Hot-path branches | ≥85% | **~87%** on §3.7 modules via `verify_branch_coverage.ps1` | Phase 1: enforce `-FailUnderBranch 85` |
 | E2E smoke | §3.3 | health/jobs/create/list + distribution auth checks | OAuth E2E deferred |
 | Clean VM | §3.8 | `docs/CLEAN_VM_VERIFY.md` | **PASS 2026-07-09** clean-slate Docker (`down -v`); Hyper-V N/A |
@@ -113,11 +112,11 @@ Legend: 🔴 blocker · 🟡 important · 🟢 nice-to-have | Effort: S (<1d) M 
 
 | Module | Cover | Miss | Status |
 |--------|-------|------|--------|
-| `core/tasks/pipeline_tasks.py` | 99% | 3 | 🟡 duration mismatch + fail-path webhook |
+| `core/tasks/pipeline_tasks.py` | 100% | 0 | 🟢 H3 DONE — `tests/test_pipeline_tasks_h3_coverage.py` (see `tmp/h3-pipeline-coverage-status.md`) |
 | `backend/services/sse.py` | 96%+ | ≤9 | 🟢 most paths covered (`test_coverage_hotpath_finish.py`) |
 | `core/tasks/publish_tasks.py` | 98% | 4 | 🟢 |
-| `backend/api/distribution.py` | 93%+ | ≤13 | 🟡 OAuth/edit edges |
-| `backend/db/repositories.py` | 95% | 31 | 🟡 cold query paths |
+| `backend/api/distribution.py` | 100% | 0 | 🟢 H1 DONE — line+branch; `tests/test_distribution_api_oauth.py` (sibling `1be7f1db`) |
+| `backend/db/repositories.py` | 100% | 0 | 🟢 H2 DONE — `tests/test_repositories_coverage5.py`; gate still PASS 96% |
 | `core/inprocess_worker.py` | 83% | 32 | 🟡 desktop — partial waiver in Docker scope |
 
 **New test files (2026-07-07):** `test_coverage_hotpath_finish.py`, `test_coverage_tier_b_api.py`
@@ -163,7 +162,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 | 4.7 | **Web UI**: ✅ Static export — `backend/static_ui.py`, `NEXT_STATIC_EXPORT=1` build, `build_desktop_ui.ps1`, client actions in `web/lib/api/actions/` | 🟢 | L |
 | 4.8 | **First-run experience**: ✅ background model prefetch at sidecar boot (`core/model_prefetch.py` — whisper/YOLO/embedder, thread-safe status), `/api/health/models` progress endpoint, `ModelWarmupBanner` polling UI in layout. Data dir ✅ via §4.18. Opt-out: `STREAMCLIP_SIDECAR_SKIP_PREFETCH=1` | 🟢 | M |
 | 4.9 | **Windows-isms audit**: ✅ swept core/backend — no `shell=True`/POSIX shells/symlinks/fork; concat list now POSIX paths + quote-escaped (`core/splice.py` + regression test); all text I/O explicit UTF-8 (url resolver meta, overlay manifest, transcript JSON); ASS filter escaping already handled. Verify script extended. Long paths: workspace uses UUID-keyed dirs (bounded) | 🟢 | M |
-| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` (auto-fetches ffmpeg, fails closed if missing); `publish_desktop_release.ps1` uploads Setup + `latest.yml`; CI `desktop-release.yml` Node-safe version/signing JSON. **Remaining:** purchase EV cert + first signed release; republish after product changes (`1.0.0-beta.4`) | 🟡 | M |
+| 4.10 | **Installer**: ✅ NSIS via electron-builder — `build_desktop_installer.ps1` (auto-fetches ffmpeg, fails closed if missing); `publish_desktop_release.ps1` uploads Setup + `latest.yml`; CI `desktop-release.yml` Node-safe version/signing JSON; EV Authenticode runbook ready in `packaging/installer/RELEASE_CHECKLIST.md`. **Remaining:** purchase EV cert + first signed release; republish after product changes (`1.0.0-beta.4`) | 🟡 | M |
 | 4.11 | **GPU detection**: ✅ `core/gpu_profile.py` — CUDA + NVENC probes, safe fallbacks in `export_video`/`transcribe`, env defaults in desktop sidecar, `cuda`/`nvenc` in `/api/health/stack`. Config defaults remain CPU/libx264 | 🟢 | S |
 | 4.12 | ~~Licensing UX~~ ✅ settings License panel wired to typed `licenseApi` client + `activateLicenseAction` with friendly error copy (invalid/revoked/limit), perpetual expiry display | ✅ | — |
 | 4.13 | **Electron shell**: ✅ Spawns sidecar (`python -m desktop_sidecar` dev / bundled exe prod), BrowserWindow at `http://127.0.0.1:8765/`, preload IPC (start/stop/health), tray icon fallback, auto-updater stub | 🟢 | M |
@@ -171,7 +170,7 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 | 4.15 | **Alembic `upgrade head` on desktop sidecar startup** — ✅ in `desktop_sidecar/run.py` | 🟢 | S |
 | 4.16 | **`scripts/verify_desktop.ps1`** — aggregate db + storage + ffmpeg smoke (inprocess optional via `verify_inprocess.ps1`) | 🟢 | S |
 | 4.17 | **Full in-process parity**: ✅ all direct Celery `.delay()` / `send_task` (distribution, commerce, support, vault, CLI) routed through `core/task_dispatch.py` / `task_runner`; in-process Beat loop fires scheduled publishes + cleanup (`queue.inprocess_beat`, only while app runs — see BETA_KNOWN_ISSUES) | 🟢 | M |
-| 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; BFF routes moved to `web/app/_api_bff/` | 🟢 | L |
+| 4.7a | **Server Actions migration** — ✅ `web/lib/api/actions/*` + `client-session.ts`; components use client API; live progress BFFs under `web/app/api/.../progress/` (orphan `_api_bff/` removed) | 🟢 | L |
 | 4.18 | **Production desktop config profile** — ✅ frozen builds (or `STREAMCLIP_DESKTOP_DATA_DIR`) resolve DB/storage/workspace/cache under `%LOCALAPPDATA%\StreamClip` (`~/.streamclip` fallback) via env overrides in `desktop_sidecar/run.py`; config file keeps dev defaults | 🟢 | S |
 
 ## 5. macOS port (after Windows)
@@ -244,7 +243,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | 8.13 | ~~**OAuth redirect URIs**~~ ✅ 2026-07-09 — copy-paste checklist in `docs/distribution-runbook.md` (`youtube_shorts` / `tiktok` + `WEB_ORIGIN`) | ✅ | S |
 | 8.14 | ~~**Quickstart fresh-reader review**~~ ✅ 2026-07-09 — Steps 1–4 + `verify_stack.ps1` PASS; published quickstart/download 200; fixed `SCBETA`→`SCPRO` key format + stale “exe not built” message; recorded in `BETA_INVITE_PACK.md` §2 | ✅ | S |
 | 8.15 | ~~**Invite comms**~~ ✅ 2026-07-09 — operator confirmed Phase 0 invites sent; pack tooling in `prepare_invite_pack.ps1` / `BETA_INVITE_PACK.md` | ✅ | S |
-| 8.16 | **Phase exit — Phase 0** (`BETA_TESTER_PLAN` §4.5): ≥4/5 complete T0-1..T0-4; no 🔴 >7d; LS test purchase → activate; 110% before Phase 1 | 🟡 | M |
+| 8.16 | **Phase exit — Phase 0** (`BETA_TESTER_PLAN` §4.5): ≥4/5 complete T0-1..T0-4; no 🔴 >7d; LS test purchase → activate; 110% before Phase 1 — fill [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) then sync `BETA_GO_LIVE` §7–§8 | 🟡 | M |
 | 8.17 | **Phase exit — Phase 1** (§5.6): ≥70% T1-1..T1-3; Playwright CI green (§3.3); GPU perf within `PERFORMANCE.md` (+25% beta tolerance) | 🟡 | M |
 | 8.18 | **Phase exit — Phase 2** (§6.4): crash-free >98% (7d); install→first clip <45m median; signing (§4.10); macOS scoped (§5) | 🔴 | L |
 | 8.19 | **Week-before-invite checklist** (`BETA_TESTER_PLAN` §8): **§3.5 green ✅** · **§3.8 clean-slate ✅ (2026-07-09)** · changelog/known issues · LS E2E purchase · **OAuth URIs (§8.13) ✅** · **Beat/scheduled-publish docs ✅** (`distribution-runbook` + quickstart/ops cross-links) | 🟡 | M |
@@ -254,7 +253,7 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 9.1 | **`/api/health/stack` deep probe** — Docker operators only; beta users use **Settings → Get started** (Ready / Needs attention). Documented in `BETA_TESTER_QUICKSTART.md` §4 | 🟢 | S |
-| 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers — see §8.19 week-before checklist; `BETA_GO_LIVE` §3 | 🟢 | S |
+| 9.2 | **Prometheus/Grafana or log tail procedure** for opt-in beta testers — ✅ [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md) covers health, `/metrics`, log-tail, critical beta signals, and opt-in log bundles; linked from `BETA_GO_LIVE` §3 / ops runbook | 🟢 | S |
 | 9.3 | **MkDocs internal docs site** — maintain `mkdocs.yml`, Vercel deploy, keep `GAP_ANALYSIS` / `MASTER_TODO` in `exclude_docs` (`docs/INTERNAL.md`) | 🟢 | S |
 
 ## 10. Final Stretch — release readiness (2026-07-07)

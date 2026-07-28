@@ -152,7 +152,7 @@ export function BugReportDialog({
 
             <div className="px-4 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="space-y-1.5">
-                <Label>What's affected? (pick all that apply)</Label>
+                <Label>What&apos;s affected? (pick all that apply)</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {CATEGORIES.map((cat) => {
                     const selected = categories.includes(cat.id);

@@ -20,11 +20,20 @@ export function ProGateModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+      role="presentation"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+      onClick={onClose}
+    >
       <div
         role="dialog"
+        aria-modal="true"
         aria-labelledby="pro-gate-title"
         className="glossy-surface max-w-md w-full p-6 space-y-4 border border-border/60"
+        onClick={(e) => e.stopPropagation()}
       >
         <h2 id="pro-gate-title" className="text-lg font-medium">
           {title}

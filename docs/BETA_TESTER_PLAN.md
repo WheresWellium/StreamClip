@@ -1,4 +1,4 @@
-# StreamClip — Beta Tester Phase Plan
+# qClip — Beta Tester Phase Plan
 
 **Status:** **Phase 0 invite gate CLEARED (2026-07-09)** · **Coverage:** 95.02% · **Clean-slate verify:** PASS (`BETA_GO_LIVE` §8) · Cohort exit still open · **Source:** `docs/MASTER_TODO.md`
 **Last updated:** 2026-07-09 · Owner: core team
@@ -118,7 +118,7 @@ See MASTER §8.16:
 
 ## 5. Phase 1 — Creator closed beta (hosted or GHCR)
 
-**Goal:** Creators who will not touch Docker can run StreamClip with minimal support.
+**Goal:** Creators who will not touch Docker can run qClip with minimal support.
 
 ### 5.1 Delivery options (pick one for beta)
 
@@ -244,13 +244,15 @@ phone-home (future).
 
 See MASTER §8.19:
 
-- [ ] Line coverage ≥95% green (`verify_coverage.ps1`) — blocks Phase 0 invites until §3.5 done
+- [x] Line coverage ≥95% green (`verify_coverage.ps1`) — Phase 0 invite gate cleared 2026-07-09
 - [ ] Coverage 110% green in CI (§3.11) — Phase 1+
-- [ ] `verify_stack.ps1` on clean VM (§3.8)
-- [ ] Changelog / known issues published
-- [ ] LS test purchase → key → activate end-to-end
-- [ ] OAuth redirect URIs match deployed `WEB_ORIGIN`
+- [x] `verify_stack.ps1` on clean VM (§3.8) — Windows clean-slate PASS recorded 2026-07-09
+- [x] Release notes / known issues current for this wave — `BETA_DOWNLOAD.md` points at `v1.0.0-beta.4`; `BETA_KNOWN_ISSUES.md` covers Phase 0 limits
+- [ ] LS test purchase → key → activate end-to-end — operator evidence still required; use `BETA_OPS_PHASE0.md` §6 checklist
+- [x] OAuth redirect URIs match deployed `WEB_ORIGIN` — copy-paste checklist in `distribution-runbook.md`
 - [x] Beat + worker documented for scheduled publish testers (`distribution-runbook` + quickstart/ops)
+
+No standalone `CHANGELOG.md` exists yet; treat `BETA_DOWNLOAD.md` plus the GitHub `v1.0.0-beta.4` release as the current beta release notes until a changelog is added.
 
 ---
 

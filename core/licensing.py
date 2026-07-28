@@ -4,15 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import jwt
+import structlog
 
 from backend.db.models import UserTier
 from core.config import Settings, get_settings
+
+log = structlog.get_logger(__name__)
+
+# Redis / in-process set of revoked license_key_hash values. Checking the hash
+# (not only jti) invalidates every entitlement JWT ever issued for that key.
+REVOKED_LICENSE_HASHES_KEY = "streamclip:revoked_license_hashes"
 
 
 @dataclass(frozen=True)
@@ -30,6 +38,36 @@ def hash_license_key(license_key: str) -> str:
 # One-time purchases promise a perpetual entitlement (MASTER_TODO §8.6).
 # JWT requires a numeric exp, so "perpetual" is a 100-year horizon.
 PERPETUAL_DAYS = 36500
+
+
+def revoke_entitlement_hash(license_key_hash: str) -> None:
+    """Block future verify_entitlement_token calls for this license hash."""
+    try:
+        from core.celery_app import get_redis
+
+        get_redis().sadd(REVOKED_LICENSE_HASHES_KEY, license_key_hash)
+    except Exception as exc:
+        log.warning(
+            "entitlement_blocklist_write_failed",
+            hash_prefix=license_key_hash[:12],
+            error=str(exc),
+        )
+
+
+def is_entitlement_hash_revoked(license_key_hash: str) -> bool:
+    try:
+        from core.celery_app import get_redis
+
+        return bool(get_redis().sismember(REVOKED_LICENSE_HASHES_KEY, license_key_hash))
+    except Exception as exc:
+        # Fail-open so a Redis blip does not lock every install; revoke still
+        # downgrades DB tier for authenticated API paths.
+        log.warning(
+            "entitlement_blocklist_read_failed",
+            hash_prefix=license_key_hash[:12],
+            error=str(exc),
+        )
+        return False
 
 
 def create_entitlement_token(
@@ -50,11 +88,8 @@ def create_entitlement_token(
         "license_key_hash": license_key_hash,
         "iat": now,
         "exp": exp,
+        "jti": uuid.uuid4().hex,
     }
-    # TODO: implement jti blocklist for revoke — no jti claim is included here,
-    # so revoking a license does not invalidate the issued JWT until it expires
-    # naturally (up to 100 years for perpetual purchases). A Redis jti set keyed
-    # by license_key_hash would allow instant revocation without key rotation.
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 
@@ -68,13 +103,16 @@ def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | Non
         raise ValueError("Wrong token type")
     if payload.get("machine_id") != machine_id:
         raise ValueError("License bound to a different machine")
+    key_hash = str(payload.get("license_key_hash") or "")
+    if key_hash and is_entitlement_hash_revoked(key_hash):
+        raise ValueError("License has been revoked")
     exp = payload.get("exp")
     expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else None
     return Entitlement(
         tier=UserTier(payload["tier"]),
         machine_id=machine_id,
         expires_at=expires_at,
-        license_key_hash=payload["license_key_hash"],
+        license_key_hash=key_hash,
     )
 
 
@@ -125,6 +163,14 @@ def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:
     except (json.JSONDecodeError, OSError):
         return None
     return data.get("entitlement_jwt")
+
+
+def clear_persisted_entitlement(cfg: Settings | None = None) -> None:
+    cfg = cfg or get_settings()
+    try:
+        cfg.licensing.license_file.unlink(missing_ok=True)
+    except OSError:
+        return
 
 
 def get_install_tier(machine_id: str, cfg: Settings | None = None) -> UserTier:

@@ -362,12 +362,12 @@ def test_send_ops_webhook_task_posts_payload():
 
 
 def test_send_job_failed_ops_alert_posts_payload():
-    with patch.object(nt, "post_ops_webhook", return_value=True) as post:
+    with patch.object(nt, "deliver_ops_event", return_value="sent") as deliver:
         out = nt.send_job_failed_ops_alert("job-1", done_count=2, error_count=1)
     assert out["status"] == "sent"
     assert out["event"] == "job_failed"
-    post.assert_called_once()
-    payload = post.call_args[0][0]
+    deliver.assert_called_once()
+    payload = deliver.call_args[0][0]
     assert payload["job_id"] == "job-1"
     assert payload["error_count"] == 1
 

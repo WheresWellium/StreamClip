@@ -193,8 +193,8 @@ popd >/dev/null
 
 DMG=""
 shopt -s nullglob
-for f in "$DESKTOP_DIR"/release/StreamClip-mac-arm64.dmg \
-         "$DESKTOP_DIR"/release/StreamClip-mac-*.dmg; do
+for f in "$DESKTOP_DIR"/release/qClip-mac-arm64.dmg \
+         "$DESKTOP_DIR"/release/qClip-mac-*.dmg; do
   if [[ -f "$f" ]]; then
     DMG="$f"
     break
@@ -218,7 +218,7 @@ if [[ -n "$DMG" ]]; then
     "$ROOT/scripts/notarize_macos_artifact.sh" "$DMG"
   fi
 else
-  echo "electron-builder finished but no StreamClip-mac-*.dmg under apps/desktop/release/" >&2
+  echo "electron-builder finished but no qClip-mac-*.dmg under apps/desktop/release/" >&2
   exit 1
 fi
 

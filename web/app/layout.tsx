@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -21,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jet Stream — all-in-one clip studio",
+  title: "qClip — all-in-one clip studio",
   description:
     "Clip any length. Frame any ratio. Rank what wins — auto-reframe, captions, overlays, vault, and publish in one studio.",
   metadataBase: new URL(
@@ -36,6 +37,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <link rel="preload" as="image" href="/loading/cover.svg" />
+      </head>
       <body
         className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
@@ -45,7 +49,7 @@ export default function RootLayout({
           <div className="min-h-screen hero-gradient">
           <header className="border-b border-white/25 bg-background/85 backdrop-blur-sm sticky top-0 z-40">
             <div className="container flex h-12 items-center gap-4">
-              <a
+              <Link
                 href="/"
                 className="flex shrink-0 items-center gap-2 font-mono text-sm font-medium uppercase tracking-[0.12em] text-foreground hover:text-sky-400 transition-colors"
               >
@@ -62,8 +66,8 @@ export default function RootLayout({
                     <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
                   </svg>
                 </span>
-                <span className="hidden sm:inline">Jet Stream</span>
-              </a>
+                <span className="hidden sm:inline">qClip</span>
+              </Link>
               <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
                 <HeaderNavWrapper />
                 <HeaderHelpMenu />

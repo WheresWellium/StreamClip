@@ -54,6 +54,7 @@ if (-not $SkipTests) {
     Write-Host ""
     if ($WithCoverage) {
         Write-Host "Running server-profile tests WITH coverage gate (MASTER_TODO 3.10)..." -ForegroundColor Cyan
+        docker compose exec -T api sh -c "rm -f /app/.coverage /app/.coverage.* 2>/dev/null; true"
         $covOutput = & docker compose exec -T api pytest tests/ -q --tb=no -m "not desktop" `
             --cov=backend --cov=core --cov-report=term-missing:skip-covered 2>&1
         $covText = ($covOutput | Out-String)

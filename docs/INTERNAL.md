@@ -10,6 +10,7 @@ These files live in `docs/` for version control and agent workflows but are **ex
 | [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) | Beta tester limitations and SLAs | Each beta wave |
 | [OPS_ALERTING.md](OPS_ALERTING.md) | Autonomous ops webhook + Sentry (no n8n) | When `OPS_WEBHOOK_URL` or Sentry DSN changes |
 | [BETA_OPS_PHASE0.md](BETA_OPS_PHASE0.md) | Phase 0 keys, support triage, invite template | Each beta wave |
+| [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md) | Phase 0 health, metrics, log-tail, opt-in diagnostics | Before and during each beta wave |
 | [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md) | Pre-invite checklist, fresh-reader §8.14, send steps §8.15 | Before each cohort wave |
 
 **Coverage gate:** canonical rules in [MASTER_TODO.md §3.10](MASTER_TODO.md); run `scripts/verify_coverage.ps1`.

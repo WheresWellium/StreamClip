@@ -24,6 +24,23 @@ queue:
   default_workers: 2
   gpu_workers: 1
 
+# CPU desktop beta throughput (performance audit 2026-07-28; user chose medium whisper).
+# Without these overrides the sidecar inherits pydantic defaults (large-v3, refine clips, optical flow).
+whisper:
+  model_size: medium
+  device: cpu
+  compute_type: int8
+
+caption:
+  refine_clip_transcript: false
+
+highlight:
+  weight_optical_flow: 0
+  weight_llm_virality: 0.55
+
+ingest:
+  medium_skip_optical_flow: true
+
 # GPU (§4.11): sidecar calls core/gpu_profile.py at boot — upgrades to CUDA/NVENC
 # when detected, falls back to cpu/libx264 when not. Override via STREAMCLIP_WHISPER__DEVICE
 # and STREAMCLIP_EXPORT__CODEC.

@@ -2,6 +2,11 @@
 
 **Last run:** 2026-07-28 (revision 10 — full dual-track audit: 23-claim technical matrix + 30-row UX sweep)
 
+### Audit snapshot (2026-07-28 — Phase 0 exit strategic)
+
+Strategic gap audit (desktop tester path + exit gates, no CI re-run): **`tmp/gap-analysis-audit-2026-07-28.md`**.  
+**Readiness ~58%.** Top blockers: desktop license seed (W2), publish secrets (W3), fixes not in beta.5 (O12), claim-device 500 (in flight), cohort exit evidence (O4). **Do not invite new `.exe` testers** until W2+W3 ship in a republished installer.
+
 ## Executive summary
 
 The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-to-end**. Phase 0 **engineering invite gates are green** (coverage ≥95%, clean-slate stack). Remaining work is mostly **ops truth, cohort exit evidence, desktop trust (EV signing), and license/notify leftovers**. Coverage snapshot in SESSION_STATE ≈**96%**; Phase 1 still needs the **110%** row (MASTER §3.10 / §8.1).

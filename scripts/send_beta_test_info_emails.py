@@ -72,34 +72,24 @@ Thanks,
 Wellium
 """
 
-# Aligned with docs/index.md tip + prepare_invite_pack.ps1 + BETA_TESTER_QUICKSTART short version.
+# Aligned with docs/BETA_DOWNLOAD.md + BETA_TESTER_QUICKSTART.md (installer-first flow).
 BODY_TEMPLATE = """\
 Hi {name},
 
 You're in — welcome to the qClip Phase 0 beta.
 
-Getting started (same flow as the docs site — no GitHub account needed):
+Three steps — no GitHub account, no Docker, no terminal:
 
-1. Get qClip — pick Windows or Mac:
+1. Download qClip for Windows:
    {henna_base}/BETA_DOWNLOAD/
 
 2. Quickstart — install to your first clip (~15 min):
    {henna_base}/BETA_TESTER_QUICKSTART/
 
-3. Paste your license key in Settings → License after logging in:
+3. Paste your license key in Settings → License:
    {license_key}
 
-Before activating (manual cohort only), import once:
-   docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py --key {license_key} --tier admin
-
 This key gives you full access to every feature. No feature gates.
-
-The short path:
-- Install Docker Desktop (free) and keep it running
-- Extract the beta .zip from your invite email checkout downloads
-- Run the one start command from the quickstart
-- Open http://localhost:3000
-- Paste a public video link and wait for clips
 
 Use the **Help menu (?)** in the app header → **Beta feedback** or **Report a bug** for support.
 We read every submission even if you don't get an auto-reply yet.

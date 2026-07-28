@@ -1,9 +1,19 @@
 # qClip — Beta Known Issues
 
 **Audience:** Phase 0–2 beta testers · **Owner:** core team  
-**Last updated:** 2026-07-27  
+**Last updated:** 2026-07-28  
 **Update:** when shipping a beta wave or closing a blocker  
 **Go-live / exit:** [`BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · evidence pack [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md)
+
+---
+
+## Open issues (P1)
+
+| Issue | Cause | Workaround | Affected |
+|-------|-------|------------|----------|
+| **Desktop: "Link jobs" returns Internal Server Error** | SQLite `local_devices` used Postgres `now()` default — **fixed in beta.6 branch** (`0014` migration + repo hardening) | **beta.5 users:** click **Skip** until beta.6 ships | Windows desktop `.exe` (SQLite) only |
+| **Desktop: pasted SCPRO key fails activation** | Empty SQLite had no seeded license hashes — **fixed in beta.6 branch** (bundled cohort hash seed at boot) | **beta.5:** run `import_invite_license.py` once, or wait for beta.6 | Windows desktop `.exe` cohort |
+| **Desktop: YouTube publish / OAuth fails** | Missing per-install Fernet + auth secrets — **fixed in beta.6 branch** (`install_secrets.py`) | **beta.5:** set env vars manually. **Upgrade to beta.6:** re-paste license once (expected) | Windows desktop `.exe` |
 
 ---
 
@@ -16,7 +26,7 @@
 | Instagram | **Not supported** — no Reels adapter in beta |
 | Cloud multi-tenant | **Not supported** — stub removed; self-host / desktop only (see `docs/cloud-deploy.md` design notes) |
 | Commerce | Lemon Squeezy one-time keys; license email on `order_created` fallback ✅ (`MASTER_TODO` §2.3, `tests/test_license_hardening.py`) |
-| Lemon Squeezy first activate | **Network required once** — self-hosted installs call the LS License API on first activation when the key is not already in local Postgres. After activation, offline grace applies (`licensing.offline_grace_days`). Manual cohort: run `import_invite_license.py` once before UI activate. |
+| Lemon Squeezy first activate | **Network required once** when the key is not already in local DB. After activation, offline grace applies. **Cohort desktop (beta.6+):** keys are pre-seeded at boot — paste in Settings → License only. |
 
 ## Security — known limitations
 
@@ -53,7 +63,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - Auto-update is a **stub** — manual reinstall until §4.10 / §5
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
 - **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir. Docker/MinIO uses a single browser PUT (no resume) — flaky networks may need a retry
-- **Distribution on desktop** requires `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` (Fernet). `config/desktop.yaml` sets `web_origin` to `http://127.0.0.1:8765` for OAuth redirects
+- **Distribution on desktop (beta.6+):** per-install Fernet key is generated on first boot (`install_secrets.py`). **beta.5** required manual `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY`. OAuth URI: `http://127.0.0.1:8765/...`
 
 ## Reporting bugs
 

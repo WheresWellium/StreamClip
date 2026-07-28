@@ -24,11 +24,17 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
+  const trimmed = iso.trim();
+  // Desktop SQLite returns naive UTC datetimes without a timezone suffix.
+  const date =
+    /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(trimmed)
+      ? new Date(trimmed.replace(" ", "T") + "Z")
+      : new Date(trimmed);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
 
+  if (diffSec < 0) return "just now";
   if (diffSec < 60) return `${diffSec}s ago`;
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;

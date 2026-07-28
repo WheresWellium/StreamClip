@@ -10,8 +10,8 @@ pytestmark = pytest.mark.desktop
 from alembic import command
 from alembic.config import Config
 
-from backend.db.models import JobStatus
-from backend.db.repositories import JobRepository
+from backend.db.models import JobStatus, UserTier
+from backend.db.repositories import DeviceRepository, JobRepository, UserRepository
 from backend.db.session import db_session, dispose_engine, get_sync_engine_url
 from core.config import get_settings
 
@@ -77,5 +77,42 @@ async def test_job_repository_crud(sqlite_settings: Path) -> None:
             assert loaded is not None
             assert loaded.status == JobStatus.QUEUED
             assert loaded.config_snapshot == {"profile": "sqlite"}
+    finally:
+        await dispose_engine()
+
+
+@pytest.mark.asyncio
+async def test_device_claim_on_sqlite(sqlite_settings: Path) -> None:
+    """Desktop sidecar: claim-device must not 500 on local_devices INSERT."""
+    sync_url = get_sync_engine_url()
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+    command.upgrade(alembic_cfg, "head")
+
+    await dispose_engine()
+    try:
+        async with db_session() as session:
+            users = UserRepository(session)
+            user = await users.create(
+                email="sqlite-claim@test.local",
+                hashed_password="x",
+                tier=UserTier.FREE,
+            )
+            devices = DeviceRepository(session)
+            device_id = "aabbccdd112233445566778899aabbcc"
+            job = await JobRepository(session).create(
+                owner_id=None,
+                source_url="https://example.com/v",
+                status=JobStatus.QUEUED,
+                current_stage="queued",
+                progress=0.0,
+                config_snapshot={},
+            )
+            claimed = await devices.claim_for_user(device_id, user.id)
+            assert claimed >= 1
+            await session.commit()
+            await session.refresh(job)
+            assert job.owner_id == user.id
+            assert job.device_id == device_id
     finally:
         await dispose_engine()

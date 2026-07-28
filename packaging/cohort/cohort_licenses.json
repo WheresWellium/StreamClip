@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "licenses": [
+    {
+      "key_hash": "d762650b87647ab161abf137d29c9561387f7cd8d1fee061cb67915d40a01a49",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "4ce06a39b1142fc574e77155208cf4e60c675bb14c2b8004d4ccef7dc00513ca",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "4cc9c9654625362550bb226469d1f70e99f051ac07beb96b15ba33197971f795",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "ff61aee22bfb451790befd2e4349cd0b6ae16811e7343a298a076b8cb8f55751",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "8d0700590ed370d52ac6d7ccc7df67a9b932bf907f5f6a2895c1b6e74841733f",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "6be46dbddc460ec77d93c11afa7a6d6fb986bd1cd64240dc39dcfab8e43bd0e6",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "a248e85bcf96b855536626928811bd495fc1dc5b2caefdebeda0b103d076c912",
+      "tier": "admin"
+    },
+    {
+      "key_hash": "4e17f741992ac00b8b5c0c75e99eea748a81b5ec2fd99739a6f9cf28e4748741",
+      "tier": "admin"
+    }
+  ]
+}

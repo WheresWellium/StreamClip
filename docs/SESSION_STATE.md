@@ -1,42 +1,41 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-28 (T66 mock UI e2e green; Phase 0 agent gaps closed)
+**Last updated:** 2026-07-28 (beta.6 delivery branch ready)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `cursor/phase0-exit-and-beta-hardening` | Phase 0 / T66 closeout | — | e2e + ops/SMTP already landed |
+| `beta6-delivery` | Post-PR #9 beta.6 slice | — | 3 commits atop `origin/master`; open PR → O12 |
 
-## Current focus
+## Readiness
 
-Agent-owned UX/reliability + **T66 UI journey e2e** are done. Mock-API Playwright suite **23/23 PASS** (`npm run test:e2e:ui-journey`). Remaining work is human ops/hardware.
+| Metric | % | Notes |
+|--------|---|-------|
+| Tester-ready **local** (tree) | **~85%** | G4+W2+W3+W4; desktop tests 23/23; tsc clean |
+| Tester-ready **shipped** (master/beta.5) | **~60%** | needs beta.6 publish |
+| Phase 0 **exit** | **~62%** | O4/O5/O11/O14 human ops remain |
 
-## Blockers (human-only — cannot automate)
+**Merge-ready:** yes — clean 3-commit stack on `origin/master`.
 
-- O12 — merge/publish desktop → `1.0.0-beta.5` when ready.
-- O6 — send invite pack.
-- ~~O7~~ ✅ SMTP-only alerting verified live.
-- O5 — fill on-call `<…_NAME>` tokens.
-- O4 — run `capture_phase0_evidence.ps1` during live cohort windows.
-- O11 — buy EV / Azure Trusted Signing.
-- O14 — Mac host builds live `.dmg`.
-- ~~T66~~ ✅ mock UI journey (create→review→publish + failure + onboarding).
-- GPU hardware smoke (NVENC/CUDA) — needs GPU box.
+## P0 slice (this delivery)
 
-## Validation
+| Item | Status |
+|------|--------|
+| G4 claim-device SQLite fix | ✅ |
+| W2 cohort license seed | ✅ |
+| W3 per-install secrets | ✅ |
+| W4 CPU throughput config | ✅ |
+| Web modal/warmup/format | ✅ |
+| O12 beta.6 installer | ⏳ operator |
 
-- Licensing blocklist ✅ · SMTP alerting live PASS · ops delivery fallback ✅
-- **UI e2e 23/23** — journey + failure-paths + onboarding (`web/e2e/`, `test:e2e:ui-journey`)
-- Note: Docker web `.next` anonymous volume can go stale vs source — wipe `/app/.next/*` + restart web if brand/UI drifts
+## Blockers (human-only)
+
+- O12 — `scripts/publish_desktop_release.ps1` after merge; bump `docs/BETA_DOWNLOAD.md`
+- O5 — on-call tokens · O4 — evidence pack · O11 — code signing · O14 — Mac `.dmg`
 
 ## Next steps
 
-1. User: review/merge branch; O12 publish; O5/O6 ops.
-2. Optional: GPU smoke when hardware available; re-run `verify_coverage.ps1` after backend commit.
-
-## Key paths
-
-- E2E: `web/e2e/journey-create-review.spec.ts`, `failure-paths.spec.ts`, `onboarding-first-run.spec.ts`, `support/mock-api.ts`
-- Gaps: `docs/GAP_ANALYSIS.md` · Exit: `docs/BETA_COHORT_EXIT.md`
+1. Open PR from `beta6-delivery`; merge to master.
+2. Publish beta.6; optional cohort re-send (`tmp/tester-reply-draft.txt`).

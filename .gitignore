@@ -30,6 +30,7 @@ site/
 .DS_Store
 
 .cursor/hooks/state/
+docs/.agent-lock.json
 
 .vercel
 

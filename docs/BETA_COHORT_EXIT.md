@@ -2,14 +2,14 @@
 
 **Purpose:** Operator-fillable record for GAP **O4** / **O5** and MASTER **§8.16** (H+2 / H+24 / H+72 / T0).  
 **Status:** Tooling ready (`scripts/capture_phase0_evidence.ps1`) — **no results invented**. Every evidence cell starts blank or `☐`.  
-**Companions:** [`BETA_GO_LIVE.md`](BETA_GO_LIVE.md) §7–§8 · [`BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §4.3 / §4.5 · [`BETA_ON_CALL.md`](BETA_ON_CALL.md) · [`BETA_OPS_PHASE0.md`](BETA_OPS_PHASE0.md) §6 · [`docs/evidence/README.md`](evidence/README.md)  
+**Companions:** [BETA_GO_LIVE.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_GO_LIVE.md) §7–§8 · [`BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §4.3 / §4.5 · [BETA_ON_CALL.md (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_ON_CALL.md) · [BETA_OPS_PHASE0.md §6 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_OPS_PHASE0.md) · [`docs/evidence/README.md`](evidence/README.md)  
 **Do not** invent on-call names or mark incomplete ops items done. Replace every `OPERATOR FILL` / `<…>` token before treating exit as closed.
 
 ---
 
 ## 0. How to complete this pack
 
-1. Fill **§1 On-call** from the live rotation (tokens in [`BETA_ON_CALL.md`](BETA_ON_CALL.md) §1 —
+1. Fill **§1 On-call** from the live rotation (tokens in [BETA_ON_CALL.md §1 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_ON_CALL.md) —
    search for `<` to find remaining placeholders). Solo operator? Same person in every row is valid.
 2. **Capture machine evidence** at each window (fail-soft; never invent outcomes):
 
@@ -46,7 +46,7 @@ See also [`docs/evidence/README.md`](evidence/README.md).
 | Ops (keys / GHCR / OAuth) | `OPERATOR FILL` | `OPERATOR FILL` | |
 | Docs (known-issues) | `OPERATOR FILL` | `OPERATOR FILL` | |
 
-Source template: [`BETA_ON_CALL.md`](BETA_ON_CALL.md) §1. Keep secrets out of git if preferred; then note “private roster” in Evidence and leave Name as `OPERATOR FILL (private)`.
+Source template: [BETA_ON_CALL.md §1 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_ON_CALL.md). Keep secrets out of git if preferred; then note “private roster” in Evidence and leave Name as `OPERATOR FILL (private)`.
 
 ---
 
@@ -131,7 +131,7 @@ Result cells: replace `☐` with `pass` / `fail` / `blocked` / `pending` when kn
 
 ## 4. Lemon Squeezy staging verification (exit gate)
 
-One staging/test purchase → key delivered → activate → Pro tier. Checklist detail: [`BETA_OPS_PHASE0.md`](BETA_OPS_PHASE0.md) §6. Do **not** tick until run.
+One staging/test purchase → key delivered → activate → Pro tier. Checklist detail: [BETA_OPS_PHASE0.md §6 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/BETA_OPS_PHASE0.md). Do **not** tick until run.
 
 | Step | Done | Evidence |
 |------|------|----------|

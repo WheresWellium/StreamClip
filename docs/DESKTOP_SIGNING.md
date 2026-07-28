@@ -7,10 +7,10 @@ Purchase of the EV certificate is **out of band** — this doc covers everything
 
 Related:
 
-- Installer build overview: [`packaging/installer/README.md`](../packaging/installer/README.md)
-- Release tag checklist: [`packaging/installer/RELEASE_CHECKLIST.md`](../packaging/installer/RELEASE_CHECKLIST.md)
+- Installer build overview: `packaging/installer/README.md` (repo root)
+- Release tag checklist: `packaging/installer/RELEASE_CHECKLIST.md` (repo root)
 - Tester SmartScreen copy: [`BETA_KNOWN_ISSUES.md`](./BETA_KNOWN_ISSUES.md) · [`BETA_DOWNLOAD.md`](./BETA_DOWNLOAD.md)
-- CI: [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml)
+- CI: `.github/workflows/desktop-release.yml` (repo root)
 
 ---
 

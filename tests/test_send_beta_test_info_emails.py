@@ -77,8 +77,8 @@ def test_render_body_manual_includes_henna_flow_and_license_key() -> None:
     assert "BETA_DOWNLOAD/" in body
     assert "BETA_TESTER_QUICKSTART/" in body
     assert "SCPRO-AAAA-BBBB-CCCC-DDDD" in body
-    assert "http://localhost:3000" in body
-    assert "Docker Desktop" in body
+    assert HENNA in body
+    assert "no GitHub account, no Docker, no terminal" in body
     assert "Help menu" in body
 
 

@@ -7,7 +7,7 @@
 `.dmg` in ~30 minutes. Notarization (Gatekeeper-clean) is an optional extra step
 after you have an Apple Developer ID.
 
-Companion detail: [`packaging/installer/MACOS.md`](../packaging/installer/MACOS.md) ·
+Companion detail: `packaging/installer/MACOS.md` (repo root) ·
 ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
 
 ---

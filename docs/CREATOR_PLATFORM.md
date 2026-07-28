@@ -63,7 +63,7 @@ Give **every content creator** — gamers, IRL streamers, podcasters, educators,
 
 ### Next (high value)
 
-Tracked in [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3–§4:
+Tracked in [MASTER_TODO.md §3–§4 (GitHub)](https://github.com/WheresWellium/StreamClip/blob/master/docs/MASTER_TODO.md):
 
 - E2E publish flow tests (Playwright) — §3.3
 - Coverage ratchet to 95% then 110% — §3.5, §3.7, §3.10

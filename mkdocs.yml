@@ -85,6 +85,7 @@ nav:
       - macOS DMG builders: MACOS_INSTALLER.md
   - Getting started:
       - Beta quickstart: BETA_TESTER_QUICKSTART.md
+      - Beta FAQ: BETA_FAQ.md
       - Beta test plan: BETA_TESTER_PLAN.md
       - Known issues: BETA_KNOWN_ISSUES.md
   - Tutorials:

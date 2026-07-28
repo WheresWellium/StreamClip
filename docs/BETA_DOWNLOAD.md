@@ -1,5 +1,8 @@
 # Get qClip — Beta Access
 
+!!! success "Start here"
+    **New testers:** follow the **[Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)** — complete Windows & Mac steps, checklists, and first clip.  
+    This page covers **where to get the installer** and optional Docker for operators.
 
 > **Current Windows installer:** `1.0.0-beta.5` (2026-07-27) — `qClip-Setup-win-x64.exe` (~487 MB).  
 > **macOS product path:** `qClip-mac-arm64.dmg` (Apple Silicon) — desktop app, **no Docker**.  

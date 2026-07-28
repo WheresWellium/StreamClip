@@ -91,16 +91,18 @@ Hi {name},
 You're in - welcome to the qClip Phase 0 beta.
 
 Get started (no GitHub account needed):
+
+Primary guide (install + first clip):
+{henna_base}/DESKTOP_SOLO_USER_GUIDE/
+
+Installer download help:
 {henna_base}/BETA_DOWNLOAD/
 
-Quickstart guide (step-by-step, ~15 min):
+Quick 15-minute overview:
 {henna_base}/BETA_TESTER_QUICKSTART/
 
-Your license key - paste in Settings -> License after logging in:
+Your license key - paste in Settings -> License in the desktop app:
 {license_key}
-
-Before activating, import the key into your local install (one time):
-  docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py --key {license_key} --tier admin
 
 This key gives you full access to every feature. No feature gates.
 

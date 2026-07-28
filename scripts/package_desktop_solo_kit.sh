@@ -44,11 +44,10 @@ fi
 
 # Minimal docs for testers (desktop-only — no Docker instructions as primary).
 for f in \
+  docs/DESKTOP_SOLO_USER_GUIDE.md \
   docs/BETA_DOWNLOAD.md \
   docs/BETA_TESTER_QUICKSTART.md \
-  docs/BETA_KNOWN_ISSUES.md \
-  docs/HUMAN_DESKTOP_SMOKE.md \
-  docs/DESKTOP_STARTUP.md
+  docs/BETA_KNOWN_ISSUES.md
 do
   if [[ -f "$ROOT/$f" ]]; then
     mkdir -p "$STAGE/$(dirname "$f")"
@@ -70,7 +69,8 @@ Windows
 1. Run installers/qClip-Setup-win-x64.exe
 2. SmartScreen (unsigned): More info → Run anyway
 3. Start menu → qClip → Settings → License → paste invite key
-4. Smoke checklist: docs/HUMAN_DESKTOP_SMOKE.md
+4. Full guide: docs/DESKTOP_SOLO_USER_GUIDE.md
+   Or online: https://streamclip-henna.vercel.app/DESKTOP_SOLO_USER_GUIDE/
 
 macOS
 -----

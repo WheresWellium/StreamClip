@@ -1,50 +1,46 @@
 # Tutorial — Troubleshooting
 
-**Quick reference** for the most common Phase 0 beta failures.
+**When something goes wrong — start simple, then dig deeper.**
 
 Full platform limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 
 ---
 
-## Start in the app
+## Start here (everyone)
 
-Before terminal commands:
+1. **Settings → Get started** — **Ready** means you can create jobs; **Needs attention** means fix setup first  
+2. **Help → Troubleshooting** inside the app (same topics, in-window)  
+3. **Report a bug** or **Beta feedback** in the header — include **job ID** and log zip  
 
-1. Open **Help** → [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) (embedded in the app)
-2. Check **Settings → Get started** — **Ready** means you can create jobs; **Needs attention** means fix setup first
-3. Use **Report a bug** or **Beta feedback** in the header (saved even when email routing is not configured)
+| Platform | Log folder |
+|----------|------------|
+| **Windows desktop** | `%LOCALAPPDATA%\qClip\logs\` |
+| **macOS desktop** | `~/Library/Application Support/qClip/logs/` |
 
-**Windows `.exe` users:** you usually do **not** need Docker or `verify_stack.ps1` — use the steps above and [Get qClip](../BETA_DOWNLOAD.md#one-click-installers).
-
-**Docker beta users:** run [Install](TUTORIAL_INSTALL.md) verify if the in-app check stays on **Needs attention**.
-
----
-
-## Top failures
-
-| # | Symptom | Likely cause | Fix |
-|---|---------|--------------|-----|
-| 1 | `Docker Desktop is not running` from `start_local.ps1` | Docker not started | Launch Docker Desktop; wait for **Running**; re-run script |
-| 2 | `verify_stack.ps1` exits non-zero | Services not healthy, migration failed, port conflict | `docker compose ps`; `docker compose logs api worker --tail 80`; fix red service; re-run verify |
-| 3 | localhost:3000 won't load | Stack still starting; web container down | Wait 60 s; `docker compose up -d`; check `web` container logs |
-| 4 | Job stuck in **processing** >30 min | Worker crash, GPU OOM, yt-dlp blocked | `docker compose logs worker --tail 100`; retry shorter URL; restart worker |
-| 5 | Clips extremely slow | CPU-only path; GPU not passed to Docker | Windows: enable GPU in Docker Desktop + `--profile gpu`; Mac: expected — use shorter source |
-| 6 | `nvidia-smi` fails in worker | GPU not shared with containers | Docker Desktop → Resources → GPU; update NVIDIA drivers; restart Docker |
-| 7 | SSE progress frozen | Browser tab backgrounded; api restart | Refresh page; check api logs; UI falls back to polling after ~20 s |
-| 8 | License key rejected | Wrong format; typo | Paste full key including dashes (`SCPRO-…`); under **Settings → License**, use **Show details** on **This install** if support asks |
-| 9 | YouTube OAuth redirect error | Redirect URI mismatch | Google Console URI must match `WEB_ORIGIN` + `/api/distribution/oauth/youtube_shorts/callback` (Docker: `http://localhost:3000…`; desktop: `http://127.0.0.1:8765…`) |
-| 10 | Publish fails immediately | Token expired; quota; clip not approved | Reconnect YouTube; approve clip; check Distribution → Queue error message |
-| 11 | Vault save fails | Quota exceeded | Delete old vault clips; activate beta key for higher limit |
-| 12 | TikTok "inbox only" | Beta scope limitation | **Not a bug** — finish post in TikTok app. See [Known issues](../BETA_KNOWN_ISSUES.md) |
-| 13 | Ollama / virality score 0 | LLM unreachable | Optional for clips; start `ollama` service or ignore for T0-2 |
-| 14 | Mac: `docker compose` not found | Docker CLI not in PATH | Reinstall Docker Desktop; open new Terminal window |
-| 15 | Port 3000 / 8000 in use | Another app bound to port | Stop conflicting app or change compose port mapping |
+Install walkthrough: [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md)
 
 ---
 
-## Diagnostic commands (Docker operators)
+## Desktop app — top fixes
 
-These are for **Docker beta** debugging — not shown in the shipped app.
+| Symptom | What it usually means | What to do |
+|---------|----------------------|------------|
+| SmartScreen blocks installer | Unsigned beta | **More info → Run anyway** — [guide](../DESKTOP_SOLO_USER_GUIDE.md#step-2-pass-smartscreen-unsigned-beta) |
+| Mac “can’t be opened” | Gatekeeper | **Right-click qClip → Open** — [guide](../DESKTOP_SOLO_USER_GUIDE.md#step-3-pass-gatekeeper-unsigned-beta) |
+| **Needs attention** in Get started | Setup incomplete | Open **Help → Troubleshooting**; confirm license and disk space |
+| License key rejected | Typo or wrong key | Paste full `SCPRO-…` with dashes; **Settings → License → Show details** for support |
+| Job stuck **processing** 30+ min | Slow path or blocked download | Try a **shorter** URL; check `sidecar.log` in log folder |
+| Clips very slow | CPU-only / long source | Shorter video for beta; Windows + NVIDIA is fastest |
+| Progress bar frozen | Tab backgrounded or engine restart | Refresh UI; reopen job; attach logs if persistent |
+| YouTube OAuth error | Redirect URI mismatch | Desktop uses `http://127.0.0.1:8765/.../callback` — match Google Console |
+| TikTok “inbox only” | Beta scope | **Not a bug** — finish in TikTok app · [Known issues](../BETA_KNOWN_ISSUES.md) |
+| Virality score shows `0` | Local LLM offline | Clips still render — optional for beta |
+
+---
+
+## Docker operators only
+
+If you chose **Docker self-host** instead of the desktop installer, use these when the in-app check fails:
 
 === "Windows"
 
@@ -113,9 +109,9 @@ Use **Report a bug** in the app header — you'll see **Saved — we'll review i
 | Doc | Use when |
 |-----|----------|
 | [Known issues](../BETA_KNOWN_ISSUES.md) | Platform limits, TikTok inbox, desktop SmartScreen |
-| [Beta quickstart FAQ](../BETA_TESTER_QUICKSTART.md#frequently-asked-questions) | Accounts, updates, privacy |
+| [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md#quick-answers) | License, Docker, privacy, updates |
 | [GPU setup](TUTORIAL_GPU_SETUP.md) | Slow jobs on Windows |
-| [Install](TUTORIAL_INSTALL.md) | First-time setup |
+| [Get qClip](../BETA_DOWNLOAD.md) | Download sources, SmartScreen, Gatekeeper |
 
 ---
 

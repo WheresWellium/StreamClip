@@ -99,7 +99,7 @@ From the job toolbar when multiple clips are approved:
 
 ## Acceptance checklist (T0-3)
 
-From [Beta test plan](../BETA_TESTER_PLAN.md#43-required-tester-flows-acceptance):
+**Acceptance checklist:**
 
 - [ ] Patched title and trim boundaries
 - [ ] At least one transcript word edit saved

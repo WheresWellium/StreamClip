@@ -110,7 +110,7 @@ This removes the vault record and storage object. It does **not** delete the ori
 
 ## Acceptance (T0-5)
 
-From [Beta test plan](../BETA_TESTER_PLAN.md#43-required-tester-flows-acceptance):
+**Acceptance checklist:**
 
 - [ ] Clip saved to Vault from a job
 - [ ] Renamed successfully in Vault grid

@@ -1,62 +1,62 @@
 # qClip docs
 
-**qClip** turns long videos into short vertical clips on **your own computer**. Nothing is uploaded to our servers unless you choose to publish to YouTube or TikTok.
+**Turn long videos into short clips — on your computer, not in the cloud.**
 
 ---
 
-!!! tip "Beta testers — start here"
-    **You do not need a GitHub account.**
+!!! success "New beta tester? Start here"
+    **You do not need Docker. You do not need GitHub.**
 
-    1. **[Get qClip](BETA_DOWNLOAD.md)** — pick Windows or Mac and follow the steps
-    2. **[Quickstart](BETA_TESTER_QUICKSTART.md)** — from install to your first clip (~15 minutes)
-    3. Paste your **license key** in **Settings → License** (from your invite email)
+    1. **[Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)** — complete Windows & Mac walkthrough (recommended)
+    2. **[Get your installer](BETA_DOWNLOAD.md)** — where the `.exe` / `.dmg` comes from
+    3. Paste your **license key** in **Settings → License** (`SCPRO-…` from invite email)
 
-    **Stuck?** Open **Help** in the app (guides stay in-window) or use **Report a bug** in the header. Reply to your invite email if you need a human.
-
----
-
-## Pick your guide
-
-| If you want to… | Open this |
-|-----------------|-----------|
-| **Install and run the beta** | [Get qClip](BETA_DOWNLOAD.md) |
-| **Step-by-step: first clip** | [Beta quickstart](BETA_TESTER_QUICKSTART.md) |
-| **Follow the full test checklist** | [Beta test plan](BETA_TESTER_PLAN.md) |
-| **Fix a problem** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
-| **Build the macOS installer** (helpers only) | [macOS installer — builders](MACOS_INSTALLER.md) |
-
-!!! note "Operator / engineering docs"
-    Architecture, performance, and runbooks stay in the repo for contributors but are **not** linked in the public docs nav or the shipped app. Partners who need HTTP API reference should ask your operator privately.
+    **Stuck?** **Help** inside the app, or **[Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md)** on this site.
 
 ---
 
-## What qClip does (simple version)
+## Pick your path
+
+| I want to… | Open this |
+|------------|-----------|
+| **Install qClip and run my first clip** | [Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md) |
+| **Understand download options & SmartScreen / Gatekeeper** | [Get qClip](BETA_DOWNLOAD.md) |
+| **Fast 15-minute overview** | [Beta quickstart](BETA_TESTER_QUICKSTART.md) |
+| **Learn the job screen & progress stages** | [Your first clip](tutorials/TUTORIAL_FIRST_JOB.md) |
+| **Fix something broken** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
+| **Publish to YouTube Shorts** | [Publish tutorial](tutorials/TUTORIAL_PUBLISH_YOUTUBE.md) |
+| **Build the Mac installer** (helpers only) | [macOS DMG builders](MACOS_INSTALLER.md) |
+
+---
+
+## What qClip does
 
 1. **You paste a link** — Twitch, YouTube, Kick, or a public `.mp4`
-2. **It listens and reads** — speech is turned into text on your machine
-3. **It finds the best moments** — software picks highlight sections
-4. **It makes short clips** — vertical videos ready for Shorts / TikTok
-5. **You review and publish** — approve clips, then post if you want
+2. **It listens** — speech becomes text on your machine
+3. **It finds moments** — software scores highlight sections
+4. **It renders clips** — vertical videos ready for Shorts / TikTok
+5. **You review** — approve, then publish if you want
 
-Your raw video files stay on your computer.
+Raw video stays local unless you explicitly publish to a platform.
 
 ---
 
-## Words you might see
+## Simple glossary
 
-| Word | Plain meaning |
+| Word | What it means |
 |------|----------------|
-| **Docker** | A free app that runs qClip in the background (like a mini server on your PC) |
-| **License key** | A code from your invite email (`SCPRO-…`) that unlocks all features |
+| **Installer** | `qClip-Setup-win-x64.exe` (Windows) or `qClip-mac-arm64.dmg` (Mac) |
+| **License key** | Code from invite email (`SCPRO-…`) — unlocks all beta features |
 | **Job** | One video you asked qClip to process |
 | **Clip** | One short video cut from that job |
 | **Vault** | Your saved favorite clips |
-| **GPU** | Your graphics card — makes processing much faster when acceleration is on |
-| **Help center** | In-app guides at **Help** — same topics as this site, embedded in qClip |
+| **Get started** | In-app health check — **Ready** = good to create jobs |
+| **GPU** | Graphics card — makes Windows processing much faster |
+| **Docker** | *Optional* operator tool — **not** required for the desktop app |
 
 ---
 
-## Preview these docs on your computer
+## Preview these docs locally
 
 ```bash
 pip install -r docs/requirements.txt

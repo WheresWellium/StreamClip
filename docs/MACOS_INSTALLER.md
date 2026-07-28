@@ -35,7 +35,7 @@ On an Apple Silicon Mac, from the repo root:
 
 Prints prerequisites, builds the DMG, verifies
 `apps/desktop/release/qClip-mac-arm64.dmg`, then reminds you to run Finder smoke
-([HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)) and copy the DMG into the invite kit.
+([Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)) and copy the DMG into the invite kit.
 
 ## Build (advanced)
 

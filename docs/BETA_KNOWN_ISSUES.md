@@ -44,7 +44,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
 - **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir
 - **Distribution on desktop** requires `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` (Fernet). `config/desktop.yaml` sets `web_origin` to `http://127.0.0.1:8765` for OAuth redirects
-- Solo smoke / kit: [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) · [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)
+- Install walkthrough: [Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)
 
 ## Docker self-host (operators only)
 
@@ -78,4 +78,4 @@ creator installs forward support forms without local SMTP. Admin list:
 
 Include: OS version, GPU model, `job_id`, relevant log snippet, steps to reproduce.
 
-See `docs/BETA_TESTER_PLAN.md` for acceptance flows T0 / T1 / T2.
+See the [Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md) for the creator acceptance checklist.

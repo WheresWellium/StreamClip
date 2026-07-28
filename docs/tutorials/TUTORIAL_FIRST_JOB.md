@@ -1,6 +1,6 @@
 # Tutorial — Your First Job
 
-**Time:** ~5 minutes to start + waiting while clips render · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md)
+**Time:** ~5 minutes to start + waiting while clips render · **Prerequisite:** [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md)
 
 This walks you through turning **one video link** into short clips.
 
@@ -8,11 +8,11 @@ This walks you through turning **one video link** into short clips.
 
 ## Before you start
 
-- qClip is running — you opened [http://localhost:3000](http://localhost:3000) and it loaded
-- You have a **public** video link (anyone can watch it without logging in)
+- **qClip is running** — you launched the desktop app and **Settings → Get started** shows **Ready**
+- You have a **public** video link (anyone can watch without logging in)
 
-!!! tip "Using a Mac without a graphics card?"
-    Start with a **short video** (10–20 minutes). Long videos take much longer on CPU-only machines.
+!!! tip "Using a Mac or CPU-only Windows?"
+    Start with a **short video** (10–20 minutes). Long VODs take much longer without NVIDIA.
 
 ---
 

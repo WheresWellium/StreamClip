@@ -35,24 +35,24 @@ if [[ -f "$PKG" ]]; then
 fi
 
 BANNER_DATE="$(date +%Y-%m-%d)"
-# Soft-touch BETA_DOWNLOAD banner if present
-if [[ -f docs/BETA_DOWNLOAD.md ]]; then
+# Soft-touch GET_STARTED Windows build line if present
+if [[ -f docs/GET_STARTED.md ]]; then
   python3 - <<PY
 from pathlib import Path
 import re
-p = Path("docs/BETA_DOWNLOAD.md")
+p = Path("docs/GET_STARTED.md")
 text = p.read_text(encoding="utf-8")
 text2, n = re.subn(
-    r"(\*\*Current Windows installer:\*\* )\`[^\`]+\` \(\d{4}-\d{2}-\d{2}\)",
-    r"\1\`$VERSION_NUM\` ($BANNER_DATE)",
+    r"(\*\*Current Windows build:\*\* \`)[^\`]+(\` · \`qClip-Setup-win-x64\.exe\` \([^)]+\))",
+    rf"\1$VERSION_NUM\2",
     text,
     count=1,
 )
 if n:
     p.write_text(text2, encoding="utf-8")
-    print(f"Updated BETA_DOWNLOAD banner → {('$VERSION_NUM')} ($BANNER_DATE)")
+    print(f"Updated GET_STARTED Windows build → $VERSION_NUM")
 else:
-    print("NOTE: BETA_DOWNLOAD banner pattern not matched — edit manually.")
+    print("NOTE: GET_STARTED Windows build pattern not matched — edit manually.")
 PY
 fi
 

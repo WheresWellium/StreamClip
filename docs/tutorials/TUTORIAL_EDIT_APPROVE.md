@@ -15,7 +15,7 @@ Review AI-generated clips, adjust title and trim boundaries, fix transcript word
 | Transcript words | Transcript panel | **Save** |
 | Approval | Clip card or editor | **Approve** (instant) |
 
-Only **approved** clips can be published or batch-published. See [Beta quickstart](../BETA_TESTER_QUICKSTART.md).
+Only **approved** clips can be published or batch-published. See [Get started](../GET_STARTED.md).
 
 ---
 
@@ -116,4 +116,4 @@ From the job toolbar when multiple clips are approved:
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*
+*See also: [Get started](../GET_STARTED.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

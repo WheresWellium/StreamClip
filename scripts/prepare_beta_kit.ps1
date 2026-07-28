@@ -77,10 +77,9 @@ function Resolve-WindowsInstaller([string]$StageDir, [string]$PreferredTag) {
 }
 
 $alwaysFiles = @(
-    "docs/BETA_TESTER_QUICKSTART.md",
+    "docs/GET_STARTED.md",
     "docs/BETA_TESTER_PLAN.md",
     "docs/BETA_KNOWN_ISSUES.md",
-    "docs/BETA_DOWNLOAD.md",
     "docs/CLEAN_VM_VERIFY.md",
     "docs/BETA_OPS_PHASE0.md",
     "docs/distribution-runbook.md",

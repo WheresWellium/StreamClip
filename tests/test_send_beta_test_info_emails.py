@@ -74,11 +74,9 @@ def test_render_body_manual_includes_henna_flow_and_license_key() -> None:
         license_key="SCPRO-AAAA-BBBB-CCCC-DDDD",
     )
     body = sender._render_body(member, henna_base=HENNA, mode="manual")
-    assert "BETA_DOWNLOAD/" in body
-    assert "BETA_TESTER_QUICKSTART/" in body
+    assert "GET_STARTED/" in body
     assert "SCPRO-AAAA-BBBB-CCCC-DDDD" in body
-    assert "http://localhost:3000" in body
-    assert "Docker Desktop" in body
+    assert "no GitHub account, no Docker" in body
     assert "Help menu" in body
 
 
@@ -90,7 +88,7 @@ def test_render_body_ls_includes_checkout_url() -> None:
     )
     body = sender._render_body(member, henna_base=HENNA, mode="ls")
     assert CHECKOUT_BASE in body
-    assert "BETA_DOWNLOAD/" in body
+    assert "GET_STARTED/" in body
     assert "Help menu" in body
     assert "SCPRO-" not in body
 

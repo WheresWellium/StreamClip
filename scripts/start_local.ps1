@@ -18,8 +18,8 @@ if (-not (Test-DockerRunning)) {
     Write-Host "  1. Start Docker Desktop and wait until it shows 'Running'"
     Write-Host "  2. Re-run: .\scripts\start_local.ps1"
     Write-Host ""
-    Write-Host "Phase 0 local testing uses Docker: docs/BETA_TESTER_QUICKSTART.md"
-    Write-Host "Optional Windows .exe (unsigned beta): docs/BETA_DOWNLOAD.md"
+    Write-Host "Docker self-host: docs/GET_STARTED.md (Operators section)"
+    Write-Host "Creators (desktop .exe): docs/GET_STARTED.md"
     exit 1
 }
 

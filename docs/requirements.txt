@@ -1,3 +1,4 @@
 # MkDocs Material — docs site only (pinned for Vercel pip cache stability)
 mkdocs==1.6.1
 mkdocs-material==9.7.6
+mkdocs-redirects==1.2.2

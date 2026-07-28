@@ -67,7 +67,7 @@ Vault capacity is tier-limited:
 | Beta / admin key | Full quota unlocked |
 
 !!! info "Beta keys"
-    Keys from your invite email unlock **admin-tier** limits. Activate in **Settings → License** — optional but recommended for T0-5. See [Install](TUTORIAL_INSTALL.md).
+    Keys from your invite email unlock **admin-tier** limits. Activate in **Settings → License** — optional but recommended for T0-5. See [Get started](../GET_STARTED.md).
 
 When quota is full, saving returns an error — delete old vault clips or upgrade tier.
 
@@ -127,4 +127,4 @@ This removes the vault record and storage object. It does **not** delete the ori
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*
+*See also: [Get started](../GET_STARTED.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

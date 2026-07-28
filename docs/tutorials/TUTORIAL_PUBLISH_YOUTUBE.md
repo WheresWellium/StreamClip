@@ -146,4 +146,4 @@ More: [Troubleshooting tutorial](TUTORIAL_TROUBLESHOOTING.md)
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Distribution runbook](../distribution-runbook.md)*
+*See also: [Get started](../GET_STARTED.md) · [Distribution runbook](../distribution-runbook.md)*

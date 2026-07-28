@@ -1,6 +1,6 @@
 # Tutorial — Your First Job
 
-**Time:** ~5 minutes to start + waiting while clips render · **Prerequisite:** [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md)
+**Time:** ~5 minutes to start + render time · **Prerequisite:** [Get started](../GET_STARTED.md) through **Ready** and license activation
 
 This walks you through turning **one video link** into short clips.
 
@@ -97,20 +97,12 @@ When everything is done:
 
 ## If something goes wrong
 
-=== "Windows"
+1. Note the **job ID** on the job page  
+2. Zip logs — see [Get started → Windows / macOS logs](../GET_STARTED.md#windows)  
+3. **Help → Report a bug** with job ID + log zip  
 
-    ```powershell
-    docker compose logs api worker --tail 50
-    ```
-
-=== "macOS"
-
-    ```bash
-    docker compose logs api worker --tail 50
-    ```
-
-Copy the **job ID** from the job page and open **Help menu (?)** → **Report a bug**.
+Full fixes: [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md)
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*
+*See also: [Get started](../GET_STARTED.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

@@ -1,6 +1,6 @@
 # Tutorial — GPU Setup
 
-**Time:** ~15 minutes · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md) or [Windows installer](../BETA_DOWNLOAD.md#one-click-installers)
+**Time:** ~15 minutes · **Prerequisite:** [Get started](../GET_STARTED.md) with qClip running and **Ready**
 
 qClip is **much faster** with **GPU acceleration on**. How you turn it on depends on how you installed:
 
@@ -161,4 +161,4 @@ Report timings via **Beta feedback** in the app header.
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*
+*See also: [Get started](../GET_STARTED.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

@@ -1,7 +1,7 @@
 # qClip — Beta Go-Live Checklist
 
 **Purpose:** Single-page runbook for Phase 0 (Docker technical beta). Phase 1/2 still gated on 110% (see [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3.10).  
-**Companion docs:** `docs/BETA_TESTER_PLAN.md`, `docs/BETA_TESTER_QUICKSTART.md`, `docs/MASTER_TODO.md`
+**Companion docs:** `docs/BETA_TESTER_PLAN.md`, `docs/GET_STARTED.md`, `docs/MASTER_TODO.md`
 
 ---
 
@@ -20,7 +20,7 @@
 
 **Phase 0 invites:** **Engineering gate CLEARED** (2026-07-09) — line coverage ≥95% and clean-slate `verify_stack.ps1` recorded in [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) / MASTER §3.8. Invites were **sent** (see §7). Phase 0 **exit** still needs cohort T0 metrics (MASTER §8.16).
 
-Current Windows desktop artifact: **v1.0.0-beta.5** (`qClip-Setup-win-x64.exe`) — see [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
+Current Windows desktop artifact: **v1.0.0-beta.5** (`qClip-Setup-win-x64.exe`) — see [GET_STARTED.md](GET_STARTED.md).
 
 ---
 
@@ -56,7 +56,7 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 ## 5. Phase 0 kit contents
 
-**Creators (primary):** [Download page](BETA_DOWNLOAD.md) on Vercel → `qClip-Setup-win-x64.exe` from GitHub Releases.
+**Creators (primary):** [Get started](GET_STARTED.md) on Vercel → `qClip-Setup-win-x64.exe` from invite kit or GitHub Releases (collaborators).
 
 **Docker self-host (technical beta):** ship via private link, encrypted zip, or:
 
@@ -67,7 +67,7 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 Kit includes:
 
-1. `docs/BETA_TESTER_QUICKSTART.md`
+1. `docs/GET_STARTED.md`
 2. `.env.example` and `.env.production.example` (MinIO + Ollama + distribution BYO OAuth)
 3. `scripts/verify_stack.ps1` and `scripts/verify_coverage.ps1`
 4. `docs/BETA_TESTER_PLAN.md` §4.3 flows (T0-1 … T0-6)
@@ -94,7 +94,7 @@ Body:
 >
 > 1. Download the invite kit from `[DRIVE_OR_LS_LINK]`  
 > 2. Install `installers/qClip-Setup-win-x64.exe` (Windows) or `installers/qClip-mac-arm64.dmg` (Mac)  
-> 3. Follow `docs/BETA_TESTER_QUICKSTART.md` (desktop steps)  
+> 3. Follow `docs/GET_STARTED.md` (desktop steps)  
 > 4. Complete flows T0-1 through T0-4 in `docs/BETA_TESTER_PLAN.md`  
 > 5. Post feedback in `[DISCORD_OR_DISCUSSIONS]` using the pinned template  
 >

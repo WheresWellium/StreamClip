@@ -65,7 +65,7 @@ Notes: v1.0.0-beta.5 macos-installer failed: empty CSC_* → "apps/desktop not a
 | C4 | Upload zip to Drive / LS / invite channel (not anonymous GitHub) | ☐ **operator** |
 
 Kit path (local): `dist/qclip-beta-kit-DesktopSolo-*.zip` (gitignored).  
-Kit also ships desktop-first `docs/BETA_TESTER_QUICKSTART.md` (no “Install Docker Desktop” Step 1).
+Kit also ships `docs/GET_STARTED.md` (single creator guide — no Docker as Step 1).
 
 ---
 
@@ -77,7 +77,7 @@ Kit also ships desktop-first `docs/BETA_TESTER_QUICKSTART.md` (no “Install Doc
 | D2 | Phase B PASS (or Mac deferred with written exception) | ☐ |
 | D3 | Merge PR #7 → `master` | ☐ |
 | D4 | Tag `v1.0.0-beta.6` (triggers desktop-release workflow) | ☐ |
-| D5 | Bump [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) + redeploy henna | ☐ |
+| D5 | Bump [GET_STARTED.md](GET_STARTED.md) + redeploy henna | ☐ |
 
 Prep script (only after smoke PASS):
 

@@ -4,7 +4,7 @@
 # Live:  https://streamclip-henna.vercel.app/
 
 site_name: qClip Docs
-site_description: Install qClip, run your first clip, and get help — desktop app, no Docker required
+site_description: Get started with qClip — desktop install, first clip, and help
 site_url: https://streamclip-henna.vercel.app/
 repo_url: https://github.com/WheresWellium/StreamClip
 repo_name: qClip
@@ -15,7 +15,7 @@ docs_dir: docs
 site_dir: site
 strict: true
 
-# Internal / operator — kept in-repo, not published on henna
+# Internal / operator / legacy redirects — not published on henna
 exclude_docs: |
   GAP_ANALYSIS.md
   MASTER_TODO.md
@@ -34,6 +34,10 @@ exclude_docs: |
   RELEASE_CHECKLIST.md
   RELEASE_NOTES_beta.6.md
   DESKTOP_STARTUP.md
+  DESKTOP_SOLO_USER_GUIDE.md
+  BETA_TESTER_QUICKSTART.md
+  BETA_DOWNLOAD.md
+  tutorials/TUTORIAL_INSTALL.md
   .agent-lock.example.json
 
 theme:
@@ -66,6 +70,12 @@ theme:
 
 plugins:
   - search
+  - redirects:
+      redirect_maps:
+        DESKTOP_SOLO_USER_GUIDE.md: GET_STARTED.md
+        BETA_TESTER_QUICKSTART.md: GET_STARTED.md
+        BETA_DOWNLOAD.md: GET_STARTED.md
+        tutorials/TUTORIAL_INSTALL.md: GET_STARTED.md
 
 markdown_extensions:
   - admonition
@@ -87,11 +97,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Install:
-      - Desktop install guide: DESKTOP_SOLO_USER_GUIDE.md
-      - Get your installer: BETA_DOWNLOAD.md
-      - 15-minute quickstart: BETA_TESTER_QUICKSTART.md
-  - Using qClip:
+  - Get started: GET_STARTED.md
+  - Guides:
       - Your first clip: tutorials/TUTORIAL_FIRST_JOB.md
       - Edit & approve: tutorials/TUTORIAL_EDIT_APPROVE.md
       - Publish to YouTube: tutorials/TUTORIAL_PUBLISH_YOUTUBE.md

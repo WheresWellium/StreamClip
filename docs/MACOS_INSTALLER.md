@@ -1,7 +1,7 @@
 # macOS installer — builder notes
 
 **End users:** install **`qClip-mac-arm64.dmg`** from your invite kit / operator link —
-see [Get qClip](BETA_DOWNLOAD.md). Unsigned beta: **right-click → Open**. You do **not**
+see [Get started](GET_STARTED.md). Unsigned beta: **right-click → Open**. You do **not**
 need Docker for the desktop product.
 
 **Builders:** use this page to produce the DMG on an Apple Silicon Mac (MASTER_TODO §5).
@@ -35,7 +35,7 @@ On an Apple Silicon Mac, from the repo root:
 
 Prints prerequisites, builds the DMG, verifies
 `apps/desktop/release/qClip-mac-arm64.dmg`, then reminds you to run Finder smoke
-([Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)) and copy the DMG into the invite kit.
+([Get started](GET_STARTED.md)) and copy the DMG into the invite kit.
 
 ## Build (advanced)
 
@@ -88,6 +88,5 @@ Full matrix: `packaging/installer/MACOS.md`.
 
 ## Related
 
-- [Get qClip](BETA_DOWNLOAD.md) — end-user DMG path
-- [Beta quickstart](BETA_TESTER_QUICKSTART.md)
+- [Get started](GET_STARTED.md) — end-user install path
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

@@ -93,13 +93,7 @@ You're in - welcome to the qClip Phase 0 beta.
 Get started (no GitHub account needed):
 
 Primary guide (install + first clip):
-{henna_base}/DESKTOP_SOLO_USER_GUIDE/
-
-Installer download help:
-{henna_base}/BETA_DOWNLOAD/
-
-Quick 15-minute overview:
-{henna_base}/BETA_TESTER_QUICKSTART/
+{henna_base}/GET_STARTED/
 
 Your license key - paste in Settings -> License in the desktop app:
 {license_key}
@@ -122,13 +116,7 @@ You're in - welcome to the qClip Phase 0 beta.
 {checkout_url}
 
 2. Install guide (start here):
-{henna_base}/DESKTOP_SOLO_USER_GUIDE/
-
-3. Installer download help:
-{henna_base}/BETA_DOWNLOAD/
-
-4. Quick overview (~15 min):
-{henna_base}/BETA_TESTER_QUICKSTART/
+{henna_base}/GET_STARTED/
 
 After checkout, paste your license key in Settings -> License.
 

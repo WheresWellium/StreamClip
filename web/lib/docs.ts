@@ -16,16 +16,10 @@ export type HelpTopic = {
 
 export const HELP_TOPICS: HelpTopic[] = [
   {
-    id: "quickstart",
-    label: "Quickstart",
-    description: "The shortest path from install to your first finished clip.",
-    docsPath: "/BETA_TESTER_QUICKSTART/",
-  },
-  {
-    id: "install",
-    label: "Install",
-    description: "Set up qClip and confirm the local engine is healthy.",
-    docsPath: "/tutorials/TUTORIAL_INSTALL/",
+    id: "get-started",
+    label: "Get started",
+    description: "Install qClip, activate your license, and create your first clip.",
+    docsPath: "/GET_STARTED/",
   },
   {
     id: "first-job",

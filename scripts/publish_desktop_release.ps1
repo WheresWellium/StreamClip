@@ -1,5 +1,5 @@
 # Build Windows installer locally and optionally upload to GitHub Releases.
-# Also uploads latest.yml (electron-updater) when present and bumps BETA_DOWNLOAD.md.
+# Also uploads latest.yml (electron-updater) when present and bumps docs/GET_STARTED.md.
 param(
     [string]$Version = "1.0.0-beta.5",
     [switch]$SkipBuild,
@@ -40,7 +40,7 @@ Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColo
 Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe"
 Write-Host ""
 Write-Host "Docs page:" -ForegroundColor Cyan
-Write-Host "  https://streamclip-henna.vercel.app/BETA_DOWNLOAD/"
+Write-Host "  https://streamclip-henna.vercel.app/GET_STARTED/"
 Write-Host ""
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
@@ -57,7 +57,7 @@ Write-Host "Publishing release $tag ..." -ForegroundColor Cyan
 $releaseNotes = @"
 Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway.
 
-Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+Docs: https://streamclip-henna.vercel.app/GET_STARTED/
 "@
 
 $prevEap = $ErrorActionPreference
@@ -82,41 +82,31 @@ if ($releaseExists) {
 }
 
 if (-not $NoDocsBump) {
-    $docsPath = Join-Path $root "docs\BETA_DOWNLOAD.md"
+    $docsPath = Join-Path $root "docs\GET_STARTED.md"
     if (Test-Path $docsPath) {
         $today = Get-Date -Format "yyyy-MM-dd"
         # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
         $py = @"
 from pathlib import Path
+import re
 p = Path(r'$docsPath')
 text = p.read_text(encoding='utf-8')
 version = '$Version'
+pattern = r'(\*\*Current Windows build:\*\* `)[^`]+(` · `qClip-Setup-win-x64\.exe` \([^)]+\))'
 if version in text:
     print('docs already mention version')
 else:
-    today = '$today'
-    banner = f'> **Current Windows installer:** ``{version}`` ({today}) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)\n'
-    lines = text.splitlines(keepends=True)
-    out = []
-    done = False
-    for line in lines:
-        out.append(line)
-        if not done and line.startswith('# Get qClip'):
-            nl = '\r\n' if line.endswith('\r\n') else '\n'
-            out.append(nl)
-            out.append(banner.replace('\n', nl))
-            out.append(nl)
-            done = True
-    if done:
-        p.write_text(''.join(out), encoding='utf-8', newline='')
-        print('bumped')
+    text2, n = re.subn(pattern, rf'\1{version}\2', text, count=1)
+    if n:
+        p.write_text(text2, encoding='utf-8', newline='')
+        print('bumped GET_STARTED.md Windows build line')
     else:
-        raise SystemExit('title not found in BETA_DOWNLOAD.md')
+        raise SystemExit('Current Windows build line not found in GET_STARTED.md')
 "@
         $result = $py | python -
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        Write-Host "BETA_DOWNLOAD.md: $result" -ForegroundColor Green
+        Write-Host "GET_STARTED.md: $result" -ForegroundColor Green
     }
 }
 
-Write-Host "Published. Download link is live on BETA_DOWNLOAD.md." -ForegroundColor Green
+Write-Host "Published. Download link is live on GET_STARTED.md." -ForegroundColor Green

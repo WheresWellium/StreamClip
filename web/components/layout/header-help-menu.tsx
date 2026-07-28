@@ -19,8 +19,7 @@ import {
 const DOCS_BASE = "https://streamclip-henna.vercel.app";
 
 const DOC_LINKS = [
-  { href: `${DOCS_BASE}/BETA_TESTER_QUICKSTART/`, label: "Quickstart" },
-  { href: `${DOCS_BASE}/tutorials/TUTORIAL_INSTALL/`, label: "Install guide" },
+  { href: `${DOCS_BASE}/GET_STARTED/`, label: "Get started" },
   { href: `${DOCS_BASE}/tutorials/TUTORIAL_FIRST_JOB/`, label: "First job" },
   { href: `${DOCS_BASE}/tutorials/TUTORIAL_TROUBLESHOOTING/`, label: "Troubleshooting" },
   { href: `${DOCS_BASE}/BETA_KNOWN_ISSUES/`, label: "Known issues" },

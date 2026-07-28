@@ -17,7 +17,7 @@ Full platform limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 | **Windows desktop** | `%LOCALAPPDATA%\qClip\logs\` |
 | **macOS desktop** | `~/Library/Application Support/qClip/logs/` |
 
-Install walkthrough: [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md)
+Install walkthrough: [Get started](../GET_STARTED.md)
 
 ---
 
@@ -25,8 +25,8 @@ Install walkthrough: [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md)
 
 | Symptom | What it usually means | What to do |
 |---------|----------------------|------------|
-| SmartScreen blocks installer | Unsigned beta | **More info → Run anyway** — [guide](../DESKTOP_SOLO_USER_GUIDE.md#step-2-pass-smartscreen-unsigned-beta) |
-| Mac “can’t be opened” | Gatekeeper | **Right-click qClip → Open** — [guide](../DESKTOP_SOLO_USER_GUIDE.md#step-3-pass-gatekeeper-unsigned-beta) |
+| SmartScreen blocks installer | Unsigned beta | **More info → Run anyway** — [Get started](../GET_STARTED.md#windows) |
+| Mac “can’t be opened” | Gatekeeper | **Right-click qClip → Open** — [Get started](../GET_STARTED.md#macos-apple-silicon) |
 | **Needs attention** in Get started | Setup incomplete | Open **Help → Troubleshooting**; confirm license and disk space |
 | License key rejected | Typo or wrong key | Paste full `SCPRO-…` with dashes; **Settings → License → Show details** for support |
 | Job stuck **processing** 30+ min | Slow path or blocked download | Try a **shorter** URL; check `sidecar.log` in log folder |
@@ -109,9 +109,8 @@ Use **Report a bug** in the app header — you'll see **Saved — we'll review i
 | Doc | Use when |
 |-----|----------|
 | [Known issues](../BETA_KNOWN_ISSUES.md) | Platform limits, TikTok inbox, desktop SmartScreen |
-| [Desktop install guide](../DESKTOP_SOLO_USER_GUIDE.md#quick-answers) | License, Docker, privacy, updates |
+| [Get started](../GET_STARTED.md#quick-answers) | License, Docker, privacy, updates |
 | [GPU setup](TUTORIAL_GPU_SETUP.md) | Slow jobs on Windows |
-| [Get qClip](../BETA_DOWNLOAD.md) | Download sources, SmartScreen, Gatekeeper |
 
 ---
 

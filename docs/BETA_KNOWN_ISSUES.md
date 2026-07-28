@@ -44,7 +44,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
 - **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir
 - **Distribution on desktop** requires `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` (Fernet). `config/desktop.yaml` sets `web_origin` to `http://127.0.0.1:8765` for OAuth redirects
-- Install walkthrough: [Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md)
+- Install walkthrough: [Get started](GET_STARTED.md)
 
 ## Docker self-host (operators only)
 
@@ -54,7 +54,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - Default worker queues configurable via `STREAMCLIP_WORKER_QUEUES` — use `--profile gpu` + `default`-only worker for isolation (`MASTER_TODO` §6.8, `docker-compose.prod.yml`)
 - Ollama optional; virality degrades to score 0 if LLM unreachable
 - MinIO browser PUT has no resume — flaky networks may need a retry
-- Install guide: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) Docker tabs
+- Install guide: [Get started](GET_STARTED.md) (Docker operators: same page, collapsed section)
 
 ## Reporting bugs
 
@@ -78,4 +78,4 @@ creator installs forward support forms without local SMTP. Admin list:
 
 Include: OS version, GPU model, `job_id`, relevant log snippet, steps to reproduce.
 
-See the [Desktop install guide](DESKTOP_SOLO_USER_GUIDE.md) for the creator acceptance checklist.
+See [Get started](GET_STARTED.md) for the creator acceptance checklist.

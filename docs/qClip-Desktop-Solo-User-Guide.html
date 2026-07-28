@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>qClip Desktop — Install &amp; First Clip (no Docker)</title>
+  <style>
+    :root {
+      --bg: #f8f9fb;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #5c6570;
+      --accent: #2563eb;
+      --border: #e2e8f0;
+      --code-bg: #f1f5f9;
+      --win: #0078d4;
+      --mac: #555555;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 16px;
+    }
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+      color: #fff;
+      padding: 2.5rem 1.25rem;
+      margin-bottom: 2rem;
+    }
+    header .wrap { padding: 0; }
+    header h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 0;
+      opacity: 0.92;
+      font-size: 1rem;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    h2 {
+      margin: 0 0 1rem;
+      font-size: 1.35rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    h3 {
+      margin: 1.25rem 0 0.65rem;
+      font-size: 1.05rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+    }
+    p { margin: 0 0 0.85rem; }
+    ul, ol { margin: 0 0 1rem; padding-left: 1.35rem; }
+    li { margin-bottom: 0.4rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      margin: 0 0 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f5f9; font-weight: 600; }
+    code, pre {
+      font-family: Consolas, "SF Mono", Menlo, monospace;
+      font-size: 0.88rem;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0 0 1rem;
+    }
+    .platform-win { border-left: 4px solid var(--win); }
+    .platform-mac { border-left: 4px solid var(--mac); }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li::before {
+      content: "☐ ";
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .note {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+    }
+    .note strong { color: #1d4ed8; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 2rem;
+    }
+    @media print {
+      header { background: #1e3a5f; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      section { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>qClip Desktop — Install &amp; First Clip</h1>
+      <p>No Docker required · Windows &amp; macOS (Apple Silicon) · Beta v1.0.0-beta.5</p>
+      <span class="badge">Creator path — installers only</span>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section>
+      <p><strong>You do not need Docker.</strong> Install the desktop app for your OS, activate your license, run one short job.</p>
+      <p>Get the installer from your <strong>invite kit</strong> (<code>installers/</code>), <strong>Drive</strong> link, or <strong>Lemon Squeezy</strong> — not from a public GitHub download URL (private repo → 404).</p>
+
+      <h3>Quick comparison</h3>
+      <table>
+        <thead>
+          <tr><th></th><th>Windows</th><th>macOS</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Installer</strong></td><td><code>qClip-Setup-win-x64.exe</code> (~487 MB)</td><td><code>qClip-mac-arm64.dmg</code></td></tr>
+          <tr><td><strong>First-run</strong></td><td>SmartScreen → <strong>More info → Run anyway</strong></td><td>Gatekeeper → <strong>right-click → Open</strong></td></tr>
+          <tr><td><strong>Logs</strong></td><td><code>%LOCALAPPDATA%\qClip\logs\</code></td><td><code>~/Library/Application Support/qClip/logs/</code></td></tr>
+          <tr><td><strong>OS</strong></td><td>Windows 10/11 64-bit</td><td>Apple Silicon · macOS 12+</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="platform-win">
+      <h2>Part 1 — Windows</h2>
+
+      <h3>What you need</h3>
+      <ul>
+        <li>Windows 10 or 11 (64-bit)</li>
+        <li>~16 GB RAM (32 GB better)</li>
+        <li>NVIDIA GPU recommended (CPU works, slower)</li>
+        <li>License key from invite email (<code>SCPRO-…</code>)</li>
+        <li>Installer: <code>qClip-Setup-win-x64.exe</code></li>
+      </ul>
+
+      <h3>Steps</h3>
+      <ol>
+        <li><strong>Get the installer</strong> — invite kit → <code>installers\qClip-Setup-win-x64.exe</code> (or Drive / Lemon Squeezy link).</li>
+        <li><strong>Run the installer</strong> — double-click in Explorer.</li>
+        <li><strong>SmartScreen</strong> (“Windows protected your PC”): <strong>More info</strong> → <strong>Run anyway</strong>. Expected for unsigned beta.</li>
+        <li><strong>Finish setup</strong> — defaults → Install → Finish.</li>
+        <li><strong>Launch qClip</strong> — Start menu → qClip. Wait for splash → UI (first launch may download models).</li>
+        <li><strong>Confirm ready</strong> — Settings → Get started → <strong>Ready</strong>. If Needs attention, use Help → Troubleshooting first.</li>
+        <li><strong>Activate license</strong> — Settings → License → paste key → Activate.</li>
+        <li><strong>First clip</strong> — New job → short public YouTube/Twitch URL → wait for <strong>done</strong> → play a clip.</li>
+        <li><strong>Confirm logs</strong> — Win+R → paste <code>%LOCALAPPDATA%\qClip\logs\</code> → <code>sidecar.log</code> and <code>electron.log</code>.</li>
+      </ol>
+
+      <div class="note"><strong>Optional (repo):</strong> <code>.\scripts\fetch_desktop_artifacts.ps1 -Tag v1.0.0-beta.5</code> then <code>.\scripts\run_windows_solo_smoke.ps1</code></div>
+
+      <h3>Zip logs for support</h3>
+      <pre>Compress-Archive -Path "$env:LOCALAPPDATA\qClip\logs" `
+  -DestinationPath "$env:USERPROFILE\Desktop\qclip-smoke-win-logs.zip" -Force</pre>
+
+      <h3>Pass checklist</h3>
+      <ul class="checklist">
+        <li>Installed without Docker</li>
+        <li>SmartScreen handled (More info → Run anyway)</li>
+        <li>Splash → UI</li>
+        <li>License activated</li>
+        <li>Short job completed</li>
+        <li>Clip plays</li>
+        <li>Logs folder present</li>
+      </ul>
+    </section>
+
+    <section class="platform-mac">
+      <h2>Part 2 — macOS (Apple Silicon)</h2>
+
+      <h3>What you need</h3>
+      <ul>
+        <li>Mac with Apple Silicon (M1/M2/M3/…)</li>
+        <li>macOS 12+</li>
+        <li>~16 GB RAM (32 GB better)</li>
+        <li>License key (<code>SCPRO-…</code>)</li>
+        <li>Installer: <code>qClip-mac-arm64.dmg</code> from kit, or build it (below)</li>
+      </ul>
+
+      <h3>Steps</h3>
+      <ol>
+        <li><strong>Get the DMG</strong> — invite kit → <code>installers/qClip-mac-arm64.dmg</code>.</li>
+        <li><strong>Open the DMG</strong> in Finder.</li>
+        <li><strong>Install</strong> — drag qClip to Applications.</li>
+        <li><strong>Gatekeeper</strong> — Applications → right-click qClip → Open → Open (unsigned beta).</li>
+        <li><strong>Launch</strong> — splash → UI (first run may download models).</li>
+        <li><strong>Confirm ready</strong> — Settings → Get started → Ready.</li>
+        <li><strong>Activate license</strong> — Settings → License → Activate.</li>
+        <li><strong>First clip</strong> — short URL → done → play clip.</li>
+        <li><strong>Confirm logs</strong> — <code>~/Library/Application Support/qClip/logs/</code></li>
+      </ol>
+
+      <h3>Zip logs for support</h3>
+      <pre>zip -r ~/Desktop/qclip-smoke-mac-logs.zip "$HOME/Library/Application Support/qClip/logs"</pre>
+
+      <h3>Pass checklist</h3>
+      <ul class="checklist">
+        <li>Installed without Docker</li>
+        <li>Gatekeeper handled (right-click → Open)</li>
+        <li>Splash → UI</li>
+        <li>License activated</li>
+        <li>Short job completed</li>
+        <li>Clip plays</li>
+        <li>Logs folder present</li>
+      </ul>
+
+      <h3>Build the DMG (if missing from kit)</h3>
+      <p>On Apple Silicon Mac: Node 20+, Python 3.11+, Xcode CLT, ~15 GB free.</p>
+      <pre>cd /path/to/streamclip
+./scripts/build_macos_solo.sh
+# → apps/desktop/release/qClip-mac-arm64.dmg
+./scripts/run_macos_solo_smoke.sh
+# Copy DMG into invite kit installers/</pre>
+    </section>
+
+    <section>
+      <h2>What not to do</h2>
+      <ul>
+        <li>Do <strong>not</strong> install Docker Desktop for the creator beta</li>
+        <li>Do <strong>not</strong> use anonymous GitHub release URLs (404)</li>
+        <li>Do <strong>not</strong> start with a long VOD — use a short clip first</li>
+      </ul>
+
+      <h3>Help</h3>
+      <ul>
+        <li>In-app: Help → Troubleshooting or Report a bug</li>
+        <li>Reply to your invite email with job ID + log zip if something fails</li>
+      </ul>
+    </section>
+
+    <footer>
+      qClip Phase 0 beta · Desktop solo path · No Docker for creators
+    </footer>
+  </div>
+</body>
+</html>

@@ -11,14 +11,15 @@
 
 ## Current focus
 
-[DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) tooling complete. Agent cannot run Explorer/Finder smoke.
+[DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) tooling complete. Creator docs flipped installer-primary (no Docker Step 1).
 
 ## Agent-complete
 
 - A1–A2: Win exe fetched; SHA256 in `apps/desktop/release/SHA256SUMS.txt`
 - C1–C2: `dist/qclip-beta-kit-DesktopSolo-*.zip` with installer
 - Scripts: `run_windows_solo_smoke.ps1`, `run_macos_solo_smoke.sh`, `finish_desktop_solo_release.sh`, `build_macos_solo.sh`, `package_desktop_solo_kit.sh`
-- Docs: DESKTOP_SIGNING, RELEASE_NOTES_beta.6; henna solo gate live
+- Docs: DESKTOP_SIGNING, RELEASE_NOTES_beta.6; BETA_TESTER_QUICKSTART + TUTORIAL_INSTALL desktop-first
+- Henna solo gate live
 
 ## Human remaining
 

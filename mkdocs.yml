@@ -92,7 +92,7 @@ nav:
       - Release checklist: RELEASE_CHECKLIST.md
       - Desktop signing: DESKTOP_SIGNING.md
   - Tutorials:
-      - Install (Docker): tutorials/TUTORIAL_INSTALL.md
+      - Install (desktop): tutorials/TUTORIAL_INSTALL.md
       - First job: tutorials/TUTORIAL_FIRST_JOB.md
       - Edit & approve: tutorials/TUTORIAL_EDIT_APPROVE.md
       - Publish to YouTube: tutorials/TUTORIAL_PUBLISH_YOUTUBE.md

@@ -1,11 +1,11 @@
-# Tutorial — Install qClip (Docker)
+# Tutorial — Install qClip (desktop)
 
 **Time:** ~15 minutes · **Prerequisite:** [Beta quickstart](../BETA_TESTER_QUICKSTART.md)
 
-This tutorial walks through the **recommended install path** for Phase 0 beta: Docker Desktop + `start_local.ps1` on Windows, with macOS equivalents where they differ.
+This tutorial walks through the **recommended install path** for Phase 0 beta: the **Windows `.exe` or macOS `.dmg` desktop installer**. Creators do **not** need Docker.
 
-!!! tip "Windows one-click installer"
-    Using the `.exe` from [Get qClip](../BETA_DOWNLOAD.md#one-click-installers)? Skip Docker steps — open the app and use **Settings → Get started** until you see **Ready**.
+!!! tip "Operators only"
+    Prefer Docker compose? See [Optional Docker](#optional-docker-operators-only) at the bottom, or [Get qClip](../BETA_DOWNLOAD.md) Docker tabs.
 
 ---
 
@@ -13,140 +13,84 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 
 | Requirement | Windows | macOS |
 |-------------|---------|-------|
-| OS | Windows 10/11 64-bit | macOS 12+ |
-| Runtime | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (WSL2) | Docker Desktop for Mac (Apple Silicon or Intel) |
+| OS | Windows 10/11 64-bit | macOS 12+ Apple Silicon |
+| Runtime | `qClip-Setup-win-x64.exe` | `qClip-mac-arm64.dmg` |
 | RAM | 16 GB min / 32 GB recommended | Same |
-| GPU | NVIDIA recommended | CPU-only (expected) |
+| GPU | NVIDIA recommended | CPU / VideoToolbox (expected) |
 | Accounts | **None required** to install or run | Same |
 
 !!! tip "No GitHub account needed"
-    Use the `.zip` from your invite email — [Get qClip](../BETA_DOWNLOAD.md).
-
-## Step 1 — Install Docker Desktop
-
-=== "Windows"
-
-    1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
-    2. Install and launch Docker Desktop
-    3. Enable **WSL 2** if prompted (recommended)
-    4. Wait until the taskbar whale shows **Docker Desktop is running**
-
-=== "macOS"
-
-    1. Download **Docker Desktop for Mac** — pick **Apple Silicon** or **Intel** to match your Mac
-    2. Drag Docker to Applications and launch it
-    3. Wait until the menu-bar whale shows **Docker Desktop is running**
+    Use the installer from your invite kit — [Get qClip](../BETA_DOWNLOAD.md). Anonymous GitHub release URLs 404 on the private repo.
 
 ---
 
-## Step 2 — Get the qClip files
+## Step 1 — Get the installer
 
-Extract the beta `.zip` from your invite email to a folder, for example:
+From your invite email / Drive / Lemon Squeezy kit:
 
-- Windows: `C:\qClip`
-- macOS: `~/qClip`
+- Windows: `installers/qClip-Setup-win-x64.exe`
+- macOS: `installers/qClip-mac-arm64.dmg`
 
-If your invite included a private repo link, clone with Git. When unsure, reply to your invite email.
+Operator rebuild (optional):
+
+```powershell
+.\scripts\fetch_desktop_artifacts.ps1 -Tag v1.0.0-beta.5
+.\scripts\prepare_beta_kit.ps1 -IncludeInstaller -Tag v1.0.0-beta.5
+```
 
 ---
 
-## Step 3 — Start the stack (primary path)
+## Step 2 — Install
 
 === "Windows"
 
-    Open **PowerShell**, `cd` into your qClip folder, then run:
-
-    ```powershell
-    .\scripts\start_local.ps1
-    ```
-
-    This script:
-
-    1. Checks Docker is running
-    2. Creates `.env` from `.env.example` if missing
-    3. Runs `docker compose up -d --build`
-    4. Applies database migrations
-    5. Runs `verify_stack.ps1` automatically
+    1. Run `qClip-Setup-win-x64.exe`
+    2. If **SmartScreen** appears: **More info → Run anyway**
+    3. Finish NSIS setup
+    4. Launch **qClip** from the Start menu
 
 === "macOS"
 
-    Docker Desktop does not ship PowerShell by default. Use the manual equivalent:
-
-    ```bash
-    cd ~/qClip
-    cp .env.example .env    # skip if .env already exists
-    docker compose up -d --build
-    docker compose exec -T api alembic upgrade head
-    ```
-
-    Optional — if [PowerShell Core](https://github.com/PowerShell/PowerShell) is installed:
-
-    ```bash
-    pwsh -File ./scripts/start_local.ps1
-    ```
+    1. Open `qClip-mac-arm64.dmg`
+    2. Drag **qClip** to **Applications**
+    3. Unsigned beta: **right-click → Open → Open**
+    4. Launch from Applications
 
 !!! note "First run"
-    Docker downloads images (~2–5 GB). Allow 5–15 minutes on a good connection.
+    First launch may download Whisper/YOLO models (multi-GB). Allow disk space and time. No Docker pull is involved.
 
 ---
 
-## Step 4 — Verify you're ready
+## Step 3 — Verify you're ready
 
-**In the app (all paths):**
-
-1. Open [http://localhost:3000](http://localhost:3000) (Docker) or launch the desktop app (`.exe`)
+1. Launch the **qClip** desktop app
 2. Go to **Settings → Get started**
 3. **Ready** — proceed to [First job](TUTORIAL_FIRST_JOB.md). **Needs attention** — open **Help → Troubleshooting** before creating jobs.
-
-**Docker only (optional):**
-
-=== "Windows"
-
-    `start_local.ps1` already runs verify. To re-check later:
-
-    ```powershell
-    .\scripts\verify_stack.ps1
-    ```
-
-=== "macOS"
-
-    ```bash
-    docker compose ps
-    curl -s http://localhost:8000/api/health
-    open http://localhost:3000
-    ```
-
-    Or: `pwsh -File ./scripts/verify_stack.ps1`
-
-**Pass criteria:** **Ready** in the app, or all checks green from `verify_stack.ps1` (Windows) / healthy containers (Mac).
 
 | Check | Expected |
 |-------|----------|
 | **Settings → Get started** | **Ready** |
-| [http://localhost:3000](http://localhost:3000) | qClip home screen |
+| Logs folder | Windows `%LOCALAPPDATA%\qClip\logs\` · Mac `~/Library/Application Support/qClip/logs/` |
 
 !!! warning "Stop if not ready"
-    Do **not** create jobs until **Get started** shows **Ready** (or Docker verify passes). Post output via **Report a bug** or your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
+    Do **not** create jobs until **Get started** shows **Ready**. Post logs via **Report a bug** or your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
+
+Human smoke checklist: [HUMAN_DESKTOP_SMOKE.md](../HUMAN_DESKTOP_SMOKE.md) · gate: [DESKTOP_SOLO_GATE.md](../DESKTOP_SOLO_GATE.md).
 
 ---
 
-## Step 5 — Account and license (optional)
+## Step 4 — Account and license (optional)
 
-1. Open [http://localhost:3000](http://localhost:3000)
-2. **Sign up** is optional for local beta — defaults work without API keys
-3. **License key** (from invite email) is optional for Phase 0 technical testing; paste in **Settings → License** when you have one
+1. **Sign up** is optional for local beta — defaults work without API keys
+2. **License key** (from invite email) is optional for Phase 0 technical testing; paste in **Settings → License** when you have one
 
 Beta keys unlock full access. Without a key, most local pipeline features still work for T0-1 through T0-4 flows.
 
 ---
 
-## Step 6 — Stop when done
+## Step 5 — Quit when done
 
-```bash
-docker compose down
-```
-
-Data persists in Docker volumes. Add `-v` only to wipe everything.
+Quit the **qClip** app. Data persists under the OS app-data directory.
 
 ---
 
@@ -160,4 +104,28 @@ Data persists in Docker volumes. Add `-v` only to wipe everything.
 
 ---
 
-*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*
+## Optional: Docker (operators only)
+
+Not the creator path. Use only for self-host compose:
+
+=== "Windows"
+
+    1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (WSL2)
+    2. Extract the beta zip / clone repo
+    3. `.\scripts\start_local.ps1`
+    4. Open [http://localhost:3000](http://localhost:3000); re-check with `.\scripts\verify_stack.ps1`
+
+=== "macOS"
+
+    ```bash
+    cp .env.example .env
+    docker compose up -d --build
+    docker compose exec -T api alembic upgrade head
+    open http://localhost:3000
+    ```
+
+Stop with `docker compose down`. Details: [BETA_DOWNLOAD.md](../BETA_DOWNLOAD.md).
+
+---
+
+*See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md) · [Get qClip](../BETA_DOWNLOAD.md)*

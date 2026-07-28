@@ -33,15 +33,7 @@ From `docs/PERFORMANCE.md` with **+25% beta tolerance**:
 
 CPU-only or no NVENC paths are **slow but supported** — use `libx264` export codec.
 
-## Docker self-host (Phase 0–1)
-
-- **Windows:** Docker Desktop with WSL2 backend recommended; NVIDIA + NVENC for fast encode
-- **macOS:** Docker Desktop for Mac supported for beta; **CPU-only** encode (no NVENC) — expect longer jobs
-- Default worker queues configurable via `STREAMCLIP_WORKER_QUEUES` — use `--profile gpu` + `default`-only worker for isolation (`MASTER_TODO` §6.8, `docker-compose.prod.yml`)
-- Ollama optional; virality degrades to score 0 if LLM unreachable
-- Install guide: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) (Windows & Mac tabs)
-
-## Desktop `.exe` / `.dmg` (Phase 2)
+## Desktop `.exe` / `.dmg` (primary creator path)
 
 <a id="desktop-exe-phase-2"></a>
 
@@ -50,8 +42,19 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
 - Auto-update is a **stub** — manual reinstall until §4.10 / §5
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)
-- **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir. Docker/MinIO uses a single browser PUT (no resume) — flaky networks may need a retry
+- **Uploads up to 5 GiB** stream to disk on desktop (`PUT /storage/...?upload=1`); need free disk under the app data dir
 - **Distribution on desktop** requires `STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY` (Fernet). `config/desktop.yaml` sets `web_origin` to `http://127.0.0.1:8765` for OAuth redirects
+- Solo smoke / kit: [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) · [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)
+
+## Docker self-host (operators only)
+
+- **Not** the creator install path — optional compose for operators
+- **Windows:** Docker Desktop with WSL2 backend; NVIDIA + NVENC for fast encode
+- **macOS:** Docker Desktop for Mac; **CPU-only** encode (no NVENC) — expect longer jobs
+- Default worker queues configurable via `STREAMCLIP_WORKER_QUEUES` — use `--profile gpu` + `default`-only worker for isolation (`MASTER_TODO` §6.8, `docker-compose.prod.yml`)
+- Ollama optional; virality degrades to score 0 if LLM unreachable
+- MinIO browser PUT has no resume — flaky networks may need a retry
+- Install guide: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) Docker tabs
 
 ## Reporting bugs
 

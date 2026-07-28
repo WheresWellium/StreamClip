@@ -13,18 +13,19 @@ Companion: [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) · [DESKTOP_SIGNING.
 |------|------------------|--------|
 | A1 | `./scripts/fetch_desktop_artifacts.sh v1.0.0-beta.5` (or `.ps1`) | [x] agent 2026-07-28 |
 | A2 | Confirm `apps/desktop/release/qClip-Setup-win-x64.exe` exists (~487 MB) | [x] 487 MB fetched |
-| A3 | On clean Windows 11: run [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) Windows section | ☐ **human host** |
-| A4 | Zip `%LOCALAPPDATA%\qClip\logs\` → evidence zip | ☐ **human host** |
+| A3 | On clean Windows 11: `.\scripts\run_windows_solo_smoke.ps1` (+ [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)) | ☐ **human host** |
+| A4 | Zip logs via smoke script → `tmp/desktop-solo-smoke-win-*/` | ☐ **human host** |
 | A5 | Record pass/fail below | ☐ **human host** |
 
 **A evidence**
 
 ```
-Date: 2026-07-28 (fetch only)
+Date: 2026-07-28 (fetch + tooling)
 Host: cloud agent (Linux) — installer staged; Explorer smoke NOT run here
 Commit / tag: v1.0.0-beta.5 / branch cursor/desktop-first-completion-39d9
 Result: FETCH PASS / SMOKE PENDING
-Notes: qClip-Setup-win-x64.exe + latest.yml in apps/desktop/release/ (gitignored)
+Notes: SHA256 fd386ac0e0a1551992e2fcf36a432871a5a4868300aeada47f87efdea0512dc7
+       apps/desktop/release/SHA256SUMS.txt · run_windows_solo_smoke.ps1 ready
 Log zip path: (pending Windows host)
 ```
 
@@ -36,8 +37,8 @@ Log zip path: (pending Windows host)
 |------|------------------|--------|
 | B1 | On Apple Silicon: `./scripts/build_macos_solo.sh` | ☐ **Mac host** (script ready) |
 | B2 | Confirm `apps/desktop/release/qClip-mac-arm64.dmg` | ☐ |
-| B3 | Finder smoke ([HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)) | ☐ |
-| B4 | Zip `~/Library/Application Support/qClip/logs/` | ☐ |
+| B3 | Finder smoke: `./scripts/run_macos_solo_smoke.sh` | ☐ |
+| B4 | Zip logs via smoke script | ☐ |
 | B5 | Record pass/fail below | ☐ |
 
 **B evidence**
@@ -75,6 +76,12 @@ Kit path (local): `dist/qclip-beta-kit-DesktopSolo-*.zip` (gitignored).
 | D3 | Merge PR #7 → `master` | ☐ |
 | D4 | Tag `v1.0.0-beta.6` (triggers desktop-release workflow) | ☐ |
 | D5 | Bump [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) + redeploy henna | ☐ |
+
+Prep script (only after smoke PASS):
+
+```bash
+CONFIRM_SOLO_SMOKE=1 ./scripts/finish_desktop_solo_release.sh 1.0.0-beta.6
+```
 
 ---
 

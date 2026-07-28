@@ -3,7 +3,22 @@
 Manual pass on a real Windows or macOS host before expanding the beta cohort.  
 **Primary beta path:** desktop installers (`qClip-Setup-win-x64.exe`, `qClip-mac-arm64.dmg`) — **no Docker required**. Docker compose remains an optional operator/self-host path.  
 Boot budgets and in-app checks: [DESKTOP_STARTUP.md](DESKTOP_STARTUP.md).  
-Download / SmartScreen notes: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
+Download / SmartScreen notes: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).  
+**Gate tracker:** [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md).
+
+**One-command helpers**
+
+```powershell
+# Windows (clean host)
+.\scripts\fetch_desktop_artifacts.ps1 -Tag v1.0.0-beta.5
+.\scripts\run_windows_solo_smoke.ps1
+```
+
+```bash
+# macOS Apple Silicon
+./scripts/build_macos_solo.sh
+./scripts/run_macos_solo_smoke.sh
+```
 
 ---
 

@@ -425,6 +425,7 @@ def test_run_highlights_censors_when_profanity_enabled(mock_db_cm, tmp_path, mon
         jobs.update_status = AsyncMock()
         JR.return_value = jobs
         clips = MagicMock()
+        clips.list_for_job = AsyncMock(return_value=[])
         clips.create = AsyncMock(return_value=SimpleNamespace(id="newclip"))
         CR.return_value = clips
         with patch.object(pt, "_ensure_job_source", return_value=tmp_path / "v.mp4"):

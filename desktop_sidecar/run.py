@@ -27,7 +27,11 @@ _SIDECAR_LOG_BACKUP_COUNT = 3
 
 
 class _TeeIO:
-    """Duplicate writes to the original stream and a size-rotating log file."""
+    """Duplicate writes to the original stream and a size-rotating log file.
+
+    Multiple wrappers may share one file handle (stdout + stderr) via
+    ``share_with`` so rotation stays consistent.
+    """
 
     def __init__(
         self,
@@ -36,13 +40,19 @@ class _TeeIO:
         *,
         max_bytes: int = _SIDECAR_LOG_MAX_BYTES,
         backup_count: int = _SIDECAR_LOG_BACKUP_COUNT,
+        share_with: "_TeeIO | None" = None,
     ) -> None:
         self._primary = primary
         self._path = path
         self._max_bytes = max_bytes
         self._backup_count = backup_count
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = self._path.open("a", encoding="utf-8")
+        if share_with is not None:
+            self._owner = share_with
+            self._fh = None
+        else:
+            self._owner = self
+            self._fh = self._path.open("a", encoding="utf-8")
 
     def write(self, data: str) -> int:
         if not data:
@@ -52,18 +62,22 @@ class _TeeIO:
         except Exception:  # noqa: BLE001 — never break logging on console failure
             pass
         try:
-            self._maybe_rotate()
-            self._fh.write(data)
-            self._fh.flush()
+            owner = self._owner
+            owner._maybe_rotate()
+            assert owner._fh is not None
+            owner._fh.write(data)
+            owner._fh.flush()
         except Exception:  # noqa: BLE001
             pass
         return len(data)
 
     def _maybe_rotate(self) -> None:
+        assert self._fh is not None
         try:
-            if self._fh.tell() < self._max_bytes:
-                return
-        except Exception:  # noqa: BLE001
+            size = self._path.stat().st_size if self._path.is_file() else 0
+        except OSError:
+            size = 0
+        if size < self._max_bytes:
             return
         self._fh.close()
         for idx in range(self._backup_count, 0, -1):
@@ -81,7 +95,9 @@ class _TeeIO:
         except Exception:  # noqa: BLE001
             pass
         try:
-            self._fh.flush()
+            fh = self._owner._fh
+            if fh is not None:
+                fh.flush()
         except Exception:  # noqa: BLE001
             pass
 
@@ -108,8 +124,17 @@ def configure_sidecar_file_logging(
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / "sidecar.log"
     os.environ.setdefault("STREAMCLIP_LOG_JSON", "true")
-    sys.stdout = _TeeIO(sys.stdout, log_path, max_bytes=max_bytes, backup_count=backup_count)
-    sys.stderr = _TeeIO(sys.stderr, log_path, max_bytes=max_bytes, backup_count=backup_count)
+    stdout_tee = _TeeIO(
+        sys.stdout, log_path, max_bytes=max_bytes, backup_count=backup_count,
+    )
+    sys.stdout = stdout_tee
+    sys.stderr = _TeeIO(
+        sys.stderr,
+        log_path,
+        max_bytes=max_bytes,
+        backup_count=backup_count,
+        share_with=stdout_tee,
+    )
     log.info("sidecar_log_file", path=str(log_path))
     return log_path
 

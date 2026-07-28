@@ -134,10 +134,14 @@ def test_configure_sidecar_file_logging_rotates(tmp_path):
         log_path = sidecar.configure_sidecar_file_logging(
             data_dir, max_bytes=64, backup_count=2,
         )
-        for _ in range(20):
+        for _ in range(40):
             print("x" * 40, flush=True)
         assert log_path.is_file()
-        assert Path(f"{log_path}.1").is_file() or log_path.stat().st_size <= 64 * 3
+        rotated = Path(f"{log_path}.1")
+        assert rotated.is_file(), (
+            f"expected rotation to {rotated.name}; active size={log_path.stat().st_size}"
+        )
+        assert log_path.stat().st_size <= 64 * 2
     finally:
         sys.stdout = original_out
         sys.stderr = original_err

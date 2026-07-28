@@ -126,10 +126,10 @@ async def activate_license(
     caps = resolve_capabilities(
         tier=lic.tier,
         stored=getattr(lic, "capabilities", None),
-        order_id=lic.order_id,
+        order_id=getattr(lic, "order_id", None),
         cfg=cfg,
     )
-    if not lic.capabilities:
+    if not getattr(lic, "capabilities", None):
         lic.capabilities = caps
 
     token, entitlement = activate_license_key(

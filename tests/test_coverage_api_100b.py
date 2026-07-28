@@ -93,6 +93,8 @@ async def test_activate_links_license_by_purchase_email(app, client, monkeypatch
         tier=UserTier.PRO,
         user_id=None,
         customer_email="Buyer@Example.com",
+        order_id=None,
+        capabilities=None,
     )
     repo = MagicMock()
     repo.get_by_key_hash = AsyncMock(return_value=lic)
@@ -100,7 +102,9 @@ async def test_activate_links_license_by_purchase_email(app, client, monkeypatch
     monkeypatch.setattr(license_api, "InstallLicenseRepository", lambda db: repo)
 
     entitlement = SimpleNamespace(
-        expires_at=datetime.now(timezone.utc), tier=SimpleNamespace(value="pro"),
+        expires_at=datetime.now(timezone.utc),
+        tier=SimpleNamespace(value="pro"),
+        capabilities=["studio", "publisher"],
     )
     monkeypatch.setattr(
         license_api, "activate_license_key", lambda *a, **k: ("jwt-token", entitlement),
@@ -134,12 +138,17 @@ async def test_activate_links_authed_user_swallows_link_error(app, client, monke
     lic = SimpleNamespace(
         id="lic2", status="issued", machine_id="machine-abcdef12", activation_count=0,
         tier=UserTier.PRO, user_id=None, customer_email=None,
+        order_id=None, capabilities=None,
     )
     repo = MagicMock()
     repo.get_by_key_hash = AsyncMock(return_value=lic)
     repo.mark_activated = AsyncMock()
     monkeypatch.setattr(license_api, "InstallLicenseRepository", lambda db: repo)
-    entitlement = SimpleNamespace(expires_at=None, tier=SimpleNamespace(value="pro"))
+    entitlement = SimpleNamespace(
+        expires_at=None,
+        tier=SimpleNamespace(value="pro"),
+        capabilities=["studio", "publisher"],
+    )
     monkeypatch.setattr(license_api, "activate_license_key", lambda *a, **k: ("jwt", entitlement))
     monkeypatch.setattr(
         license_api, "link_license_to_user", AsyncMock(side_effect=RuntimeError("link boom")),

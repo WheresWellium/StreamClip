@@ -49,6 +49,8 @@ class FakeLicenseRow:
         self.order_id = kw.get("order_id")
         self.customer_email = kw.get("customer_email")
         self.activation_count = kw.get("activation_count", 0)
+        self.capabilities = kw.get("capabilities")
+        self.user_id = kw.get("user_id")
 
 
 class FakeLicenseRepo:
@@ -71,12 +73,21 @@ class FakeLicenseRepo:
     async def get_by_order_id(self, order_id):
         return next((r for r in self.rows if r.order_id == order_id), None)
 
-    async def create_issued(self, *, license_key_hash, tier, order_id=None, customer_email=None):
+    async def create_issued(
+        self,
+        *,
+        license_key_hash,
+        tier,
+        order_id=None,
+        customer_email=None,
+        capabilities=None,
+    ):
         row = FakeLicenseRow(
             license_key_hash=license_key_hash,
             tier=tier,
             order_id=order_id,
             customer_email=customer_email,
+            capabilities=capabilities,
         )
         self.rows.append(row)
         return row

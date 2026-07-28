@@ -21,6 +21,16 @@ Measured on the Electron shell (`apps/desktop`). Timings are logged as
 5. Activate a Pro/Studio key → License panel lists `studio` and `publisher` capabilities.
 6. Console/`[boot]` lines present for splash → sidecar_ready → first_paint.
 
+## Where data and logs live
+
+| Platform | App data (DB, workspace) | Boot diagnostics |
+|----------|--------------------------|------------------|
+| Windows | `%LOCALAPPDATA%\qClip\` (reuses `%LOCALAPPDATA%\StreamClip\` if that folder already exists) | Electron `[boot]` in process console; sidecar stdio is discarded in packaged builds |
+| macOS | `~/Library/Application Support/qClip/` | same |
+| Linux / portable | `~/.qclip` (legacy `~/.streamclip` if present) | same |
+
+For Docker beta, use `docker compose logs` (see `BETA_TESTER_QUICKSTART.md`). Packaged desktop does not yet write a rotating sidecar log file — capture job id + in-app bug report when escalating.
+
 Regression: fail when splash is not shown before sidecar wait, or when the main window is exclusive-fullscreen instead of maximized/resizable.
 
 See also `docs/PERFORMANCE.md` for pipeline SLIs (ingest → clip render).

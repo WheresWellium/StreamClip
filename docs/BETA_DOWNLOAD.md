@@ -17,7 +17,7 @@
 | **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
 | **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
 
-Both options are free. You do **not** need a GitHub account.
+Both options are free for invited beta testers. **Docker** only needs the invite kit (clone or zip). The **Windows `.exe`** is hosted on a private GitHub Release — use the download link from your invite email, or `gh release download` while authenticated. Anonymous browser hits to `/releases/latest/download/...` return **404**.
 
 ---
 
@@ -38,7 +38,7 @@ Both options are free. You do **not** need a GitHub account.
 
 If you prefer **not** to install Docker:
 
-1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 390 MB)
+1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 487 MB) via your invite link or authenticated GitHub access
 2. Run the installer
 
 **If Windows shows "Windows protected your PC"**
@@ -174,15 +174,22 @@ Pick your platform below.
 
 ---
 
-## After install (Windows and Mac)
+## After install
 
-### Activate your license
+### Docker path
 
-1. Open the app at [http://localhost:3000](http://localhost:3000)
+1. Open the UI at [http://localhost:3000](http://localhost:3000)
 2. Sign up / log in
 3. Go to **Settings → License**
 4. Paste the license key from your invite email
 5. Confirm — beta keys unlock **full access**
+
+### Windows installer (no Docker)
+
+1. Open **qClip** from the Start menu (engine + UI on `http://127.0.0.1:8765`)
+2. Complete first-run onboarding if prompted
+3. Go to **Settings → License** and paste your invite key
+4. Confirm activation before starting a job
 
 ### Create your first clip
 

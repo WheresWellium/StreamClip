@@ -44,10 +44,12 @@ All-in-one clip studio for creators — paste a URL or upload, auto-reframe to a
 ### One command
 
 ```bash
-git clone https://github.com/yourname/streamclip.git
-cd streamclip
+git clone https://github.com/WheresWellium/StreamClip.git
+cd StreamClip
 docker compose up --build
 ```
+
+> Private repository — you need GitHub access (collaborator invite) or an invite kit zip from the operators.
 
 **Windows (recommended):** start Docker Desktop first, then:
 

@@ -18,9 +18,9 @@
 | License email | LS `order_created` | `tests/test_license_hardening.py` | ✅ |
 | ADR-001 | Desktop packaging | `docs/ADR-001-desktop-packaging.md` | ✅ |
 
-**Phase 0 invites:** **Blocked** until clean-VM `verify_stack.ps1` is recorded per §8 below and [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) (MASTER §3.8). Line coverage gate is green (95%+); stack verify on a **fresh Windows 11 VM** is still outstanding — aligns with [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §1 entry gate. Do **not** send external cohort invites until §8 sign-off is filled in.
+**Phase 0 invites:** **Engineering gate CLEARED** (2026-07-09) — line coverage ≥95% and clean-slate `verify_stack.ps1` recorded in [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) / MASTER §3.8. Invites were **sent** (see §7). Phase 0 **exit** still needs cohort T0 metrics (MASTER §8.16).
 
-Download page and **v1.0.0-beta.2** artifacts may be linked for operator/internal testing only — see [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
+Current Windows desktop artifact: **v1.0.0-beta.5** (`qClip-Setup-win-x64.exe`) — see [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
 
 ---
 
@@ -117,21 +117,21 @@ Body:
 
 Fill this table after running [`docs/CLEAN_VM_VERIFY.md`](CLEAN_VM_VERIFY.md) on each platform.
 
-| Field | Windows 11 VM | macOS (Docker beta) |
-|-------|---------------|---------------------|
-| Date | _YYYY-MM-DD_ | _YYYY-MM-DD_ |
-| Commit SHA | `git rev-parse HEAD` | same |
-| GPU / CPU | e.g. RTX 4070 / CPU-only | e.g. M2 / Docker CPU |
-| `verify_stack.ps1` exit | 0 / fail | 0 / fail |
-| First job (1h VOD) wall time | _min_ | _min_ |
-| Operator sign-off | ☐ | ☐ |
+| Field | Windows 11 (clean-slate Docker) | macOS (Docker beta) |
+|-------|----------------------------------|---------------------|
+| Date | 2026-07-09 | _YYYY-MM-DD_ |
+| Commit SHA | `6ca96b94284a4c98d9254dea98526fcfdd18041d` (+ local gate fixes) | same |
+| GPU / CPU | Operator host WSL2 / CPU or GPU per host | e.g. M2 / Docker CPU |
+| `verify_stack.ps1` exit | 0 PASS | _outstanding_ |
+| First job (1h VOD) wall time | not recorded on clean-slate day | _min_ |
+| Operator sign-off | ✅ (see CLEAN_VM_VERIFY) | ☐ |
 
 **Phase 0 exit metrics** (MASTER §8.16):
 
 - ≥4/5 testers complete T0-1 … T0-4
 - No open 🔴 blockers > 7 days
 - Line coverage ≥95% (`verify_coverage.ps1`) — ✅ met
-- Clean-VM rows above **signed off** — ☐ outstanding
+- Clean-VM Windows row **signed off** — ✅ 2026-07-09; macOS Docker row still open
 - At least one staging Lemon Squeezy purchase → activate → Pro tier verified
 
 **Then:** Open Phase 1 per [`docs/BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) §5.
@@ -148,4 +148,4 @@ If a show-stopper ships after invites:
 
 ---
 
-*Last updated: 2026-07-07*
+*Last updated: 2026-07-28*

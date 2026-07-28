@@ -1,6 +1,6 @@
 # Phase 0 operator runbook
 
-**Audience:** StreamClip operators during Docker / creator beta.  
+**Audience:** qClip operators during Docker / creator beta.  
 **Ops alerts:** set `OPS_WEBHOOK_URL` and follow [OPS_ALERTING.md](OPS_ALERTING.md).
 **Observability:** health, `/metrics`, log-tail, and opt-in tester bundles live in [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md).
 
@@ -101,14 +101,14 @@ Beta feedback rows have `environment->>'kind' = 'beta_feedback'`.
 
 ## 4. Invite email template (manual send)
 
-Subject: **StreamClip Phase 0 beta — your access**
+Subject: **qClip Phase 0 beta — your access**
 
 Body (replace placeholders):
 
 ```
 Hi {name},
 
-You're in — welcome to the StreamClip Phase 0 beta.
+You're in — welcome to the qClip Phase 0 beta.
 
 Get started (no GitHub account needed):
 https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
@@ -157,7 +157,7 @@ Fast path (full checklist: [OPS_ALERTING.md](OPS_ALERTING.md)):
 
    Expect `PASS` (or exit `2` SKIP if python/docker/`api` missing — not a webhook bug).
 3. Create a **Zapier/Make Catch Hook** or custom HTTPS JSON inbox (preferred).
-   Native Discord/Slack incoming webhooks reject StreamClip-shaped JSON — use
+   Native Discord/Slack incoming webhooks reject qClip-shaped JSON — use
    an adapter that maps fields to `content` / `text`.
 4. Put the secret URL in **local** `.env` / `.env.production` as `OPS_WEBHOOK_URL`
    (operator action — do not invent URLs in docs/commits). Prefer
@@ -177,7 +177,7 @@ Fast path (full checklist: [OPS_ALERTING.md](OPS_ALERTING.md)):
 6. Restart env readers: `docker compose up -d api worker beat`
    (production: `docker compose -f docker-compose.prod.yml --env-file .env.production up -d api worker beat`).
 7. Submit one in-app **Beta feedback** and confirm the real receiver gets JSON
-   with `User-Agent: StreamClip-Ops/1.0`. Expect API `ops_notification: "queued"`.
+   with `User-Agent: qClip-Ops/1.0`. Expect API `ops_notification: "queued"`.
 
 See `.env.example`, `.env.production.example`, and [OPS_ALERTING.md](OPS_ALERTING.md).
 
@@ -203,7 +203,7 @@ Use this for MASTER §8.19 / Phase 0 exit evidence. This is an operator checklis
 
 1. In Lemon Squeezy, open the beta product / variant used by `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_BETA_VARIANT_ID`.
    - [ ] Confirm the checkout is the intended beta / Pro SKU (`Lead Magnet` or one-time purchase, not subscription).
-   - [ ] Confirm license keys are enabled and the receipt/download page includes the beta kit plus `StreamClip-Setup-win-x64.exe`.
+   - [ ] Confirm license keys are enabled and the receipt/download page includes the beta kit plus `qClip-Setup-win-x64.exe`.
    - [ ] Open the webhook configuration and confirm the URL is `{API_ORIGIN}/api/commerce/webhooks/lemon-squeezy`.
 2. In the operator shell, run the env preflight:
 
@@ -213,9 +213,9 @@ Use this for MASTER §8.19 / Phase 0 exit evidence. This is an operator checklis
 
    - [ ] Success looks like all required `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*` vars `OK` and the checkout URL responding or redirecting.
 3. Copy the checkout URL from Lemon Squeezy and complete one staging/test checkout with a non-production buyer email.
-   - [ ] Success in Lemon Squeezy: an order exists for that buyer and either `license_key_created` delivered a key or `order_created` triggered the StreamClip fallback email.
+   - [ ] Success in Lemon Squeezy: an order exists for that buyer and either `license_key_created` delivered a key or `order_created` triggered the qClip fallback email.
    - [ ] Success in webhook delivery: the Lemon Squeezy webhook attempt returns HTTP 2xx.
-4. Confirm the key reached StreamClip:
+4. Confirm the key reached qClip:
 
    ```powershell
    docker compose exec postgres psql -U streamclip -d streamclip -c "select order_id, customer_email, tier, status, activation_count, created_at from install_licenses order by created_at desc limit 5;"

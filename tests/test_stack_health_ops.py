@@ -69,12 +69,12 @@ def test_probe_stack_health_ops_alert_ok_no_webhook():
             "core.notify.stack_health.probe_stack_dependencies",
             return_value={"status": "ok", "checks": {}, "failures": []},
         ),
-        patch.object(nt, "post_ops_webhook") as post,
+        patch.object(nt, "deliver_ops_event") as deliver,
     ):
         out = nt.probe_stack_health_ops_alert()
     assert out["status"] == "ok"
     assert out["alerted"] is False
-    post.assert_not_called()
+    deliver.assert_not_called()
 
 
 def test_probe_stack_dependencies_redis_fail_when_not_inprocess(monkeypatch):
@@ -152,15 +152,16 @@ def test_probe_stack_health_ops_alert_degraded_posts_once():
             "core.notify.stack_health.probe_stack_dependencies",
             return_value=degraded,
         ),
-        patch.object(nt, "post_ops_webhook", return_value=True) as post,
+        patch.object(nt, "deliver_ops_event", return_value="sent") as deliver,
     ):
         first = nt.probe_stack_health_ops_alert()
         second = nt.probe_stack_health_ops_alert()
     assert first["alerted"] is True
     assert first["event"] == "stack_degraded"
+    assert first["delivery"] == "sent"
     assert second["alerted"] is False
     assert second.get("reason") == "cooldown"
-    post.assert_called_once()
-    payload = post.call_args[0][0]
+    deliver.assert_called_once()
+    payload = deliver.call_args[0][0]
     assert payload["event"] == "stack_degraded"
     assert payload["checks"]["database"] is False

@@ -1,4 +1,4 @@
-# StreamClip — Beta On-Call Runbook
+# qClip — Beta On-Call Runbook
 
 **Audience:** Operators running Phase 0 cohort (5–10 testers)  
 **Companion:** [Beta go-live](BETA_GO_LIVE.md) (internal) · [Phase 0 ops](BETA_OPS_PHASE0.md) (internal) · [Beta test plan](BETA_TESTER_PLAN.md)  

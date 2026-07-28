@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { VaultClipsView } from "@/components/vault/vault-clips-view";
+import { Button } from "@/components/ui/button";
 import { vaultApi, type VaultQuotaResponse } from "@/lib/api/client";
 import { getClientAccessToken } from "@/lib/auth/client-session";
 
@@ -30,6 +31,7 @@ export default function VaultPage() {
   const [clips, setClips] = useState<Awaited<ReturnType<typeof vaultApi.list>>>([]);
   const [quota, setQuota] = useState<VaultQuotaResponse | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getClientAccessToken();
@@ -43,11 +45,17 @@ export default function VaultPage() {
         if (!cancelled) {
           setClips(list);
           setQuota(q);
+          setLoadError(null);
           setReady(true);
         }
       })
-      .catch(() => {
-        if (!cancelled) setReady(true);
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error ? err.message : "Could not load vault. Try again.",
+          );
+          setReady(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -56,6 +64,20 @@ export default function VaultPage() {
 
   if (!ready) {
     return <p className="text-sm text-muted-foreground text-center py-12">Loading vault…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8 space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Clip Vault</h1>
+        <p role="alert" className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
+          {loadError}
+        </p>
+        <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </main>
+    );
   }
 
   return (

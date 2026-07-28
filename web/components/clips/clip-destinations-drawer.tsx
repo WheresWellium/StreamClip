@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/form";
 import type { ClipOut } from "@/lib/api/types";
 import { cn } from "@/lib/utils/format";
 import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
+import { getClientAccessToken } from "@/lib/auth/client-session";
 
 type Tab = "publish" | "schedule" | "vault";
 
@@ -170,6 +171,8 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
+                aria-label={label}
+                aria-pressed={tab === id}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1 px-2 py-2 min-h-[44px]",
                   tab === id ? "bg-sky-600/25 text-sky-100" : "text-muted-foreground",
@@ -214,6 +217,31 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
               {loadingCtx ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : ctx?.loadError ? (
+                <div className="space-y-3 text-sm text-destructive" role="alert">
+                  <p>{ctx.loadError}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setLoadingCtx(true);
+                      void getDistributionContextAction().then((data) => {
+                        setCtx(data);
+                        setLoadingCtx(false);
+                      });
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : !getClientAccessToken() ? (
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>Sign in to publish clips.</p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/login">Sign in</Link>
+                  </Button>
                 </div>
               ) : !ctx?.hasPro ? (
                 <div className="space-y-3 text-sm text-muted-foreground">
@@ -290,6 +318,9 @@ export function ClipDestinationsDrawer({ clip, jobId, open, onClose }: Props) {
                         id="sched-at"
                         type="datetime-local"
                         value={scheduledAt}
+                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+                          .toISOString()
+                          .slice(0, 16)}
                         onChange={(e) => setScheduledAt(e.target.value)}
                       />
                     </div>

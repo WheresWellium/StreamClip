@@ -1,4 +1,4 @@
-# StreamClip — Beta Go-Live Checklist
+# qClip — Beta Go-Live Checklist
 
 **Purpose:** Single-page runbook for Phase 0 (Docker technical beta). Phase 1/2 still gated on 110% (see [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3.10).  
 **Last updated:** 2026-07-27  
@@ -77,7 +77,7 @@ Tracked in MASTER §8.3, §8.10, §8.15:
 
 ## 5. Phase 0 kit contents
 
-**Creators (primary):** [Download page](BETA_DOWNLOAD.md) on Vercel → `StreamClip-Setup-win-x64.exe` from GitHub Releases.
+**Creators (primary):** [Download page](BETA_DOWNLOAD.md) on Vercel → ``qClip-Setup-win-x64.exe`` from GitHub Releases.
 
 **Docker self-host (technical beta):** private link, encrypted zip, or:
 
@@ -102,11 +102,11 @@ Kit includes:
 
 ## 6. Invite email template (Phase 0)
 
-**Subject:** StreamClip technical beta — Docker self-host (Phase 0)
+**Subject:** qClip technical beta — Docker self-host (Phase 0)
 
 Body:
 
-> You're in the StreamClip **Phase 0** cohort (technical self-host).
+> You're in the qClip **Phase 0** cohort (technical self-host).
 >
 > **Goal:** Run the full clip pipeline locally and report breakages.
 > **Time:** ~15 min setup, ~1 h first real job (GPU recommended).

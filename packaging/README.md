@@ -92,7 +92,7 @@ Build:
 .\scripts\build_desktop_installer.ps1
 ```
 
-Output: `apps/desktop/release/StreamClip Setup <version>.exe`. Signing and auto-update: `packaging/installer/README.md`.
+Output: `apps/desktop/release/qClip-Setup-win-x64.exe`. Signing and auto-update: `packaging/installer/README.md`.
 
 Preload exposes `window.streamclip.sidecar.{start,stop,health}` and `window.streamclip.version()`.
 

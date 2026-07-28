@@ -3,7 +3,7 @@
 # Dev:   python -m mkdocs serve -a 127.0.0.1:8001
 # Deploy: Vercel (vercel.json) — see README § Documentation
 
-site_name: Jet Stream Docs
+site_name: qClip Docs
 site_description: Wellium — self-hosted AI clip pipeline guides and architecture
 site_url: https://streamclip-henna.vercel.app/
 repo_url: https://github.com/WheresWellium/StreamClip

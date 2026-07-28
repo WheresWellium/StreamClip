@@ -1,4 +1,4 @@
-# StreamClip Desktop (Electron)
+# qClip Desktop (Electron)
 
 Tray app that spawns the embedded Python sidecar and opens the UI in a
 `BrowserWindow` at `http://127.0.0.1:8765/`.

@@ -18,7 +18,7 @@ from backend.db.session import db_session
 from core.celery_app import celery_app
 from core.config import get_settings
 from core.notify.email import bug_report_recipient, send_email
-from core.notify.ops_webhook import post_ops_webhook
+from core.notify.ops_webhook import deliver_ops_event, post_ops_webhook
 from core.storage import make_storage
 from core.tasks.pipeline_tasks import _safe_async
 
@@ -64,7 +64,7 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
             lines.append(f"  - {att.filename}: {url}")
         attachment_lines = "\nAttachments (24h links):\n" + "\n".join(lines) + "\n"
     body = (
-        f"New StreamClip bug report {report.id}\n"
+        f"New qClip bug report {report.id}\n"
         f"\n"
         f"Severity:   {report.severity}\n"
         f"Categories: {categories}\n"
@@ -80,7 +80,7 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
     )
     sent = send_email(
         to=recipient,
-        subject=f"[StreamClip] Bug report ({report.severity}): {categories}",
+        subject=f"[qClip] Bug report ({report.severity}): {categories}",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "report_id": report_id}
@@ -139,7 +139,7 @@ def send_job_failed_ops_alert(
     error_count: int = 0,
 ) -> dict[str, str]:
     """Proactive ops alert when a job finishes with clip errors (before user reports)."""
-    sent = post_ops_webhook(
+    status = deliver_ops_event(
         {
             "event": "job_failed",
             "job_id": job_id,
@@ -150,7 +150,7 @@ def send_job_failed_ops_alert(
         },
     )
     return {
-        "status": "sent" if sent else "skipped",
+        "status": status,
         "job_id": job_id,
         "event": "job_failed",
     }
@@ -164,8 +164,9 @@ def probe_stack_health_ops_alert() -> dict[str, object]:
     """
     Beat task — probe DB/Redis/storage and POST ``stack_degraded`` when unhealthy.
 
-    Cooldown (~15 min) prevents inbox floods during sustained outages. No-op when
-    ``OPS_WEBHOOK_URL`` is unset.
+    Cooldown (~15 min) prevents inbox floods during sustained outages. Delivery
+    prefers ``OPS_WEBHOOK_URL`` and falls back to SMTP email; no-op when neither
+    channel is configured.
     """
     from core.notify.stack_health import probe_stack_dependencies, should_emit_stack_alert
 
@@ -184,7 +185,7 @@ def probe_stack_health_ops_alert() -> dict[str, object]:
             "checks": result["checks"],
         }
 
-    sent = post_ops_webhook(
+    delivery = deliver_ops_event(
         {
             "event": "stack_degraded",
             "status": status,
@@ -196,7 +197,8 @@ def probe_stack_health_ops_alert() -> dict[str, object]:
     return {
         "status": status,
         "event": "stack_degraded",
-        "alerted": bool(sent),
+        "alerted": delivery in {"sent", "emailed"},
+        "delivery": delivery,
         "checks": result["checks"],
     }
 
@@ -213,7 +215,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
     the store (LS delivers keys natively otherwise).
     """
     body = (
-        "Thanks for purchasing StreamClip Pro!\n"
+        "Thanks for purchasing qClip Pro!\n"
         "\n"
         f"Your license key:\n\n    {license_key}\n"
         "\n"
@@ -223,7 +225,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
     )
     sent = send_email(
         to=recipient,
-        subject="Your StreamClip Pro license key",
+        subject="Your qClip Pro license key",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "order_id": order_id or ""}
@@ -236,7 +238,7 @@ def send_license_key_email(recipient: str, license_key: str, order_id: str | Non
 )
 def send_password_reset_email(recipient: str, reset_url: str) -> dict[str, str]:
     body = (
-        "You requested a password reset for your StreamClip account.\n"
+        "You requested a password reset for your qClip account.\n"
         "\n"
         f"Reset your password:\n{reset_url}\n"
         "\n"
@@ -245,7 +247,7 @@ def send_password_reset_email(recipient: str, reset_url: str) -> dict[str, str]:
     )
     sent = send_email(
         to=recipient,
-        subject="Reset your StreamClip password",
+        subject="Reset your qClip password",
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "recipient": recipient}

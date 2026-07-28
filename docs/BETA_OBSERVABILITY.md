@@ -3,7 +3,7 @@
 **Audience:** Phase 0 operators and technical beta testers who explicitly opt in to share local diagnostics.
 **Scope:** Docker self-host beta. Desktop `.exe` testers use **Settings -> Get started** and in-app bug reports unless an operator asks for logs.
 
-StreamClip does not ship Prometheus or Grafana services in `docker-compose.yml` or `docker-compose.prod.yml`. The default Phase 0 path is **health checks + log tail**. Prometheus/Grafana is optional for operators who want a dashboard around the existing `/metrics` endpoint.
+qClip does not ship Prometheus or Grafana services in `docker-compose.yml` or `docker-compose.prod.yml`. The default Phase 0 path is **health checks + log tail**. Prometheus/Grafana is optional for operators who want a dashboard around the existing `/metrics` endpoint.
 
 ---
 

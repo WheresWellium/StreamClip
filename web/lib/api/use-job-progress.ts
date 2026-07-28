@@ -14,9 +14,16 @@ type SSEState =
   | { status: "done"; lastEvent: ProgressEvent }
   | { status: "error"; message: string; lastEvent?: ProgressEvent | null };
 
+export type JobProgressState = SSEState & {
+  /** True when no progress events for STALL_AFTER_MS while job is still running. */
+  stalled: boolean;
+};
+
 const POLL_INTERVAL_MS = 4000;
 /** Fall back to REST polling only after SSE stays down this long. */
 const SSE_FALLBACK_MS = 20_000;
+/** No progress activity while non-terminal ⇒ show stalled hint. */
+const STALL_AFTER_MS = 3 * 60_000;
 
 function prevLastEvent(prev: SSEState): ProgressEvent | null {
   return "lastEvent" in prev ? (prev.lastEvent ?? null) : null;
@@ -29,12 +36,14 @@ function prevLastEvent(prev: SSEState): ProgressEvent | null {
 export function useJobProgress(
   jobId: string | null,
   options: { enabled?: boolean } = {},
-): SSEState {
+): JobProgressState {
   const { enabled = true } = options;
   const [state, setState] = React.useState<SSEState>({
     status: "connecting",
     lastEvent: null,
   });
+  const [stalled, setStalled] = React.useState(false);
+  const lastActivityRef = React.useRef(Date.now());
 
   React.useEffect(() => {
     if (!jobId || !enabled) return;
@@ -42,7 +51,17 @@ export function useJobProgress(
     let closed = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let stallTimer: ReturnType<typeof setInterval> | null = null;
     let sawTerminal = false;
+    let pollFailures = 0;
+    lastActivityRef.current = Date.now();
+    setStalled(false);
+
+    const markActivity = () => {
+      lastActivityRef.current = Date.now();
+      setStalled(false);
+      pollFailures = 0;
+    };
 
     const clearFallback = () => {
       if (fallbackTimer) {
@@ -87,12 +106,15 @@ export function useJobProgress(
           };
           if (job.status === "done") {
             sawTerminal = true;
+            markActivity();
             setState({ status: "done", lastEvent: event });
           } else if (job.status === "cancelled") {
             sawTerminal = true;
+            markActivity();
             setState({ status: "done", lastEvent: event });
           } else if (job.status === "error") {
             sawTerminal = true;
+            markActivity();
             setState({
               status: "error",
               message: userFacingErrorMessage(
@@ -103,6 +125,7 @@ export function useJobProgress(
               lastEvent: event,
             });
           } else {
+            markActivity();
             setState({ status: "polling", lastEvent: event });
           }
           if (terminal && pollTimer) {
@@ -110,7 +133,10 @@ export function useJobProgress(
             pollTimer = null;
           }
         } catch {
-          /* keep polling */
+          pollFailures += 1;
+          if (pollFailures >= 3) {
+            setStalled(true);
+          }
         }
       }, POLL_INTERVAL_MS);
     };
@@ -141,6 +167,7 @@ export function useJobProgress(
     const handleEvent = (event: MessageEvent, terminal = false) => {
       try {
         const data = JSON.parse(event.data) as ProgressEvent;
+        markActivity();
         if (terminal || data.status === "done" || data.status === "error") {
           sawTerminal = true;
           clearFallback();
@@ -213,13 +240,21 @@ export function useJobProgress(
       schedulePollingFallback();
     });
 
+    stallTimer = setInterval(() => {
+      if (closed || sawTerminal) return;
+      if (Date.now() - lastActivityRef.current >= STALL_AFTER_MS) {
+        setStalled(true);
+      }
+    }, 15_000);
+
     return () => {
       closed = true;
       source.close();
       clearFallback();
       if (pollTimer) clearInterval(pollTimer);
+      if (stallTimer) clearInterval(stallTimer);
     };
   }, [jobId, enabled]);
 
-  return state;
+  return { ...state, stalled };
 }

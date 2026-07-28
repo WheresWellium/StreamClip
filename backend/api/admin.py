@@ -30,6 +30,7 @@ from backend.db.session import get_db
 from backend.middleware.auth import require_user_id
 from backend.middleware.rate_limit import rate_limit_request
 from core.errors import StreamClipError
+from core.licensing import revoke_entitlement_hash
 from core.support.metrics import refresh_support_ticket_metrics
 from core.support.ticket_lifecycle import (
     UNSET,
@@ -187,6 +188,7 @@ async def revoke_license(
                     )
 
         await db.commit()
+        revoke_entitlement_hash(lic.license_key_hash)
     log.info(
         "license_revoked",
         license_id=license_id,
@@ -198,8 +200,7 @@ async def revoke_license(
         "license_id": license_id,
         "status": "revoked",
         "note": (
-            "Issued entitlement JWTs remain valid until their exp claim. "
-            "A jti blocklist is required to invalidate them immediately — "
-            "see BETA_KNOWN_ISSUES.md."
+            "Entitlement JWTs for this license_key_hash are blocklisted immediately "
+            "via Redis / in-process set (streamclip:revoked_license_hashes)."
         ),
     }

@@ -7,6 +7,26 @@
 Notify operators **before** testers file bugs — and forward in-app support
 forms — without n8n or any middleman workflow tool.
 
+## Choose a channel
+
+**Phase 0 default: SMTP email only — no webhook, no third-party connector.**
+
+| Channel | Setup | Covers |
+|---------|-------|--------|
+| **SMTP email** (recommended) | `SMTP_*` + `BUG_REPORT_TO` | all four events — `job_failed` / `stack_degraded` fall back to email when `OPS_WEBHOOK_URL` is unset (`core/notify/ops_webhook.py` `deliver_ops_event`) |
+| Webhook | `OPS_WEBHOOK_URL` | all four events; wins over email when set |
+| Neither | — | forms still persist to `bug_reports`; no proactive notification |
+
+Verify email in one command (inspects the running containers, not `.env`):
+
+```powershell
+.\scripts\verify_smtp_alerting.ps1 -DryRun   # show config, send nothing
+.\scripts\verify_smtp_alerting.ps1           # send one real test email
+.\scripts\verify_smtp_alerting.ps1 -Service worker
+```
+
+A webhook is **optional** — skip the receiver section below entirely if you use email.
+
 | Source | `event` field |
 |--------|----------------|
 | `POST /api/support/beta-feedback` | `beta_feedback` |
@@ -19,17 +39,28 @@ forms — without n8n or any middleman workflow tool.
 
 Secrets stay in **local** `.env` / `.env.production`. Never commit real URLs or API keys.
 
+### Email path (default)
+
 | Step | Action | Expect |
 |------|--------|--------|
 | 1 | Stack up: `docker compose up -d api worker beat` | `api` running |
-| 2 | Preflight: `.\scripts\verify_ops_webhook.ps1 -DryRun` | `READY` (or clear SKIP + fix) |
-| 3 | Mock path: `.\scripts\verify_ops_webhook.ps1` | `PASS: OPS webhook path verified` |
-| 4 | Create Catch Hook / JSON inbox (see receivers below) | operator-owned URL |
-| 5 | Paste real `OPS_WEBHOOK_URL` into **local** `.env` / `.env.production` | never commit the real URL |
-| 6 | Optional Resend SMTP (section below) + `BUG_REPORT_TO` | verified sending domain |
-| 7 | Optional `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | API + worker crashes in Sentry |
-| 8 | Restart env readers | `docker compose up -d api worker beat` |
-| 9 | Live check: Help (?) → **Beta feedback** | receiver JSON; API `ops_notification: "queued"` |
+| 2 | Set `SMTP_*` + `BUG_REPORT_TO` in **local** `.env` / `.env.production` | never commit keys |
+| 3 | `.\scripts\verify_smtp_alerting.ps1 -DryRun` | `READY - config present` |
+| 4 | `.\scripts\verify_smtp_alerting.ps1` | `PASS: test email accepted` |
+| 5 | Repeat for the worker: `-Service worker` | `PASS` (worker sends support email) |
+| 6 | Optional `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | API + worker crashes in Sentry |
+| 7 | Live check: Help (?) → **Beta feedback** | email arrives at `BUG_REPORT_TO` |
+
+### Webhook path (optional alternative)
+
+| Step | Action | Expect |
+|------|--------|--------|
+| 1 | Preflight: `.\scripts\verify_ops_webhook.ps1 -DryRun` | `READY` (or clear SKIP + fix) |
+| 2 | Mock path: `.\scripts\verify_ops_webhook.ps1` | `PASS: OPS webhook path verified` |
+| 3 | Create Catch Hook / JSON inbox (see receivers below) | operator-owned URL |
+| 4 | Paste real `OPS_WEBHOOK_URL` into **local** `.env` / `.env.production` | never commit the real URL |
+| 5 | Restart env readers | `docker compose up -d api worker beat` |
+| 6 | Live check: Help (?) → **Beta feedback** | receiver JSON; API `ops_notification: "queued"` |
 
 Help / dry-run (no stack required for `-Help`; `-DryRun` tolerates down stack):
 

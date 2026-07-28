@@ -1,6 +1,6 @@
 # Windows EV Authenticode & SmartScreen (§4.10)
 
-Canonical operator runbook for StreamClip Windows code signing.
+Canonical operator runbook for qClip Windows code signing.
 Purchase of the EV certificate is **out of band** — this doc covers everything else.
 
 **Do not invent or commit certificates.** Beta remains unsigned until a real EV (or OV) PFX is provisioned.

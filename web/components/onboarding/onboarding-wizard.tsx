@@ -116,6 +116,12 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
             templates={[]}
             isAuthenticated={false}
             defaultSourceUrl={sampleUrl}
+            onJobCreated={async () => {
+              // Cookie must be set before navigating to /jobs/[id] or
+              // middleware bounces the user back to onboarding (GAP T60).
+              markOnboardingComplete();
+              await completeOnboardingAction();
+            }}
           />
         </section>
       )}

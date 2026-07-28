@@ -1,6 +1,6 @@
-# Jet Stream
+# qClip
 
-*(formerly StreamClip — internal identifiers, env vars, and Docker services keep the `streamclip` name.)*
+*(Repo folder and internal identifiers may still use `streamclip` — user-facing product name is **qClip**.)*
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
@@ -294,6 +294,10 @@ STREAMCLIP_RATE_LIMIT__ENABLED=false        # disable rate limits locally
 | `moba` | 0.40 | 60 frames | 3%/frame | top 8% + bottom 22% | League, Dota |
 | `battle_royale` | 0.45 | 60 frames | 8%/frame | top 8% + bottom 15% | Fortnite, Warzone |
 | `irl` / `podcast` | 0.50 | 90 frames | 1–2%/frame | 0 | Talking head |
+| `sports_action` | 0.48 | 70 frames | 7%/frame | 0 | Sport / athletes |
+| `presentation` | 0.35 | 120 frames | 0.8%/frame | 0 | Slides / demos |
+| `cinematic_wide` | 0.38 | 150 frames | 1.5%/frame | 0 | Scenic B-roll |
+| `music_performance` | 0.42 | 100 frames | 2.5%/frame | 0 | Stage / DJ |
 | `auto` | — | — | — | — | Picks `fps_game` vs `irl` from clip emotion heuristics |
 
 ### Caption styles
@@ -373,7 +377,7 @@ Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should
 | Upload to CDN | ~2–5s | ~2–5s |
 | **Total** | **~30–55s** | **~10–20s** |
 
-No Jet Stream docs project exists on Vercel yet — first deploy creates metrics baseline.
+No qClip docs project exists on Vercel yet — first deploy creates metrics baseline.
 
 ### Deploy docs (GitHub Pages — optional backup)
 

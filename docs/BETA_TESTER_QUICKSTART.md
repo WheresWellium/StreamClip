@@ -1,18 +1,18 @@
-# StreamClip Beta — Quickstart Guide
+# qClip Beta — Quickstart Guide
 
-Welcome to the StreamClip beta. This guide takes you from **zero to your first short clip**. Most people finish setup in about **15 minutes**.
+Welcome to the qClip beta. This guide takes you from **zero to your first short clip**. Most people finish setup in about **15 minutes**.
 
 ---
 
 ## The short version
 
 1. Install **Docker Desktop** (free) and make sure it is running
-2. Open the StreamClip folder from your invite and run **one start command**
+2. Open the qClip folder from your invite and run **one start command**
 3. Open **http://localhost:3000** in your browser
 4. Paste a **public video link** and wait for clips to appear
 5. Paste your **license key** in **Settings → License** (from your invite email)
 
-**Two ways to run StreamClip**
+**Two ways to run qClip**
 
 | Way | Best for | Notes |
 |-----|----------|-------|
@@ -21,7 +21,7 @@ Welcome to the StreamClip beta. This guide takes you from **zero to your first s
 
 You do **not** need a GitHub account, Python, or coding experience for either path.
 
-**Help in the app:** Open **Help** from the header for quickstart, install, GPU, and troubleshooting — without leaving StreamClip. The shipped app does **not** include OpenAPI/Swagger or operator settings; those are for local development only.
+**Help in the app:** Open **Help** from the header for quickstart, install, GPU, and troubleshooting — without leaving qClip. The shipped app does **not** include OpenAPI/Swagger or operator settings; those are for local development only.
 
 ---
 
@@ -41,7 +41,7 @@ You do **not** need a GitHub account, Python, or coding experience for either pa
 
 | Term | What it means |
 |------|----------------|
-| Docker | Free app that runs StreamClip locally |
+| Docker | Free app that runs qClip locally |
 | License key | Unlock code from your invite email |
 | Job | One video you are processing |
 | Clip | One short video cut from that job |
@@ -76,11 +76,11 @@ If Docker Desktop is not already installed:
 
 ---
 
-## Step 2 — Get the StreamClip files
+## Step 2 — Get the qClip files
 
 **Option A — ZIP download (easiest)**
 
-Extract the beta `.zip` from your invite email to any folder (e.g. `C:\StreamClip` or `~/StreamClip`).
+Extract the beta `.zip` from your invite email to any folder (e.g. `C:\qClip` or `~/qClip`).
 
 **Option B — Private repo link**
 
@@ -102,9 +102,9 @@ Replace `<LINK_FROM_INVITE_EMAIL>` with the exact URL from your email. If you're
 
 ---
 
-## Step 3 — Start StreamClip (one command)
+## Step 3 — Start qClip (one command)
 
-`cd` into your StreamClip folder, then run the **primary install script**:
+`cd` into your qClip folder, then run the **primary install script**:
 
 === "Windows"
 
@@ -179,7 +179,7 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
 
 You can also confirm in the browser:
 
-- **App:** [http://localhost:3000](http://localhost:3000) — StreamClip home screen
+- **App:** [http://localhost:3000](http://localhost:3000) — qClip home screen
 
 !!! note "API health URL (operators only)"
     `http://localhost:8000/api/health` is for Docker debugging — not shown in the beta app. Desktop `.exe` users can skip it; use **Get started** in Settings instead.
@@ -256,7 +256,7 @@ Lemon Squeezy checkout keys can skip the import step (first activate needs netwo
 
 ---
 
-## Step 9 — Stop StreamClip when done
+## Step 9 — Stop qClip when done
 
 ```bash
 docker compose down
@@ -268,11 +268,11 @@ Your jobs, clips, and settings are saved in Docker volumes and will be there nex
 
 ## Frequently Asked Questions
 
-**Do I need a GitHub account to use StreamClip?**
+**Do I need a GitHub account to use qClip?**
 No. You only need Docker Desktop and the beta package from your invite email. On Mac you also do **not** need an Apple Developer account.
 
 **The download link sent me to GitHub and I got a 404 — what do I do?**
-Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run StreamClip.
+Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run qClip.
 
 **My license key isn't working. What format should it be?**
 The key from your beta invite starts with `SCPRO-` (four hex groups with dashes). Paste the entire string. If it still fails, open **Settings → License**, click **Show details** under **This install**, and reply to your invite email with what you see.
@@ -280,11 +280,11 @@ The key from your beta invite starts with `SCPRO-` (four hex groups with dashes)
 **What features does my beta key unlock?**
 Everything — full access, no limits. Your beta key is equivalent to the highest tier.
 
-**Does StreamClip send my videos to the cloud?**
+**Does qClip send my videos to the cloud?**
 No. All processing happens on your machine inside Docker containers. Your videos never leave unless you publish to YouTube/TikTok through the publish flow.
 
-**Can I run StreamClip on a Mac or Linux machine?**
-Yes. **Mac is a supported beta path via Docker** — follow the macOS tab in [Get StreamClip](BETA_DOWNLOAD.md). Linux works the same with `docker compose up -d`. NVENC hardware encoding needs NVIDIA (Windows/Linux). Mac runs CPU encode (slower, supported). The one-click `.dmg` is not ready yet; builders see [macOS installer notes](MACOS_INSTALLER.md).
+**Can I run qClip on a Mac or Linux machine?**
+Yes. **Mac is a supported beta path via Docker** — follow the macOS tab in [Get qClip](BETA_DOWNLOAD.md). Linux works the same with `docker compose up -d`. NVENC hardware encoding needs NVIDIA (Windows/Linux). Mac runs CPU encode (slower, supported). The one-click `.dmg` is not ready yet; builders see [macOS installer notes](MACOS_INSTALLER.md).
 
 **The app is running but clips are taking way too long. Help?**
 On **Windows**: enable GPU in Docker Desktop → Settings → Resources → GPU, then `docker compose exec worker nvidia-smi`. On **Mac**: slow jobs are normal without NVIDIA — try a shorter source video for beta, and give Docker more CPUs/RAM under Settings → Resources.
@@ -292,7 +292,7 @@ On **Windows**: enable GPU in Docker Desktop → Settings → Resources → GPU,
 **TikTok says "upload to inbox" instead of publishing directly. Is that a bug?**
 No — this is expected during beta. TikTok restricts direct publish until an app audit is complete. Your clip will be in TikTok drafts; post it from within the TikTok app.
 
-**How do I update StreamClip when a new beta version ships?**
+**How do I update qClip when a new beta version ships?**
 You'll get an email. Pull the new files (or re-extract the zip), then:
 ```bash
 docker compose pull
@@ -314,9 +314,9 @@ Use **Report a bug** or **Beta feedback** in the app header (top bar). Every sub
 
 | Task | Command / Location |
 |------|--------------------|
-| Start StreamClip (Windows) | `.\scripts\start_local.ps1` (Phase 0 alias: `.\scripts\start.ps1`) |
-| Start StreamClip (Mac manual) | `docker compose up -d` |
-| Stop StreamClip | `docker compose down` |
+| Start qClip (Windows) | `.\scripts\start_local.ps1` (Phase 0 alias: `.\scripts\start.ps1`) |
+| Start qClip (Mac manual) | `docker compose up -d` |
+| Stop qClip | `docker compose down` |
 | Check health (Windows, Docker) | Fast smoke: `.\scripts\health.ps1`; full gate: `.\scripts\verify_stack.ps1`; or **Settings → Get started** |
 | Check health (Mac, Docker) | `docker compose ps` or **Settings → Get started** |
 | Check health (Windows `.exe`) | **Settings → Get started** — should show **Ready** |

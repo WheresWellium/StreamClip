@@ -16,12 +16,12 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | O4 | Cohort H+2/H+24/H+72 + T0 exit evidence | P0 | ops | Tooling ✅ `scripts/capture_phase0_evidence.ps1` + `docs/evidence/` — ☐ operator runs T0…H72 + fills OPERATOR FILL in [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) |
 | O5 | On-call roles TBD | P0 | ops | Scaffold ✅ placeholders `<PRIMARY_ONCALL_NAME>` etc. in [`BETA_ON_CALL.md`](BETA_ON_CALL.md) §1 + exit pack — ☐ operator fills real names (2 min; do not invent) |
 | O6 | Invite pack email bodies vs keys.csv freshness | P0 | ops | **Verify PASS** (2026-07-27) — 8/8 match; re-send pack `tmp/phase0-invite-pack-resend/` · `tmp/invite-pack-status.md`; do not re-issue keys; send still user-gated |
-| O7 | `OPS_WEBHOOK_URL` unset; Resend SMTP path undocumented | P1 | ops/doc | Docs/script half ✅ (`OPS_ALERTING.md`, `scripts/verify_ops_webhook.ps1` mock **PASS**) — ☐ operator sets real prod URL (user-gated; never git) |
+| O7 | Ops alerting channel unconfigured | P1 | ops/code | **Closed via SMTP-only path** (2026-07-28) — no third-party connector. Resend SMTP live **PASS** from `api` + `worker` (`scripts/verify_smtp_alerting.ps1`); `job_failed`/`stack_degraded` now fall back to email via `deliver_ops_event`. `OPS_WEBHOOK_URL` optional. |
 | O8 | Weak default AUTH secret (length not warned) | P1 | code | **Fixed** — non-dev settings reject missing/placeholder/short secrets; dev startup logs redacted `SECURITY_WARNING`; `tests/test_auth_secret_strength.py` |
 | O9 | No seat-release UX (max 3 activations) | P1 | code | **Fixed** — Settings → License seat list/release + confirm; migration `0012_license_activation_seats` applied (head); same-machine activate upserts one seat row |
-| O10 | Revoke ≠ jti blocklist for entitlement JWT | P1 | code | Accepted beta limit — JWTs now emit `jti`; blocklist enforcement still TODO (KNOWN_ISSUES) |
+| O10 | Revoke ≠ jti blocklist for entitlement JWT | P1 | code | **Fixed** — `revoke_entitlement_hash` + verify check (`core/licensing.py`); admin revoke writes Redis/in-process set; `tests/test_licensing_blocklist.py` |
 | O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D (thumbprint + Azure Trusted Signing) — ☐ buy/install cert (MASTER §4.10); beta.4 stays unsigned |
-| O12 | Loader / desktop publish tree cleanliness | P1 | ops | Polish ✅; coverage **PASS 96%** — ☐ user commit loader + desktop publish → beta.5 (`tmp/o12-loader-republish.md`); E2E needs `E2E_RUN=1` |
+| O12 | Loader / desktop publish tree cleanliness | P1 | ops | Polish ✅; coverage **PASS 96%** — ☐ user commit + desktop publish → beta.5; UI journey e2e now green without `E2E_RUN` (`test:e2e:ui-journey`) |
 | O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
 | O14 | macOS DMG + notarization | P2 | ops | Scaffold ✅ 30-min runbook [`MACOS_INSTALLER.md`](MACOS_INSTALLER.md) + build/verify/notarize scripts — ☐ borrowed Mac host builds live `.dmg` |
 | O15 | GAP / 110% Phase 1 coverage stretch | P2 | test | Defer — not Phase 0 blocker |
@@ -30,19 +30,19 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 
 | ID | Gap | Sev | Fix | Evidence |
 |----|-----|-----|-----|----------|
-| T60 | Onboarding first-job trap — sample job redirect to `/jobs/{id}` fires before onboarding cookie set; middleware bounces user back to wizard step 1, job orphaned from view | **P0** | code | `web/components/jobs/create-job-form.tsx:143-147` + `onboarding-wizard.tsx:45-50` + `web/middleware.ts:48-59` |
-| T61 | API-down handling inconsistent — `/jobs/new` + `/onboarding` hang on infinite "Loading…" (no `.catch` on `metaApi.meta()`); vault shows fake-empty; destinations drawer shows misleading "Connect platforms"; jobs list leaks raw "Failed to fetch" | P1 | code | `web/app/jobs/new/page.tsx:22-45` · `web/app/onboarding/page.tsx:17-31` · `web/app/vault/page.tsx:49-51` · `web/lib/api/actions/distribution.ts:31-33` |
-| T62 | Stalled-job UX absent — worker death w/o terminal SSE event = eternal spinner; poll errors swallowed | P1 | code | `web/components/jobs/live-progress.tsx:35` · `web/lib/api/use-job-progress.ts:112-114` |
-| T63 | `jobs/[id]/not-found.tsx` dead code — clients silently `router.replace("/jobs")` on 404 | P1 | code | `web/components/jobs/job-overview-page-client.tsx:44-47` |
-| T64 | Token refresh only on window focus; `clearAuthTokens()` on any non-OK (incl. 5xx) → silent logout | P1 | code | `web/components/providers/token-refresh.tsx:35-38,47` |
-| T65 | `caption.refine_clip_transcript: true` default = N per-clip Whisper passes, contradicting "single full transcribe" perf headline | P1 | code/doc | `config.yaml:66` · `core/tasks/pipeline_tasks.py:849-851` |
-| T66 | E2E is smoke-only, gated `E2E_RUN=1`; zero UI coverage of create→review→publish journey | P1 | test | `web/e2e/happy-path.spec.ts:4-7,45-132` |
-| T67 | Dead config keys: `export.two_pass`, `licensing.public_key_pem`, `observability.metrics_port` | P2 | code | `core/config.py:143,301,361` |
-| T68 | Entitlement JWTs signed with symmetric `auth.secret_key`; planned asymmetric signing never landed (dead `public_key_pem`) | P2 | code | `core/licensing.py` (see O10) |
-| T69 | README documents 5 reframe presets + auto; code ships 9 (4 undocumented) | P2 | doc | `core/reframe.py:53-98` |
-| T70 | Modals lack focus traps; `ClaimDeviceModal` missing `role="dialog"`; misc a11y (aria-pressed/aria-expanded on create form toggles; drawer tabs icon-only on mobile) | P2 | code | `web/components/distribution/pro-gate-modal.tsx:23-45` · `claim-device-modal.tsx:56-87` · `create-job-form.tsx:239-254,423-433` |
-| T71 | Anonymous user shown "Publishing requires Pro" when real blocker is sign-in; schedule datetime allows past dates | P2 | code | `clip-destinations-drawer.tsx:218-229,289-294` |
-| T72 | Field-level zod validation errors returned but never rendered (generic "Validation failed") | P2 | code | `web/lib/api/actions/jobs.ts:61-67` vs `create-job-form.tsx:507-511` |
+| T60 | Onboarding first-job trap — sample job redirect to `/jobs/{id}` fires before onboarding cookie set; middleware bounces user back to wizard step 1, job orphaned from view | **P0** | code | **Fixed** — `CreateJobForm.onJobCreated` marks onboarding complete before navigate (`create-job-form.tsx`, `onboarding-wizard.tsx`) |
+| T61 | API-down handling inconsistent — `/jobs/new` + `/onboarding` hang on infinite "Loading…" (no `.catch` on `metaApi.meta()`); vault shows fake-empty; destinations drawer shows misleading "Connect platforms"; jobs list leaks raw "Failed to fetch" | P1 | code | **Fixed** — retryable error states on jobs/new + onboarding; vault loadError; distribution `loadError` + sign-in vs Pro copy |
+| T62 | Stalled-job UX absent — worker death w/o terminal SSE event = eternal spinner; poll errors swallowed | P1 | code | **Fixed** — `useJobProgress.stalled` after 3 min / 3 poll failures; LiveProgress amber notice |
+| T63 | `jobs/[id]/not-found.tsx` dead code — clients silently `router.replace("/jobs")` on 404 | P1 | code | **Fixed** — overview + clips clients render not-found UI in place |
+| T64 | Token refresh only on window focus; `clearAuthTokens()` on any non-OK (incl. 5xx) → silent logout | P1 | code | **Fixed** — clear tokens only on 401/403 (`token-refresh.tsx`) |
+| T65 | `caption.refine_clip_transcript: true` default = N per-clip Whisper passes, contradicting "single full transcribe" perf headline | P1 | code/doc | **Doc** — config.yaml comment documents throughput tradeoff (default kept for caption sync) |
+| T66 | E2E is smoke-only, gated `E2E_RUN=1`; zero UI coverage of create→review→publish journey | P1 | test | **Fixed** — mock-API Playwright suite: `journey-create-review` + `failure-paths` + `onboarding-first-run` (23/23 PASS); helpers in `web/e2e/support/mock-api.ts`; run via `npm run test:e2e:ui-journey` (web on :3000 only; no GPU). Live-stack smoke remains `E2E_RUN=1`. |
+| T67 | Dead config keys: `export.two_pass`, `licensing.public_key_pem`, `observability.metrics_port` | P2 | code | **Fixed** — removed unused fields |
+| T68 | Entitlement JWTs signed with symmetric `auth.secret_key`; planned asymmetric signing never landed (dead `public_key_pem`) | P2 | code | Accepted — `public_key_pem` removed; O10 blocklist shipped for revoke |
+| T69 | README documents 5 reframe presets + auto; code ships 9 (4 undocumented) | P2 | doc | **Fixed** — README preset table lists all 9 |
+| T70 | Modals lack focus traps; `ClaimDeviceModal` missing `role="dialog"`; misc a11y (aria-pressed/aria-expanded on create form toggles; drawer tabs icon-only on mobile) | P2 | code | **Fixed** — dialog roles, Escape, aria-pressed/expanded/label; full focus-trap deferred |
+| T71 | Anonymous user shown "Publishing requires Pro" when real blocker is sign-in; schedule datetime allows past dates | P2 | code | **Fixed** — sign-in branch + `min` on datetime-local |
+| T72 | Field-level zod validation errors returned but never rendered (generic "Validation failed") | P2 | code | **Fixed** — field errors listed under form alert |
 
 ## Technical gaps
 

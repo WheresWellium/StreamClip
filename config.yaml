@@ -63,7 +63,7 @@ caption:
   max_chars_per_line: 22
   words_per_group: 3
   word_level_sync: true         # karaoke \k tags — each word at spoken time
-  refine_clip_transcript: true  # re-transcribe extracted clip for accurate sync
+  refine_clip_transcript: true  # re-transcribe each clip for caption sync (extra Whisper cost; set false for throughput)
   min_word_probability: 0.25
   word_hold_secs: 0.06
   highlight_keywords: true
@@ -91,7 +91,7 @@ export:
   fps: 60
   audio_bitrate: 256k
   pixel_format: yuv420p
-  two_pass: false
+  # Prefer single-pass encode; two-pass is not implemented in the export path.
 
 ingest:
   short_max_height: 720         # Twitch clips / Shorts

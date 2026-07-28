@@ -32,10 +32,12 @@ export function TokenRefreshProvider({ children }: { children: React.ReactNode }
           body: JSON.stringify({ refresh_token: refreshToken }),
           cache: "no-store",
         });
-        if (!res.ok) {
+        // Only clear on auth rejection — transient 5xx must not silent-logout (GAP T64).
+        if (res.status === 401 || res.status === 403) {
           clearAuthTokens();
           return;
         }
+        if (!res.ok) return;
         const data = await res.json();
         setAuthTokens(data.access_token, data.refresh_token, {
           rememberMe: getRememberMe(),

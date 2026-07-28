@@ -1,4 +1,4 @@
-# StreamClip — Beta Tester Phase Plan
+# qClip — Beta Tester Phase Plan
 
 **Status:** **Phase 0 invite gate CLEARED (2026-07-09)** · **Coverage:** 95.02% · **Clean-slate verify:** PASS (`BETA_GO_LIVE` §8) · Cohort exit still open · **Source:** `docs/MASTER_TODO.md`
 **Last updated:** 2026-07-09 · Owner: core team
@@ -118,7 +118,7 @@ See MASTER §8.16:
 
 ## 5. Phase 1 — Creator closed beta (hosted or GHCR)
 
-**Goal:** Creators who will not touch Docker can run StreamClip with minimal support.
+**Goal:** Creators who will not touch Docker can run qClip with minimal support.
 
 ### 5.1 Delivery options (pick one for beta)
 

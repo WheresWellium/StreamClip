@@ -1,7 +1,7 @@
 # macOS installer — 30-minute builder runbook
 
 **End users:** you do **not** need this page. Install with Docker on Mac — see
-[Get StreamClip](BETA_DOWNLOAD.md) (macOS tab).
+[Get qClip](BETA_DOWNLOAD.md) (macOS tab).
 
 **Builders with a borrowed Mac:** this is the complete path to an unsigned arm64
 `.dmg` in ~30 minutes. Notarization (Gatekeeper-clean) is an optional extra step
@@ -118,7 +118,7 @@ Full matrix: `packaging/installer/MACOS.md`.
 
 ## Related
 
-- [Get StreamClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
+- [Get qClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
 - [Beta quickstart](BETA_TESTER_QUICKSTART.md)
 - [Windows EV signing](DESKTOP_SIGNING.md)
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

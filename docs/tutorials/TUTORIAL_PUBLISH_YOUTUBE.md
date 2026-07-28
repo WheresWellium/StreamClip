@@ -8,7 +8,7 @@ Connect your own Google account (**BYO OAuth**), configure distribution settings
 
 ## How OAuth works in beta
 
-StreamClip uses **bring-your-own OAuth** for Phase 0:
+qClip uses **bring-your-own OAuth** for Phase 0:
 
 - Tokens are encrypted locally (`TOKEN_ENCRYPTION_KEY` in `.env`)
 - Local dev compose ships with a **DEV-ONLY** key + `WEB_ORIGIN=http://localhost:3000` — OAuth works out of the box on localhost
@@ -63,7 +63,7 @@ Skip this if you're testing on localhost with the bundled dev config.
 3. Under **YouTube Shorts**, click **Connect**
 4. Sign in with the Google account that owns your channel
 5. Grant the requested YouTube scopes
-6. Return to StreamClip — connection status should show **Connected**
+6. Return to qClip — connection status should show **Connected**
 
 !!! tip "Multiple channels"
     Beta supports one connection per platform per user. Reconnect to switch accounts.

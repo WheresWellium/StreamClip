@@ -221,13 +221,6 @@ export function LiveProgress({
   const liveEvent: ProgressEvent | null =
     "lastEvent" in state ? (state.lastEvent ?? null) : null;
 
-  const streamNotice =
-    state.status === "reconnecting"
-      ? "Reconnecting to progress stream…"
-      : state.status === "polling"
-        ? "Live stream unavailable — refreshing via API"
-        : null;
-
   const stage = liveEvent?.stage ?? initialStage;
   const progress = liveEvent?.progress ?? initialProgress;
   const status =
@@ -238,6 +231,16 @@ export function LiveProgress({
         : finished
           ? initialStatus
           : "processing";
+
+  const streamNotice =
+    state.stalled && !TERMINAL.has(status)
+      ? "No progress updates for a few minutes — the worker may be stuck. You can cancel and retry, or wait a bit longer."
+      : state.status === "reconnecting"
+        ? "Reconnecting to progress stream…"
+        : state.status === "polling"
+          ? "Live stream unavailable — refreshing via API"
+          : null;
+
   const rawMessage = liveEvent?.message ?? initialStage;
   const errorCode =
     liveEvent?.extra && typeof liveEvent.extra === "object"

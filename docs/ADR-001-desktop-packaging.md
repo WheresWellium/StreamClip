@@ -6,7 +6,7 @@
 
 ## Context
 
-We want to ship Jet Stream as a Windows desktop executable for end users, with a
+We want to ship qClip as a Windows desktop executable for end users, with a
 macOS port to follow. The current `apps/desktop` Electron shell is a *Docker
 launcher*: it requires Docker Desktop and `docker-compose.prod.yml`, which pulls
 `ghcr.io/streamclip/*` images that do not exist. That is not distributable to

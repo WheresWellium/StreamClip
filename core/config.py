@@ -140,7 +140,6 @@ class ExportConfig(BaseModel):
     fps: int = Field(60, ge=60, le=120)
     audio_bitrate: str = "256k"
     pixel_format: str = "yuv420p"
-    two_pass: bool = False
 
 
 class FfmpegConfig(BaseModel):
@@ -298,7 +297,6 @@ class OnboardingConfig(BaseModel):
 
 class LicensingConfig(BaseModel):
     enabled: bool = True
-    public_key_pem: str = ""
     license_file: Path = Path("workspace/.streamclip-license.json")
     offline_grace_days: int = Field(7, ge=1, le=30)
     max_activations: int = Field(3, ge=1, le=10)
@@ -358,7 +356,6 @@ class ObservabilityConfig(BaseModel):
     sentry_dsn: str = ""
     otel_endpoint: str = ""
     enable_metrics: bool = True
-    metrics_port: int = 9090
     # If set, the /metrics endpoint requires this value as a Bearer token or
     # X-Metrics-Key header. In development with no key set, loopback-only access
     # is enforced when environment != "development". Set via

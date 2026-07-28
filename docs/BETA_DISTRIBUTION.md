@@ -18,12 +18,12 @@
 ## Lemon Squeezy product setup
 
 1. **New Product** → pricing type **Lead Magnet** ($0)
-2. Name: `StreamClip Phase 0 Beta`
+2. Name: `qClip Phase 0 Beta`
 3. **Disable** storefront listing (unlisted checkout only)
 4. **Enable** license keys — perpetual, activation limit **3**
 5. Attach files:
    - `dist/streamclip-beta-kit-Source-*.zip` from `.\scripts\prepare_beta_kit.ps1`
-   - `apps\desktop\release\StreamClip-Setup-win-x64.exe` from `.\scripts\publish_desktop_release.ps1`
+   - `apps\desktop\release\qClip-Setup-win-x64.exe` from `.\scripts\publish_desktop_release.ps1`
 6. Receipt button → `https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/`
 7. Webhook → `{API_ORIGIN}/api/commerce/webhooks/lemon-squeezy`
 8. Record variant ID → `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_BETA_VARIANT_ID`

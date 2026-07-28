@@ -2,7 +2,7 @@
 
 > **macOS DMG:** see [MACOS.md](./MACOS.md) (`scripts/build_desktop_installer_macos.sh`, Mac host required).
 
-StreamClip ships as an **NSIS installer** produced by [electron-builder](https://www.electron.build/)
+qClip ships as an **NSIS installer** produced by [electron-builder](https://www.electron.build/)
 from `apps/desktop`. The installer bundles:
 
 1. **Electron shell** — tray app + `BrowserWindow` UI
@@ -143,8 +143,8 @@ MSIX remains an option for Microsoft Store distribution but adds complexity for 
 ## Install layout
 
 ```
-C:\Program Files\StreamClip\
-  StreamClip.exe
+C:\Program Files\qClip\
+  qClip.exe
   resources\
     sidecar\
       streamclip-sidecar.exe

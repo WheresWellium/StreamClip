@@ -86,7 +86,7 @@ if ($DryRun) {
 
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     Write-Host "Install GitHub CLI (gh) to publish, or upload manually:" -ForegroundColor Yellow
-    Write-Host "  gh release create v$Version `"$installer`" --title `"StreamClip v$Version`""
+    Write-Host "  gh release create v$Version `"$installer`" --title `"qClip v$Version`""
     exit 0
 }
 
@@ -123,7 +123,7 @@ if ($releaseExists) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } else {
     gh release create $tag @assets `
-        --title "StreamClip $tag" `
+        --title "qClip $tag" `
         --notes $releaseNotes `
         --latest
     if ($LASTEXITCODE -ne 0) {
@@ -152,7 +152,7 @@ else:
     done = False
     for line in lines:
         out.append(line)
-        if not done and line.startswith('# Get StreamClip'):
+        if not done and line.startswith('# Get qClip'):
             nl = '\r\n' if line.endswith('\r\n') else '\n'
             out.append(nl)
             out.append(banner.replace('\n', nl))

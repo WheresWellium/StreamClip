@@ -99,7 +99,7 @@ Builders produce the DMG on a Mac with:
 ./scripts/build_desktop_installer_macos.sh
 ```
 
-Details: [macOS installer — builder notes](MACOS_INSTALLER.md) · [packaging/installer/MACOS.md](../packaging/installer/MACOS.md).
+Details: [macOS installer guide](MACOS_INSTALLER.md) (builder notes live in-repo at `packaging/installer/MACOS.md`).
 
 ---
 

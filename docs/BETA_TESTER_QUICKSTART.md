@@ -6,20 +6,19 @@ Welcome to the qClip beta. This guide takes you from **zero to your first short 
 
 ## The short version
 
-1. Install **Docker Desktop** (free) and make sure it is running
-2. Open the qClip folder from your invite and run **one start command**
-3. Open **http://localhost:3000** in your browser
-4. Paste a **public video link** and wait for clips to appear
-5. Paste your **license key** in **Settings → License** (from your invite email)
+1. Install the **desktop app** for your OS (Windows `.exe` or macOS `.dmg`) — **no Docker required**
+2. Open **qClip**, sign up / log in, paste your **license key** in **Settings → License**
+3. Paste a **public video link** and wait for clips to appear
 
-**Two ways to run qClip**
+**Ways to run qClip**
 
 | Way | Best for | Notes |
 |-----|----------|-------|
-| **Docker** (recommended) | Windows and Mac testers | Full features; steps below |
-| **Windows installer (.exe)** | No Docker | [Download the installer](BETA_DOWNLOAD.md#one-click-installers) — Windows may show a security warning; click **More info → Run anyway** |
+| **Windows installer (.exe)** | Windows creators | [Get qClip](BETA_DOWNLOAD.md) — SmartScreen → More info → Run anyway |
+| **macOS installer (.dmg)** | Apple Silicon creators | `qClip-mac-arm64.dmg` — unsigned beta: **right-click → Open** |
+| **Docker** (optional) | Operators / full-stack self-host | Steps below if you prefer compose |
 
-You do **not** need a GitHub account, Python, or coding experience for either path.
+You do **not** need a GitHub account, Python, or coding experience for the desktop path.
 
 **Help in the app:** Open **Help** from the header for quickstart, install, GPU, and troubleshooting — without leaving qClip. The shipped app does **not** include OpenAPI/Swagger or operator settings; those are for local development only.
 
@@ -29,13 +28,12 @@ You do **not** need a GitHub account, Python, or coding experience for either pa
 
 **You need:**
 
-- **Windows 10/11** or **macOS 12+** (Apple Silicon preferred on Mac)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running (free)
+- **Windows 10/11** or **macOS 12+** (Apple Silicon for the Mac `.dmg`)
+- The desktop installer from your invite (`qClip-Setup-win-x64.exe` or `qClip-mac-arm64.dmg`) — **or** Docker Desktop if you choose the optional compose path
 - 16 GB RAM minimum — 32 GB recommended
 - On Windows: NVIDIA GPU recommended (CPU-only works but is much slower)
-- On Mac: CPU-only is expected (no NVIDIA / NVENC) — allow longer job times
-- The beta package (`.zip`) or private repo link from your invite email
-- Your license key from the same invite email (looks like `SCPRO-XXXX-XXXX-XXXX-XXXX`)
+- On Mac: VideoToolbox / CPU (no NVIDIA) — allow longer job times
+- Your license key from the invite email (looks like `SCPRO-XXXX-XXXX-XXXX-XXXX`)
 
 **Simple words**
 
@@ -250,7 +248,7 @@ Your jobs, clips, and settings are saved in Docker volumes and will be there nex
 ## Frequently Asked Questions
 
 **Do I need a GitHub account to use qClip?**
-No. You only need Docker Desktop and the beta package from your invite email. On Mac you also do **not** need an Apple Developer account.
+No. Use the Windows `.exe` or macOS `.dmg` from your invite (or Docker if you prefer). On Mac you do **not** need an Apple Developer account for unsigned beta (**right-click → Open**).
 
 **The download link sent me to GitHub and I got a 404 — what do I do?**
 Reply to your invite email and ask for the `.zip` beta package. You do not need a GitHub account to run qClip.
@@ -262,13 +260,13 @@ The key from your beta invite starts with `SCPRO-` (four hex groups with dashes)
 Everything — full access, no limits. Your beta key is equivalent to the highest tier.
 
 **Does qClip send my videos to the cloud?**
-No. All processing happens on your machine inside Docker containers. Your videos never leave unless you publish to YouTube/TikTok through the publish flow.
+No. All processing happens on your machine (desktop sidecar or local Docker). Your videos never leave unless you publish to YouTube/TikTok through the publish flow.
 
 **Can I run qClip on a Mac or Linux machine?**
-Yes. **Mac is a supported beta path via Docker** — follow the macOS tab in [Get qClip](BETA_DOWNLOAD.md). Linux works the same with `docker compose up -d`. NVENC hardware encoding needs NVIDIA (Windows/Linux). Mac runs CPU encode (slower, supported). The one-click `.dmg` is not ready yet; builders see [macOS installer notes](MACOS_INSTALLER.md).
+Yes. **Mac creators use the desktop `.dmg`** (`qClip-mac-arm64.dmg`) — no Docker. See [Get qClip](BETA_DOWNLOAD.md). Unsigned beta: **right-click → Open**. Docker remains optional for operators. NVENC needs NVIDIA (Windows/Linux); Mac uses VideoToolbox / CPU. Builders: [macOS installer notes](MACOS_INSTALLER.md).
 
 **The app is running but clips are taking way too long. Help?**
-On **Windows**: enable GPU in Docker Desktop → Settings → Resources → GPU, then `docker compose exec worker nvidia-smi`. On **Mac**: slow jobs are normal without NVIDIA — try a shorter source video for beta, and give Docker more CPUs/RAM under Settings → Resources.
+On **Windows desktop**: NVIDIA + NVENC helps most. On **Docker Windows**: enable GPU in Docker Desktop → Settings → Resources → GPU. On **Mac**: prefer the `.dmg`; slow jobs are normal without NVIDIA — try a shorter source for beta.
 
 **TikTok says "upload to inbox" instead of publishing directly. Is that a bug?**
 No — this is expected during beta. TikTok restricts direct publish until an app audit is complete. Your clip will be in TikTok drafts; post it from within the TikTok app.
@@ -295,12 +293,12 @@ Use **Report a bug** or **Beta feedback** in the app header (top bar). Every sub
 
 | Task | Command / Location |
 |------|--------------------|
-| Start qClip (Windows) | `.\scripts\start_local.ps1` |
-| Start qClip (Mac manual) | `docker compose up -d` |
-| Stop qClip | `docker compose down` |
-| Check health (Windows, Docker) | `.\scripts\verify_stack.ps1` or **Settings → Get started** |
-| Check health (Mac, Docker) | `docker compose ps` or **Settings → Get started** |
-| Check health (Windows `.exe`) | **Settings → Get started** — should show **Ready** |
+| Start qClip (Windows `.exe` / Mac `.dmg`) | Open the installed **qClip** app |
+| Start qClip (Docker, optional) | `docker compose up -d` (Windows: or `.\scripts\start_local.ps1`) |
+| Stop qClip (desktop) | Quit the app |
+| Stop qClip (Docker) | `docker compose down` |
+| Check health (desktop) | **Settings → Get started** — should show **Ready** |
+| Check health (Docker) | `.\scripts\verify_stack.ps1` / `docker compose ps` |
 | View logs (Docker) | `docker compose logs api worker --tail 50` |
 | Check GPU in worker (NVIDIA Docker hosts) | `docker compose exec worker nvidia-smi` |
 | App URL | [http://localhost:3000](http://localhost:3000) |

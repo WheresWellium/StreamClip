@@ -17,5 +17,19 @@ if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 New-Item -ItemType Directory -Path $dest -Force | Out-Null
 Copy-Item -Recurse (Join-Path $src "*") $dest
 
+# PyInstaller datas: bin/ffmpeg → bundle root bin/ffmpeg (streamclip-sidecar.spec).
+$ffmpegStaged = Join-Path $dest "bin\ffmpeg\ffmpeg.exe"
+$ffprobeStaged = Join-Path $dest "bin\ffmpeg\ffprobe.exe"
+if (-not ((Test-Path -LiteralPath $ffmpegStaged) -and (Test-Path -LiteralPath $ffprobeStaged))) {
+    Write-Error @"
+Staged sidecar is missing bundled ffmpeg/ffprobe under apps\desktop\.staging\sidecar\bin\ffmpeg\.
+Expected: ffmpeg.exe and ffprobe.exe (from repo bin\ffmpeg via packaging\pyinstaller\streamclip-sidecar.spec).
+Run: .\scripts\download_ffmpeg_windows.ps1
+Then rebuild the sidecar: .\scripts\build_sidecar.ps1
+"@
+    exit 1
+}
+Write-Host "Staged ffmpeg/ffprobe OK (bin\ffmpeg\)." -ForegroundColor Green
+
 $sizeMB = [math]::Round((Get-ChildItem $dest -Recurse | Measure-Object Length -Sum).Sum / 1MB)
 Write-Host ('Staged sidecar ({0} MB).' -f $sizeMB) -ForegroundColor Green

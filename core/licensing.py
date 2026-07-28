@@ -83,14 +83,37 @@ def create_entitlement_token(
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 
-def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | None = None) -> Entitlement:
+def decode_entitlement_payload(
+    token: str,
+    *,
+    cfg: Settings | None = None,
+    verify_exp: bool = True,
+) -> dict:
+    """Decode a signed entitlement JWT.
+
+    ``verify_exp=False`` is used for renewal / mismatch recovery: the signature
+    must still be valid, but an expired token can still reveal its bound
+    ``machine_id`` without treating a wrong query param as a wipe signal.
+    """
     cfg = cfg or get_settings()
+    options = {"verify_exp": verify_exp}
     try:
-        payload = jwt.decode(token, cfg.auth.secret_key, algorithms=[cfg.auth.algorithm])
+        payload = jwt.decode(
+            token,
+            cfg.auth.secret_key,
+            algorithms=[cfg.auth.algorithm],
+            options=options,
+        )
     except jwt.InvalidTokenError as exc:
         raise ValueError("Invalid or expired license") from exc
     if payload.get("type") != "entitlement":
         raise ValueError("Wrong token type")
+    return payload
+
+
+def verify_entitlement_token(token: str, *, machine_id: str, cfg: Settings | None = None) -> Entitlement:
+    cfg = cfg or get_settings()
+    payload = decode_entitlement_payload(token, cfg=cfg, verify_exp=True)
     if payload.get("machine_id") != machine_id:
         raise ValueError("License bound to a different machine")
     exp = payload.get("exp")

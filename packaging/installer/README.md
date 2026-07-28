@@ -150,5 +150,6 @@ User data (SQLite, models, workspace): `%LOCALAPPDATA%\qClip\` (§4.18).
 
 ## macOS
 
-End-user beta install is **Docker on Mac** — [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md).
-DMG builder notes: [MACOS.md](./MACOS.md) · [docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).
+End-user product path is the **Apple Silicon DMG** (`qClip-mac-arm64.dmg`) — no Docker.
+See [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md). Builder notes: [MACOS.md](./MACOS.md) ·
+[docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).

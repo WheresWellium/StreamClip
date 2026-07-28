@@ -111,6 +111,39 @@ async def test_status_reports_active_perpetual_license(client, license_file):
     assert body["perpetual"] is True
 
 
+@pytest.mark.asyncio
+async def test_status_wrong_machine_id_does_not_delete_license_file(client, license_file):
+    """A mismatched ?machine_id= must not wipe a valid entitlement on disk."""
+    cfg = license_file
+    machine_id = f"machine-{uuid.uuid4().hex[:8]}"
+    key = f"SCPRO-{uuid.uuid4().hex[:16].upper()}"
+
+    await _seed_license(
+        license_key_hash=hash_license_key(key),
+        machine_id=machine_id,
+        status="activated",
+    )
+    activate_license_key(key, machine_id, tier=UserTier.PRO, cfg=cfg)
+    assert cfg.licensing.license_file.is_file()
+    assert load_persisted_entitlement(cfg) is not None
+
+    wrong = await client.get(
+        "/api/license/status", params={"machine_id": "wrong-machine"},
+    )
+    assert wrong.status_code == 200
+    assert wrong.json()["active"] is False
+    # Query-param mismatch is not revocation — keep the file for the real machine.
+    assert cfg.licensing.license_file.is_file()
+    assert load_persisted_entitlement(cfg) is not None
+
+    ok = await client.get("/api/license/status", params={"machine_id": machine_id})
+    assert ok.status_code == 200
+    body = ok.json()
+    assert body["active"] is True
+    assert body["tier"] == "pro"
+    assert load_persisted_entitlement(cfg) is not None
+
+
 # ─── Expired tokens renew only while the licence is still activated ──────────
 
 @pytest.mark.asyncio

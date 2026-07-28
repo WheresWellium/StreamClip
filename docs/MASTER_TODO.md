@@ -184,8 +184,8 @@ Real DMG still needs a Mac host (§5.2–5.3).
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 5.1 | ~~ffmpeg with VideoToolbox hw accel~~ ✅ `core/gpu_profile.py` — `videotoolbox_available` + `effective_export_codec` prefers `h264_videotoolbox` on Darwin when NVENC N/A; `export_video` `-q:v` args; `libx264` ultimate fallback; tests mock `is_darwin` | ✅ | — |
-| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — CI scaffold: `desktop-release.yml` macOS job installs `requirements-desktop.txt`, `download_ffmpeg_macos.sh`, `build_desktop_ui.sh` (`continue-on-error` until green). Live MPS/CTranslate2 smoke still needs Mac host | 🟡 | M |
-| 5.3 | App bundle (.app), codesigning + notarization, Gatekeeper — script + entitlements ready; Apple Developer + notarize secrets still external | 🔴 | M |
+| 5.2 | Torch on Apple Silicon (MPS) for YOLO; CTranslate2 arm64 wheels for whisper — CI: `desktop-release.yml` macOS job + arm64 ffmpeg (martin-riedl); `continue-on-error` until green. Live MPS/CTranslate2 smoke still needs Mac host | 🟡 | M |
+| 5.3 | App bundle (.app) + DMG scripts/entitlements/notarize ready; CI uploads unsigned DMG artifact; Apple Developer secrets still external for Gatekeeper-clean | 🟡 | M |
 | 5.4 | Paths: `~/Library/Application Support/qClip`; no `%LOCALAPPDATA%` | 🟢 | S |
 | 5.5 | arm64 Apple Silicon first; universal2 / x86_64 later (documented) | 🟢 | S |
 | 5.6 | In-process worker from 4.2 is cross-platform ✅ (no Memurai/Redis broker required on desktop) | 🟢 | — |

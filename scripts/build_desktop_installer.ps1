@@ -101,32 +101,47 @@ $distOk = $LASTEXITCODE -eq 0
 Pop-Location
 if (-not $distOk) { exit $LASTEXITCODE }
 
-$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "qClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
-if (-not $setup) {
-    $setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "qClip Setup *.exe" -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
+$releaseDir = Join-Path $desktopDir "release"
+$setupPath = Join-Path $releaseDir "qClip-Setup-win-x64.exe"
+if (-not (Test-Path -LiteralPath $setupPath)) {
+    Write-Error "Required installer missing: $setupPath. electron-builder finished but did not produce qClip-Setup-win-x64.exe."
+    exit 1
 }
 
-if ($setup) {
-    $setupMB = [math]::Round($setup.Length / 1MB)
-    if ($setupMB -lt 50) {
-        Write-Host ('ERROR: Installer suspiciously small ({0} MB) - bundle may be incomplete.' -f $setupMB) -ForegroundColor Red
-        exit 1
+$setup = Get-Item -LiteralPath $setupPath
+$setupMB = [math]::Round($setup.Length / 1MB)
+if ($setupMB -lt 50) {
+    Write-Error ('Installer suspiciously small ({0} MB) - bundle may be incomplete: {1}' -f $setupMB, $setupPath)
+    exit 1
+}
+Write-Host ""
+Write-Host ('Installer ready: {0} ({1} MB)' -f $setup.FullName, $setupMB) -ForegroundColor Green
+
+# electron-updater (apps/desktop dependency) needs latest.yml next to the NSIS artifact.
+$pkgPath = Join-Path $desktopDir "package.json"
+$usesElectronUpdater = $false
+if (Test-Path -LiteralPath $pkgPath) {
+    $pkg = Get-Content -LiteralPath $pkgPath -Raw | ConvertFrom-Json
+    $usesElectronUpdater = [bool](
+        ($pkg.dependencies -and $pkg.dependencies.'electron-updater') -or
+        ($pkg.devDependencies -and $pkg.devDependencies.'electron-updater')
+    )
+}
+$latestYml = Join-Path $releaseDir "latest.yml"
+if ($usesElectronUpdater -and -not (Test-Path -LiteralPath $latestYml)) {
+    Write-Error "latest.yml missing under $releaseDir — required for electron-updater auto-update metadata after NSIS build."
+    exit 1
+}
+if (Test-Path -LiteralPath $latestYml) {
+    Write-Host ('Update metadata ready: {0}' -f $latestYml) -ForegroundColor Green
+}
+
+if (Test-SigningConfigured) {
+    Write-Host "Verifying Authenticode signature on installer..." -ForegroundColor Cyan
+    & "$PSScriptRoot\sign_windows_artifact.ps1" -Path $setup.FullName -VerifyOnly
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "NOTE: sign_windows_artifact verify failed - electron-builder may have signed during dist." -ForegroundColor Yellow
     }
-    Write-Host ""
-    Write-Host ('Installer ready: {0} ({1} MB)' -f $setup.FullName, $setupMB) -ForegroundColor Green
-    if (Test-SigningConfigured) {
-        Write-Host "Verifying Authenticode signature on installer..." -ForegroundColor Cyan
-        & "$PSScriptRoot\sign_windows_artifact.ps1" -Path $setup.FullName -VerifyOnly
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "NOTE: sign_windows_artifact verify failed - electron-builder may have signed during dist." -ForegroundColor Yellow
-        }
-    }
-} else {
-    Write-Host "electron-builder finished but no Setup exe found under apps\desktop\release\" -ForegroundColor Yellow
 }
 
 Write-Host ""

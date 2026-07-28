@@ -37,6 +37,7 @@ from core.licensing import (
     activate_license_key,
     clear_persisted_entitlement,
     create_entitlement_token,
+    decode_entitlement_payload,
     get_install_tier,
     hash_license_key,
     license_is_perpetual,
@@ -205,8 +206,24 @@ async def license_status(
     try:
         ent = verify_entitlement_token(token, machine_id=machine_id, cfg=cfg)
     except ValueError:
-        # Expired or malformed: fall back to the issued records if we can.
-        renewed = await _renew_from_records(db, machine_id, cfg)
+        # Recover the token's bound machine (signature checked, exp optional).
+        # A wrong query machine_id must NOT wipe a valid local entitlement file.
+        try:
+            claims = decode_entitlement_payload(token, cfg=cfg, verify_exp=False)
+        except ValueError:
+            clear_persisted_entitlement(cfg)
+            return LicenseStatusOut(active=False, tier="free", capabilities=[])
+
+        bound_machine = str(claims.get("machine_id") or "")
+        if bound_machine and bound_machine != machine_id:
+            log.info(
+                "license_status_machine_mismatch",
+                query_machine=machine_id[:16],
+                bound_machine=bound_machine[:16],
+            )
+            return LicenseStatusOut(active=False, tier="free", capabilities=[])
+
+        renewed = await _renew_from_records(db, bound_machine or machine_id, cfg)
         if renewed is not None:
             return renewed
         return LicenseStatusOut(active=False, tier="free", capabilities=[])

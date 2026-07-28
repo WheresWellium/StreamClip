@@ -12,6 +12,8 @@ from pathlib import Path
 
 import structlog
 
+from core.distribution.tokens import generate_token_key
+
 log = structlog.get_logger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
@@ -209,7 +211,31 @@ def configure_data_dirs(data_dir: Path) -> None:
     os.environ.setdefault("STREAMCLIP_STORAGE__LOCAL_ROOT", str(storage))
     os.environ.setdefault("STREAMCLIP_WORKSPACE_DIR", str(workspace))
     os.environ.setdefault("STREAMCLIP_CACHE_DIR", str(cache))
+    # Keep Hugging Face / model weights inside the app-data tree (not ~/.cache).
+    os.environ.setdefault("HF_HOME", str(cache / "huggingface"))
+    os.environ.setdefault("TRANSFORMERS_CACHE", str(cache / "huggingface"))
     log.info("sidecar_data_dir", path=str(data_dir))
+
+
+def ensure_desktop_distribution_key(data_dir: Path) -> None:
+    """Persist a Fernet key for OAuth token encryption on first desktop boot."""
+    env_key = "STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY"
+    if os.environ.get(env_key, "").strip():
+        return
+    key_path = data_dir / "distribution.key"
+    if key_path.is_file():
+        existing = key_path.read_text(encoding="utf-8").strip()
+        if existing:
+            os.environ[env_key] = existing
+            return
+    generated = generate_token_key()
+    key_path.write_text(generated + "\n", encoding="utf-8")
+    try:
+        key_path.chmod(0o600)
+    except OSError:
+        pass
+    os.environ[env_key] = generated
+    log.info("desktop_distribution_key_created", path=str(key_path))
 
 
 def configure_desktop_env(root: Path | None = None) -> Path:
@@ -226,6 +252,7 @@ def configure_desktop_env(root: Path | None = None) -> Path:
     data_dir = desktop_data_dir()
     if data_dir is not None:
         configure_data_dirs(data_dir)
+        ensure_desktop_distribution_key(data_dir)
         # Tee before backend.main import so structlog PrintLogger is captured.
         configure_sidecar_file_logging(data_dir)
     return base

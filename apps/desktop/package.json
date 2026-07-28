@@ -86,7 +86,16 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "assets/entitlements.mac.plist",
-      "entitlementsInherit": "assets/entitlements.mac.plist"
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "extendInfo": {
+        "LSMinimumSystemVersion": "12.0",
+        "NSHighResolutionCapable": true
+      }
+    },
+    "dmg": {
+      "artifactName": "qClip-mac-{arch}.${ext}",
+      "title": "qClip ${version}",
+      "writeUpdateInfo": false
     },
     "linux": {
       "target": [

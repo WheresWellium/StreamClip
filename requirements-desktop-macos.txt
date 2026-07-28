@@ -1,0 +1,14 @@
+# ═══════════════════════════════════════════════════════════════════
+# qClip — macOS Apple Silicon desktop packaging profile (ADR-001 §5)
+#
+# Use this on Darwin arm64 instead of requirements-desktop.txt.
+# The Windows CPU-wheel index pins Intel/CPU torch builds that break MPS.
+#
+#   python3 -m pip install -r requirements-desktop-macos.txt -r requirements-packaging.txt
+# ═══════════════════════════════════════════════════════════════════
+
+torch>=2.3.0
+torchvision>=0.18.0
+torchaudio>=2.3.0
+
+-r requirements.txt

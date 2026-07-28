@@ -1,8 +1,11 @@
 # Verify desktop embedded-runtime profile (ADR-001 §4.1–4.5).
-# Runs SQLite, in-process queue, local storage, and ffmpeg resolution smoke tests.
+# Docker-free: host Python + pytest only. Does not start compose or call Docker.
+# Runs SQLite, local storage, ffmpeg resolution, sidecar packaging, and installer-config smoke tests.
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+
+Write-Host "Desktop verification (no Docker required)." -ForegroundColor Cyan
 
 $scripts = @(
     "verify_desktop_db.ps1",
@@ -28,8 +31,6 @@ python -m pytest tests/test_model_prefetch.py tests/test_splice_module.py tests/
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
-Write-Host "Optional: in-process stack against Docker API (requires Docker running):"
-Write-Host "  .\scripts\verify_inprocess.ps1"
-
+Write-Host "Skipped (optional, Docker): .\scripts\verify_inprocess.ps1 — not part of desktop-only verify."
 Write-Host ""
 Write-Host "Desktop profile verification passed." -ForegroundColor Green

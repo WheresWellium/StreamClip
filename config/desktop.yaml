@@ -1,17 +1,16 @@
-# StreamClip desktop / single-machine profile (ADR-001 §4.1–4.2)
+# qClip desktop / single-machine profile (ADR-001 §4.1–4.2)
 # Embedded runtime: SQLite + in-process queue (no Docker, Celery, or Redis).
 #
 # Usage:
 #   set STREAMCLIP_CONFIG=config/desktop.yaml
-#   alembic upgrade head
-#   uvicorn backend.main:create_app --factory
+#   python -m desktop_sidecar
 #
-# Override database path via env:
-#   set STREAMCLIP_DATABASE__URL=sqlite+aiosqlite:///C:/path/to/streamclip.db
-#   set STREAMCLIP_DATABASE__SYNC_URL=sqlite:///C:/path/to/streamclip.db
+# Packaged installs use %LOCALAPPDATA%\qClip (Windows) or
+# ~/Library/Application Support/qClip (macOS). Override:
+#   set STREAMCLIP_DESKTOP_DATA_DIR=C:\path\to\qClip
 
 database:
-  # Workspace-relative DB for dev; production desktop uses %LOCALAPPDATA%\StreamClip (or ~/Library/Application Support/StreamClip)
+  # Dev-relative DB; packaged sidecar rewrites into the app-data directory.
   url: sqlite+aiosqlite:///./workspace/streamclip.db
   sync_url: sqlite:///./workspace/streamclip.db
 
@@ -24,9 +23,15 @@ queue:
   default_workers: 2
   gpu_workers: 1
 
-# GPU (§4.11): sidecar calls core/gpu_profile.py at boot — upgrades to CUDA/NVENC
-# when detected, falls back to cpu/libx264 when not. Override via STREAMCLIP_WHISPER__DEVICE
-# and STREAMCLIP_EXPORT__CODEC.
+# Whisper: CPU-safe defaults for first-run desktops (no Docker GPU assumption).
+# Sidecar upgrades device to cuda/mps via core/gpu_profile.py when available.
+whisper:
+  model_size: medium
+  device: auto
+  compute_type: int8
+
+export:
+  codec: auto
 
 ffmpeg:
   bin_dir: bin/ffmpeg
@@ -50,8 +55,7 @@ web:
   static_dir: static/ui
 
 # Social distribution (OAuth redirects must match the Electron UI origin).
-# Generate Fernet key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-#   set STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY=...
+# Packaged boots auto-generate TOKEN_ENCRYPTION_KEY into app-data when unset.
 distribution:
   web_origin: http://127.0.0.1:8765
   youtube_publish_enabled: true

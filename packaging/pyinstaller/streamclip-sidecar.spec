@@ -36,10 +36,16 @@ datas = [
 static_ui = ROOT / "static" / "ui"
 if (static_ui / "index.html").exists():
     datas.append((str(static_ui), "static/ui"))
-# Bundled ffmpeg binaries if present (core/ffmpeg_bins.py resolves them).
+# Bundled ffmpeg binaries (required for desktop packaging — fail closed).
 ffmpeg_dir = ROOT / "bin" / "ffmpeg"
-if any(ffmpeg_dir.glob("ffmpeg*")):
-    datas.append((str(ffmpeg_dir), "bin/ffmpeg"))
+_ffmpeg_bins = list(ffmpeg_dir.glob("ffmpeg*")) + list(ffmpeg_dir.glob("ffprobe*"))
+if not _ffmpeg_bins:
+    raise SystemExit(
+        "ERROR: bin/ffmpeg/{ffmpeg,ffprobe} missing. "
+        "Run scripts/download_ffmpeg_windows.ps1 or scripts/download_ffmpeg_macos.sh "
+        "before PyInstaller."
+    )
+datas.append((str(ffmpeg_dir), "bin/ffmpeg"))
 
 binaries = []
 hiddenimports = [

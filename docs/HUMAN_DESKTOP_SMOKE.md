@@ -1,6 +1,7 @@
 # Human desktop smoke (operator / tester)
 
 Manual pass on a real Windows or macOS host before expanding the beta cohort.  
+**Primary beta path:** desktop installers (`qClip-Setup-win-x64.exe`, `qClip-mac-arm64.dmg`) — **no Docker required**. Docker compose remains an optional operator/self-host path.  
 Boot budgets and in-app checks: [DESKTOP_STARTUP.md](DESKTOP_STARTUP.md).  
 Download / SmartScreen notes: [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md).
 

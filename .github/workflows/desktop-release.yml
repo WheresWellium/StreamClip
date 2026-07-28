@@ -1,6 +1,7 @@
-# Build Windows NSIS installer and publish to GitHub Releases.
+# Build Windows NSIS installer and macOS DMG; publish to GitHub Releases.
 # Trigger: push tag v* (e.g. v1.0.0) or manual workflow_dispatch.
 # Download URL (stable): .../releases/latest/download/qClip-Setup-win-x64.exe
+# macOS product path: qClip-mac-arm64.dmg (unsigned OK when Apple secrets absent)
 name: Desktop release
 
 on:
@@ -119,14 +120,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Scaffold until Apple Silicon DMG builds are green (§5.2–5.3).
-  # continue-on-error: Windows release must not block on macOS until notarization path is ready.
+  # Apple Silicon DMG (§5). Job continue-on-error so missing Apple secrets / ML
+  # wheel flakes never block the Windows release. When the DMG builds, upload it
+  # as a workflow artifact (and attach to the GitHub Release on tags).
   macos-installer:
     runs-on: macos-latest
     timeout-minutes: 180
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+
+      - name: Host arch check
+        run: |
+          echo "Runner: $(uname -s) $(uname -m)"
+          if [ "$(uname -m)" != "arm64" ]; then
+            echo "::warning::Runner is not arm64 — product artifact is qClip-mac-arm64.dmg; electron-builder --arm64 may cross-compile or fail."
+          fi
 
       - name: Set version from tag or input
         run: |
@@ -152,6 +161,7 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-desktop.txt
+            requirements-packaging.txt
 
       - uses: actions/setup-node@v4
         with:
@@ -161,10 +171,24 @@ jobs:
             web/package-lock.json
             apps/desktop/package-lock.json
 
-      - name: Install Python desktop + packaging deps
+      - name: Configure unsigned build when Apple signing secrets missing
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
+        run: |
+          if { [ -n "$CSC_LINK" ] && [ -n "$CSC_KEY_PASSWORD" ]; } || [ -n "$CSC_NAME" ]; then
+            echo "Apple signing secrets present — electron-builder will codesign."
+          else
+            echo "No MACOS_CSC_* / CSC_NAME secrets — building UNSIGNED DMG."
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install Python desktop + packaging deps (macOS wheels)
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install -r requirements-desktop.txt -r requirements-packaging.txt
+          # Do NOT use requirements-desktop.txt (CPU torch index) on Darwin.
+          python3 -m pip install -r requirements-desktop-macos.txt -r requirements-packaging.txt
 
       - name: Install web deps
         working-directory: web
@@ -174,20 +198,38 @@ jobs:
         working-directory: apps/desktop
         run: npm ci
 
-      - name: Download ffmpeg macOS binaries
+      - name: Download ffmpeg macOS arm64 binaries
         run: |
           chmod +x scripts/download_ffmpeg_macos.sh
-          ./scripts/download_ffmpeg_macos.sh
+          ./scripts/download_ffmpeg_macos.sh --arm64
+          test -x bin/ffmpeg/ffmpeg && test -x bin/ffmpeg/ffprobe
 
       - name: Build macOS DMG (arm64)
+        id: build_dmg
         env:
+          # Only pass signing vars when configured — empty secrets break codesign.
           CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
           CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # Allow Intel runners in GH if macos-latest ever regresses; product still --arm64.
+          STREAMCLIP_ALLOW_NON_ARM64: "1"
         run: |
+          # Strip empty signing env (GitHub injects "" for missing secrets).
+          if [ -z "${CSC_LINK:-}" ] || [ -z "${CSC_KEY_PASSWORD:-}" ]; then
+            unset CSC_LINK CSC_KEY_PASSWORD || true
+          fi
+          if [ -z "${CSC_NAME:-}" ]; then
+            unset CSC_NAME || true
+          fi
+          if { [ -z "${CSC_LINK:-}" ] || [ -z "${CSC_KEY_PASSWORD:-}" ]; } && [ -z "${CSC_NAME:-}" ]; then
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
           chmod +x scripts/build_desktop_installer_macos.sh \
             scripts/build_desktop_ui.sh \
             scripts/notarize_macos_artifact.sh \
@@ -195,19 +237,26 @@ jobs:
           ./scripts/build_desktop_installer_macos.sh
 
       - name: Verify DMG artifact
+        if: always() && steps.build_dmg.outcome == 'success'
         run: |
-          if [ -f apps/desktop/release/qClip-mac-arm64.dmg ]; then
-            ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
-          else
-            echo "::error::DMG not produced — check PyInstaller sidecar + electron-builder logs"
-            exit 1
-          fi
+          test -f apps/desktop/release/qClip-mac-arm64.dmg
+          ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
 
-      - name: Upload macOS DMG to release (tag builds only)
+      - name: Upload unsigned/signed DMG workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qClip-mac-arm64-dmg
+          path: apps/desktop/release/qClip-mac-arm64.dmg
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Attach DMG to GitHub Release (tag builds)
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: apps/desktop/release/qClip-mac-arm64.dmg
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

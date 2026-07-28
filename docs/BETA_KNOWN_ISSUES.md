@@ -46,7 +46,7 @@ CPU-only or no NVENC paths are **slow but supported** — use `libx264` export c
 <a id="desktop-exe-phase-2"></a>
 
 - **Windows `.exe`:** unsigned builds trigger SmartScreen — “More info → Run anyway” until code signing (MASTER_TODO §4.10)
-- **macOS `.dmg`:** not a public beta download yet; scaffold + builder notes in [MACOS_INSTALLER.md](MACOS_INSTALLER.md). Unsigned apps need **right-click → Open** until notarization (§5.3)
+- **macOS `.dmg`:** product path is `qClip-mac-arm64.dmg` (no Docker). Unsigned betas need **right-click → Open** until Developer ID + notarization (§5.3). Builders: [MACOS_INSTALLER.md](MACOS_INSTALLER.md)
 - First run may download **multi-GB models** (Whisper, YOLO) — allow time and disk space
 - Auto-update is a **stub** — manual reinstall until §4.10 / §5
 - **Scheduled publishes fire only while the app is running** — in-process mode has no external Beat service; an internal scheduler polls due posts every 60 s and catches up overdue ones on next launch (`queue.inprocess_beat`)

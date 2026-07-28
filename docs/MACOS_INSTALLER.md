@@ -1,29 +1,29 @@
 # macOS installer — builder notes
 
-**End users:** you do **not** need this page. Install with Docker on Mac — see [Get qClip](BETA_DOWNLOAD.md) (macOS tab).
+**End users:** install **`qClip-mac-arm64.dmg`** from your invite kit / operator link —
+see [Get qClip](BETA_DOWNLOAD.md). Unsigned beta: **right-click → Open**. You do **not**
+need Docker for the desktop product.
 
-**Builders / friends with a Mac:** use this when producing an unsigned `.dmg` for the future one-click path (MASTER_TODO §5).
+**Builders:** use this page to produce the DMG on an Apple Silicon Mac (MASTER_TODO §5).
 
 ---
 
 ## What you are building
 
-Electron shell + PyInstaller sidecar → `apps/desktop/release/qClip-mac-arm64.dmg` (Apple Silicon first).
-
-This is **not** required for beta testers to run qClip today.
+Electron shell + PyInstaller sidecar → `apps/desktop/release/qClip-mac-arm64.dmg`.
 
 ## Prerequisites
 
 | Need | Notes |
 |------|--------|
-| Mac host | Apple Silicon preferred |
+| Mac host | **Apple Silicon** (arm64) |
 | Xcode Command Line Tools | `xcode-select --install` |
 | Node.js 20+ | [nodejs.org](https://nodejs.org) or Homebrew |
 | Python 3.11+ | `python3 --version` |
 | ~15 GB free disk | Sidecar + Electron are large |
-| PowerShell Core (optional) | `brew install --cask powershell` — for `build_desktop_ui.ps1`, or pre-copy `static/ui` |
 
-**Accounts:** none for an unsigned local DMG. No Apple Developer Program required until you want Gatekeeper-clean notarization.
+**Accounts:** none for an unsigned local DMG. Apple Developer Program only when you want
+Gatekeeper-clean notarization.
 
 ## Build
 
@@ -33,10 +33,12 @@ chmod +x scripts/build_desktop_installer_macos.sh
 ./scripts/build_desktop_installer_macos.sh
 ```
 
-Post-build verification (also runs automatically at end of the build script):
+The script fails closed with clear errors if ffmpeg, static UI, or the sidecar binary
+is missing. It auto-downloads arm64 ffmpeg via `scripts/download_ffmpeg_macos.sh`.
+
+Post-build verification (also runs automatically):
 
 ```bash
-chmod +x scripts/verify_desktop_installer_macos.sh
 ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
 ```
 
@@ -44,31 +46,34 @@ Expected artifact: `apps/desktop/release/qClip-mac-arm64.dmg`
 
 First open of an unsigned app: **right-click → Open**.
 
-## Signing (optional, later)
-
-Set only when you have a Developer ID certificate:
+## Signing & notarization (optional)
 
 | Variable | Purpose |
 |----------|---------|
 | `CSC_LINK` / `CSC_KEY_PASSWORD` | `.p12` signing |
 | `CSC_NAME` | Keychain identity instead of `CSC_LINK` |
-| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` | Notarization |
+| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` | Notary password auth |
+| `APPLE_API_KEY` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` | Notary API key auth |
 
-Unset → script builds an **unsigned** DMG (`CSC_IDENTITY_AUTO_DISCOVERY=false`).
+Unset → **unsigned** DMG (`CSC_IDENTITY_AUTO_DISCOVERY=false`). Manual notarize:
+
+```bash
+./scripts/notarize_macos_artifact.sh apps/desktop/release/qClip-mac-arm64.dmg
+```
 
 ## Known gaps (scaffold vs Mac host)
 
 | Item | Done without Mac | Still needs Mac host |
 |------|------------------|----------------------|
-| §5.1 VideoToolbox encode selection | ✅ `gpu_profile` / `export_video` + tests | Bundle Darwin ffmpeg; live encode smoke |
-| §5.2 MPS Whisper / YOLO | ✅ device probe + auto fallback | arm64 Torch + CTranslate2 wheels in sidecar; MPS smoke |
-| §5.3 Gatekeeper | Unsigned DMG script | Developer ID sign + notarize |
-| DMG build | Script + CI scaffold | Successful arm64 `.dmg` on a Mac runner |
+| §5.1 VideoToolbox encode selection | ✅ `gpu_profile` / `export_video` + tests | Live encode smoke with bundled ffmpeg |
+| §5.2 MPS Whisper / YOLO | ✅ device probe + auto fallback | arm64 Torch + CTranslate2 in sidecar |
+| §5.3 Gatekeeper | Unsigned DMG + notarize script | Developer ID secrets in CI |
+| DMG build | Scripts + CI job | Green `macos-installer` producing `.dmg` |
 
-Full matrix: `packaging/installer/MACOS.md` (§5.1 / §5.2 sections).
+Full matrix: `packaging/installer/MACOS.md`.
 
 ## Related
 
-- [Get qClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
+- [Get qClip](BETA_DOWNLOAD.md) — end-user DMG path
 - [Beta quickstart](BETA_TESTER_QUICKSTART.md)
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

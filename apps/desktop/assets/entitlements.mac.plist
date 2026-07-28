@@ -2,20 +2,37 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- Hardened Runtime entitlements for Electron + Python sidecar (unsigned local OK). -->
+  <!--
+    Hardened Runtime entitlements for Electron shell + Python sidecar + ffmpeg.
+    Used as both entitlements and entitlementsInherit so child processes
+    (streamclip-sidecar, bundled ffmpeg/ffprobe) inherit the same allowances.
+    Do NOT enable App Sandbox — the desktop product spawns a local API sidecar.
+  -->
+
+  <!-- V8 / Electron / native ML (Torch, CTranslate2) may need JIT + unsigned RWX -->
   <key>com.apple.security.cs.allow-jit</key>
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
   <true/>
+
+  <!-- PyInstaller _internal dylibs + ffmpeg are not Team-ID–signed like the .app -->
   <key>com.apple.security.cs.disable-library-validation</key>
   <true/>
+
+  <!-- Some ML wheels / PyInstaller bootloaders consult DYLD_* -->
   <key>com.apple.security.cs.allow-dyld-environment-variables</key>
   <true/>
+
+  <!-- Sidecar binds 127.0.0.1; Electron + pipeline fetch licenses / publish -->
   <key>com.apple.security.network.client</key>
   <true/>
   <key>com.apple.security.network.server</key>
   <true/>
+
+  <!-- Open/save media via native dialogs -->
   <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+  <key>com.apple.security.files.downloads.read-write</key>
   <true/>
 </dict>
 </plist>

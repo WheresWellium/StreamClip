@@ -94,6 +94,8 @@ def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
     with patch.dict(os.environ):
         for key in _DATA_ENV_KEYS:
             os.environ.pop(key, None)
+        os.environ.pop("HF_HOME", None)
+        os.environ.pop("TRANSFORMERS_CACHE", None)
 
         sidecar.configure_data_dirs(data_dir)
 
@@ -103,10 +105,26 @@ def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
         assert os.environ["STREAMCLIP_STORAGE__LOCAL_ROOT"] == str(data_dir / "storage")
         assert os.environ["STREAMCLIP_WORKSPACE_DIR"] == str(data_dir / "workspace")
         assert os.environ["STREAMCLIP_CACHE_DIR"] == str(data_dir / "cache")
+        assert os.environ["HF_HOME"] == str(data_dir / "cache" / "huggingface")
     assert (data_dir / "workspace").is_dir()
     assert (data_dir / "storage").is_dir()
     assert (data_dir / "cache").is_dir()
     assert (data_dir / "logs").is_dir()
+
+
+def test_ensure_desktop_distribution_key_persists(tmp_path, monkeypatch):
+    data_dir = tmp_path / "qClip"
+    data_dir.mkdir()
+    monkeypatch.delenv("STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY", raising=False)
+    sidecar.ensure_desktop_distribution_key(data_dir)
+    key_path = data_dir / "distribution.key"
+    assert key_path.is_file()
+    first = key_path.read_text(encoding="utf-8").strip()
+    assert first
+    assert os.environ["STREAMCLIP_DISTRIBUTION__TOKEN_ENCRYPTION_KEY"] == first
+    # Second call reuses the same key.
+    sidecar.ensure_desktop_distribution_key(data_dir)
+    assert key_path.read_text(encoding="utf-8").strip() == first
 
 
 def test_configure_sidecar_file_logging_tees_stdout(tmp_path, monkeypatch):

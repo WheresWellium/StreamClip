@@ -2,7 +2,8 @@
 
 
 > **Current Windows installer:** `1.0.0-beta.5` (2026-07-27) — `qClip-Setup-win-x64.exe` (~487 MB).  
-> **Testers:** get the `.exe` from your **invite kit zip** (`installers/`), **Lemon Squeezy** receipt, or **operator Drive** link — not from GitHub.  
+> **macOS product path:** `qClip-mac-arm64.dmg` (Apple Silicon) — desktop app, **no Docker**.  
+> **Testers:** get installers from your **invite kit zip** (`installers/`), **Lemon Squeezy** receipt, or **operator Drive** link — not from GitHub.  
 > GitHub release URLs are **collaborator-only**; anonymous browser hits return **404**.
 
 
@@ -16,10 +17,14 @@
 
 | Option | Who it's for | Difficulty |
 |--------|--------------|------------|
-| **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
-| **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
+| **Windows installer (.exe)** | Creators who want a normal desktop app | Easy — download and install |
+| **macOS installer (.dmg)** | Apple Silicon Mac creators (desktop product path) | Easy — drag to Applications; unsigned beta may need **right-click → Open** |
+| **Docker (Windows or Mac)** | Operators / full-stack self-host | Medium — install Docker once, then one command |
 
-Both options are free for invited beta testers. **Docker** needs the invite kit (clone or zip). The **Windows `.exe`** ships in the invite kit zip under `installers/`, via Lemon Squeezy checkout downloads, or an operator Drive link — **not** via public GitHub. The repo is private; anonymous `/releases/.../download/...` URLs **404**.
+Desktop installers are free for invited beta testers. The **Windows `.exe`** and **macOS `.dmg`**
+ship in the invite kit zip under `installers/` (when available), via Lemon Squeezy, or an
+operator Drive link — **not** via public GitHub. The repo is private; anonymous
+`/releases/.../download/...` URLs **404**.
 
 ---
 
@@ -27,18 +32,17 @@ Both options are free for invited beta testers. **Docker** needs the invite kit 
 
 | Path | Status | Who it's for |
 |------|--------|--------------|
-| **Docker self-host (Windows)** | ✅ Ready | Beta testers with Docker Desktop |
-| **Docker self-host (macOS)** | ✅ Ready | Beta testers on Apple Silicon or Intel Mac |
 | **Windows one-click installer (.exe)** | ✅ Ready (unsigned beta) | Creators who want no Docker — SmartScreen may warn |
-| **macOS one-click installer (.dmg)** | 🔜 Coming soon | General creators — scaffold in progress |
+| **macOS one-click installer (.dmg)** | ✅ Product path (Apple Silicon) | Creators — use the DMG; unsigned beta → **right-click → Open** |
+| **Docker self-host (Windows)** | ✅ Ready | Operators / testers who prefer compose |
+| **Docker self-host (macOS)** | ✅ Optional | Operators only — **not** required for the desktop app |
 
-**Phase 0 testers:** Docker is still the most complete path. The Windows `.exe` works well for quick trials without Docker.
+**Phase 0 testers:** prefer the **desktop installer** for your OS. Docker remains available for
+full-stack verify and operators.
 
 ---
 
 ## Windows installer (no Docker)
-
-If you prefer **not** to install Docker:
 
 1. Get **`qClip-Setup-win-x64.exe`** (~487 MB) from one of:
    - Your **invite kit zip** → `installers/qClip-Setup-win-x64.exe`
@@ -71,13 +75,38 @@ Or open the [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases
 
 ---
 
-## Docker install (Windows and Mac)
+## macOS installer (no Docker)
 
-Pick your platform below.
+**Product path for Mac creators:** the Apple Silicon **`.dmg`**. You do **not** need Docker,
+Xcode, Node, or Python.
+
+1. Get **`qClip-mac-arm64.dmg`** from your invite kit (`installers/`), Lemon Squeezy, or operator link
+2. Open the DMG and drag **qClip** to **Applications**
+3. First launch (unsigned beta): Finder → **Applications** → **right-click qClip → Open** → **Open**
+   - Gatekeeper may warn until the build is Developer ID–signed and notarized — that is expected for unsigned beta
+4. Sign up or log in, then paste your license key in **Settings → License**
+
+**Requirements:** macOS 12+, Apple Silicon (M1/M2/M3/M4). Intel Mac `.dmg` is not shipped yet.
+
+**If the DMG is not in your kit yet:** ask your invite contact for the latest `qClip-mac-arm64.dmg`,
+or use Docker below as a temporary operator fallback — not the preferred creator path.
+
+### For collaborators / builders
+
+Builders produce the DMG on a Mac with:
+
+```bash
+./scripts/build_desktop_installer_macos.sh
+```
+
+Details: [macOS installer — builder notes](MACOS_INSTALLER.md) · [packaging/installer/MACOS.md](../packaging/installer/MACOS.md).
 
 ---
 
-## Choose your platform
+## Docker install (optional — operators)
+
+Docker is **optional**. Prefer the Windows `.exe` or macOS `.dmg` for day-to-day beta use.
+Use Docker when you want the full compose stack (API + workers + web) for operator verify.
 
 === "Windows"
 
@@ -90,15 +119,11 @@ Pick your platform below.
 
     ### Step 1 — Get the beta package
 
-    You should have received a `.zip` or a private repo link in your invite email. If you haven't:
-
-    - Check spam for an email from Wellium
-    - Reply to your invite email and ask for the download link
+    You should have received a `.zip` or a private repo link in your invite email.
 
     ### Step 2 — Extract and set up
 
     ```powershell
-    # Extract the beta zip to a folder, then:
     cd streamclip
     Copy-Item .env.example .env
     ```
@@ -117,8 +142,6 @@ Pick your platform below.
     .\scripts\verify_stack.ps1
     ```
 
-    This should exit with **all checks green**. If not, do not create jobs yet — post your output in the beta channel from your invite email.
-
     Or open:
 
     - **App:** [http://localhost:3000](http://localhost:3000)
@@ -128,70 +151,32 @@ Pick your platform below.
 
     ### Requirements
 
-    - **macOS 12+** (Apple Silicon M1/M2/M3/M4 preferred; Intel Mac works)
-    - **Docker Desktop for Mac** — [download](https://www.docker.com/products/docker-desktop/) (pick **Apple Silicon** or **Intel** to match your Mac)
+    - **macOS 12+** (Apple Silicon preferred)
+    - **Docker Desktop for Mac** — only if you choose this operator path
     - **16 GB RAM** minimum (32 GB recommended)
-    - **~20 GB free disk** for images + first-run models
-    - **No NVIDIA GPU on Mac** — clips run on CPU (slower). That is expected and supported.
 
-    **You do not need:** an Apple Developer account, Xcode (full app), Node, Python, or a paid Mac App Store anything — only Docker Desktop.
-
-    ### Step 1 — Install Docker Desktop
-
-    1. Download Docker Desktop for Mac from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
-    2. Open the `.dmg`, drag **Docker** to Applications, launch it
-    3. Complete first-run setup and wait until the menu-bar whale shows **Docker Desktop is running**
-    4. (Apple Silicon) Prefer the **Apple Silicon** build — Rosetta-only Intel images are slower
-
-    ### Step 2 — Get the beta package
-
-    Same as Windows: `.zip` or private repo link from your invite email.
-
-    ```bash
-    # ZIP: unzip, then:
-    cd ~/Downloads/streamclip   # or wherever you extracted
-
-    # Or clone if your invite included a repo URL:
-    # git clone <LINK_FROM_INVITE> streamclip && cd streamclip
-    ```
-
-    ### Step 3 — Configure
+    Prefer the **`.dmg`** above unless you specifically need compose.
 
     ```bash
     cp .env.example .env
-    ```
-
-    Defaults work for local beta — no API keys required to start.
-
-    ### Step 4 — Start qClip
-
-    ```bash
     docker compose up -d
-    ```
-
-    First run downloads images (~2–5 GB). Allow 5–15 minutes. Later starts take about a minute.
-
-    ### Step 5 — Verify it's running
-
-    PowerShell verify script is optional on Mac. Use these checks:
-
-    ```bash
     docker compose ps
     curl -s http://localhost:8000/api/health
     open http://localhost:3000
     ```
 
-    You want containers **healthy** / **running**, health JSON with an OK-style status, and the qClip UI in the browser.
-
-    Optional (if you installed [PowerShell Core](https://github.com/PowerShell/PowerShell)):
-
-    ```bash
-    pwsh -File ./scripts/verify_stack.ps1
-    ```
-
 ---
 
 ## After install
+
+### Desktop installer (Windows `.exe` or macOS `.dmg`)
+
+1. Open **qClip** (Start menu / Applications)
+2. Complete first-run onboarding if prompted
+3. Go to **Settings → License** and paste your invite key
+4. Confirm activation before starting a job
+
+Engine + UI listen on `http://127.0.0.1:8765` (desktop sidecar).
 
 ### Docker path
 
@@ -200,13 +185,6 @@ Pick your platform below.
 3. Go to **Settings → License**
 4. Paste the license key from your invite email
 5. Confirm — beta keys unlock **full access**
-
-### Windows installer (no Docker)
-
-1. Open **qClip** from the Start menu (engine + UI on `http://127.0.0.1:8765`)
-2. Complete first-run onboarding if prompted
-3. Go to **Settings → License** and paste your invite key
-4. Confirm activation before starting a job
 
 ### Create your first clip
 
@@ -220,7 +198,8 @@ Pick your platform below.
 | Setup | ~1-hour VOD |
 |-------|-------------|
 | Windows + NVIDIA GPU | ~20–25 minutes |
-| Windows / Mac CPU-only | ~60–90+ minutes |
+| Windows / Mac CPU-only (desktop or Docker) | ~60–90+ minutes |
+| Mac desktop (Apple Silicon / VideoToolbox) | Faster than pure CPU when VT is available |
 
 ### Publish to YouTube Shorts (optional)
 
@@ -233,32 +212,21 @@ Pick your platform below.
 
 ### Stop qClip
 
-=== "Windows"
-
-    ```powershell
-    docker compose down
-    ```
-
-=== "macOS"
-
-    ```bash
-    docker compose down
-    ```
-
-Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you want to wipe everything.
+- **Desktop:** quit the app (sidecar stops with the window/tray).
+- **Docker:** `docker compose down` (add `-v` only to wipe volumes).
 
 ---
 
 ## System requirements
 
-| | Windows | macOS |
-|-|---------|-------|
-| OS | Windows 10/11 64-bit | macOS 12+ |
-| Runtime | Docker Desktop (WSL2) | Docker Desktop for Mac |
-| RAM | 16 GB min / 32 GB recommended | Same |
-| Disk | 10 GB+ free (20 GB SSD better) | 20 GB+ free recommended |
-| GPU | NVIDIA + NVENC recommended | CPU only (no NVENC) |
-| Accounts | None to install | None to install |
+| | Windows desktop | macOS desktop | Docker (optional) |
+|-|-----------------|---------------|-------------------|
+| OS | Windows 10/11 64-bit | macOS 12+ Apple Silicon | Same OS + Docker Desktop |
+| Artifact | `qClip-Setup-win-x64.exe` | `qClip-mac-arm64.dmg` | compose stack |
+| RAM | 16 GB min / 32 GB recommended | Same | Same |
+| Disk | 10 GB+ free | 15 GB+ free | 20 GB+ free |
+| GPU | NVIDIA + NVENC recommended | VideoToolbox / CPU | NVIDIA on Windows; CPU on Mac |
+| Accounts | License key | License key; right-click Open if unsigned | License key |
 
 ---
 
@@ -266,14 +234,12 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 
 | Problem | Fix |
 |---------|-----|
-| App won't load at localhost:3000 | Wait 60 s after `docker compose up -d`; run `docker compose ps` — all services should be up |
-| `docker compose` not found | Install/update Docker Desktop and ensure it is **running** |
-| Mac: Docker is slow / fans loud | Give Docker more CPUs/RAM (Docker Desktop → Settings → Resources). Prefer Apple Silicon build on M-series |
-| Very slow clips on Windows | Enable GPU in Docker Desktop → Settings → Resources → GPU |
-| Very slow clips on Mac | Expected without NVIDIA — use shorter source videos for beta |
-| License key not accepted | Paste the full key including dashes; under **Settings → License**, use **Show details** on **This install** if support asks |
-| Windows: `verify_stack.ps1` fails | Post the full output in the beta channel — include GPU model |
-| Mac: `curl` health fails | Confirm API container is running: `docker compose logs api --tail 50` |
+| Mac: “app can’t be opened” / Gatekeeper | **Right-click → Open** (unsigned beta). Notarized builds won’t need this |
+| Windows: “Windows protected your PC” | **More info → Run anyway** |
+| App won’t load (Docker) | Wait 60 s after `docker compose up -d`; run `docker compose ps` |
+| License key not accepted | Paste the full key including dashes; **Settings → License → Show details** if support asks |
+| Very slow clips on Mac | Expected without NVIDIA; prefer shorter sources for beta; desktop VT helps when available |
+| Missing `qClip-mac-arm64.dmg` in kit | Ask invite contact; builders see [MACOS_INSTALLER.md](MACOS_INSTALLER.md) |
 
 ---
 
@@ -287,15 +253,12 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | `qClip-Setup-win-x64.exe` | ✅ **v1.0.0-beta.5** — distribute via invite kit / Lemon Squeezy / Drive; unsigned; SmartScreen → More info → Run anyway |
-| macOS | `qClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
+| Windows | `qClip-Setup-win-x64.exe` | ✅ **v1.0.0-beta.5** — invite kit / Lemon Squeezy / Drive; unsigned; SmartScreen → More info → Run anyway |
+| macOS | `qClip-mac-arm64.dmg` | ✅ **Product path** — Apple Silicon DMG; unsigned beta → right-click → Open; builders: [MACOS_INSTALLER.md](MACOS_INSTALLER.md) |
 
 **Collaborator release page:** [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5) (GitHub auth required)
 
-Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
-### For friends helping build the macOS `.dmg` (not required for beta use)
-
-See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users should **not** need that path yet — use Docker above.
+Desktop installers are the creator path. Docker remains available for operator / full-stack verify.
 
 ---
 

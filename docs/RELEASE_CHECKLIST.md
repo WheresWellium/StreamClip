@@ -3,14 +3,16 @@
 Run before expanding beta cohort or tagging a new desktop release. Companion: `packaging/installer/RELEASE_CHECKLIST.md`, `docs/BETA_GO_LIVE.md`.  
 **Human smoke:** [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md) · boot budgets: [DESKTOP_STARTUP.md](DESKTOP_STARTUP.md).
 
+**Product gate is desktop-first:** Windows `.exe` + macOS `.dmg` are required. Docker/`verify_stack` is an optional operator path, not a beta blocker.
+
 ## Engineering gates
 
-- [ ] `.\scripts\verify_coverage.ps1` — ≥95% line on `backend` + `core` (`-m "not desktop"`) *(host Docker; PR coverage job is green)*
-- [ ] `.\scripts\verify_stack.ps1` — Docker stack healthy (do **not** wrap with `Tee-Object`)
+- [ ] `.\scripts\verify_coverage.ps1` — ≥95% line on `backend` + `core` (`-m "not desktop"`) *(host Docker or CI; PR coverage job is green)*
+- [ ] *(optional)* `.\scripts\verify_stack.ps1` — Docker compose healthy for self-host operators (do **not** wrap with `Tee-Object`)
 - [x] PR CI green: coverage, e2e, desktop-smoke (PR #7)
 - [x] Alembic head applied in agent/dev env (`0013_license_capabilities`); re-run on each prod host
 
-## Desktop Windows
+## Desktop Windows (required)
 
 - [x] `apps/desktop/package.json` version matches tag (`1.0.0-beta.5` / `v1.0.0-beta.5`)
 - [x] Artifact name `qClip-Setup-win-x64.exe` + `latest.yml` on GitHub Release
@@ -20,7 +22,7 @@ Run before expanding beta cohort or tagging a new desktop release. Companion: `p
 - [ ] EV Authenticode signing for production-quality SmartScreen reputation
 - [ ] Logs verified on host: `%LOCALAPPDATA%\qClip\logs\` (`sidecar.log`, `electron.log`)
 
-## Desktop macOS
+## Desktop macOS (required)
 
 - [ ] DMG built on Apple Silicon host (`./scripts/build_desktop_installer_macos.sh`)
 - [ ] Notarization / Developer ID when distributing outside local builds
@@ -42,9 +44,9 @@ Run before expanding beta cohort or tagging a new desktop release. Companion: `p
 
 ## Go / no-go
 
-**GO** only if engineering gates + Windows human smoke pass and download path works for testers.  
-**CONDITIONAL GO** if Docker path is solid but desktop unsigned / private-download friction remains (document in invite email).  
-**NO-GO** if coverage/stack red, license activate broken, or installer missing.
+**GO** only if Windows `.exe` + macOS `.dmg` artifacts exist, Windows human smoke passes, and the download path works for testers.  
+**CONDITIONAL GO** if desktop unsigned / private-download friction remains or macOS DMG is local-only (document in invite email). Docker stack health is optional.  
+**NO-GO** if coverage red, license activate broken, or Windows/macOS installer missing.
 
 ---
 
@@ -54,4 +56,4 @@ Run before expanding beta cohort or tagging a new desktop release. Companion: `p
 |-------|-------|
 | Date | 2026-07-28 |
 | Verdict | **CONDITIONAL GO** |
-| Notes | Polish pass: desktop `logs/sidecar.log`+`electron.log`, pipeline claim/idempotency, invite `-IncludeInstaller`, brand/API/email qClip, henna live. Still open: Windows Explorer human smoke, EV signing, macOS notarization, Docker `verify_stack` on clean VM, LS prod secrets. |
+| Notes | Desktop-first gate: win exe shipped (beta.5); macOS DMG build path ready (host must produce artifact). Open: Windows Explorer smoke, EV signing, notarization, LS prod secrets. Docker `verify_stack` optional for operators. |

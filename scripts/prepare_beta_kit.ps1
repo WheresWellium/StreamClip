@@ -142,20 +142,44 @@ Use Mode=Source (default) or clone https://github.com/WheresWellium/StreamClip
 $installerNote = ""
 if ($IncludeInstaller) {
     $null = Resolve-WindowsInstaller -StageDir $stage -PreferredTag $Tag
+    $macDmgName = "qClip-mac-arm64.dmg"
+    $macLocal = Join-Path $root "apps/desktop/release/$macDmgName"
+    $macDestDir = Join-Path $stage "installers"
+    $macNote = ""
+    if (Test-Path $macLocal) {
+        Copy-Item $macLocal (Join-Path $macDestDir $macDmgName) -Force
+        Write-Host "Included macOS DMG from local release build: $macLocal"
+        $macNote = @"
+
+macOS installer (Apple Silicon, no Docker)
+------------------------------------------
+This kit includes: installers/qClip-mac-arm64.dmg
+
+1. Open installers/qClip-mac-arm64.dmg and drag qClip to Applications
+2. If Gatekeeper blocks: right-click qClip.app → Open → Open
+3. Paste your license key under Settings → License
+"@
+    } else {
+        Write-Host "NOTE: macOS DMG not found at $macLocal — kit ships Windows installer only. Build on Apple Silicon: ./scripts/build_desktop_installer_macos.sh" -ForegroundColor Yellow
+        $macNote = @"
+
+macOS DMG: not included in this kit (build on Apple Silicon when ready).
+"@
+    }
     $installerNote = @"
 
-Windows installer (no Docker)
------------------------------
-This kit includes: installers/qClip-Setup-win-x64.exe
+Desktop installers (no Docker)
+------------------------------
+Windows: installers/qClip-Setup-win-x64.exe
 
 1. Run installers\qClip-Setup-win-x64.exe
 2. If Windows shows "Windows protected your PC" (SmartScreen): click More info → Run anyway
    (Unsigned beta builds trigger this; it does not mean the file is malware.)
 3. Open qClip from the Start menu and paste your license key under Settings → License
-
+$macNote
 Note: GitHub anonymous download URLs for this private repo return 404.
 Testers should use this kit zip (or Lemon Squeezy / operator Drive link), not the raw GitHub release URL.
-Collaborators with repo access can use: gh release download v1.0.0-beta.5 -R WheresWellium/StreamClip -p qClip-Setup-win-x64.exe
+Collaborators: gh release download v1.0.0-beta.5 -R WheresWellium/StreamClip -p "qClip-*"
 "@
 }
 

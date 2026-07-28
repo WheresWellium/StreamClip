@@ -32,9 +32,9 @@ function countTerminal(models: Record<string, { state: string }>): number {
 /**
  * First-run model download progress (desktop profile, MASTER_TODO §4.8).
  *
- * Polls /api/health/models until models are warm. On Docker (empty models +
- * ready) the banner stays hidden. Retries when the sidecar is still booting
- * instead of giving up on the first failed fetch.
+ * Polls /api/health/models until models are warm. When the models map is empty
+ * (already warm or prefetch disabled) the banner stays hidden. Retries when
+ * the sidecar is still booting instead of giving up on the first failed fetch.
  */
 export function ModelWarmupBanner() {
   const [status, setStatus] = useState<ModelsHealthResponse | null>(null);
@@ -53,7 +53,7 @@ export function ModelWarmupBanner() {
 
         const entries = Object.entries(res.models);
         if (entries.length === 0) {
-          // Docker / no prefetch — nothing to show.
+          // Models already warm or prefetch disabled — nothing to show.
           setPhase("hidden");
           return;
         }

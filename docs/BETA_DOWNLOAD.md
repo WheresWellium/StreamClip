@@ -204,7 +204,7 @@ The sections below are for **operators and developers** who prefer the full Dock
 3. Paste the license key from your invite email
 4. Confirm — beta keys unlock **full access**
 
-Manual cohort keys on **beta.5** may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-2--activate-your-license-key). **beta.6+** seeds keys at install.
+Manual cohort keys on **beta.5** may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-2-activate-your-license-key). **beta.6+** seeds keys at install.
 
 #### Stop qClip
 

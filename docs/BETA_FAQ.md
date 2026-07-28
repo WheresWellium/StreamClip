@@ -19,7 +19,7 @@ The one-click `.dmg` is **not a public download yet**. Mac beta uses **Docker se
 1. Install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/) (Apple Silicon or Intel).
 2. Clone or download the repo (reply to your invite email if you need a link).
 3. From the repo: `cp .env.example .env` then `docker compose up -d`.
-4. Open [http://localhost:3000](http://localhost:3000), import your SCPRO key once (see [quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker--step-5-activate-your-license-key)), then paste it in **Settings → License**.
+4. Open [http://localhost:3000](http://localhost:3000), import your SCPRO key once (see [quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker-step-5-activate-your-license-key)), then paste it in **Settings → License**.
 
 Clips run **CPU-only** on Mac — slower than GPU Windows Docker; try shorter sources. Full steps: [Get qClip](BETA_DOWNLOAD.md#advanced-docker-self-host-operators) (macOS tab).
 

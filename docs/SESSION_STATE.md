@@ -16,7 +16,7 @@ Agent-owned Phase 0 work is **done** and pushed. PR #9 awaiting review/merge. Re
 ## Blockers (human-only — cannot automate)
 
 - O12 — merge/publish desktop → `1.0.0-beta.5` when ready.
-- O6 — send invite pack.
+- ~~O6~~ ✅ BETA TEST INFO sent 8/8 (2026-07-28, Resend) — all cohort keys `admin` tier.
 - ~~O7~~ ✅ SMTP-only alerting verified live.
 - O5 — fill on-call `<…_NAME>` tokens.
 - O4 — run `capture_phase0_evidence.ps1` during live cohort windows.
@@ -28,6 +28,7 @@ Agent-owned Phase 0 work is **done** and pushed. PR #9 awaiting review/merge. Re
 ## Validation
 
 - Licensing blocklist ✅ · SMTP alerting live PASS · ops delivery fallback ✅
+- Cohort invites: 8/8 sent, per-recipient key+name verified; all 8 `install_licenses` rows `admin`, unrevoked
 - **UI e2e 23/23** — journey + failure-paths + onboarding
 - Commits on branch: `d4f9342`, `f970471`
 

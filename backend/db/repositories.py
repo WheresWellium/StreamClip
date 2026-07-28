@@ -664,11 +664,19 @@ class DeviceRepository:
     async def get_or_create(self, device_id: str) -> LocalDevice:
         device_id = normalize_device_id(device_id)
         device = await self.db.get(LocalDevice, device_id)
+        now = datetime.now(timezone.utc)
         if device is None:
-            device = LocalDevice(id=device_id)
+            # Explicit timestamps: desktop SQLite schemas may still carry
+            # Postgres-style DEFAULT (now()) until migration 0013 runs.
+            device = LocalDevice(
+                id=device_id,
+                created_at=now,
+                updated_at=now,
+                last_seen_at=now,
+            )
             self.db.add(device)
             await self.db.flush()
-        device.last_seen_at = datetime.now(timezone.utc)
+        device.last_seen_at = now
         await self.db.flush()
         return device
 

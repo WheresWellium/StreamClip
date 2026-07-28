@@ -1,0 +1,508 @@
+/* Cinematic boot loader — midnight terminal / brutalist frame.
+   Motions (3): entrance, cover drift, exit.
+   Transform/opacity only; respects reduced-motion. */
+
+.sc-loading {
+  --sc-load-accent: hsl(199 89% 48%);
+  --sc-load-progress: hsl(199 89% 58%);
+  --sc-load-overlay: hsl(186 48% 5%);
+  --sc-load-overlay-opacity: 0.74;
+  --sc-load-entrance: 680ms;
+  --sc-load-exit: 420ms;
+  --sc-load-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+  background: hsl(186 42% 6%);
+  color: hsl(180 12% 94%);
+  isolation: isolate;
+  pointer-events: auto;
+  contain: layout paint style;
+  /* Avoid paint thrash under the shell while the app mounts behind. */
+  backface-visibility: hidden;
+}
+
+.sc-loading--center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.sc-loading__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: scale(1.04);
+  animation: sc-load-push-in var(--sc-load-entrance) var(--sc-load-ease) both;
+}
+
+.sc-loading__cover {
+  position: absolute;
+  inset: 0;
+  background-color: hsl(186 42% 7%);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: var(--sc-load-focal, 50% 42%);
+  transform: scale(1.03) translateZ(0);
+  animation: sc-load-drift 36s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.sc-loading__cover--fallback {
+  background-image:
+    radial-gradient(ellipse 80% 55% at 50% 42%, hsl(199 89% 40% / 0.28), transparent 70%),
+    linear-gradient(180deg, hsl(186 42% 10%) 0%, hsl(186 48% 5%) 55%, hsl(186 50% 3%) 100%);
+}
+
+.sc-loading__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sc-load-overlay) calc(var(--sc-load-overlay-opacity) * 48%), transparent) 0%,
+      color-mix(in srgb, var(--sc-load-overlay) calc(var(--sc-load-overlay-opacity) * 28%), transparent) 38%,
+      color-mix(in srgb, var(--sc-load-overlay) calc(var(--sc-load-overlay-opacity) * 94%), transparent) 100%
+    );
+}
+
+.sc-loading__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 40%,
+    transparent 0%,
+    hsl(186 50% 2% / 0.58) 100%
+  );
+}
+
+/* Static film grain — no flicker animation (perf + design language). */
+.sc-loading__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* Sharp frame wash — hard offset, no soft glow blur. */
+.sc-loading__glow {
+  position: absolute;
+  left: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(5.5rem, 18vh, 9rem);
+  width: min(42vw, 360px);
+  height: min(22vw, 160px);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 20% 80%,
+    color-mix(in srgb, var(--sc-load-accent) 18%, transparent),
+    transparent 68%
+  );
+  opacity: 0.85;
+}
+
+.sc-loading--center .sc-loading__glow {
+  left: 50%;
+  bottom: 30%;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--sc-load-accent) 16%, transparent),
+    transparent 70%
+  );
+}
+
+.sc-loading__content {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 36rem);
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  padding-bottom: clamp(2rem, 7vh, 4.5rem);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: sc-load-fade-up var(--sc-load-entrance) var(--sc-load-ease) 70ms both;
+}
+
+.sc-loading--center .sc-loading__content {
+  padding-bottom: clamp(1.5rem, 5vh, 3rem);
+}
+
+.sc-loading__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1.65rem;
+  max-width: 22rem;
+}
+
+.sc-loading--center .sc-loading__brand {
+  align-items: center;
+}
+
+.sc-loading__mark {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--sc-load-accent);
+  color: var(--sc-load-accent);
+  background: hsl(186 42% 6% / 0.55);
+  /* Match app chrome: hard offset, not soft bloom */
+  box-shadow: 2px 2px 0 0 hsl(186 60% 3% / 0.9);
+  margin-bottom: 0.35rem;
+}
+
+.sc-loading__logo {
+  height: 1.75rem;
+  width: auto;
+  margin-bottom: 0.2rem;
+  object-fit: contain;
+}
+
+.sc-loading__title {
+  margin: 0;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(2.15rem, 5.8vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  color: hsl(180 12% 97%);
+  text-shadow: 0 1px 0 hsl(186 50% 2% / 0.45);
+  /* Brand-first: title must dominate status/tips. */
+  text-wrap: balance;
+}
+
+.sc-loading__subtitle {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(199 70% 72%);
+}
+
+.sc-loading__status-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 22rem;
+}
+
+.sc-loading--center .sc-loading__status-row {
+  margin-inline: auto;
+  align-items: center;
+}
+
+.sc-loading--center .sc-loading__progress {
+  margin-inline: auto;
+}
+
+.sc-loading__status {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(180 12% 88%);
+}
+
+.sc-loading--timeout .sc-loading__status {
+  color: hsl(199 89% 68%);
+}
+
+.sc-loading__ellipsis::after {
+  content: "";
+  display: inline-block;
+  width: 1.25em;
+  text-align: left;
+  animation: sc-load-ellipsis 1.4s steps(4, end) infinite;
+}
+
+.sc-loading__tip {
+  margin: 0;
+  min-height: 1.35em;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: hsl(184 10% 62%);
+  transition: opacity 240ms ease;
+}
+
+.sc-loading__tip--swap {
+  opacity: 0;
+}
+
+.sc-loading__progress {
+  width: 100%;
+  max-width: 22rem;
+  margin-top: 0.75rem;
+}
+
+.sc-loading__progress-track {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  overflow: hidden;
+  background: hsl(var(--frame, 0 0% 100%) / 0.14);
+  border: 1px solid hsl(var(--frame, 0 0% 100%) / 0.12);
+  box-sizing: content-box;
+}
+
+.sc-loading__progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--sc-load-progress-width, 0%);
+  max-width: 100%;
+  background: var(--sc-load-progress);
+  /* Hard edge — brutalist chrome, not glow bloom */
+  box-shadow: 2px 0 0 0 color-mix(in srgb, var(--sc-load-progress) 35%, transparent);
+  transition: width 380ms var(--sc-load-ease);
+  transform: translateZ(0);
+}
+
+.sc-loading--timeout .sc-loading__progress-fill {
+  background: hsl(199 89% 68%);
+}
+
+.sc-loading__progress--indeterminate .sc-loading__progress-fill {
+  width: 28%;
+  animation: sc-load-indeterminate 1.85s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sc-loading__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Exit */
+.sc-loading--exiting {
+  pointer-events: none;
+  animation: sc-load-exit var(--sc-load-exit) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.sc-loading--exiting .sc-loading__stage {
+  animation: sc-load-exit-stage var(--sc-load-exit) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.sc-loading--exiting .sc-loading__content {
+  animation: sc-load-exit-content calc(var(--sc-load-exit) * 0.85) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Variants */
+.sc-loading--minimal .sc-loading__grain,
+.sc-loading--minimal .sc-loading__glow {
+  display: none;
+}
+
+.sc-loading--minimal .sc-loading__stage {
+  transform: none;
+  animation: none;
+  opacity: 1;
+}
+
+.sc-loading--minimal .sc-loading__cover {
+  animation: none;
+}
+
+.sc-loading--terminal .sc-loading__grain {
+  opacity: 0.03;
+}
+
+.sc-loading--terminal .sc-loading__title {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sc-loading--terminal .sc-loading__subtitle {
+  color: hsl(184 14% 68%);
+}
+
+.sc-loading--reduced .sc-loading__stage,
+.sc-loading--reduced .sc-loading__cover,
+.sc-loading--reduced .sc-loading__content,
+.sc-loading--reduced .sc-loading__ellipsis::after,
+.sc-loading--reduced .sc-loading__progress--indeterminate .sc-loading__progress-fill {
+  animation: none !important;
+}
+
+.sc-loading--reduced .sc-loading__cover {
+  will-change: auto;
+}
+
+.sc-loading--reduced .sc-loading__stage,
+.sc-loading--reduced .sc-loading__content {
+  opacity: 1;
+  transform: none;
+}
+
+.sc-loading--reduced .sc-loading__tip {
+  transition: none;
+}
+
+.sc-loading--reduced .sc-loading__progress-fill {
+  transition: none;
+}
+
+.sc-loading--reduced.sc-loading--exiting {
+  animation: sc-load-exit var(--sc-load-exit) linear forwards;
+}
+
+.sc-loading--exiting .sc-loading__cover {
+  will-change: auto;
+}
+
+@keyframes sc-load-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sc-load-push-in {
+  from {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes sc-load-drift {
+  from {
+    transform: scale(1.03) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-0.9%, -0.45%, 0);
+  }
+}
+
+@keyframes sc-load-ellipsis {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75%,
+  100% {
+    content: "...";
+  }
+}
+
+@keyframes sc-load-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes sc-load-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sc-load-exit-stage {
+  from {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+@keyframes sc-load-exit-content {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (max-width: 640px) {
+  .sc-loading {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
+  .sc-loading__content {
+    width: 100%;
+  }
+
+  .sc-loading__grain {
+    opacity: 0.03;
+  }
+
+  .sc-loading__title {
+    font-size: clamp(1.85rem, 9vw, 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__stage,
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__cover,
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__content,
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__ellipsis::after,
+  .sc-loading:not(.sc-loading--force-motion)
+    .sc-loading__progress--indeterminate
+    .sc-loading__progress-fill {
+    animation: none !important;
+  }
+
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__stage,
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__content {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__progress-fill,
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__tip {
+    transition: none;
+  }
+
+  .sc-loading:not(.sc-loading--force-motion) .sc-loading__cover {
+    will-change: auto;
+  }
+
+  .sc-loading:not(.sc-loading--force-motion).sc-loading--exiting {
+    animation: sc-load-exit 140ms linear forwards;
+  }
+}

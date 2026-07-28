@@ -244,7 +244,7 @@ export function VaultDestinationsDrawer({ clip, open, onClose }: Props) {
                     {platform === "tiktok" && (
                       <HelpTip
                         label="TikTok schedule help"
-                        content="TikTok has no native schedule API in v1 — Jet Stream posts at this time."
+                        content="TikTok has no native schedule API in v1 — qClip posts at this time."
                       />
                     )}
                   </div>

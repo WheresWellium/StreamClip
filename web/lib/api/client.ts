@@ -456,6 +456,27 @@ export type LicenseActivateResult = {
   entitlement_jwt: string;
 };
 
+export type LicenseActivation = {
+  machine_id: string;
+  activated_at: string;
+  last_seen_at: string;
+  is_current: boolean;
+};
+
+export type LicenseActivationsResult = {
+  activations: LicenseActivation[];
+  max_activations: number;
+  active_count: number;
+  tier: string;
+};
+
+export type LicenseReleaseResult = {
+  released_machine_id: string;
+  active_count: number;
+  max_activations: number;
+  current_device_released: boolean;
+};
+
 export const licenseApi = {
   status: (machineId: string, authToken?: string) =>
     request<LicenseStatus>(
@@ -467,6 +488,30 @@ export const licenseApi = {
     request<LicenseActivateResult>("/api/license/activate", {
       method: "POST",
       body: JSON.stringify({ license_key: licenseKey, machine_id: machineId }),
+      authToken,
+    }),
+
+  activations: (licenseKey: string, machineId: string, authToken?: string) =>
+    request<LicenseActivationsResult>("/api/license/activations", {
+      method: "POST",
+      body: JSON.stringify({ license_key: licenseKey, machine_id: machineId }),
+      authToken,
+      cache: "no-store",
+    }),
+
+  releaseActivation: (
+    licenseKey: string,
+    machineId: string,
+    targetMachineId: string,
+    authToken?: string,
+  ) =>
+    request<LicenseReleaseResult>("/api/license/activations/release", {
+      method: "POST",
+      body: JSON.stringify({
+        license_key: licenseKey,
+        machine_id: machineId,
+        target_machine_id: targetMachineId,
+      }),
       authToken,
     }),
 };

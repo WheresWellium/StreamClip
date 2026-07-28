@@ -1,7 +1,9 @@
 # StreamClip — Beta Known Issues
 
 **Audience:** Phase 0–2 beta testers · **Owner:** core team  
-**Update:** when shipping a beta wave or closing a blocker
+**Last updated:** 2026-07-27  
+**Update:** when shipping a beta wave or closing a blocker  
+**Go-live / exit:** [`BETA_GO_LIVE.md`](BETA_GO_LIVE.md) · evidence pack [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md)
 
 ---
 

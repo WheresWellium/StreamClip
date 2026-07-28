@@ -1,9 +1,14 @@
 # Toggle electron-builder Windows signing in apps/desktop/package.json.
+# Canonical runbook: docs/DESKTOP_SIGNING.md
 # When CSC_* is set, enables win.signAndEditExecutable for production releases.
 # Uses Node to patch JSON so PowerShell ConvertTo-Json cannot corrupt "&&" in scripts.
+#
+#   .\scripts\enable_electron_signing.ps1 -Mode Auto
+#   .\scripts\enable_electron_signing.ps1 -Mode Auto -DryRun   # no package.json write
 param(
     [ValidateSet("Enable", "Disable", "Auto")]
-    [string]$Mode = "Auto"
+    [string]$Mode = "Auto",
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,6 +24,20 @@ $enable = switch ($Mode) {
     "Enable" { $true }
     "Disable" { $false }
     "Auto" { $signingConfigured }
+}
+
+$current = node --input-type=commonjs -e "const p=require(process.argv[1]); process.stdout.write(String(!!(p.build&&p.build.win&&p.build.win.signAndEditExecutable)));" -- $pkgPath
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+if ($DryRun) {
+    Write-Host "=== enable_electron_signing dry-run ===" -ForegroundColor Cyan
+    Write-Host ("Mode:                      {0}" -f $Mode)
+    Write-Host ("CSC_* configured:          {0}" -f $signingConfigured)
+    Write-Host ("Current signAndEditExecutable: {0}" -f $current)
+    Write-Host ("Would set signAndEditExecutable: {0}" -f $(if ($enable) { "true" } else { "false" }))
+    Write-Host ("Would set CSC_IDENTITY_AUTO_DISCOVERY: {0}" -f $(if ($enable) { "true" } else { "false" }))
+    Write-Host "Dry-run complete (package.json not modified)." -ForegroundColor Green
+    exit 0
 }
 
 $enableJson = if ($enable) { "true" } else { "false" }

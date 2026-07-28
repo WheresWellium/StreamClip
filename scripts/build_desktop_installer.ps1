@@ -2,6 +2,10 @@
 #
 # Pipeline: static UI -> PyInstaller sidecar -> stage -> electron-builder (NSIS).
 # Code signing (optional): set CSC_LINK (path to .pfx) and CSC_KEY_PASSWORD.
+# Canonical signing runbook: docs/DESKTOP_SIGNING.md
+#   Unsigned beta: leave CSC_* unset (default; SmartScreen caveat)
+#   Signed EV:     set CSC_* + STREAMCLIP_REQUIRE_SIGNED_INSTALLER=1
+#   Preflight only: .\scripts\verify_desktop_signing_ready.ps1 -DryRun
 #
 # Usage:
 #   .\scripts\build_desktop_installer.ps1
@@ -101,7 +105,7 @@ $distOk = $LASTEXITCODE -eq 0
 Pop-Location
 if (-not $distOk) { exit $LASTEXITCODE }
 
-$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "StreamClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
+$setup = Get-ChildItem (Join-Path $desktopDir "release") -Filter "qClip-Setup-win-x64.exe" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 if (-not $setup) {

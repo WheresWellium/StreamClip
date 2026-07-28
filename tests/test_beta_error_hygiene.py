@@ -35,7 +35,9 @@ def test_clip_failure_message_never_leaks_raw_exception():
 
 @pytest.mark.asyncio
 async def test_global_500_handler_hides_traceback_in_production(monkeypatch):
+    # Production rejects weak AUTH secrets (GAP O8) — use a strong test key.
     monkeypatch.setenv("STREAMCLIP_ENVIRONMENT", "production")
+    monkeypatch.setenv("STREAMCLIP_AUTH__SECRET_KEY", "a" * 64)
     import core.config as config_module
     from core.config import get_settings
 
@@ -59,8 +61,17 @@ async def test_global_500_handler_hides_traceback_in_production(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_http_exception_sanitizes_internal_detail(monkeypatch):
+    # Production rejects weak AUTH secrets (GAP O8) — use a strong test key and
+    # force a settings reload so create_app() does not reuse a cached env.
+    # Do not set STREAMCLIP_CONFIG=desktop.yaml: that mounts the SPA catch-all
+    # which intercepts routes registered after create_app().
     monkeypatch.setenv("STREAMCLIP_ENVIRONMENT", "production")
-    monkeypatch.setenv("STREAMCLIP_CONFIG", "config/desktop.yaml")
+    monkeypatch.setenv("STREAMCLIP_AUTH__SECRET_KEY", "a" * 64)
+    import core.config as config_module
+    from core.config import get_settings
+
+    config_module._settings = None
+    get_settings(reload=True)
     app = create_app()
 
     @app.get("/api/_test/http-bad")

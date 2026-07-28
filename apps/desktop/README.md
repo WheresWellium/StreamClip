@@ -81,7 +81,7 @@ The `desktop-release.yml` workflow handles the full build and release pipeline:
 2. Installs Python ML deps (`requirements-desktop.txt`)
 3. Installs Node deps for `web/` and `apps/desktop/`
 4. Runs `scripts/build_desktop_installer.ps1` (UI export → PyInstaller → electron-builder NSIS)
-5. Uploads `StreamClip-Setup-win-x64.exe` + `latest.yml` via `softprops/action-gh-release`
+5. Uploads `qClip-Setup-win-x64.exe` + `latest.yml` via `softprops/action-gh-release`
 
 `npm run dist` uses `--publish never` so electron-builder never tries to push to GitHub
 independently. All GitHub Release uploads go through the dedicated workflow step using

@@ -9,8 +9,8 @@ Self-hosted AI clip pipeline: Next.js → FastAPI → Celery → Redis → Postg
 1. Install Docker Engine and Docker Compose v2.
 2. Clone the repo and copy `.env.example` values into `docker-compose.yml` environment blocks (or use an `.env` file).
 3. Set production secrets:
-   - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH__SECRET_KEY`
-   - **`STREAMCLIP_AUTH__SECRET_KEY`** — **required** — generate with `openssl rand -hex 32`. Using the default value (`CHANGE_ME_IN_PRODUCTION`) logs a `SECURITY_WARNING` at startup and signs both auth and entitlement JWTs with a well-known key.
+   - `POSTGRES_PASSWORD`, MinIO keys, `STREAMCLIP_AUTH_SECRET_KEY` in `.env.production` (`docker-compose.prod.yml` maps it to `STREAMCLIP_AUTH__SECRET_KEY`)
+   - **`STREAMCLIP_AUTH__SECRET_KEY`** — **required by the app** — generate with `openssl rand -hex 32`. Missing, placeholder, or short values fail startup in `staging` / `production` before any JWTs can be signed with a weak key.
    - `STREAMCLIP_RATE_LIMIT__ENABLED=true`
    - `STREAMCLIP_LOG_JSON=true`
    - **Metrics auth** (recommended): set `STREAMCLIP_OBSERVABILITY__METRICS_API_KEY` to a random token (`openssl rand -hex 16`). Without this, the `/metrics` endpoint is restricted to loopback only when `STREAMCLIP_ENVIRONMENT=production`. Include the key in your Prometheus scrape config as `Authorization: Bearer <key>` or `X-Metrics-Key: <key>`.

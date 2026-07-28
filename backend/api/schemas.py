@@ -872,6 +872,36 @@ class LicenseActivateResponse(BaseModel):
     entitlement_jwt: str
 
 
+class LicenseActivationListRequest(BaseModel):
+    license_key: str = Field(..., min_length=16)
+    machine_id: str = Field(..., min_length=8, max_length=128)
+
+
+class LicenseActivationReleaseRequest(LicenseActivationListRequest):
+    target_machine_id: str = Field(..., min_length=8, max_length=128)
+
+
+class LicenseActivationOut(BaseModel):
+    machine_id: str
+    activated_at: datetime
+    last_seen_at: datetime
+    is_current: bool = False
+
+
+class LicenseActivationListResponse(BaseModel):
+    activations: list[LicenseActivationOut]
+    max_activations: int
+    active_count: int
+    tier: str
+
+
+class LicenseActivationReleaseResponse(BaseModel):
+    released_machine_id: str
+    active_count: int
+    max_activations: int
+    current_device_released: bool = False
+
+
 # ─── Stack health ─────────────────────────────────────────────────────────────
 
 class StackHealthOut(BaseModel):

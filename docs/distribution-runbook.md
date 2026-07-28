@@ -46,6 +46,9 @@ STREAMCLIP_DISTRIBUTION__TIKTOK_CLIENT_SECRET=
 STREAMCLIP_WEBHOOKS__ENABLED=true
 STREAMCLIP_WEBHOOKS__URL=https://hooks.example.com/streamclip
 STREAMCLIP_WEBHOOKS__SECRET=<hmac secret>
+
+# Operator alerts (optional; internal support + stack health)
+OPS_WEBHOOK_URL=https://hooks.example.com/streamclip-ops
 ```
 
 Generate a Fernet key:
@@ -82,6 +85,46 @@ Beat schedule entry: `process_due_scheduled_jobs` every 60 seconds (see `core/ce
 - `GET /metrics` — check `streamclip_celery_tasks_in_progress`
 - Distribution → Queue tab — scheduled jobs should move to pending/publishing within ~60s of `scheduled_at`
 - Logs: `publish_completed`, `publish_task_failed`, `publish_webhook_sent`
+
+## Operator alerts and SMTP
+
+`OPS_WEBHOOK_URL` is **separate** from publish webhooks
+(`STREAMCLIP_WEBHOOKS__URL` + optional HMAC). Ops alerts are for StreamClip
+operators: in-app bug reports, beta feedback, proactive `job_failed`, and Beat
+`stack_degraded`. Set on **api**, **worker**, and **beat**.
+
+Canonical contract: [OPS_ALERTING.md](OPS_ALERTING.md) — unsigned JSON POST,
+`Content-Type: application/json`, `User-Agent: StreamClip-Ops/1.0`, up to 3
+retries, 15s timeout. Prefer Zapier/Make Catch Hook or a custom JSON inbox;
+native Discord/Slack hooks need an adapter.
+
+```bash
+OPS_WEBHOOK_URL=https://<zapier-make-catch-hook-or-custom-json-inbox>
+```
+
+SMTP on **api** + **worker** also covers password-reset and LS license-key
+fallback email. Bug reports still persist in `bug_reports` when SMTP is unset.
+
+```bash
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=<resend_api_key>
+SMTP_FROM=alerts@your-verified-domain.example
+SMTP_STARTTLS=true
+BUG_REPORT_TO=ops@your-domain.example
+```
+
+Resend requires a verified sender domain. Never commit real webhook URLs, Resend
+API keys, or operator inboxes. Verify locally with:
+
+```powershell
+.\scripts\verify_production_secrets.ps1 -EnvFile .env.production
+.\scripts\verify_ops_webhook.ps1 -DryRun
+.\scripts\verify_ops_webhook.ps1
+```
+
+Full operator checklist: [OPS_ALERTING.md](OPS_ALERTING.md).
 
 ## OAuth setup
 
@@ -206,6 +249,17 @@ Suggested alerts:
 - Confirm `STREAMCLIP_WEBHOOKS__ENABLED` or user webhook URL.
 - Check outbound network from worker container.
 - Verify HMAC secret matches receiver.
+
+### Ops alert not received
+
+- Confirm `OPS_WEBHOOK_URL` is set on api, worker, and beat (not only api).
+- Restart env readers: `docker compose up -d api worker beat`.
+- Run `.\scripts\verify_ops_webhook.ps1` to isolate container egress from the
+  real receiver.
+- If pointing at Discord/Slack directly, expect `ops_webhook_bad_status` —
+  use a Catch Hook/adapter that accepts StreamClip JSON (no HMAC signature).
+- Check logs for `ops_webhook_skipped_unconfigured`, `ops_webhook_failed`, or
+  `ops_webhook_bad_status`. See [OPS_ALERTING.md](OPS_ALERTING.md).
 
 ### Token key rotation
 

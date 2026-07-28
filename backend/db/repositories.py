@@ -34,6 +34,7 @@ from backend.db.models import (
     JobTitleAudit,
     InstallOAuthApp,
     LocalDevice,
+    InstallLicenseActivation,
     PasswordResetToken,
     PlatformConnection,
     PublishJob,
@@ -753,6 +754,94 @@ class InstallLicenseRepository:
         )
         return result.scalar_one_or_none()
 
+    async def ensure_activation_ledger(self, lic: InstallLicense) -> None:
+        """Backfill the single legacy machine row into the per-seat ledger."""
+        if not lic.machine_id or lic.status != "activated":
+            return
+        existing = await self.get_activation(lic, lic.machine_id)
+        if existing is not None:
+            return
+        # Avoid duplicate pending rows when mark_activated just added the seat
+        # but the SELECT has not (or cannot) see it yet in this session.
+        for pending in self.db.new:
+            if (
+                isinstance(pending, InstallLicenseActivation)
+                and pending.license_id == lic.id
+                and pending.machine_id == lic.machine_id
+            ):
+                return
+        row = InstallLicenseActivation(
+            license_id=lic.id,
+            machine_id=lic.machine_id,
+            status="active",
+            activated_at=lic.activated_at or datetime.now(timezone.utc),
+            last_seen_at=lic.activated_at or datetime.now(timezone.utc),
+        )
+        self.db.add(row)
+        await self.db.flush()
+
+    async def get_activation(
+        self,
+        lic: InstallLicense,
+        machine_id: str,
+    ) -> InstallLicenseActivation | None:
+        result = await self.db.execute(
+            select(InstallLicenseActivation).where(
+                InstallLicenseActivation.license_id == lic.id,
+                InstallLicenseActivation.machine_id == machine_id,
+            ),
+        )
+        return result.scalar_one_or_none()
+
+    async def list_activations(self, lic: InstallLicense) -> list[InstallLicenseActivation]:
+        await self.ensure_activation_ledger(lic)
+        result = await self.db.execute(
+            select(InstallLicenseActivation)
+            .where(
+                InstallLicenseActivation.license_id == lic.id,
+                InstallLicenseActivation.status == "active",
+            )
+            .order_by(InstallLicenseActivation.last_seen_at.desc()),
+        )
+        return list(result.scalars().all())
+
+    async def count_active_activations(self, lic: InstallLicense) -> int:
+        await self.ensure_activation_ledger(lic)
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(InstallLicenseActivation)
+            .where(
+                InstallLicenseActivation.license_id == lic.id,
+                InstallLicenseActivation.status == "active",
+            ),
+        )
+        return int(result.scalar_one())
+
+    async def release_activation(
+        self,
+        lic: InstallLicense,
+        machine_id: str,
+    ) -> InstallLicenseActivation | None:
+        await self.ensure_activation_ledger(lic)
+        activation = await self.get_activation(lic, machine_id)
+        if activation is None or activation.status != "active":
+            return None
+        activation.status = "released"
+        activation.released_at = datetime.now(timezone.utc)
+        if lic.machine_id == machine_id:
+            lic.machine_id = None
+            lic.entitlement_jwt = None
+            lic.expires_at = None
+        # Flush before recount so SQL filters see status="released".
+        await self.db.flush()
+        active_count = await self.count_active_activations(lic)
+        lic.activation_count = active_count
+        if active_count == 0 and lic.status == "activated":
+            lic.status = "issued"
+            lic.activated_at = None
+        await self.db.flush()
+        return activation
+
     async def create_issued(
         self,
         *,
@@ -782,13 +871,38 @@ class InstallLicenseRepository:
         expires_at: datetime | None,
         count_activation: bool,
     ) -> InstallLicense:
+        now = datetime.now(timezone.utc)
         lic.machine_id = machine_id
         lic.entitlement_jwt = entitlement_jwt
         lic.expires_at = expires_at
-        lic.activated_at = datetime.now(timezone.utc)
+        lic.activated_at = now
         lic.status = "activated"
-        if count_activation:
-            lic.activation_count = (lic.activation_count or 0) + 1
+        activation = await self.get_activation(lic, machine_id)
+        if activation is None:
+            activation = InstallLicenseActivation(
+                license_id=lic.id,
+                machine_id=machine_id,
+                activated_at=now,
+            )
+            self.db.add(activation)
+        activation.status = "active"
+        activation.last_seen_at = now
+        activation.released_at = None
+        # Flush seat row before counting. Count via direct query (not
+        # count_active_activations) so ensure_activation_ledger cannot race a
+        # second insert for the same (license_id, machine_id).
+        await self.db.flush()
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(InstallLicenseActivation)
+            .where(
+                InstallLicenseActivation.license_id == lic.id,
+                InstallLicenseActivation.status == "active",
+            ),
+        )
+        lic.activation_count = int(result.scalar_one())
+        if count_activation and lic.activation_count == 0:
+            lic.activation_count = 1
         await self.db.flush()
         return lic
 

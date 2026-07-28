@@ -1,44 +1,31 @@
-# StreamClip — start full stack (Docker)
-# Usage: .\scripts\start.ps1
+# StreamClip - operator shortcut to start the Phase 0 Docker stack.
+# Delegates to start_local.ps1 (compose up -d --build, migrations, verify_stack).
+# Usage:
+#   .\scripts\start.ps1
+# Re-check without rebuild (second terminal):
+#   .\scripts\health.ps1
 
 $ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-Set-Location $Root
 
-function Find-Docker {
-    $paths = @(
-        "docker",
-        "$env:ProgramFiles\Docker\Docker\resources\bin\docker.exe",
-        "${env:ProgramFiles}\Docker\Docker\resources\bin\docker.exe"
-    )
-    foreach ($p in $paths) {
-        if (Get-Command $p -ErrorAction SilentlyContinue) {
-            return (Get-Command $p).Source
-        }
-        if (Test-Path $p) { return $p }
-    }
-    return $null
-}
+$here = $PSScriptRoot
+$root = Split-Path -Parent $here
+$startLocal = Join-Path $here "start_local.ps1"
 
-$docker = Find-Docker
-if (-not $docker) {
-    Write-Host ""
-    Write-Host "Docker not found yet." -ForegroundColor Yellow
-    Write-Host "1. Finish installing Docker Desktop"
-    Write-Host "2. Open Docker Desktop and wait until it says 'Engine running'"
-    Write-Host "3. Close and reopen this terminal, then run: .\scripts\start.ps1"
-    Write-Host ""
+if (-not (Test-Path -LiteralPath $startLocal)) {
+    Write-Host "Missing start_local.ps1 next to start.ps1: $startLocal" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Using Docker: $docker" -ForegroundColor Cyan
-Write-Host "Building and starting StreamClip (first run may take several minutes)..." -ForegroundColor Cyan
+Write-Host "StreamClip start (Phase 0 Docker)" -ForegroundColor Cyan
+Write-Host "  Wrapper -> scripts\start_local.ps1"
+Write-Host "  Repo    -> $root"
 Write-Host ""
-Write-Host "  Web UI:    http://localhost:3000"
-Write-Host "  API docs:  http://localhost:8000/docs"
-Write-Host "  MinIO:     http://localhost:9001  (streamclip / streamclip_secret)"
-Write-Host ""
-Write-Host "Press Ctrl+C to stop all services."
+Write-Host "Tips:" -ForegroundColor DarkGray
+Write-Host "  - First run may pull images and models (several minutes)." -ForegroundColor DarkGray
+Write-Host "  - Smoke check in another terminal: .\scripts\health.ps1" -ForegroundColor DarkGray
+Write-Host "  - Full gate (unit tests): .\scripts\verify_stack.ps1" -ForegroundColor DarkGray
 Write-Host ""
 
-& $docker compose up --build
+Set-Location $root
+& $startLocal @args
+exit $LASTEXITCODE

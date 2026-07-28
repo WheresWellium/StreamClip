@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#041014"/>
+      <stop offset="36%" stop-color="#0a2430"/>
+      <stop offset="70%" stop-color="#0b3646"/>
+      <stop offset="100%" stop-color="#06161c"/>
+    </linearGradient>
+    <radialGradient id="horizon" cx="48%" cy="56%" r="58%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.48"/>
+      <stop offset="32%" stop-color="#0ea5e9" stop-opacity="0.18"/>
+      <stop offset="68%" stop-color="#0c4a6e" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vignette" cx="50%" cy="42%" r="74%">
+      <stop offset="42%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#020808" stop-opacity="0.84"/>
+    </radialGradient>
+    <linearGradient id="stream" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="42%" stop-color="#7dd3fc" stop-opacity="0.58"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a2a36" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#030a0e" stop-opacity="0.96"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect width="1600" height="900" fill="url(#horizon)"/>
+
+  <!-- Distant atmospheric bands -->
+  <g opacity="0.3" fill="none" stroke="#7dd3fc" stroke-width="1">
+    <path d="M0 420 C280 380, 520 460, 800 430 S1320 370, 1600 410" opacity="0.28"/>
+    <path d="M0 455 C300 500, 560 410, 820 450 S1280 520, 1600 470" opacity="0.18"/>
+    <path d="M0 500 C340 460, 600 540, 900 505 S1300 450, 1600 490" opacity="0.12"/>
+  </g>
+
+  <!-- Abstract stream ribbons (product metaphor, not clutter) -->
+  <g fill="none" stroke="url(#stream)" stroke-linecap="round">
+    <path d="M-40 560 C220 500, 420 620, 700 560 S1180 470, 1640 540" stroke-width="2.5" opacity="0.78"/>
+    <path d="M-40 590 C260 640, 480 530, 760 590 S1220 680, 1640 600" stroke-width="1.5" opacity="0.48"/>
+    <path d="M-40 620 C300 560, 540 700, 840 630 S1260 540, 1640 610" stroke-width="1" opacity="0.32"/>
+  </g>
+
+  <!-- Brutalist frame corners (match app chrome) -->
+  <g stroke="#38bdf8" fill="none" opacity="0.3">
+    <path d="M56 110 V56 H110" stroke-width="2"/>
+    <path d="M1544 110 V56 H1490" stroke-width="2"/>
+    <path d="M56 790 V844 H110" stroke-width="2"/>
+    <path d="M1544 790 V844 H1490" stroke-width="2"/>
+  </g>
+  <rect x="72" y="72" width="1456" height="756" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+
+  <!-- Ground fade — keeps lower-left brand readable -->
+  <rect y="620" width="1600" height="280" fill="url(#floor)"/>
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+</svg>

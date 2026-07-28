@@ -2,7 +2,7 @@
 
 **Audience:** Operators running Phase 0 cohort (5–10 testers)  
 **Companion:** [Beta go-live](BETA_GO_LIVE.md) (internal) · [Phase 0 ops](BETA_OPS_PHASE0.md) (internal) · [Beta test plan](BETA_TESTER_PLAN.md)  
-**Last updated:** 2026-07-09
+**Last updated:** 2026-07-28 (roster placeholders + 2-minute fill guide + evidence script wiring)
 
 This runbook covers **keys, SMTP, webhooks, and on-call** for the Docker self-host beta. Keep secrets out of git. Fill **TBD** contact cells before sending invites — do not invent names in git.
 
@@ -12,13 +12,39 @@ This runbook covers **keys, SMTP, webhooks, and on-call** for the Docker self-ho
 
 | Role | Responsibility | Name | Contact (email / phone / chat) |
 |------|----------------|------|--------------------------------|
-| **Beta lead** | Cohort comms, invite timing, exit criteria | TBD | TBD |
-| **Eng on-call (primary)** | 🔴 P0: pipeline stuck, auth broken, data loss, stack won't start | TBD | TBD |
-| **Eng on-call (backup)** | Covers primary offline / first 72h handoff | TBD | TBD |
-| **Ops** | GHCR tags, license keys, OAuth app quotas | TBD | TBD |
-| **Docs** | Quickstart, tutorials, known issues per wave | TBD | TBD |
+| **Beta lead** | Cohort comms, invite timing, exit criteria | `<BETA_LEAD_NAME>` | `<BETA_LEAD_CONTACT>` |
+| **Eng on-call (primary)** | 🔴 P0: pipeline stuck, auth broken, data loss, stack won't start | `<PRIMARY_ONCALL_NAME>` | `<PRIMARY_ONCALL_CONTACT>` |
+| **Eng on-call (backup)** | Covers primary offline / first 72h handoff | `<BACKUP_ONCALL_NAME>` | `<BACKUP_ONCALL_CONTACT>` |
+| **Ops** | GHCR tags, license keys, OAuth app quotas | `<OPS_NAME>` | `<OPS_CONTACT>` |
+| **Docs** | Quickstart, tutorials, known issues per wave | `<DOCS_NAME>` | `<DOCS_CONTACT>` |
 
-**How to fill:** replace each `TBD` with a real person before H+0. Keep a private copy (password manager / ops channel) if you do not want contacts in git.
+### How to fill this in (2 minutes)
+
+1. Open this file and `BETA_COHORT_EXIT.md` §1 side by side.
+2. Replace each `<..._NAME>` / `<..._CONTACT>` token with a real person + reachable contact.
+   Solo operator? Put the same person in every row — that is a valid Phase 0 roster.
+3. Prefer not to commit contacts? Put `private roster` in the Contact cells here, keep the
+   real list in your password manager / ops channel, and note `private roster` in the exit
+   pack's Evidence column.
+4. Mirror the same names into `BETA_COHORT_EXIT.md` §1 with an ISO timestamp per row.
+5. Done when: no `<...>` token remains in §1 of either file (search for `<` to confirm).
+
+Do **not** invent names for people who have not agreed to be on call (GAP O5). Leave the
+angle-bracket tokens in place until a real assignee exists.
+
+### Escalation path (single chain, Phase 0)
+
+Tester report → **Beta lead** (triage severity, §2) → 🔴 **Eng primary** (same day) →
+**Eng backup** if primary unreachable 2h → **Ops** for keys/OAuth/GHCR sub-issues →
+**Docs** for known-issues updates. Rollback authority: Beta lead + Eng primary together (§11).
+
+### First-72h handoff checklist (primary → backup, ~H+36)
+
+- [ ] Open P0/P1 list handed over (issue links or `bug_reports` ids)
+- [ ] Current `verify_stack` / health state stated (link latest `docs/evidence/` snapshot)
+- [ ] Any in-flight mitigations described (what, where, revert plan)
+- [ ] Backup confirms access: repo, GH issues, ops webhook inbox, prod `.env` location
+- [ ] Handoff time recorded in the H+48 evidence file (`capture_phase0_evidence.ps1 -Label H48`)
 
 **Response SLA (Phase 0):** best-effort **48h weekdays**; 🔴 blockers **same-day**. No 24/7 until post-launch ([test plan §5.5](BETA_TESTER_PLAN.md#55-support-model)).
 
@@ -47,7 +73,7 @@ Do **not** send cohort invites until all items pass — see [BETA_GO_LIVE.md §1
 - [ ] At least one admin account for bug-report API
 - [ ] OAuth redirect URIs match `WEB_ORIGIN` ([checklist](distribution-runbook.md#oauth-redirect-uri-checklist))
 - [ ] Feedback channel live (in-app + GitHub template; Discord optional)
-- [ ] §1 role table filled (no remaining TBD for primary/backup)
+- [ ] §1 role table filled (no remaining `<...>` placeholder for primary/backup — see "How to fill this in")
 
 ---
 
@@ -102,11 +128,12 @@ docker compose exec api python scripts/list_support_reports.py --kind bug --limi
 ## 6. Ops webhook (autonomous)
 
 Preferred when configured — forwards bug + beta feedback **and** proactive
-`job_failed` / `stack_degraded` alerts to Discord/Slack/Zapier Catch Hook/custom agent inbox.
+`job_failed` / `stack_degraded` alerts via unsigned JSON POST (Zapier/Make Catch
+Hook or custom inbox; native Discord/Slack need an adapter).
 
 | Variable | Purpose |
 |----------|---------|
-| `OPS_WEBHOOK_URL` | HTTPS JSON webhook (api + worker + beat) |
+| `OPS_WEBHOOK_URL` | HTTPS JSON webhook (api + worker + beat); no HMAC |
 | `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | Optional — Celery + API exceptions |
 
 See internal [`OPS_ALERTING.md`](OPS_ALERTING.md). Invite-ready steps: [`BETA_INVITE_PACK.md`](BETA_INVITE_PACK.md).
@@ -187,15 +214,17 @@ Full copy-paste checklist: [distribution-runbook.md](distribution-runbook.md#oau
 
 ## 10. First 72 hours checklist
 
+At each window run `.\scripts\capture_phase0_evidence.ps1 -Label <T0|H2|H24|H48|H72>` — it snapshots stack health, job/report counts, and git state into `docs/evidence/` and appends the window's OPERATOR FILL block. Fill that block, then paste the file path into `BETA_COHORT_EXIT.md` §2/§3. Release owner flips `BETA_GO_LIVE.md` §7 / §8 only after those slots have real data — never invent tester results.
+
 | Window | Action | Owner |
 |--------|--------|-------|
 | **H−1** | §1 roles filled; §3 pre-invite green; feedback channel + OAuth checklist done | Beta lead |
-| **H+0** | Send invites; watch in-app reports + GitHub `beta` label; confirm webhook/SMTP if configured | Beta lead + Eng |
-| **H+2** | Confirm ≥3 testers passed T0-1 (`verify_stack` + health) | Eng |
+| **H+0** | Send invites; watch in-app reports + GitHub `beta`+`bug` labels (template); confirm webhook/SMTP if configured | Beta lead + Eng |
+| **H+2** | Confirm ≥3 testers passed T0-1 (`verify_stack` + health); fill worksheet H+2 | Eng |
 | **H+8** | Triage open P0/P1; post status if any P0 open >4h | Eng primary |
-| **H+24** | Full triage; update [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) if needed | Eng + Docs |
+| **H+24** | Full triage; update [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) if needed; fill worksheet H+24 | Eng + Docs |
 | **H+48** | Backup on-call check-in; clear or document remaining P1s | Eng backup |
-| **H+72** | Go/no-go expand cohort ([test plan §4.5](BETA_TESTER_PLAN.md#45-exit-criteria--phase-1)); pause invites on unresolved P0 | Beta lead |
+| **H+72** | Go/no-go expand cohort ([test plan §4.5](BETA_TESTER_PLAN.md#45-exit-criteria--phase-1)); pause invites on unresolved P0; fill worksheet H+72 + T0 rollup | Beta lead |
 
 ---
 

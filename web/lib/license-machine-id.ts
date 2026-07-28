@@ -1,7 +1,4 @@
-import {
-  ensureClientDeviceId,
-  getClientDeviceId,
-} from "@/lib/auth/client-session";
+import { ensureClientDeviceId } from "@/lib/auth/client-session";
 
 /** SSR / server-action fallback when no browser storage is available. */
 export const LICENSE_MACHINE_ID_SSR = "streamclip-local-dev";
@@ -16,14 +13,3 @@ export function getLicenseMachineId(): string {
   }
   return ensureClientDeviceId();
 }
-
-/** Client-only; undefined during SSR. */
-export function getLicenseMachineIdOptional(): string | undefined {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-  return getClientDeviceId();
-}
-
-/** @deprecated Use getLicenseMachineId() in client components. */
-export const LICENSE_MACHINE_ID = LICENSE_MACHINE_ID_SSR;

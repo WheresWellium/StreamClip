@@ -128,7 +128,7 @@ function openWindow(): void {
 
 function buildMenu(): Menu {
   return Menu.buildFromTemplate([
-    { label: "Open StreamClip", click: openWindow },
+    { label: "Open qClip", click: openWindow },
     { type: "separator" },
     {
       label: "Start sidecar",
@@ -151,7 +151,7 @@ function buildMenu(): Menu {
 
 function createTray(): void {
   tray = new Tray(trayIcon());
-  tray.setToolTip("StreamClip");
+  tray.setToolTip("qClip");
   tray.setContextMenu(buildMenu());
   tray.on("double-click", openWindow);
 }

@@ -71,6 +71,10 @@ NVENC via ffmpeg) on a dedicated queue.
 6. 4.13 Electron shell fixes, 4.10 installer + signing
 7. 4.9 Windows-isms audit, 4.11 GPU detection with CPU-safe default
 
+Windows signing operator source of truth: `packaging/installer/RELEASE_CHECKLIST.md`
+(EV Authenticode first signed release) and `packaging/installer/README.md`
+(installer implementation notes).
+
 ## Alternatives considered
 
 - **Docker-in-desktop (keep current shell):** rejected — see above.

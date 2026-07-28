@@ -20,7 +20,7 @@ preferred). Running `scripts/build_desktop_installer_macos.sh` on Windows exits 
 | Rationale | MPS / CTranslate2 arm64 wheels; smaller artifact; matches current creator hardware |
 
 `apps/desktop/package.json` `build.mac` targets `dmg` + `arch: ["arm64"]` with
-`artifactName: StreamClip-mac-{arch}.${ext}`.
+`artifactName: qClip-mac-{arch}.${ext}`.
 
 ## Data directory (§5.4)
 
@@ -48,7 +48,7 @@ Reuse existing artifacts:
 
 Expected output:
 
-`apps/desktop/release/StreamClip-mac-arm64.dmg`
+`apps/desktop/release/qClip-mac-arm64.dmg`
 
 Static UI is built via `scripts/build_desktop_ui.sh` (no PowerShell required).
 Windows operators can still use `scripts/build_desktop_ui.ps1`.

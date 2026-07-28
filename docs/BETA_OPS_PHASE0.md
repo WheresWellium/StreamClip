@@ -2,6 +2,7 @@
 
 **Audience:** StreamClip operators during Docker / creator beta.  
 **Ops alerts:** set `OPS_WEBHOOK_URL` and follow [OPS_ALERTING.md](OPS_ALERTING.md).
+**Observability:** health, `/metrics`, log-tail, and opt-in tester bundles live in [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md).
 
 ---
 
@@ -131,16 +132,54 @@ Wellium
 
 ## 5. Optional env (when ready)
 
-Add to `.env` / production secrets — all optional for Phase 0:
+Add to `.env` / production secrets — all optional for Phase 0, but
+`OPS_WEBHOOK_URL` is recommended before adding more testers.
+
+Full delivery contract (headers, **no HMAC**, payloads, Resend path):
+[OPS_ALERTING.md](OPS_ALERTING.md).
 
 | Variable | Purpose |
 |----------|---------|
-| `BUG_REPORT_TO` | SMTP destination for bug reports |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Outbound mail |
-| `OPS_WEBHOOK_URL` | Forward bug + feedback + `job_failed` to Discord/Slack/agent inbox |
+| `BUG_REPORT_TO` | SMTP destination for bug reports only |
+| `SMTP_HOST` … `SMTP_FROM`, `SMTP_STARTTLS` | Outbound mail (bug reports, password reset, LS license fallback) |
+| `OPS_WEBHOOK_URL` | Unsigned JSON POST for bug + feedback + `job_failed` + `stack_degraded` |
 | `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` | Error telemetry (API + workers) |
 
-See `.env.example` and [OPS_ALERTING.md](OPS_ALERTING.md).
+Fast path (full checklist: [OPS_ALERTING.md](OPS_ALERTING.md)):
+
+1. Stack up: `docker compose up -d api worker beat`.
+2. Mock egress (no real URL; does not write `.env`):
+
+   ```powershell
+   .\scripts\verify_ops_webhook.ps1 -DryRun
+   .\scripts\verify_ops_webhook.ps1
+   ```
+
+   Expect `PASS` (or exit `2` SKIP if python/docker/`api` missing — not a webhook bug).
+3. Create a **Zapier/Make Catch Hook** or custom HTTPS JSON inbox (preferred).
+   Native Discord/Slack incoming webhooks reject StreamClip-shaped JSON — use
+   an adapter that maps fields to `content` / `text`.
+4. Put the secret URL in **local** `.env` / `.env.production` as `OPS_WEBHOOK_URL`
+   (operator action — do not invent URLs in docs/commits). Prefer
+   `OPS_WEBHOOK_URL`; legacy `N8N_OPS_WEBHOOK_URL` still read if primary empty (GAP O13).
+5. If using Resend for email, verify the sender domain and set:
+
+   ```bash
+   SMTP_HOST=smtp.resend.com
+   SMTP_PORT=587
+   SMTP_USER=resend
+   SMTP_PASSWORD=<resend_api_key>
+   SMTP_FROM=alerts@your-verified-domain.example
+   SMTP_STARTTLS=true
+   BUG_REPORT_TO=ops@your-domain.example
+   ```
+
+6. Restart env readers: `docker compose up -d api worker beat`
+   (production: `docker compose -f docker-compose.prod.yml --env-file .env.production up -d api worker beat`).
+7. Submit one in-app **Beta feedback** and confirm the real receiver gets JSON
+   with `User-Agent: StreamClip-Ops/1.0`. Expect API `ops_notification: "queued"`.
+
+See `.env.example`, `.env.production.example`, and [OPS_ALERTING.md](OPS_ALERTING.md).
 
 ---
 
@@ -158,6 +197,36 @@ Operator checklist before relying on paid Pro keys (see [COMMERCIAL.md](../COMME
 - [ ] `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY` / `LEMON_SQUEEZY_API_KEY` set if API calls are needed
 - [ ] If audio-ingest unlock is sold: `STREAMCLIP_COMMERCE__AUDIO_INGEST_VARIANT_IDS` lists the LS **variant** IDs from the dashboard (comma-separated; see `.env.production.example`)
 
+### LS purchase-to-activate evidence (leave unchecked until run)
+
+Use this for MASTER §8.19 / Phase 0 exit evidence. This is an operator checklist, not a claim that the purchase has happened.
+
+1. In Lemon Squeezy, open the beta product / variant used by `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_BETA_VARIANT_ID`.
+   - [ ] Confirm the checkout is the intended beta / Pro SKU (`Lead Magnet` or one-time purchase, not subscription).
+   - [ ] Confirm license keys are enabled and the receipt/download page includes the beta kit plus `StreamClip-Setup-win-x64.exe`.
+   - [ ] Open the webhook configuration and confirm the URL is `{API_ORIGIN}/api/commerce/webhooks/lemon-squeezy`.
+2. In the operator shell, run the env preflight:
+
+   ```powershell
+   .\scripts\verify_ls_beta_config.ps1
+   ```
+
+   - [ ] Success looks like all required `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_*` vars `OK` and the checkout URL responding or redirecting.
+3. Copy the checkout URL from Lemon Squeezy and complete one staging/test checkout with a non-production buyer email.
+   - [ ] Success in Lemon Squeezy: an order exists for that buyer and either `license_key_created` delivered a key or `order_created` triggered the StreamClip fallback email.
+   - [ ] Success in webhook delivery: the Lemon Squeezy webhook attempt returns HTTP 2xx.
+4. Confirm the key reached StreamClip:
+
+   ```powershell
+   docker compose exec postgres psql -U streamclip -d streamclip -c "select order_id, customer_email, tier, status, activation_count, created_at from install_licenses order by created_at desc limit 5;"
+   ```
+
+   - [ ] Success before activation: the test buyer row is present with `status='issued'`, `tier='admin'` or `tier='pro'`, and `activation_count=0`.
+5. Activate the delivered key from a clean browser / VM:
+   - [ ] Log in, open **Settings → License**, paste the delivered key, and click **Activate**.
+   - [ ] Success in the UI: the license panel shows the upgraded tier and no paywall blocks Pro/Admin features.
+   - [ ] Success in the DB: the same license row changes to `status='activated'` with `activation_count >= 1`.
+
 Do not commit secrets or real product/variant IDs.
 
 ---
@@ -165,6 +234,12 @@ Do not commit secrets or real product/variant IDs.
 ## 7. Pre-invite checklist
 
 Full operator pack: [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md).
+
+**Local Docker stack (operator host):**
+
+- `.\scripts\start.ps1` — Phase 0 alias/wrapper for `start_local.ps1` (compose up, migrations, then full verify)
+- `.\scripts\health.ps1` — fast second-terminal smoke (no pytest)
+- `.\scripts\verify_stack.ps1` — full gate (keep this as invite clearance)
 
 - [ ] `verify_stack.ps1` green on operator machine
 - [ ] Zip + `.exe` on LS product files (or checkout link in invite email — not GitHub; repo may be private)
@@ -174,7 +249,8 @@ Full operator pack: [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md).
 - [ ] Feedback channel live: in-app reports + GitHub **Beta bug report** template (or Discord `#beta-bugs`)
 - [ ] OAuth redirect URIs match `WEB_ORIGIN` — copy-paste checklist in [distribution-runbook.md](distribution-runbook.md#oauth-redirect-uri-checklist)
 - [ ] On-call roles filled in [BETA_ON_CALL.md](BETA_ON_CALL.md) (TBD → real contacts)
-- [ ] `OPS_WEBHOOK_URL` (+ optional Sentry DSN) set; api/worker/beat restarted — [OPS_ALERTING.md](OPS_ALERTING.md)
+- [ ] `OPS_WEBHOOK_URL` (+ optional Sentry DSN) set; api/worker/beat restarted; `.\scripts\verify_ops_webhook.ps1` passed — [OPS_ALERTING.md](OPS_ALERTING.md)
+- [ ] Beta observability terminal ready: health checks + log tail, or optional Prometheus scrape — [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md)
 - [ ] Scheduled publish: Beat documented — [distribution-runbook.md](distribution-runbook.md#celery-worker-and-beat) (Docker `beat` service; desktop in-process note + [BETA_KNOWN_ISSUES](BETA_KNOWN_ISSUES.md))
 - [ ] LS dashboard product config checked (§6) if testing paid purchase → activate
 - [ ] Fresh-reader quickstart walk recorded ([BETA_INVITE_PACK](BETA_INVITE_PACK.md) §2)

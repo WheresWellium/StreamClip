@@ -180,9 +180,12 @@ def test_sqlite_engine_foreign_keys_pragma(monkeypatch):
 
 
 def test_main_jwt_warning_logged(monkeypatch):
+    """Weak secrets log SECURITY_WARNING (not critical) — aligned with O8."""
+    import asyncio
     import backend.main as main_mod
 
     cfg = get_settings(reload=True)
+    # Lifespan patches bypass Settings validation; production reject is covered elsewhere.
     monkeypatch.setattr(cfg, "environment", "production")
     monkeypatch.setattr(cfg.auth, "secret_key", "CHANGE_ME_IN_PRODUCTION")
     monkeypatch.setattr(cfg.queue, "backend", "celery")
@@ -196,18 +199,20 @@ def test_main_jwt_warning_logged(monkeypatch):
     )
     engine.dispose = AsyncMock()
 
-    with patch.object(main_mod.log, "critical") as crit, patch.object(main_mod, "_init_sentry"), patch.object(
+    with patch.object(main_mod.log, "warning") as warn, patch.object(main_mod, "_init_sentry"), patch.object(
         main_mod, "init_opentelemetry"
     ), patch("backend.db.session.get_engine", return_value=engine):
         app = main_mod.create_app()
-        import asyncio
 
         async def _run_lifespan():
             async with app.router.lifespan_context(app):
                 pass
 
         asyncio.run(_run_lifespan())
-        crit.assert_called()
+        warn.assert_called()
+        event = warn.call_args.args[0] if warn.call_args.args else warn.call_args.kwargs.get("event")
+        assert event == "SECURITY_WARNING"
+        assert warn.call_args.kwargs.get("auth_secret_issue") == "placeholder"
 
 
 @pytest.mark.asyncio
@@ -266,19 +271,21 @@ async def test_scope_allows_audio_ingest_by_machine(db, monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.features, "audio_ingest", False)
     lic_repo = InstallLicenseRepository(db)
+    stamp = datetime.now().timestamp()
+    machine_id = f"machine-audio-{stamp}"
     lic = await lic_repo.create_issued(
-        license_key_hash=f"audio-{datetime.now().timestamp()}",
+        license_key_hash=f"audio-{stamp}",
         tier=UserTier.PRO,
-        order_id="audio:shop-1",
+        order_id=f"audio:shop-{stamp}",
     )
     await lic_repo.mark_activated(
         lic,
-        machine_id="machine-audio-1",
+        machine_id=machine_id,
         entitlement_jwt="jwt",
         expires_at=datetime.now(timezone.utc),
         count_activation=True,
     )
-    assert await ent.scope_allows_audio_ingest(db, machine_id="machine-audio-1", cfg=cfg) is True
+    assert await ent.scope_allows_audio_ingest(db, machine_id=machine_id, cfg=cfg) is True
     assert await ent.scope_allows_audio_ingest(db, machine_id=None, cfg=cfg) is False
 
 

@@ -54,6 +54,28 @@ docker compose exec -e PYTHONPATH=/app -T api python scripts/issue_beta_keys.py 
 .\scripts\prepare_invite_pack.ps1 -Mode Manual -KeysCsv dist\phase0-invite-pack\keys.csv
 ```
 
+### Re-send safety (existing cohort)
+
+For any re-send, **reuse the current keys CSV** and rebuild bodies. Do **not** run
+`issue_beta_keys.py` again unless intentionally issuing a new cohort.
+
+```powershell
+# Local dry-run: confirms every cohort row has a key; prints only key last4.
+.\scripts\prepare_invite_pack.ps1 -Mode Manual -CohortCsv cohort.csv `
+  -KeysCsv tmp\beta-keys.csv -OutDir tmp\phase0-invite-pack-resend -DryRun
+
+# Rebuild local bodies under gitignored tmp/.
+.\scripts\prepare_invite_pack.ps1 -Mode Manual -CohortCsv cohort.csv `
+  -KeysCsv tmp\beta-keys.csv -OutDir tmp\phase0-invite-pack-resend
+
+# Compare tmp\phase0-invite-pack-resend\index.csv against tmp\beta-keys.csv
+# by email + license_key_last4, then spot-check email bodies locally.
+```
+
+`index.csv` redacts manual license keys to `license_key_last4` for comparison.
+Email body files contain full keys and must stay under gitignored `tmp/` or `dist/`.
+Safe operator order: **rebuild → dry-run → compare → send**.
+
 Testers run once before UI activate:
 
 ```bash
@@ -73,7 +95,7 @@ See [BETA_DISTRIBUTION.md](BETA_DISTRIBUTION.md). Preflight:
 Requires `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_CHECKOUT_URL` in environment.
 
 Output (Manual): `email,license_key,order_id,tier`. Store in password manager. Default tier is `admin`.
-Pack output (gitignored): `dist/phase0-invite-pack/emails/*.txt` + `SEND_CHECKLIST.txt`.
+Pack output (gitignored): `dist/phase0-invite-pack/emails/*.txt`, redacted `index.csv`, `PACK_SUMMARY.txt`, and `SEND_CHECKLIST.txt`.
 
 Dry run (no DB writes):
 
@@ -85,20 +107,35 @@ docker compose exec -e PYTHONPATH=/app api python scripts/issue_beta_keys.py --e
 
 ## 4. Ops webhook + Sentry (real envs)
 
-**Path check (no secrets):** with the Docker stack up, run:
+**Path check (no secrets):** mock verify does **not** need `OPS_WEBHOOK_URL` set
+and does **not** write `.env`.
 
 ```powershell
-.\scripts\verify_ops_webhook.ps1
+.\scripts\verify_ops_webhook.ps1 -Help      # usage + operator next steps
+.\scripts\verify_ops_webhook.ps1 -DryRun    # python/docker/api preflight (OK if stack down)
+.\scripts\verify_ops_webhook.ps1            # full mock PASS (stack must be up)
 ```
 
-Expect `PASS: OPS webhook path verified`. This uses a temporary local mock on
-`host.docker.internal` — it does **not** write to `.env`.
+Expect `PASS: OPS webhook path verified`, or exit `2` SKIP with fix hints if
+`api` is not running. Temporary mock listens on `host.docker.internal`.
 
 Then paste real values into **local** `.env` and **prod** `.env.production` (never git):
 
 ```bash
-OPS_WEBHOOK_URL=https://<discord-or-slack-or-agent-inbox>
+OPS_WEBHOOK_URL=https://<zapier-make-catch-hook-or-json-inbox>
 STREAMCLIP_OBSERVABILITY__SENTRY_DSN=https://...@o....ingest.sentry.io/...
+```
+
+Optional Resend (verified domain) — same block as [OPS_ALERTING.md](OPS_ALERTING.md):
+
+```bash
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=<resend_api_key>
+SMTP_FROM=alerts@your-verified-domain.example
+SMTP_STARTTLS=true
+BUG_REPORT_TO=ops@your-domain.example
 ```
 
 Then:
@@ -107,7 +144,7 @@ Then:
 docker compose up -d api worker beat
 # prod:
 # docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-.\scripts\verify_production_secrets.ps1   # warns if webhook/Sentry missing
+.\scripts\verify_production_secrets.ps1   # warns if webhook/Sentry/Resend incomplete
 ```
 
 Verify live: submit in-app **Beta feedback** → receiver gets `event=beta_feedback`.  
@@ -135,9 +172,12 @@ Send the same **getting-started flow** as [henna index](https://streamclip-henna
 # cohort.csv: email,name (gitignored)
 # keys: dist/phase0-invite-pack/keys.csv or tmp/beta-keys.csv from original issuance
 python scripts/send_beta_test_info_emails.py --csv cohort.csv `
-  --keys-csv dist/phase0-invite-pack/keys.csv
+  --keys-csv tmp/beta-keys.csv --dry-run
 python scripts/send_beta_test_info_emails.py --csv cohort.csv `
-  --keys-csv tmp/beta-keys.csv --send   # requires SMTP_* on api/worker
+  --keys-csv tmp/beta-keys.csv
+# Operator send only after rebuilt bodies match current keys:
+# python scripts/send_beta_test_info_emails.py --csv cohort.csv `
+#   --keys-csv tmp/beta-keys.csv --send   # requires SMTP_*
 ```
 
 Subject defaults to **BETA TEST INFO**. Each body includes henna download + quickstart links and the **same** `SCPRO-…` key from the keys file.

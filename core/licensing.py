@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -50,11 +51,13 @@ def create_entitlement_token(
         "license_key_hash": license_key_hash,
         "iat": now,
         "exp": exp,
+        # Unique token id so a future revocation blocklist (Redis jti set keyed
+        # by license_key_hash) can invalidate tokens issued from now on without
+        # key rotation. Verification tolerates its absence in older tokens.
+        "jti": uuid.uuid4().hex,
     }
-    # TODO: implement jti blocklist for revoke — no jti claim is included here,
-    # so revoking a license does not invalidate the issued JWT until it expires
-    # naturally (up to 100 years for perpetual purchases). A Redis jti set keyed
-    # by license_key_hash would allow instant revocation without key rotation.
+    # TODO: enforce a jti blocklist in verify_entitlement_token for instant
+    # revoke; until then revoked licenses remain valid until natural expiry.
     return jwt.encode(payload, cfg.auth.secret_key, algorithm=cfg.auth.algorithm)
 
 
@@ -125,6 +128,14 @@ def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:
     except (json.JSONDecodeError, OSError):
         return None
     return data.get("entitlement_jwt")
+
+
+def clear_persisted_entitlement(cfg: Settings | None = None) -> None:
+    cfg = cfg or get_settings()
+    try:
+        cfg.licensing.license_file.unlink(missing_ok=True)
+    except OSError:
+        return
 
 
 def get_install_tier(machine_id: str, cfg: Settings | None = None) -> UserTier:

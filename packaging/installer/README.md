@@ -18,11 +18,11 @@ cd D:\Projects\streamclip
 .\scripts\build_desktop_installer.ps1
 ```
 
-Output: `apps/desktop/release/StreamClip-Setup-win-x64.exe`
+Output: `apps/desktop/release/qClip-Setup-win-x64.exe`
 
 Stable public download URL (after GitHub Release):
 
-`https://github.com/WheresWellium/StreamClip/releases/latest/download/StreamClip-Setup-win-x64.exe`
+`https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe`
 
 Docs landing page: `docs/BETA_DOWNLOAD.md` → https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
 
@@ -37,6 +37,11 @@ Reuse existing sidecar/UI artifacts:
 Unsigned builds trigger **Windows SmartScreen** (“Windows protected your PC”).
 Beta testers can click **More info → Run anyway** (`docs/BETA_KNOWN_ISSUES.md`).
 **Do not invent or commit certificates** — purchase from a Microsoft-trusted CA when ready.
+
+**Canonical runbook (EV prerequisites, script flags, CI, SmartScreen):**
+[`docs/DESKTOP_SIGNING.md`](../../docs/DESKTOP_SIGNING.md)
+
+Tag/release checklist: [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md).
 
 ### Local unsigned (default)
 
@@ -73,14 +78,14 @@ $env:CSC_KEY_PASSWORD = "<pfx-password>"
 .\scripts\build_desktop_installer.ps1
 
 # Optional manual re-sign of a single PE (sidecar, Setup exe, etc.):
-.\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\StreamClip-Setup-win-x64.exe
+.\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\qClip-Setup-win-x64.exe
 ```
 
 ### Verify signature
 
 ```powershell
 # After Windows SDK install (signtool on PATH or set SIGNTOOL):
-signtool verify /pa /v apps\desktop\release\StreamClip-Setup-win-x64.exe
+signtool verify /pa /v apps\desktop\release\qClip-Setup-win-x64.exe
 ```
 
 Expect: successful Authenticode chain, publisher matching your cert subject, and a

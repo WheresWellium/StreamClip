@@ -63,7 +63,7 @@ export async function submitBetaFeedbackAction(
   input: BetaFeedbackInput,
 ): Promise<{ ok: boolean; message?: string; opsNotification?: string }> {
   if (!input.area) {
-    return { ok: false, message: "Pick the part of StreamClip this is about." };
+    return { ok: false, message: "Pick the part of qClip this is about." };
   }
   if (input.message.trim().length < 10) {
     return { ok: false, message: "Please write at least 10 characters." };

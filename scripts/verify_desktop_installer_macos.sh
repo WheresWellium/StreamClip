@@ -2,7 +2,7 @@
 # Post-build checks for macOS desktop installer artifacts.
 #
 # Usage:
-#   ./scripts/verify_desktop_installer_macos.sh [path/to/StreamClip-mac-arm64.dmg]
+#   ./scripts/verify_desktop_installer_macos.sh [path/to/qClip-mac-arm64.dmg]
 #
 # Without a DMG path, verifies static UI + staged sidecar only (pre-electron).
 

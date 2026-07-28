@@ -331,6 +331,14 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    # Override the image's HEALTHCHECK (curl to the API on :8000) — beat runs
+    # no HTTP server. PID 1 is the beat process, so probe its cmdline instead.
+    healthcheck:
+      test: ["CMD-SHELL", "grep -qa beat /proc/1/cmdline || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     restart: unless-stopped
 
   # ── Flower (Celery monitoring) ─────────────────────────────────────

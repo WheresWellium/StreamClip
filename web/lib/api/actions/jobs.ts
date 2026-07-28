@@ -143,31 +143,6 @@ export async function saveTemplateAction(config: Record<string, unknown>): Promi
   }
 }
 
-export async function createBatchJobsAction(
-  urls: string[],
-): Promise<{ ok: boolean; message: string }> {
-  if (!urls.length) return { ok: false, message: "Add at least one URL" };
-  try {
-    const token = getClientAccessToken();
-    const jobs = urls.slice(0, 20).map((source_url) => ({
-      source_url,
-      target_clips: 5,
-      caption_style: "gaming_impact" as const,
-      reframe_preset: "fps_game" as const,
-      content_profile: "gaming" as const,
-      aspect_ratio: "9:16" as const,
-    }));
-    const result = await jobsApi.createBatch(jobs, token);
-    return {
-      ok: true,
-      message: `Queued ${result.jobs.length} job(s).`,
-    };
-  } catch (err) {
-    if (err instanceof ApiClientError) return { ok: false, message: err.message };
-    return { ok: false, message: "Batch queue failed" };
-  }
-}
-
 export async function updateClipAction(
   jobId: string,
   clipId: string,

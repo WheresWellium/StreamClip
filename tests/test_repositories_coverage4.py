@@ -118,11 +118,18 @@ async def test_license_get_activated_by_machine_id(db):
         order_id=f"ord-{datetime.now().timestamp()}",
         customer_email="lic@test.local",
     )
-    # Activate it
-    lic = await repo.mark_activated(lic, machine_id="machine-abc", entitlement_jwt="jwt", expires_at=None, count_activation=False)
-    result = await repo.get_activated_by_machine_id("machine-abc")
+    # Unique machine id avoids leftover seat rows from prior suite runs.
+    machine_id = f"machine-abc-{datetime.now().timestamp()}"
+    lic = await repo.mark_activated(
+        lic,
+        machine_id=machine_id,
+        entitlement_jwt="jwt",
+        expires_at=None,
+        count_activation=False,
+    )
+    result = await repo.get_activated_by_machine_id(machine_id)
     assert result is not None
-    assert result.machine_id == "machine-abc"
+    assert result.machine_id == machine_id
 
 
 @pytest.mark.asyncio
@@ -139,7 +146,14 @@ async def test_license_link_user_idempotent(db):
         customer_email="lic2@test.local",
     )
     user = await _make_user(db, "lic")
-    lic = await repo.mark_activated(lic, machine_id="machine-xyz", entitlement_jwt="jwt", expires_at=None, count_activation=False)
+    machine_id = f"machine-xyz-{datetime.now().timestamp()}"
+    lic = await repo.mark_activated(
+        lic,
+        machine_id=machine_id,
+        entitlement_jwt="jwt",
+        expires_at=None,
+        count_activation=False,
+    )
     # First link
     lic = await repo.link_user(lic, user.id)
     assert lic.user_id == user.id

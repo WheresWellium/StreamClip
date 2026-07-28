@@ -26,7 +26,7 @@ from fastapi.responses import JSONResponse
 
 from backend.api import admin, assets, auth, commerce, devices, distribution, health, jobs, license, local_storage, metrics, settings, support, templates, title_suggestions, uploads, vault
 from backend.observability import init_opentelemetry
-from core.config import get_settings
+from core.config import auth_secret_weak_reason, get_settings
 from core.errors import StreamClipError, sanitize_user_message
 
 
@@ -93,16 +93,19 @@ async def lifespan(app: FastAPI):
         log_level=cfg.log_level,
     )
 
-    # Loudly warn when the default JWT secret is still set outside dev.
-    # This does not raise — it would break existing dev workflows.
-    # In production, generate a strong key: openssl rand -hex 32
-    if cfg.auth.secret_key == "CHANGE_ME_IN_PRODUCTION" and cfg.environment != "development":
-        log.critical(
+    # Non-dev weak secrets fail in Settings validation. Development stays
+    # bootable, but gets one clear startup warning without leaking the secret.
+    auth_secret_issue = auth_secret_weak_reason(cfg.auth.secret_key)
+    if auth_secret_issue is not None:
+        log.warning(
             "SECURITY_WARNING",
+            environment=cfg.environment,
+            auth_secret_issue=auth_secret_issue,
+            auth_secret_length=len((cfg.auth.secret_key or "").strip()),
             message=(
-                "Default JWT secret key 'CHANGE_ME_IN_PRODUCTION' is still in use. "
-                "Set STREAMCLIP_AUTH__SECRET_KEY to a strong random value: "
-                "openssl rand -hex 32"
+                "Weak or placeholder JWT secret is in use. "
+                "Set STREAMCLIP_AUTH__SECRET_KEY to a strong random value "
+                "(min 32 chars), e.g. openssl rand -hex 32"
             ),
         )
 

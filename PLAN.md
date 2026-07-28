@@ -1,8 +1,8 @@
 # StreamClip — Consolidated Plan Registry
 
-**Last updated:** 2026-07-08  
+**Last updated:** 2026-07-27  
 **Purpose:** Single index of **active work** (beta + release readiness) vs **future updates** (frozen until the active track is complete).  
-**Canonical task list:** [`docs/MASTER_TODO.md`](docs/MASTER_TODO.md) · **Beta gates:** [`docs/BETA_TESTER_PLAN.md`](docs/BETA_TESTER_PLAN.md)
+**Canonical task list:** [`docs/MASTER_TODO.md`](docs/MASTER_TODO.md) · **Beta gates:** [`docs/BETA_TESTER_PLAN.md`](docs/BETA_TESTER_PLAN.md) · **Go-live:** [`docs/BETA_GO_LIVE.md`](docs/BETA_GO_LIVE.md)
 
 ---
 
@@ -27,37 +27,39 @@
 
 ## Active track — work here first
 
-### Gate status (2026-07-08)
+### Gate status (2026-07-09 reality; PLAN sync 2026-07-27)
 
 | Gate | Status | Blocks |
 |------|--------|--------|
-| Line coverage ≥95% (`verify_coverage.ps1`) | **GREEN** (95.40%) | — |
-| Clean-VM `verify_stack.ps1` (MASTER §3.8 / FS-2.4) | **Outstanding** | Beta Phase 0 invites |
+| Line coverage ≥95% (`verify_coverage.ps1`) | **GREEN** (**96%** / 372 miss; SkipBuild 2026-07-27) | — |
+| Clean-VM / clean-slate `verify_stack.ps1` (MASTER §3.8 / FS-2.4) | **PASS** 2026-07-09 (clean-slate Docker `down -v`; Hyper-V N/A) | — (invite gate cleared) |
+| Phase 0 invites | **SENT** 2026-07-09 (`BETA_GO_LIVE` §1 / §7 H+0) | — |
 | 110% coverage (100% line + branches + E2E) | Not met | Beta Phase 1 |
 | EV code-signing + signed desktop release (§4.10) | Outstanding | Beta Phase 2 |
 | macOS DMG codesign + notarization (§5.3) | Outstanding | Beta Phase 2 exit (scoped) |
 
 ---
 
-### Beta Phase 0 — Docker self-host (current focus)
+### Beta Phase 0 — Docker self-host (current focus: H+0 monitoring)
 
-**Exit criteria:** [`BETA_TESTER_PLAN.md` §4.5](docs/BETA_TESTER_PLAN.md)
+**Status:** Engineering invite gates cleared; **invites SENT** 2026-07-09. Now **H+0 monitoring** per [`BETA_GO_LIVE.md` §7](docs/BETA_GO_LIVE.md).  
+**Exit criteria:** [`BETA_TESTER_PLAN.md` §4.5](docs/BETA_TESTER_PLAN.md) / MASTER §8.16 (still open).
 
 | ID | Item | Source | Status |
 |----|------|--------|--------|
-| P0-1 | **Clean-VM `verify_stack.ps1`** on fresh Windows 11 | FS-2.4, MASTER §3.8 | ⬜ |
-| P0-2 | Alembic `upgrade head` on every deploy (head `0010_password_reset_tokens`) | MASTER §1.2 | ⬜ |
-| P0-3 | Phase 0 cohort prep: feedback channel, on-call, OAuth URIs, invite comms | MASTER §8.11–8.15 | ⬜ |
+| P0-1 | **Clean-VM / clean-slate `verify_stack.ps1`** (Windows; Hyper-V N/A → clean-slate Docker) | FS-2.4, MASTER §3.8 | ✅ 2026-07-09 |
+| P0-2 | Alembic `upgrade head` on every deploy (head `0010_password_reset_tokens`) | MASTER §1.2 | 🟡 ongoing |
+| P0-3 | Phase 0 cohort prep: feedback channel, on-call, OAuth URIs, invite comms | MASTER §8.11–8.15 | ✅ 2026-07-09 |
 | P0-4 | Quickstart fresh-reader review | MASTER §8.14 | ✅ 2026-07-09 |
-| P0-5 | Run Phase 0 cohort (5–10); T0-1..T0-4 flows | MASTER §8.3 | ⬜ |
-| P0-6 | Phase 0 exit sign-off (≥4/5 complete T0 flows; no 🔴 >7d) | MASTER §8.16 | ⬜ |
+| P0-5 | Run Phase 0 cohort (5–10); T0-1..T0-4 flows | MASTER §8.3 | 🟡 invites SENT; cohort in flight |
+| P0-6 | Phase 0 exit sign-off (≥4/5 complete T0 flows; no 🔴 >7d; LS test purchase) | MASTER §8.16 | ⬜ |
 
 **Open MASTER items that affect Phase 0:**
 
 | ID | Item | Sev |
 |----|------|-----|
-| 3.3 | Playwright E2E publish smoke (`E2E_RUN=1`) | 🟡 |
-| 3.9 | Desktop verify scripts in CI / release checklist | 🟡 |
+| 8.3 | Phase 0 cohort T0 flows (invites out; results outstanding) | 🟡 |
+| 8.16 | Phase 0 exit sign-off (T0 + H+72 go/no-go) | 🟡 |
 | 2.1 | TikTok **direct** publish (inbox flow ✅; app audit pending) | 🟡 |
 
 ---
@@ -68,10 +70,10 @@
 
 | ID | Item | Source | Status |
 |----|------|--------|--------|
-| P1-1 | Ratchet line coverage toward 100% (400 stmts remaining) | MASTER §3.5, §3.10 | ⬜ |
+| P1-1 | Ratchet line coverage toward 100% — **96%** / 372 stmts remaining (§3.10; gate GREEN at 95) | MASTER §3.5, §3.10 | ⬜ |
 | P1-2 | Hot-path branch coverage ≥85% + enforce in CI | MASTER §3.7 | ⬜ |
-| P1-3 | Playwright CI green (§3.3 required for Phase 1+) | MASTER §8.17 | ⬜ |
-| P1-4 | GHCR first tagged release + image prefix verified | MASTER §8.8 | ⬜ |
+| P1-3 | ~~Playwright CI green (§3.3)~~ ✅ `e2e` job in `test.yml` (`E2E_RUN=1`); 12/12 PASS 2026-07-09 | MASTER §3.3, §8.17 | ✅ |
+| P1-4 | GHCR `images.yml` + `STREAMCLIP_IMAGE_PREFIX` ✅; **first operator tag/dispatch still open** (`PRODUCTION.md` §8) | MASTER §8.8 | 🟡 |
 | P1-5 | Phase 1 cohort (20–40 creators) | MASTER §8.4 | ⬜ |
 | P1-6 | Phase 1 exit (≥70% T1 flows; GPU perf within SLA) | MASTER §8.17 | ⬜ |
 
@@ -105,7 +107,7 @@
 | P3-2 | Prometheus/Grafana or log-tail procedure for opt-in testers | MASTER §9.2 | ⬜ |
 | P3-3 | ~~Resolve or remove `backend/cloud/tenant.py` multi-tenant stub~~ ✅ Removed 2026-07-09 | MASTER §2.10 | ✅ |
 | P3-4 | FS-3 deferred consolidation (presign helper, OAuth base, etc.) | MASTER §FS-3 | ⬜ |
-| P3-5 | Week-before-public checklist (`BETA_TESTER_PLAN` §8) | MASTER §8.19 | ⬜ |
+| P3-5 | Week-before-invite checklist (`BETA_TESTER_PLAN` §8 / MASTER §8.19): §3.5/§3.8/OAuth/Beat/known-issues ✅; **still open:** LS E2E purchase (operator) · 110% CI (§3.11, Phase 1+) | MASTER §8.19 | 🟡 |
 
 ---
 
@@ -144,7 +146,7 @@ These Cursor plans are **fully built** or superseded by shipped code. Reference 
 | F1-4 | Extend `LLMConfig` + `InferenceBackendConfig`; freeze routes in `config_snapshot` | ⬜ |
 | F1-5 | `/api/health/llm`, Prometheus metrics, router tests | ⬜ |
 
-**Why frozen:** Router work is valuable but not on the beta invite critical path; virality already degrades safely today.
+**Why frozen:** Router work is valuable but not on the Phase 0 exit / Phase 1 critical path; virality already degrades safely today.
 
 ---
 
@@ -263,6 +265,6 @@ When the active track completes:
 
 ### Immediate next action (active track)
 
-1. **You:** Run clean-VM verify per [`docs/CLEAN_VM_VERIFY.md`](docs/CLEAN_VM_VERIFY.md) → closes FS-2.4 / P0-1.
-2. **Team:** Complete Phase 0 ops checklist (P0-3, P0-4) → send first external invites.
-3. **Ops (autonomous):** Set `OPS_WEBHOOK_URL` + optional `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` — see [`docs/OPS_ALERTING.md`](docs/OPS_ALERTING.md). n8n removed.
+1. **Ops / on-call:** H+0…H+72 monitoring per [`docs/BETA_GO_LIVE.md`](docs/BETA_GO_LIVE.md) §7 — triage tester bugs; confirm ≥3 T0-1 by H+2.
+2. **Team:** Drive Phase 0 cohort T0-1..T0-4 completion → P0-6 / MASTER §8.16 exit (incl. staging LS purchase → activate).
+3. **Ops (autonomous):** Keep `OPS_WEBHOOK_URL` + optional `STREAMCLIP_OBSERVABILITY__SENTRY_DSN` live — see [`docs/OPS_ALERTING.md`](docs/OPS_ALERTING.md). n8n removed.

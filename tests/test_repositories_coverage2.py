@@ -123,14 +123,15 @@ async def test_publish_get_for_user_wrong_owner(db):
 @pytest.mark.asyncio
 async def test_install_license_mark_activated(db):
     lic_repo = InstallLicenseRepository(db)
+    stamp = datetime.now().timestamp()
     lic = await lic_repo.create_issued(
-        license_key_hash=f"h-{datetime.now().timestamp()}",
+        license_key_hash=f"h-{stamp}",
         tier=UserTier.PRO,
-        order_id="o1",
+        order_id=f"o1-{stamp}",
     )
     out = await lic_repo.mark_activated(
         lic,
-        machine_id="machine-1",
+        machine_id=f"machine-cov2-{stamp}",
         entitlement_jwt="jwt",
         expires_at=None,
         count_activation=True,

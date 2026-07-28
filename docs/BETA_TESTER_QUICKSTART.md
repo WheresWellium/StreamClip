@@ -112,6 +112,8 @@ Replace `<LINK_FROM_INVITE_EMAIL>` with the exact URL from your email. If you're
     .\scripts\start_local.ps1
     ```
 
+    Phase 0 alias (same script): `.\scripts\start.ps1` — thin wrapper around `start_local.ps1`.
+
     This creates `.env` from `.env.example` if needed, starts Docker, runs migrations, and calls `verify_stack.ps1` automatically.
 
 === "macOS"
@@ -151,7 +153,13 @@ The first time you run this, Docker downloads images (~2–5 GB). Allow 5–10 m
 
 === "Windows"
 
-    `start_local.ps1` already runs verify. To re-check:
+    `start_local.ps1` / `start.ps1` already runs the full verify on start. For a **fast second-terminal smoke** (ports + health endpoints; **no pytest**):
+
+    ```powershell
+    .\scripts\health.ps1
+    ```
+
+    Full gate (unit suite + stack — use this when something looks wrong or before trusting a clean install):
 
     ```powershell
     .\scripts\verify_stack.ps1
@@ -191,11 +199,22 @@ You can also confirm in the browser:
 
 ## Step 6 — Activate your license key (optional)
 
+Manual cohort keys (`SCPRO-…` from the invite email) must exist in **your** local Postgres before the UI can activate them.
+
+**Docker self-host (once per machine), from the repo root with the stack up:**
+
+```powershell
+docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py `
+  --key SCPRO-XXXX-XXXX-XXXX-XXXX --tier admin --email you@example.com
+```
+
+Then:
+
 1. Go to **Settings → License**
-2. Paste the license key from your invite email (format: `SCPRO-…` with dashes)
+2. Paste the **same** license key from your invite email (format: `SCPRO-…` with dashes)
 3. Click **Activate** — a confirmation shows your features are unlocked
 
-Your beta key gives you **full access to every feature** — no paywalls, no feature gates. Skip this step if your invite is for technical pipeline testing only (T0-1 … T0-4).
+Lemon Squeezy checkout keys can skip the import step (first activate needs network). Your beta key gives **full access** — no paywalls. Skip this step if your invite is for technical pipeline testing only (T0-1 … T0-4).
 
 ---
 
@@ -295,10 +314,10 @@ Use **Report a bug** or **Beta feedback** in the app header (top bar). Every sub
 
 | Task | Command / Location |
 |------|--------------------|
-| Start StreamClip (Windows) | `.\scripts\start_local.ps1` |
+| Start StreamClip (Windows) | `.\scripts\start_local.ps1` (Phase 0 alias: `.\scripts\start.ps1`) |
 | Start StreamClip (Mac manual) | `docker compose up -d` |
 | Stop StreamClip | `docker compose down` |
-| Check health (Windows, Docker) | `.\scripts\verify_stack.ps1` or **Settings → Get started** |
+| Check health (Windows, Docker) | Fast smoke: `.\scripts\health.ps1`; full gate: `.\scripts\verify_stack.ps1`; or **Settings → Get started** |
 | Check health (Mac, Docker) | `docker compose ps` or **Settings → Get started** |
 | Check health (Windows `.exe`) | **Settings → Get started** — should show **Ready** |
 | View logs (Docker) | `docker compose logs api worker --tail 50` |

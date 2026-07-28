@@ -1,6 +1,6 @@
 # Get qClip — Beta Access
 
-> **Current Windows installer:** `1.0.0-beta.5` — [**Download qClip-Setup-win-x64.exe**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (about 490 MB)
+> **Current Windows installer:** `1.0.0-beta.6` (2026-07-28) — [**Download qClip-Setup-win-x64.exe**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (about 393 MB)
 
 **qClip** is the all-in-one clip studio on **your computer** — paste a URL or upload, reframe to any aspect ratio, and rank what to ship first.
 
@@ -93,7 +93,7 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Status |
 |----------|--------|
-| Windows `.exe` | ✅ **v1.0.0-beta.5** — [Latest release](https://github.com/WheresWellium/StreamClip/releases/latest) |
+| Windows `.exe` | ✅ **v1.0.0-beta.6** — [Latest release](https://github.com/WheresWellium/StreamClip/releases/latest) |
 | macOS `.dmg` | 🔜 Coming soon — scaffold in progress |
 
 ---

@@ -35,26 +35,44 @@ function countTerminal(models: Record<string, { state: string }>): number {
  * Polls /api/health/models until models are warm. On Docker (empty models +
  * ready) the banner stays hidden. Retries when the sidecar is still booting
  * instead of giving up on the first failed fetch.
+ *
+ * Every model state is terminal once reached (ready/skipped/failed), so `ready`
+ * ends the poll loop. Reaching it after a visible download flashes a short
+ * confirmation and then hides; reaching it on the first poll shows nothing.
  */
 export function ModelWarmupBanner() {
   const [status, setStatus] = useState<ModelsHealthResponse | null>(null);
   const [phase, setPhase] = useState<BannerPhase>("hidden");
   const failuresRef = useRef(0);
+  const sawLoadingRef = useRef(false);
+  const settledRef = useRef(false);
   const completeTimerRef = useRef<number | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    settledRef.current = false;
+
+    const stopPolling = () => {
+      settledRef.current = true;
+      if (pollTimerRef.current !== null) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
 
     const poll = async () => {
+      if (settledRef.current) return;
       try {
         const res = await metaApi.modelsHealth();
-        if (cancelled) return;
+        if (cancelled || settledRef.current) return;
         failuresRef.current = 0;
 
         const entries = Object.entries(res.models);
         if (entries.length === 0) {
           // Docker / no prefetch — nothing to show.
           setPhase("hidden");
+          stopPolling();
           return;
         }
 
@@ -62,34 +80,46 @@ export function ModelWarmupBanner() {
 
         if (res.ready) {
           const terminal = countTerminal(res.models);
-          if (terminal === entries.length && countFinished(res.models) === entries.length) {
-            setPhase("complete");
-            if (completeTimerRef.current !== null) {
-              window.clearTimeout(completeTimerRef.current);
+          if (
+            terminal === entries.length &&
+            countFinished(res.models) === entries.length
+          ) {
+            stopPolling();
+            if (!sawLoadingRef.current) {
+              // Models were already warm on mount — never announce anything.
+              setPhase("hidden");
+              return;
             }
+            setPhase("complete");
             completeTimerRef.current = window.setTimeout(() => {
               if (!cancelled) setPhase("hidden");
             }, COMPLETE_FLASH_MS);
           } else {
             setPhase("hidden");
+            stopPolling();
           }
           return;
         }
 
+        sawLoadingRef.current = true;
         setPhase("loading");
       } catch {
         failuresRef.current += 1;
         if (failuresRef.current >= MAX_POLL_FAILURES) {
           if (!cancelled) setPhase("hidden");
+          stopPolling();
         }
       }
     };
 
     void poll();
-    const timer = window.setInterval(() => void poll(), POLL_MS);
+    pollTimerRef.current = window.setInterval(() => void poll(), POLL_MS);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      if (pollTimerRef.current !== null) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
       if (completeTimerRef.current !== null) {
         window.clearTimeout(completeTimerRef.current);
       }
@@ -123,7 +153,9 @@ export function ModelWarmupBanner() {
           ? entries.map(([name, s]) => (
               <span
                 key={name}
-                className={isComplete ? "text-emerald-200/80" : "text-sky-200/80"}
+                className={
+                  isComplete ? "text-emerald-200/80" : "text-sky-200/80"
+                }
               >
                 {MODEL_LABELS[name] ?? name}:{" "}
                 {s.state === "downloading" ? (

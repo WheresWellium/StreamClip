@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ApiClientError, authApi } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import {
   getClientAccessToken,
   getClientDeviceId,
@@ -18,7 +19,9 @@ type Props = {
 export function ClaimDeviceModal({ deviceId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
-  const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">(
+    "idle",
+  );
   const [claimed, setClaimed] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,16 +29,16 @@ export function ClaimDeviceModal({ deviceId }: Props) {
     setOpen(true);
   }, [deviceId]);
 
-  if (!open) return null;
-
   const handleClaim = async () => {
     setStatus("claiming");
     setErrorMessage(null);
     try {
       const token = getClientAccessToken();
-      if (!token) throw new Error("Sign in required — log in again, then retry.");
+      if (!token)
+        throw new Error("Sign in required — log in again, then retry.");
       const resolvedDevice = deviceId ?? getClientDeviceId();
-      if (!resolvedDevice) throw new Error("Device ID missing — refresh the page and retry.");
+      if (!resolvedDevice)
+        throw new Error("Device ID missing — refresh the page and retry.");
 
       const data = await authApi.claimDevice(resolvedDevice, token);
       setClaimed(data.jobs_claimed ?? 0);
@@ -53,22 +56,19 @@ export function ClaimDeviceModal({ deviceId }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="claim-device-title"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") setOpen(false);
-      }}
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      labelledBy="claim-device-title"
+      className="w-full max-w-md"
     >
-      <div className="glossy-surface max-w-md w-full p-6 space-y-4">
+      <div className="glossy-surface w-full p-6 space-y-4">
         <h2 id="claim-device-title" className="text-lg font-medium">
           Claim your local jobs?
         </h2>
         <p className="text-sm text-muted-foreground">
-          You have anonymous jobs on this device. Link them to your account so they
-          follow you across sessions.
+          You have anonymous jobs on this device. Link them to your account so
+          they follow you across sessions.
         </p>
         {status === "done" && (
           <p className="text-sm text-sky-400">
@@ -89,11 +89,18 @@ export function ClaimDeviceModal({ deviceId }: Props) {
           <Button variant="outline" onClick={() => setOpen(false)}>
             {status === "done" ? "Close" : "Skip"}
           </Button>
-          <Button onClick={() => void handleClaim()} disabled={status === "claiming" || status === "done"}>
-            {status === "claiming" ? "Linking…" : status === "done" ? "Done" : "Link jobs"}
+          <Button
+            onClick={() => void handleClaim()}
+            disabled={status === "claiming" || status === "done"}
+          >
+            {status === "claiming"
+              ? "Linking…"
+              : status === "done"
+                ? "Done"
+                : "Link jobs"}
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

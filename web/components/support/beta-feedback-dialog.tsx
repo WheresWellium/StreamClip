@@ -7,6 +7,7 @@ import * as React from "react";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/form";
+import { Modal } from "@/components/ui/modal";
 import { submitBetaFeedbackAction } from "@/lib/api/actions/support";
 import type { BetaFeedbackArea, BetaFeedbackTopic } from "@/lib/api/client";
 import { cn } from "@/lib/utils/format";
@@ -96,7 +97,8 @@ function areaFromPath(pathname: string): BetaFeedbackArea | null {
   if (pathname.startsWith("/vault")) return "vault";
   if (pathname.startsWith("/settings")) return "license_billing";
   if (pathname.startsWith("/help")) return "getting_started";
-  if (pathname === "/" || pathname.startsWith("/docs")) return "getting_started";
+  if (pathname === "/" || pathname.startsWith("/docs"))
+    return "getting_started";
   return null;
 }
 
@@ -195,152 +197,145 @@ export function BetaFeedbackDialog({
         </button>
       )}
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Beta feedback"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            aria-label="Close"
-            onClick={closeDialog}
-          />
-          <div className="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-2xl">
-            <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-violet-400" />
-                <p className="text-sm font-medium">Beta feedback</p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={closeDialog}
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </header>
+      <Modal
+        open={open}
+        onClose={closeDialog}
+        label="Beta feedback"
+        className="w-full max-w-lg"
+        overlayClassName="bg-black/50"
+      >
+        <div className="flex max-h-[min(90vh,720px)] w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-2xl">
+          <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-violet-400" />
+              <p className="text-sm font-medium">Beta feedback</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={closeDialog}
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </header>
 
-            <div className="space-y-4 overflow-y-auto px-4 py-4">
-              <p className="text-xs text-muted-foreground">
-                Tell us what kind of note this is and which part of the product it
-                touches — that routes it to the right beta owner.
-              </p>
+          <div className="space-y-4 overflow-y-auto px-4 py-4">
+            <p className="text-xs text-muted-foreground">
+              Tell us what kind of note this is and which part of the product it
+              touches — that routes it to the right beta owner.
+            </p>
 
-              <div className="space-y-1.5">
-                <Label>What kind of note?</Label>
-                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                  {INTENTS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setTopic(item.id);
-                        setError(null);
-                      }}
-                      className={cn(
-                        "rounded-md border px-2.5 py-2 text-left transition-colors",
-                        topic === item.id
-                          ? "border-violet-400/60 bg-violet-400/15 text-foreground"
-                          : "border-border/60 text-muted-foreground hover:text-foreground",
-                      )}
-                      aria-pressed={topic === item.id}
-                    >
-                      <span className="block text-xs font-medium text-foreground">
-                        {item.label}
-                      </span>
-                      <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
-                        {item.hint}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>About which part?</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {AREAS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setArea(item.id);
-                        setError(null);
-                      }}
-                      className={cn(
-                        "rounded-md border px-2 py-1 text-xs transition-colors",
-                        area === item.id
-                          ? "border-violet-400/60 bg-violet-400/15 text-foreground"
-                          : "border-border/60 text-muted-foreground hover:text-foreground",
-                      )}
-                      aria-pressed={area === item.id}
-                    >
+            <div className="space-y-1.5">
+              <Label>What kind of note?</Label>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {INTENTS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setTopic(item.id);
+                      setError(null);
+                    }}
+                    className={cn(
+                      "rounded-md border px-2.5 py-2 text-left transition-colors",
+                      topic === item.id
+                        ? "border-violet-400/60 bg-violet-400/15 text-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-pressed={topic === item.id}
+                  >
+                    <span className="block text-xs font-medium text-foreground">
                       {item.label}
-                    </button>
-                  ))}
-                </div>
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                      {item.hint}
+                    </span>
+                  </button>
+                ))}
               </div>
-
-              <p className="rounded-md border border-border/50 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-                {guidance.tip}
-              </p>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="feedback-message">Your message</Label>
-                <textarea
-                  id="feedback-message"
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    setError(null);
-                  }}
-                  rows={6}
-                  maxLength={5000}
-                  placeholder={guidance.placeholder}
-                  className={cn(
-                    "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-                    "shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  )}
-                />
-              </div>
-
-              {error && (
-                <p className="text-xs text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
             </div>
 
-            <footer className="flex shrink-0 justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={closeDialog}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={pending || !area || message.trim().length < 10}
-                onClick={() => void handleSubmit()}
-              >
-                {pending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <MessageCircle className="h-3.5 w-3.5" />
+            <div className="space-y-1.5">
+              <Label>About which part?</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {AREAS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setArea(item.id);
+                      setError(null);
+                    }}
+                    className={cn(
+                      "rounded-md border px-2 py-1 text-xs transition-colors",
+                      area === item.id
+                        ? "border-violet-400/60 bg-violet-400/15 text-foreground"
+                        : "border-border/60 text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-pressed={area === item.id}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="rounded-md border border-border/50 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+              {guidance.tip}
+            </p>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="feedback-message">Your message</Label>
+              <textarea
+                id="feedback-message"
+                value={message}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  setError(null);
+                }}
+                rows={6}
+                maxLength={5000}
+                placeholder={guidance.placeholder}
+                className={cn(
+                  "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+                  "shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}
-                Send feedback
-              </Button>
-            </footer>
+              />
+            </div>
+
+            {error && (
+              <p className="text-xs text-destructive" role="alert">
+                {error}
+              </p>
+            )}
           </div>
+
+          <footer className="flex shrink-0 justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={closeDialog}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={pending || !area || message.trim().length < 10}
+              onClick={() => void handleSubmit()}
+            >
+              {pending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageCircle className="h-3.5 w-3.5" />
+              )}
+              Send feedback
+            </Button>
+          </footer>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

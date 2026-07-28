@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 type Props = {
   open: boolean;
@@ -17,24 +18,15 @@ export function ProGateModal({
   title = "Pro required",
   description = "Publishing, scheduling, and platform connections require a Pro license or install entitlement.",
 }: Props) {
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      role="presentation"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
-      onClick={onClose}
+    <Modal
+      open={open}
+      onClose={onClose}
+      labelledBy="pro-gate-title"
+      className="w-full max-w-md"
+      rootClassName="z-[60]"
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pro-gate-title"
-        className="glossy-surface max-w-md w-full p-6 space-y-4 border border-border/60"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="glossy-surface w-full p-6 space-y-4 border border-border/60">
         <h2 id="pro-gate-title" className="text-lg font-medium">
           {title}
         </h2>
@@ -51,6 +43,6 @@ export function ProGateModal({
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -154,24 +154,40 @@ Triage with [BETA_ON_CALL.md](BETA_ON_CALL.md) severity matrix. Update [BETA_KNO
 
 ---
 
-## 7. Lemon Squeezy preflight (new cohorts)
+## 7. Beta kit zip (with Windows installer)
+
+Testers cannot download the private-repo GitHub Release anonymously (404). Package the installer into the invite kit:
+
+```powershell
+# Resolves installer from apps/desktop/release/… or gh release download (collaborator)
+.\scripts\prepare_beta_kit.ps1 -IncludeInstaller
+# Optional: pin tag for gh fallback
+.\scripts\prepare_beta_kit.ps1 -IncludeInstaller -Tag v1.0.0-beta.5
+```
+
+Zip layout includes `installers/qClip-Setup-win-x64.exe` plus `KIT_README.txt` (SmartScreen steps). Attach that zip (or upload `installers/` to Lemon Squeezy / Drive) — do **not** send bare GitHub download URLs to non-collaborators.
+
+See [BETA_DOWNLOAD.md](BETA_DOWNLOAD.md) for tester vs collaborator paths.
+
+---
+
+## 8. Lemon Squeezy preflight (new cohorts)
 
 Before **LemonSqueezy** invites — full checklist in [BETA_DISTRIBUTION.md](BETA_DISTRIBUTION.md):
 
 | # | Check |
 |---|--------|
-| 1 | `.\scripts\prepare_beta_kit.ps1` → zip exists |
+| 1 | `.\scripts\prepare_beta_kit.ps1 -IncludeInstaller` → zip exists with `installers/qClip-Setup-win-x64.exe` |
 | 2 | Installer built (`publish_desktop_release.ps1`) |
-| 3 | LS Lead Magnet product: files uploaded, keys on, storefront off |
+| 3 | LS Lead Magnet product: files uploaded (kit zip and/or `installers/`), keys on, storefront off |
 | 4 | `.\scripts\verify_ls_beta_config.ps1` green |
 | 5 | LS test-mode $0 checkout → key + downloads in receipt |
 | 6 | Clean Windows VM: zip → `start_local.ps1` → activate LS key |
 | 7 | Clean Windows VM: Manual path → `import_invite_license.py` → activate |
-| 8 | Henna redeployed — no GitHub-only download links |
-
+| 8 | Henna redeployed — no GitHub-only download links for testers |
 ---
 
-## 8. Definition of done (invite gate)
+## 9. Definition of done (invite gate)
 
 **Do not send new invites until all are true:**
 

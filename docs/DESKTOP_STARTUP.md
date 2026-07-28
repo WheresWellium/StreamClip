@@ -23,13 +23,13 @@ Measured on the Electron shell (`apps/desktop`). Timings are logged as
 
 ## Where data and logs live
 
-| Platform | App data (DB, workspace) | Boot diagnostics |
-|----------|--------------------------|------------------|
-| Windows | `%LOCALAPPDATA%\qClip\` (reuses `%LOCALAPPDATA%\StreamClip\` if that folder already exists) | Electron `[boot]` in process console; sidecar stdio is discarded in packaged builds |
-| macOS | `~/Library/Application Support/qClip/` | same |
-| Linux / portable | `~/.qclip` (legacy `~/.streamclip` if present) | same |
+| Platform | App data (DB, workspace) | Logs |
+|----------|--------------------------|------|
+| Windows | `%LOCALAPPDATA%\qClip\` (reuses `%LOCALAPPDATA%\StreamClip\` if that folder already exists) | `%LOCALAPPDATA%\qClip\logs\` — `sidecar.log`, `electron.log` (plus `[boot]` lines in process console when launched from a terminal) |
+| macOS | `~/Library/Application Support/qClip/` | `~/Library/Application Support/qClip/logs/` — `sidecar.log`, `electron.log` |
+| Linux / portable | `~/.qclip` (legacy `~/.streamclip` if present) | `~/.qclip/logs/` — same filenames |
 
-For Docker beta, use `docker compose logs` (see `BETA_TESTER_QUICKSTART.md`). Packaged desktop does not yet write a rotating sidecar log file — capture job id + in-app bug report when escalating.
+For Docker beta, use `docker compose logs` (see `BETA_TESTER_QUICKSTART.md`). For packaged desktop escalations, attach `sidecar.log` + `electron.log` with the job id / in-app bug report. Human install checklist: [HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md).
 
 Regression: fail when splash is not shown before sidecar wait, or when the main window is exclusive-fullscreen instead of maximized/resizable.
 

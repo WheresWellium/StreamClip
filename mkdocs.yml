@@ -87,6 +87,8 @@ nav:
       - Beta quickstart: BETA_TESTER_QUICKSTART.md
       - Beta test plan: BETA_TESTER_PLAN.md
       - Known issues: BETA_KNOWN_ISSUES.md
+      - Human desktop smoke: HUMAN_DESKTOP_SMOKE.md
+      - Release checklist: RELEASE_CHECKLIST.md
   - Tutorials:
       - Install (Docker): tutorials/TUTORIAL_INSTALL.md
       - First job: tutorials/TUTORIAL_FIRST_JOB.md

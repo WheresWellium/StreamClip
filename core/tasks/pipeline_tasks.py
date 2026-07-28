@@ -238,6 +238,14 @@ def start_pipeline(self: ProgressTask, job_id: str) -> str:
     """
     log.info("pipeline_start", job_id=job_id)
 
+    async def _claim() -> bool:
+        async with db_session() as db:
+            return await JobRepository(db).try_claim_pipeline(job_id)
+
+    if not _safe_async(_claim()):
+        log.info("pipeline_skip_already_started", job_id=job_id)
+        return job_id
+
     workflow = chain(
         run_ingest.si(job_id),
         run_transcribe.si(job_id),
@@ -495,6 +503,16 @@ def run_highlights(self: ProgressTask, job_id: str) -> str:
             job = await jobs.get(job_id)
             if job is None:
                 raise StreamClipError(f"Job {job_id} not found")
+
+            # Idempotent re-entry: a second chain must not create duplicate clips.
+            existing = await clips_repo.list_for_job(job_id)
+            if existing:
+                log.info(
+                    "highlights_skip_existing_clips",
+                    job_id=job_id,
+                    clip_count=len(existing),
+                )
+                return [c.id for c in existing]
 
             _apply_job_config(cfg, job)
 

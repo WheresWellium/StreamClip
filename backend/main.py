@@ -28,6 +28,7 @@ from backend.api import admin, assets, auth, commerce, devices, distribution, he
 from backend.observability import init_opentelemetry
 from core.config import get_settings
 from core.errors import StreamClipError, sanitize_user_message
+from core.logging_redact import redact_log_event
 
 
 # ─── Structured logging ──────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ def _configure_logging() -> None:
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
+        redact_log_event,
     ]
     if cfg.log_json:
         processors.append(structlog.processors.JSONRenderer())
@@ -146,8 +148,8 @@ def create_app() -> FastAPI:
     api_docs = cfg.environment != "production" or cfg.queue.backend == "inprocess"
 
     app = FastAPI(
-        title="StreamClip API",
-        description="AI-powered gaming clip pipeline",
+        title="qClip API",
+        description="AI-powered clip pipeline",
         version="1.0.0",
         docs_url="/docs" if api_docs else None,
         redoc_url="/redoc" if api_docs else None,

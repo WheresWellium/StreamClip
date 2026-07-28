@@ -3,7 +3,8 @@ param(
     [ValidateSet("Source", "ProdImages", "DocsOnly")]
     [string]$Mode = "Source",
     [string]$OutDir = (Join-Path (Split-Path -Parent $PSScriptRoot) "dist"),
-    [string]$Tag = ""
+    [string]$Tag = "",
+    [switch]$IncludeInstaller
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -13,7 +14,7 @@ $commit = (git rev-parse --short HEAD 2>$null)
 if (-not $commit) { $commit = "unknown" }
 $stamp = Get-Date -Format "yyyyMMdd-HHmm"
 $suffix = if ($Tag) { $Tag } else { "$commit-$stamp" }
-$kitName = "streamclip-beta-kit-$Mode-$suffix"
+$kitName = "qclip-beta-kit-$Mode-$suffix"
 $stage = Join-Path $OutDir $kitName
 
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
@@ -30,6 +31,49 @@ function Copy-Rel([string]$RelPath) {
         New-Item -ItemType Directory -Force -Path $destDir | Out-Null
     }
     Copy-Item $src $dest -Recurse -Force
+}
+
+function Resolve-WindowsInstaller([string]$StageDir, [string]$PreferredTag) {
+    $installerName = "qClip-Setup-win-x64.exe"
+    $installersDir = Join-Path $StageDir "installers"
+    New-Item -ItemType Directory -Force -Path $installersDir | Out-Null
+    $dest = Join-Path $installersDir $installerName
+
+    $localPath = Join-Path $root "apps/desktop/release/$installerName"
+    if (Test-Path $localPath) {
+        Copy-Item $localPath $dest -Force
+        Write-Host "Included Windows installer from local release build: $localPath"
+        return $dest
+    }
+
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-Error "IncludeInstaller: local installer missing at $localPath and 'gh' CLI not found. Build the installer or install GitHub CLI."
+    }
+
+    $repo = "WheresWellium/StreamClip"
+    $tagsToTry = @()
+    if ($PreferredTag) { $tagsToTry += $PreferredTag }
+    $tagsToTry += @("v1.0.0-beta.5", "latest")
+
+    $downloaded = $false
+    foreach ($releaseTag in $tagsToTry) {
+        Write-Host "Trying gh release download ($releaseTag) for $installerName ..."
+        if ($releaseTag -eq "latest") {
+            & gh release download -R $repo -p $installerName -D $installersDir --clobber 2>$null
+        } else {
+            & gh release download $releaseTag -R $repo -p $installerName -D $installersDir --clobber 2>$null
+        }
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $dest)) {
+            $downloaded = $true
+            Write-Host "Included Windows installer from GitHub release $releaseTag"
+            break
+        }
+    }
+
+    if (-not $downloaded -or -not (Test-Path $dest)) {
+        Write-Error "IncludeInstaller: could not resolve $installerName from local path or gh release download. Authenticate with 'gh auth login' (collaborator) or build apps/desktop/release first."
+    }
+    return $dest
 }
 
 $alwaysFiles = @(
@@ -95,6 +139,26 @@ Use Mode=Source (default) or clone https://github.com/WheresWellium/StreamClip
 "@
 }
 
+$installerNote = ""
+if ($IncludeInstaller) {
+    $null = Resolve-WindowsInstaller -StageDir $stage -PreferredTag $Tag
+    $installerNote = @"
+
+Windows installer (no Docker)
+-----------------------------
+This kit includes: installers/qClip-Setup-win-x64.exe
+
+1. Run installers\qClip-Setup-win-x64.exe
+2. If Windows shows "Windows protected your PC" (SmartScreen): click More info → Run anyway
+   (Unsigned beta builds trigger this; it does not mean the file is malware.)
+3. Open qClip from the Start menu and paste your license key under Settings → License
+
+Note: GitHub anonymous download URLs for this private repo return 404.
+Testers should use this kit zip (or Lemon Squeezy / operator Drive link), not the raw GitHub release URL.
+Collaborators with repo access can use: gh release download v1.0.0-beta.5 -R WheresWellium/StreamClip -p qClip-Setup-win-x64.exe
+"@
+}
+
 @"
 qClip Phase 0 beta kit ($Mode)
 Generated: $(Get-Date -Format o)
@@ -102,10 +166,10 @@ Commit: $commit
 Tag: $(if ($Tag) { $Tag } else { "(none)" })
 
 $runHint
-
+$installerNote
 Verify before first job: .\scripts\verify_stack.ps1 (exit 0)
 
-Repo (canonical): https://github.com/WheresWellium/StreamClip
+Repo (canonical, collaborators): https://github.com/WheresWellium/StreamClip
 "@ | Set-Content (Join-Path $stage "KIT_README.txt") -Encoding utf8
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
@@ -116,3 +180,6 @@ Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zipPath -Force
 Write-Host "Beta kit ready ($Mode):" -ForegroundColor Green
 Write-Host "  $zipPath"
 Write-Host "  Staged folder: $stage"
+if ($IncludeInstaller) {
+    Write-Host "  Installer: $stage\installers\qClip-Setup-win-x64.exe"
+}

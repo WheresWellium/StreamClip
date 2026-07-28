@@ -71,6 +71,17 @@ async def test_job_update_status_sets_pipeline_started_on_ingesting(db):
 
 
 @pytest.mark.asyncio
+async def test_job_try_claim_pipeline_first_wins(db):
+    """First claim sets pipeline_started_at; second claim on same job is rejected."""
+    job = await _make_job(db)
+    repo = JobRepository(db)
+    assert await repo.try_claim_pipeline(job.id) is True
+    refreshed = await repo.get(job.id)
+    assert refreshed.pipeline_started_at is not None
+    assert await repo.try_claim_pipeline(job.id) is False
+
+
+@pytest.mark.asyncio
 async def test_clip_update_approval_missing_clip_noop(db):
     """Line 388: update_approval with unknown clip_id returns without error."""
     repo = ClipRepository(db)

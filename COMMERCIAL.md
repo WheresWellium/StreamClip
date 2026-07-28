@@ -26,4 +26,4 @@ Environment variables for commerce webhooks:
 - `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY`
 - `STREAMCLIP_COMMERCE__LEMON_SQUEEZY_WEBHOOK_SECRET`
 
-For licensing inquiries: licensing@streamclip.io
+For licensing inquiries: licensing@qclip.io

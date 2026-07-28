@@ -106,6 +106,41 @@ def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
     assert (data_dir / "workspace").is_dir()
     assert (data_dir / "storage").is_dir()
     assert (data_dir / "cache").is_dir()
+    assert (data_dir / "logs").is_dir()
+
+
+def test_configure_sidecar_file_logging_tees_stdout(tmp_path, monkeypatch):
+    data_dir = tmp_path / "qClip"
+    data_dir.mkdir()
+    monkeypatch.delenv("STREAMCLIP_LOG_JSON", raising=False)
+    original_out = sys.stdout
+    try:
+        log_path = sidecar.configure_sidecar_file_logging(
+            data_dir, max_bytes=1024, backup_count=1,
+        )
+        print("sidecar-log-probe", flush=True)
+        assert log_path == data_dir / "logs" / "sidecar.log"
+        assert "sidecar-log-probe" in log_path.read_text(encoding="utf-8")
+        assert os.environ.get("STREAMCLIP_LOG_JSON") == "true"
+    finally:
+        sys.stdout = original_out
+
+
+def test_configure_sidecar_file_logging_rotates(tmp_path):
+    data_dir = tmp_path / "qClip"
+    data_dir.mkdir()
+    original_out, original_err = sys.stdout, sys.stderr
+    try:
+        log_path = sidecar.configure_sidecar_file_logging(
+            data_dir, max_bytes=64, backup_count=2,
+        )
+        for _ in range(20):
+            print("x" * 40, flush=True)
+        assert log_path.is_file()
+        assert Path(f"{log_path}.1").is_file() or log_path.stat().st_size <= 64 * 3
+    finally:
+        sys.stdout = original_out
+        sys.stderr = original_err
 
 
 def test_configure_data_dirs_respects_explicit_env(tmp_path):

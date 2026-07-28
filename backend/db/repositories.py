@@ -199,6 +199,26 @@ class JobRepository:
             job.celery_task_id = task_id
             await self.db.flush()
 
+    async def try_claim_pipeline(self, job_id: str) -> bool:
+        """Atomically claim a queued job for pipeline start.
+
+        Returns True only for the first claimant. Prevents duplicate
+        ingest→highlights chains when ``start_pipeline`` is redelivered or
+        double-dispatched (desktop in-process and Celery alike).
+        """
+        now = datetime.now(timezone.utc)
+        result = await self.db.execute(
+            update(Job)
+            .where(
+                Job.id == job_id,
+                Job.pipeline_started_at.is_(None),
+                Job.status == JobStatus.QUEUED,
+            )
+            .values(pipeline_started_at=now),
+        )
+        await self.db.flush()
+        return (result.rowcount or 0) == 1
+
     async def cancel(self, job_id: str) -> None:
         await self.update_status(job_id, JobStatus.CANCELLED, stage="cancelled")
 

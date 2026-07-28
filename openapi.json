@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "StreamClip API",
-    "description": "AI-powered gaming clip pipeline",
+    "title": "qClip API",
+    "description": "AI-powered clip pipeline",
     "version": "1.0.0"
   },
   "paths": {

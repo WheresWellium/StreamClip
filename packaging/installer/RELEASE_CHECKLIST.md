@@ -25,11 +25,16 @@ Use before tagging `v*` for GitHub Releases.
   - **Windows job** — required; publishes Setup exe + `latest.yml`
   - **macOS job** — scaffold on `macos-latest` with `continue-on-error: true` until §5.2–5.3 (MPS wheels + notarization) are green
 
-## Beta kit (Docker path)
+## Beta kit (Docker + Windows installer)
+
+The GitHub repo is **private** — anonymous release download URLs **404**. Do not send bare GitHub `/releases/.../download/...` links to testers.
 
 ```powershell
 .\scripts\prepare_beta_kit.ps1 -Mode Source   # default runnable tree
+.\scripts\prepare_beta_kit.ps1 -Mode Source -IncludeInstaller   # + installers/qClip-Setup-win-x64.exe
 .\scripts\prepare_beta_kit.ps1 -Mode ProdImages
 ```
 
-Testers run `.\scripts\start_local.ps1` then `.\scripts\verify_stack.ps1`.
+`-IncludeInstaller` copies from `apps/desktop/release/` or falls back to `gh release download` (collaborator auth). Attach the zip / `installers/` via invite pack, Lemon Squeezy, or Drive.
+
+Testers run `.\scripts\start_local.ps1` then `.\scripts\verify_stack.ps1` (Docker), or run `installers\qClip-Setup-win-x64.exe` (desktop; SmartScreen → More info → Run anyway).

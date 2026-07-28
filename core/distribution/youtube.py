@@ -125,7 +125,7 @@ class YouTubeShortsAdapter:
             on_progress("upload", 0.1)
 
         snippet = {
-            "title": metadata.title[:100] or "StreamClip Short",
+            "title": metadata.title[:100] or "qClip Short",
             "description": metadata.description[:5000],
             "categoryId": "22",
         }

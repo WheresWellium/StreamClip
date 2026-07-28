@@ -11,31 +11,31 @@
 
 ## Current focus
 
-**Release readiness pass** on desktop-first / qClip branch. External brand is **qClip** only. GitHub host path remains `WheresWellium/StreamClip`.
+**Release checklist polish** on `cursor/desktop-first-completion-39d9`. Verdict still **CONDITIONAL GO**. Brand **qClip** only.
 
 ## Blockers
 
-- EV Authenticode cert — SmartScreen until signed.
-- macOS DMG + notarization — Apple Silicon host + Developer ID.
-- Phase 0 exit — T0 cohort metrics (MASTER §8.16); engineering invite gate already cleared.
-- Private GitHub repo — anonymous release download URLs 404; need auth, invite zip, or public mirror.
+- Human Windows Explorer smoke ([HUMAN_DESKTOP_SMOKE.md](HUMAN_DESKTOP_SMOKE.md)).
+- EV Authenticode / SmartScreen.
+- macOS DMG + notarization.
+- Docker `verify_stack.ps1` on operator host (no Docker in this agent).
 
 ## Validation
 
-- **Windows installer:** [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5) — `qClip-Setup-win-x64.exe` (~487 MB) + `latest.yml`.
-- PR #7 CI: coverage / e2e / desktop-smoke / Vercel **green** on `3f4f343+`.
-- macOS installer CI: failed unsigned scaffold (`continue-on-error`).
-- Local: license/middleware/quota tests pass; full Docker `verify_stack.ps1` not runnable in this Linux cloud agent (no Docker).
+- beta.5 Windows installer + PR CI green; henna qClip/beta.5 live.
+- Shipped: desktop file logs, pipeline claim + highlights skip, log redaction, `-IncludeInstaller` kit, brand/API polish.
+- Alembic head `0013_license_capabilities` in agent env.
 
 ## Next steps
 
-1. Redeploy MkDocs/henna so public BETA_DOWNLOAD shows qClip + beta.5.
-2. Mirror or auth-gate Windows installer for testers without GitHub access.
-3. macOS DMG when Apple Silicon signing path is ready.
-4. Human validation checklists for Windows Explorer install + macOS Finder launch.
+1. Human Windows smoke + zip logs from `%LOCALAPPDATA%\qClip\logs\`.
+2. `.\scripts\prepare_beta_kit.ps1 -IncludeInstaller` for tester distribution.
+3. EV cert; macOS DMG when ready.
+4. Merge PR #7 when human smoke signs off.
 
 ## Key paths
 
-- Brand UI: `web/app/layout.tsx`, splash, onboarding, Settings
-- Installer: `apps/desktop/package.json`
-- Docs: `docs/BETA_DOWNLOAD.md`, `docs/RELEASE_CHECKLIST.md`, `mkdocs.yml`
+- Logs: `desktop_sidecar/run.py`, `apps/desktop/src/main.ts`
+- Claim: `JobRepository.try_claim_pipeline`, `start_pipeline`
+- Docs: `RELEASE_CHECKLIST.md`, `HUMAN_DESKTOP_SMOKE.md`, `BETA_DOWNLOAD.md`
+- Kit: `scripts/prepare_beta_kit.ps1 -IncludeInstaller`

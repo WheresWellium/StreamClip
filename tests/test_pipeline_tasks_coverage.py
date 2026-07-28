@@ -105,13 +105,30 @@ def test_mark_error_and_clip_error(mock_db_cm):
         asyncio.run(pt._mark_clip_error("c1", "e"))
 
 
-def test_start_pipeline():
+def test_start_pipeline(mock_db_cm):
     chain_result = MagicMock(id="chain-1")
-    with patch.object(pt, "chain") as chain_mock:
-        workflow = MagicMock()
-        workflow.apply_async.return_value = chain_result
-        chain_mock.return_value = workflow
-        assert pt.start_pipeline.run("job1") == "job1"
+    with patch.object(pt, "JobRepository") as JR:
+        jobs = MagicMock()
+        jobs.try_claim_pipeline = AsyncMock(return_value=True)
+        JR.return_value = jobs
+        with patch.object(pt, "chain") as chain_mock:
+            with patch.object(pt, "apply_async", return_value=chain_result) as apply_mock:
+                workflow = MagicMock()
+                chain_mock.return_value = workflow
+                assert pt.start_pipeline.run("job1") == "job1"
+                apply_mock.assert_called_once_with(workflow)
+
+
+def test_start_pipeline_skips_when_already_claimed(mock_db_cm):
+    with patch.object(pt, "JobRepository") as JR:
+        jobs = MagicMock()
+        jobs.try_claim_pipeline = AsyncMock(return_value=False)
+        JR.return_value = jobs
+        with patch.object(pt, "chain") as chain_mock:
+            with patch.object(pt, "apply_async") as apply_mock:
+                assert pt.start_pipeline.run("job1") == "job1"
+                chain_mock.assert_not_called()
+                apply_mock.assert_not_called()
 
 
 def _ingest_result_mock(**overrides):
@@ -254,13 +271,33 @@ def test_run_highlights(mock_db_cm, tmp_path, monkeypatch):
         jobs.update_status = AsyncMock()
         JR.return_value = jobs
         clips = MagicMock()
+        clips.list_for_job = AsyncMock(return_value=[])
         clips.create = AsyncMock(return_value=MagicMock(id="newclip"))
         CR.return_value = clips
         with patch.object(pt, "_ensure_job_source", return_value=tmp_path / "v.mp4"):
             with patch.object(pt, "make_storage", return_value=MagicMock()):
                 with patch.object(pt, "load_job_transcript", return_value=transcript):
-                    with patch.object(pt, "find_highlights", return_value=[cand]):
+                    with patch.object(pt, "find_highlights", return_value=[cand]) as find:
                         assert pt.run_highlights.run("job1") == "job1"
+                        find.assert_called_once()
+                        clips.create.assert_awaited()
+
+
+def test_run_highlights_skips_when_clips_exist(mock_db_cm):
+    job = _make_job()
+    existing = [_make_clip(id="c-existing")]
+    with patch.object(pt, "JobRepository") as JR, patch.object(pt, "ClipRepository") as CR:
+        jobs = MagicMock()
+        jobs.get = AsyncMock(return_value=job)
+        JR.return_value = jobs
+        clips = MagicMock()
+        clips.list_for_job = AsyncMock(return_value=existing)
+        clips.create = AsyncMock()
+        CR.return_value = clips
+        with patch.object(pt, "find_highlights") as find:
+            assert pt.run_highlights.run("job1") == "job1"
+            find.assert_not_called()
+            clips.create.assert_not_awaited()
 
 
 def test_run_virality_scores(mock_db_cm):

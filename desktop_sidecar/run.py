@@ -20,6 +20,99 @@ DEFAULT_PORT = 8765
 APP_DATA_DIR_NAME = "qClip"
 LEGACY_APP_DATA_DIR_NAME = "StreamClip"
 
+# Packaged / desktop data-dir installs: keep enough history for beta support
+# without unbounded disk growth (~20 MiB sidecar + backups).
+_SIDECAR_LOG_MAX_BYTES = 5 * 1024 * 1024
+_SIDECAR_LOG_BACKUP_COUNT = 3
+
+
+class _TeeIO:
+    """Duplicate writes to the original stream and a size-rotating log file."""
+
+    def __init__(
+        self,
+        primary,
+        path: Path,
+        *,
+        max_bytes: int = _SIDECAR_LOG_MAX_BYTES,
+        backup_count: int = _SIDECAR_LOG_BACKUP_COUNT,
+    ) -> None:
+        self._primary = primary
+        self._path = path
+        self._max_bytes = max_bytes
+        self._backup_count = backup_count
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = self._path.open("a", encoding="utf-8")
+
+    def write(self, data: str) -> int:
+        if not data:
+            return 0
+        try:
+            self._primary.write(data)
+        except Exception:  # noqa: BLE001 — never break logging on console failure
+            pass
+        try:
+            self._maybe_rotate()
+            self._fh.write(data)
+            self._fh.flush()
+        except Exception:  # noqa: BLE001
+            pass
+        return len(data)
+
+    def _maybe_rotate(self) -> None:
+        try:
+            if self._fh.tell() < self._max_bytes:
+                return
+        except Exception:  # noqa: BLE001
+            return
+        self._fh.close()
+        for idx in range(self._backup_count, 0, -1):
+            src = self._path if idx == 1 else Path(f"{self._path}.{idx - 1}")
+            dest = Path(f"{self._path}.{idx}")
+            if src.is_file():
+                if dest.is_file():
+                    dest.unlink()
+                src.rename(dest)
+        self._fh = self._path.open("a", encoding="utf-8")
+
+    def flush(self) -> None:
+        try:
+            self._primary.flush()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self._fh.flush()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def isatty(self) -> bool:
+        return bool(getattr(self._primary, "isatty", lambda: False)())
+
+    @property
+    def encoding(self) -> str:
+        return getattr(self._primary, "encoding", "utf-8") or "utf-8"
+
+
+def configure_sidecar_file_logging(
+    data_dir: Path,
+    *,
+    max_bytes: int = _SIDECAR_LOG_MAX_BYTES,
+    backup_count: int = _SIDECAR_LOG_BACKUP_COUNT,
+) -> Path:
+    """Tee stdout/stderr into ``data_dir/logs/sidecar.log`` (JSON-friendly).
+
+    Structlog PrintLogger writes to stdout, so a FileHandler alone would miss
+    the hot path. Call before importing ``backend.main``.
+    """
+    logs_dir = data_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_path = logs_dir / "sidecar.log"
+    os.environ.setdefault("STREAMCLIP_LOG_JSON", "true")
+    sys.stdout = _TeeIO(sys.stdout, log_path, max_bytes=max_bytes, backup_count=backup_count)
+    sys.stderr = _TeeIO(sys.stderr, log_path, max_bytes=max_bytes, backup_count=backup_count)
+    log.info("sidecar_log_file", path=str(log_path))
+    return log_path
+
 
 def app_root() -> Path:
     """Repository root in dev; bundled resources dir when frozen.
@@ -81,7 +174,8 @@ def configure_data_dirs(data_dir: Path) -> None:
     workspace = data_dir / "workspace"
     storage = data_dir / "storage"
     cache = data_dir / "cache"
-    for d in (data_dir, workspace, storage, cache):
+    logs = data_dir / "logs"
+    for d in (data_dir, workspace, storage, cache, logs):
         d.mkdir(parents=True, exist_ok=True)
 
     db_path = (data_dir / "streamclip.db").as_posix()
@@ -107,6 +201,8 @@ def configure_desktop_env(root: Path | None = None) -> Path:
     data_dir = desktop_data_dir()
     if data_dir is not None:
         configure_data_dirs(data_dir)
+        # Tee before backend.main import so structlog PrintLogger is captured.
+        configure_sidecar_file_logging(data_dir)
     return base
 
 

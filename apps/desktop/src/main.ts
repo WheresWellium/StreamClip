@@ -1,5 +1,7 @@
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell } from "electron";
 import { spawn, ChildProcess } from "child_process";
+import fs from "fs";
+import os from "os";
 import path from "path";
 import { autoUpdater } from "electron-updater";
 
@@ -11,6 +13,8 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 const isDev = !app.isPackaged;
 
 const PRODUCT_NAME = "qClip";
+const LEGACY_PRODUCT_NAME = "StreamClip";
+const ELECTRON_LOG_MAX_BYTES = 1 * 1024 * 1024;
 
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
@@ -21,10 +25,56 @@ type BootPhase = "spawn" | "splash" | "sidecar_start" | "sidecar_ready" | "first
 
 const bootMarks: Partial<Record<BootPhase, number>> = {};
 
+/** Mirror sidecar desktop_data_dir candidates (LocalAppData / Application Support). */
+function desktopDataDir(): string {
+  const override = process.env.STREAMCLIP_DESKTOP_DATA_DIR;
+  if (override) return override;
+  if (process.platform === "darwin") {
+    const base = path.join(os.homedir(), "Library", "Application Support");
+    const preferred = path.join(base, PRODUCT_NAME);
+    const legacy = path.join(base, LEGACY_PRODUCT_NAME);
+    return fs.existsSync(legacy) && !fs.existsSync(preferred) ? legacy : preferred;
+  }
+  if (process.platform === "win32") {
+    const local = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+    const preferred = path.join(local, PRODUCT_NAME);
+    const legacy = path.join(local, LEGACY_PRODUCT_NAME);
+    return fs.existsSync(legacy) && !fs.existsSync(preferred) ? legacy : preferred;
+  }
+  const preferred = path.join(os.homedir(), ".qclip");
+  const legacy = path.join(os.homedir(), ".streamclip");
+  return fs.existsSync(legacy) && !fs.existsSync(preferred) ? legacy : preferred;
+}
+
+function electronLogPath(): string {
+  return path.join(desktopDataDir(), "logs", "electron.log");
+}
+
+function appendElectronLog(line: string): void {
+  try {
+    const file = electronLogPath();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    if (fs.existsSync(file) && fs.statSync(file).size > ELECTRON_LOG_MAX_BYTES) {
+      const rotated = `${file}.1`;
+      try {
+        if (fs.existsSync(rotated)) fs.unlinkSync(rotated);
+        fs.renameSync(file, rotated);
+      } catch {
+        /* ignore rotate races */
+      }
+    }
+    fs.appendFileSync(file, `${new Date().toISOString()} ${line}\n`, "utf8");
+  } catch {
+    /* never block boot on diagnostics */
+  }
+}
+
 function mark(phase: BootPhase): void {
   bootMarks[phase] = Date.now();
   const base = bootMarks.spawn ?? bootMarks[phase]!;
-  console.log(`[boot] ${phase} +${bootMarks[phase]! - base}ms`);
+  const line = `[boot] ${phase} +${bootMarks[phase]! - base}ms`;
+  console.log(line);
+  appendElectronLog(line);
 }
 
 function sidecarCommand(): { cmd: string; args: string[]; cwd: string } {
@@ -50,12 +100,22 @@ function startSidecar(): void {
       ...process.env,
       STREAMCLIP_SIDECAR_HOST: SIDECAR_HOST,
       STREAMCLIP_SIDECAR_PORT: String(SIDECAR_PORT),
+      // Packaged installs: pin sidecar data/logs next to Electron diagnostics.
+      // Dev (`npm start`) keeps repo-relative defaults unless the operator overrides.
+      ...(isDev
+        ? {}
+        : {
+            STREAMCLIP_DESKTOP_DATA_DIR:
+              process.env.STREAMCLIP_DESKTOP_DATA_DIR ?? desktopDataDir(),
+          }),
     },
     stdio: "ignore",
     shell: false,
   });
   sidecarProc.on("exit", (code) => {
-    console.log("sidecar exited", code);
+    const line = `sidecar exited ${code}`;
+    console.log(line);
+    appendElectronLog(line);
     sidecarProc = null;
   });
 }

@@ -40,7 +40,7 @@ x-streamclip-smtp-env: &streamclip-smtp-env
   SMTP_PORT: ${SMTP_PORT:-587}
   SMTP_USER: ${SMTP_USER:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-  SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
+  SMTP_FROM: ${SMTP_FROM:-qclip@localhost}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   BUG_REPORT_TO: ${BUG_REPORT_TO:-}
   OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}

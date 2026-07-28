@@ -8,7 +8,7 @@ config.yaml:
   SMTP_PORT      — default 587
   SMTP_USER      — optional auth username
   SMTP_PASSWORD  — optional auth password
-  SMTP_FROM      — sender address (default: streamclip@localhost)
+  SMTP_FROM      — sender address (default: qclip@localhost)
   SMTP_STARTTLS  — "false" to disable STARTTLS (default on)
   BUG_REPORT_TO  — recipient for bug report notifications
 
@@ -50,7 +50,7 @@ def smtp_settings_from_env() -> SMTPSettings:
         port=int(os.environ.get("SMTP_PORT", "587")),
         user=os.environ.get("SMTP_USER", ""),
         password=os.environ.get("SMTP_PASSWORD", ""),
-        sender=os.environ.get("SMTP_FROM", "streamclip@localhost"),
+        sender=os.environ.get("SMTP_FROM", "qclip@localhost"),
         starttls=os.environ.get("SMTP_STARTTLS", "true").lower() != "false",
     )
 

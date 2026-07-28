@@ -1,7 +1,9 @@
 # Get qClip — Beta Access
 
 
-> **Current Windows installer:** `1.0.0-beta.5` (2026-07-27) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
+> **Current Windows installer:** `1.0.0-beta.5` (2026-07-27) — `qClip-Setup-win-x64.exe` (~487 MB).  
+> **Testers:** get the `.exe` from your **invite kit zip** (`installers/`), **Lemon Squeezy** receipt, or **operator Drive** link — not from GitHub.  
+> GitHub release URLs are **collaborator-only**; anonymous browser hits return **404**.
 
 
 **qClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
@@ -17,7 +19,7 @@
 | **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
 | **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
 
-Both options are free for invited beta testers. **Docker** only needs the invite kit (clone or zip). The **Windows `.exe`** is hosted on a private GitHub Release — use the download link from your invite email, or `gh release download` while authenticated. Anonymous browser hits to `/releases/latest/download/...` return **404**.
+Both options are free for invited beta testers. **Docker** needs the invite kit (clone or zip). The **Windows `.exe`** ships in the invite kit zip under `installers/`, via Lemon Squeezy checkout downloads, or an operator Drive link — **not** via public GitHub. The repo is private; anonymous `/releases/.../download/...` URLs **404**.
 
 ---
 
@@ -38,8 +40,13 @@ Both options are free for invited beta testers. **Docker** only needs the invite
 
 If you prefer **not** to install Docker:
 
-1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 487 MB) via your invite link or authenticated GitHub access
+1. Get **`qClip-Setup-win-x64.exe`** (~487 MB) from one of:
+   - Your **invite kit zip** → `installers/qClip-Setup-win-x64.exe`
+   - **Lemon Squeezy** receipt / download page (if your invite used LS)
+   - An **operator Drive** (or similar) link from your invite email
 2. Run the installer
+
+Do **not** rely on the GitHub Releases “latest download” URL — the repo is private and anonymous downloads return **404**.
 
 **If Windows shows "Windows protected your PC"**
 
@@ -51,6 +58,16 @@ This is normal for an unsigned beta build. It does **not** mean the file is a vi
 4. Sign up or log in, then paste your license key in **Settings → License**
 
 The desktop app runs everything locally. You still need your **license key** from your invite email.
+
+### For collaborators
+
+Repo collaborators (authenticated GitHub access) can pull the Windows installer with:
+
+```powershell
+gh release download v1.0.0-beta.5 -R WheresWellium/StreamClip -p qClip-Setup-win-x64.exe
+```
+
+Or open the [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5) release page while signed in.
 
 ---
 
@@ -270,13 +287,12 @@ Use **Report a bug** or **Beta feedback** in the app header — every submission
 
 | Platform | Artifact | Status |
 |----------|----------|--------|
-| Windows | [`qClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.5** published — unsigned; SmartScreen may warn → More info → Run anyway |
+| Windows | `qClip-Setup-win-x64.exe` | ✅ **v1.0.0-beta.5** — distribute via invite kit / Lemon Squeezy / Drive; unsigned; SmartScreen → More info → Run anyway |
 | macOS | `qClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
 
-**Release page:** [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5)
+**Collaborator release page:** [v1.0.0-beta.5](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.5) (GitHub auth required)
 
 Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
-
 ### For friends helping build the macOS `.dmg` (not required for beta use)
 
 See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users should **not** need that path yet — use Docker above.

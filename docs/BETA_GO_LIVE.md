@@ -75,27 +75,30 @@ Kit includes:
 6. `docker-compose.yml` / `docker-compose.prod.yml` for dev and GHCR prod paths
 7. `docs/BETA_OPS_PHASE0.md` + `scripts/issue_beta_keys.py` + `scripts/list_support_reports.py` (operator)
 
-**Recommended run:** `docker compose up -d` on Windows 11, localhost UI at `:3000`, API at `:8000`.
+**Recommended run (creators):** install `qClip-Setup-win-x64.exe` or `qClip-mac-arm64.dmg` from the invite kit — **no Docker**. See [DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md).  
+**Operator alternative:** `docker compose up -d` → UI `:3000`, API `:8000`.
 
 ---
 
-## 6. Invite email template (Phase 0)
+## 6. Invite email template (Phase 0 — desktop creators)
 
-**Subject:** qClip technical beta — Docker self-host (Phase 0)
+**Subject:** qClip beta — desktop install (no Docker)
 
 Body:
 
-> You're in the qClip **Phase 0** cohort (technical self-host).  
+> You're in the qClip **Phase 0** creator cohort.  
 >
-> **Goal:** Run the full clip pipeline locally and report breakages.  
-> **Time:** ~15 min setup, ~1 h first real job (GPU recommended).  
+> **Goal:** Install the desktop app, run the clip pipeline locally, and report breakages.  
+> **Time:** ~15 min setup, ~1 h first real job (GPU recommended on Windows).  
+> **You do not need Docker Desktop.**  
 >
-> 1. Clone/access: `[REPO_OR_ZIP]`  
-> 2. Follow `docs/BETA_TESTER_QUICKSTART.md`  
-> 3. Run `.\scripts\verify_stack.ps1` — must exit 0 before your first job  
+> 1. Download the invite kit from `[DRIVE_OR_LS_LINK]`  
+> 2. Install `installers/qClip-Setup-win-x64.exe` (Windows) or `installers/qClip-mac-arm64.dmg` (Mac)  
+> 3. Follow `docs/BETA_TESTER_QUICKSTART.md` (desktop steps)  
 > 4. Complete flows T0-1 through T0-4 in `docs/BETA_TESTER_PLAN.md`  
 > 5. Post feedback in `[DISCORD_OR_DISCUSSIONS]` using the pinned template  
 >
+> SmartScreen / Gatekeeper: use More info → Run anyway (Windows) or right-click → Open (Mac).  
 > **Commerce note:** Beta validates a **buy-once, run-local** model (no metered cloud). Pro keys are optional for T0-6.  
 >
 > Thanks — your logs directly shape launch quality.

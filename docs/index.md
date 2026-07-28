@@ -22,6 +22,7 @@
 | **Install and run the beta** | [Get qClip](BETA_DOWNLOAD.md) |
 | **Step-by-step: first clip** | [Beta quickstart](BETA_TESTER_QUICKSTART.md) |
 | **Follow the full test checklist** | [Beta test plan](BETA_TESTER_PLAN.md) |
+| **Quick answers** | [Beta FAQ](BETA_FAQ.md) |
 | **Fix a problem** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
 | **Build the macOS installer** (helpers only) | [macOS installer — builders](MACOS_INSTALLER.md) |
 

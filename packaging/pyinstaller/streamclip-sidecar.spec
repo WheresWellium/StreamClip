@@ -28,6 +28,7 @@ LITE = os.environ.get("STREAMCLIP_LITE", "") in ("1", "true", "yes")
 
 datas = [
     (str(ROOT / "config" / "desktop.yaml"), "config"),
+    (str(ROOT / "packaging" / "cohort" / "cohort_licenses.json"), "packaging/cohort"),
     (str(ROOT / "alembic.ini"), "."),
     (str(ROOT / "alembic"), "alembic"),
     (str(ROOT / "config" / "profanity_en.txt"), "config"),

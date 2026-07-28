@@ -94,6 +94,9 @@ def configure_desktop_env(root: Path | None = None) -> Path:
         os.environ.setdefault("STREAMCLIP_CONFIG", str(config_path))
     data_dir = desktop_data_dir()
     if data_dir is not None:
+        from desktop_sidecar.install_secrets import ensure_install_secrets
+
+        ensure_install_secrets(data_dir)
         configure_data_dirs(data_dir)
     return base
 
@@ -154,6 +157,10 @@ def run_server(
 
     if os.environ.get("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "").lower() not in ("1", "true", "yes"):
         run_migrations(base)
+
+    from desktop_sidecar.seed_licenses import seed_bundled_licenses
+
+    seed_bundled_licenses(base)
 
     start_model_prefetch()
 

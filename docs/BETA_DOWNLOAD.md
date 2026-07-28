@@ -1,45 +1,22 @@
 # Get qClip — Beta Access
 
+> **Current Windows installer:** `1.0.0-beta.5` — [**Download qClip-Setup-win-x64.exe**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (about 490 MB)
 
-> **Current Windows installer:** `1.0.0-beta.4` (2026-07-24) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
-
-
-**qClip** turns long videos into short vertical clips — on **your computer**, not in the cloud.
-
-**New here?** Read this page top to bottom, or jump to the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
+**qClip** is the all-in-one clip studio on **your computer** — paste a URL or upload, reframe to any aspect ratio, and rank what to ship first.
 
 ---
 
-## Choose how you want to run it
+## Download and run (Windows)
 
-| Option | Who it's for | Difficulty |
-|--------|--------------|------------|
-| **Docker on Windows or Mac** | Most beta testers (recommended) | Medium — install Docker once, then one command to start |
-| **Windows installer (.exe)** | People who do not want Docker | Easy — download and install like any app |
+**[Download qClip for Windows](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)**
 
-Both options are free. You do **not** need a GitHub account.
+Three steps:
 
----
+1. **Download** the installer above (no GitHub account required).
+2. **Run** it and open qClip from the Start menu.
+3. **Paste your license key** in **Settings → License** (from your invite email).
 
-## What's available right now
-
-| Path | Status | Who it's for |
-|------|--------|--------------|
-| **Docker self-host (Windows)** | ✅ Ready | Beta testers with Docker Desktop |
-| **Docker self-host (macOS)** | ✅ Ready | Beta testers on Apple Silicon or Intel Mac |
-| **Windows one-click installer (.exe)** | ✅ Ready (unsigned beta) | Creators who want no Docker — SmartScreen may warn |
-| **macOS one-click installer (.dmg)** | 🔜 Coming soon | General creators — scaffold in progress |
-
-**Phase 0 testers:** The Windows `.exe` is the primary path — no Docker required. Docker self-host remains available for operators who prefer it.
-
----
-
-## Windows installer (no Docker)
-
-If you prefer **not** to install Docker:
-
-1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 490 MB)
-2. Run the installer
+You do **not** need to sign up, log in, or install Docker for the Windows installer path.
 
 **If Windows shows "Windows protected your PC"**
 
@@ -47,20 +24,83 @@ This is normal for an unsigned beta build. It does **not** mean the file is a vi
 
 1. Click **More info**
 2. Click **Run anyway**
-3. Finish install and open qClip from the Start menu
-4. Sign up or log in, then paste your license key in **Settings → License**
+3. Finish install and open qClip
 
-The desktop app runs everything locally. You still need your **license key** from your invite email.
+**First run:** qClip downloads speech models on first use (~1.5 GB for the beta `medium` model). Keep the app open — progress appears on the loading screen.
 
----
-
-## Docker install (Windows and Mac)
-
-Pick your platform below.
+**New here?** See the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
 
 ---
 
-## Choose your platform
+## After install
+
+### Create your first clip
+
+1. Click **New job**
+2. Paste any **public** video URL — Twitch VOD, YouTube, Kick, or a direct `.mp4` link — or upload a file
+3. Submit and watch the progress bar
+4. When status shows **done**, review and approve clips you like
+
+**Speed guide (CPU-only desktop bundle)**
+
+| Source length | Typical time |
+|---------------|--------------|
+| ~15-minute clip | ~10–20 minutes |
+| ~1-hour VOD | ~60–90+ minutes |
+
+### Publish to YouTube Shorts (optional)
+
+1. Open a finished, approved clip
+2. **Settings → Distribution → Connect YouTube Shorts** → sign in with Google
+3. Click **Publish** on any approved clip
+
+!!! note "TikTok"
+    TikTok direct publish is inbox-upload only during beta (awaiting app audit). Your clip will be saved to TikTok drafts — finish posting inside the TikTok app.
+
+### Get help
+
+Use **Report a bug** or **Beta feedback** in the app header — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
+
+---
+
+## System requirements (Windows installer)
+
+| | Requirement |
+|-|-------------|
+| OS | Windows 10/11 64-bit |
+| RAM | 16 GB minimum (32 GB recommended) |
+| Disk | 10 GB+ free (20 GB SSD recommended — includes first-run models) |
+| GPU | Not required for the desktop bundle (CPU encode; slower than GPU Docker hosts) |
+| Accounts | None to install or clip |
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| Windows SmartScreen warning | Click **More info → Run anyway** (unsigned beta) |
+| License key not accepted | Paste the full key including dashes; open **Settings → License → Show details** on **This install** if support asks |
+| App stuck on first launch | First run downloads ~1.5 GB of speech models — wait for the progress indicator |
+| Clips very slow | Expected on CPU-only desktop — try a shorter source video for beta |
+| Upgraded from an older beta build | Re-paste your license key once in **Settings → License** |
+
+---
+
+## What's coming
+
+| Platform | Status |
+|----------|--------|
+| Windows `.exe` | ✅ **v1.0.0-beta.5** — [Latest release](https://github.com/WheresWellium/StreamClip/releases/latest) |
+| macOS `.dmg` | 🔜 Coming soon — scaffold in progress |
+
+---
+
+## Advanced: Docker self-host (operators)
+
+The sections below are for **operators and developers** who prefer the full Docker stack (Postgres, GPU workers, stack verify). Phase 0 testers on Windows should use the **installer above** — no zip extract, no terminal commands.
+
+### Choose your platform
 
 === "Windows"
 
@@ -71,22 +111,16 @@ Pick your platform below.
     - **16 GB RAM** minimum (32 GB recommended)
     - **NVIDIA GPU** strongly recommended — CPU-only works but is much slower
 
-    ### Step 1 — Get the beta package
+    ### Step 1 — Get the repo
 
-    You should have received a `.zip` or a private repo link in your invite email. If you haven't:
-
-    - Check spam for an email from Wellium
-    - Reply to your invite email and ask for the download link
-
-    ### Step 2 — Extract and set up
+    Clone or download the repo (private link from your operator). If you only have an invite email with a license key, use the Windows installer instead.
 
     ```powershell
-    # Extract the beta zip to a folder, then:
     cd streamclip
     Copy-Item .env.example .env
     ```
 
-    ### Step 3 — Start qClip
+    ### Step 2 — Start qClip
 
     ```powershell
     docker compose up -d
@@ -94,7 +128,7 @@ Pick your platform below.
 
     First run downloads Docker images — allow 5–10 minutes on a fast connection.
 
-    ### Step 4 — Verify it's running
+    ### Step 3 — Verify it's running
 
     ```powershell
     .\scripts\verify_stack.ps1
@@ -126,27 +160,14 @@ Pick your platform below.
     3. Complete first-run setup and wait until the menu-bar whale shows **Docker Desktop is running**
     4. (Apple Silicon) Prefer the **Apple Silicon** build — Rosetta-only Intel images are slower
 
-    ### Step 2 — Get the beta package
-
-    Same as Windows: `.zip` or private repo link from your invite email.
+    ### Step 2 — Get the repo
 
     ```bash
-    # ZIP: unzip, then:
-    cd ~/Downloads/streamclip   # or wherever you extracted
-
-    # Or clone if your invite included a repo URL:
-    # git clone <LINK_FROM_INVITE> streamclip && cd streamclip
-    ```
-
-    ### Step 3 — Configure
-
-    ```bash
+    cd ~/Downloads/streamclip   # or wherever you cloned
     cp .env.example .env
     ```
 
-    Defaults work for local beta — no API keys required to start.
-
-    ### Step 4 — Start qClip
+    ### Step 3 — Start qClip
 
     ```bash
     docker compose up -d
@@ -154,7 +175,7 @@ Pick your platform below.
 
     First run downloads images (~2–5 GB). Allow 5–15 minutes. Later starts take about a minute.
 
-    ### Step 5 — Verify it's running
+    ### Step 4 — Verify it's running
 
     PowerShell verify script is optional on Mac. Use these checks:
 
@@ -172,42 +193,18 @@ Pick your platform below.
     pwsh -File ./scripts/verify_stack.ps1
     ```
 
----
+### After Docker install
 
-## After install (Windows and Mac)
-
-### Activate your license
+#### Activate your license
 
 1. Open the app at [http://localhost:3000](http://localhost:3000)
-2. Sign up / log in
-3. Go to **Settings → License**
-4. Paste the license key from your invite email
-5. Confirm — beta keys unlock **full access**
+2. Go to **Settings → License**
+3. Paste the license key from your invite email
+4. Confirm — beta keys unlock **full access**
 
-### Create your first clip
+Manual cohort keys may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-6--activate-your-license-key-optional).
 
-1. Click **New job**
-2. Paste any **public** video URL — Twitch VOD, YouTube, Kick, or a direct `.mp4` link
-3. Submit and watch the progress bar
-4. When status shows **done**, review and approve clips you like
-
-**Speed guide**
-
-| Setup | ~1-hour VOD |
-|-------|-------------|
-| Windows + NVIDIA GPU | ~20–25 minutes |
-| Windows / Mac CPU-only | ~60–90+ minutes |
-
-### Publish to YouTube Shorts (optional)
-
-1. Open a finished, approved clip
-2. **Settings → Distribution → Connect YouTube Shorts** → sign in with Google
-3. Click **Publish** on any approved clip
-
-!!! note "TikTok"
-    TikTok direct publish is inbox-upload only during beta (awaiting app audit). Your clip will be saved to TikTok drafts — finish posting inside the TikTok app.
-
-### Stop qClip
+#### Stop qClip
 
 === "Windows"
 
@@ -223,22 +220,7 @@ Pick your platform below.
 
 Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you want to wipe everything.
 
----
-
-## System requirements
-
-| | Windows | macOS |
-|-|---------|-------|
-| OS | Windows 10/11 64-bit | macOS 12+ |
-| Runtime | Docker Desktop (WSL2) | Docker Desktop for Mac |
-| RAM | 16 GB min / 32 GB recommended | Same |
-| Disk | 10 GB+ free (20 GB SSD better) | 20 GB+ free recommended |
-| GPU | NVIDIA + NVENC recommended | CPU only (no NVENC) |
-| Accounts | None to install | None to install |
-
----
-
-## Troubleshooting
+### Docker troubleshooting
 
 | Problem | Fix |
 |---------|-----|
@@ -247,32 +229,22 @@ Your data (jobs, clips, settings) stays in Docker volumes. Add `-v` only if you 
 | Mac: Docker is slow / fans loud | Give Docker more CPUs/RAM (Docker Desktop → Settings → Resources). Prefer Apple Silicon build on M-series |
 | Very slow clips on Windows | Enable GPU in Docker Desktop → Settings → Resources → GPU |
 | Very slow clips on Mac | Expected without NVIDIA — use shorter source videos for beta |
-| License key not accepted | Paste the full key including dashes; under **Settings → License**, use **Show details** on **This install** if support asks |
 | Windows: `verify_stack.ps1` fails | Post the full output in the beta channel — include GPU model |
 | Mac: `curl` health fails | Confirm API container is running: `docker compose logs api --tail 50` |
 
----
+### Docker system requirements
 
-## Get help
+| | Windows | macOS |
+|-|---------|-------|
+| OS | Windows 10/11 64-bit | macOS 12+ |
+| Runtime | Docker Desktop (WSL2) | Docker Desktop for Mac |
+| RAM | 16 GB min / 32 GB recommended | Same |
+| Disk | 10 GB+ free (20 GB SSD better) | 20 GB+ free recommended |
+| GPU | NVIDIA + NVENC recommended | CPU only (no NVENC) |
 
-Use **Report a bug** or **Beta feedback** in the app header — every submission is read even if auto-reply isn't set up yet. Or reply directly to your invite email.
+### macOS `.dmg` builder notes
 
----
-
-## One-click installers
-
-| Platform | Artifact | Status |
-|----------|----------|--------|
-| Windows | [`qClip-Setup-win-x64.exe`](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) | ✅ **v1.0.0-beta.4** published — unsigned; SmartScreen may warn → More info → Run anyway |
-| macOS | `qClip-mac-arm64.dmg` | 🔜 Scaffold ready; needs a Mac host to produce the DMG |
-
-**Release page:** [v1.0.0-beta.4](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.4)
-
-Docker remains the primary Phase 0 path (full stack verify). Use the `.exe` for desktop / no-Docker trials.
-
-### For friends helping build the macOS `.dmg` (not required for beta use)
-
-See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users should **not** need that path yet — use Docker above.
+See **[macOS installer — builder notes](MACOS_INSTALLER.md)**. End users should use the Windows installer or Docker above.
 
 ---
 

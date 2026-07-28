@@ -99,8 +99,8 @@ export function OnboardingWizard({ sampleUrl, meta }: Props) {
         <section className="space-y-4">
           <h1 className="text-2xl font-semibold">Storage</h1>
           <p className="text-muted-foreground">
-            Clips and uploads are stored locally (MinIO) or your configured S3 bucket.
-            Ensure Docker volumes have enough free space for your typical VOD length.
+            Clips and uploads are stored in a local folder on this PC (under AppData).
+            Leave enough free disk space for your typical source length.
           </p>
         </section>
       )}

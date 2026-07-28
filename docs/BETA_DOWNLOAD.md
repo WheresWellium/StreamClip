@@ -6,6 +6,8 @@
 
 ---
 
+<a id="one-click-installers"></a>
+
 ## Download and run (Windows)
 
 **[Download qClip for Windows](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)**
@@ -202,7 +204,7 @@ The sections below are for **operators and developers** who prefer the full Dock
 3. Paste the license key from your invite email
 4. Confirm — beta keys unlock **full access**
 
-Manual cohort keys may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-6--activate-your-license-key-optional).
+Manual cohort keys on **beta.5** may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-2--activate-your-license-key). **beta.6+** seeds keys at install.
 
 #### Stop qClip
 

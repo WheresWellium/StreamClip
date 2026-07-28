@@ -258,8 +258,16 @@ npm run build
   echo "ERROR: apps/desktop/dist/main.js missing after tsc — Electron shell did not compile." >&2
   exit 1
 }
-# Prefer explicit --mac --arm64 so the artifact name stays qClip-mac-arm64.dmg
-npx electron-builder --mac --arm64 --publish never
+# Prefer explicit --mac --arm64 so the artifact name stays qClip-mac-arm64.dmg.
+# When unsigned, force identity=null — CSC_IDENTITY_AUTO_DISCOVERY=false alone is
+# not enough if empty CSC_* leaked in (electron-builder → "<workdir> not a file").
+EB_EXTRA=()
+if ! signing_configured; then
+  unset CSC_LINK CSC_KEY_PASSWORD CSC_NAME || true
+  export CSC_IDENTITY_AUTO_DISCOVERY=false
+  EB_EXTRA+=(-c.mac.identity=null)
+fi
+npx electron-builder --mac --arm64 --publish never "${EB_EXTRA[@]}"
 popd >/dev/null
 
 if [[ ! -f "$EXPECTED_DMG" ]]; then

@@ -49,7 +49,8 @@ Host (chip): pending Apple Silicon
 Commit: cursor/desktop-first-completion-39d9
 Result: TOOLING READY / DMG PENDING
 DMG path / size: (run ./scripts/build_macos_solo.sh)
-Notes: CI desktop-release.yml clears empty CSC_*; uses requirements-desktop-macos.txt
+Notes: v1.0.0-beta.5 macos-installer failed: empty CSC_* → "apps/desktop not a file".
+       Fixed on this branch: GITHUB_ENV only when secrets non-empty + -c.mac.identity=null.
 ```
 
 ---

@@ -11,7 +11,7 @@
 
 ## Current focus
 
-[DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) tooling complete. Creator docs flipped installer-primary (no Docker Step 1).
+[DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) tooling complete. macOS CI unsigned path hardened (empty CSC_* fix).
 
 ## Agent-complete
 

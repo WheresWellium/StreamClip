@@ -63,7 +63,8 @@ Notes: CI desktop-release.yml clears empty CSC_*; uses requirements-desktop-maco
 | C3 | Zip contains `installers/qClip-mac-arm64.dmg` when Phase B done | ☐ (Win-only kit until Mac DMG) |
 | C4 | Upload zip to Drive / LS / invite channel (not anonymous GitHub) | ☐ **operator** |
 
-Kit path (local): `dist/qclip-beta-kit-DesktopSolo-*.zip` (gitignored).
+Kit path (local): `dist/qclip-beta-kit-DesktopSolo-*.zip` (gitignored).  
+Kit also ships desktop-first `docs/BETA_TESTER_QUICKSTART.md` (no “Install Docker Desktop” Step 1).
 
 ---
 

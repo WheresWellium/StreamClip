@@ -121,10 +121,13 @@ You're in - welcome to the qClip Phase 0 beta.
 1. Complete your free checkout (downloads + license key):
 {checkout_url}
 
-2. Install guide:
+2. Install guide (start here):
+{henna_base}/DESKTOP_SOLO_USER_GUIDE/
+
+3. Installer download help:
 {henna_base}/BETA_DOWNLOAD/
 
-3. Quickstart (~15 min):
+4. Quick overview (~15 min):
 {henna_base}/BETA_TESTER_QUICKSTART/
 
 After checkout, paste your license key in Settings -> License.

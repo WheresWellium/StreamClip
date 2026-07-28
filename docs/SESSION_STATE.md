@@ -11,7 +11,14 @@
 
 ## Current focus
 
-[DESKTOP_SOLO_GATE.md](DESKTOP_SOLO_GATE.md) tooling complete. macOS CI unsigned path hardened (empty CSC_* fix).
+Henna docs polished — **Desktop install guide** is primary nav. Live after merge to `master` (Vercel rebuild).
+
+## Henna (published nav)
+
+- Install → DESKTOP_SOLO_USER_GUIDE, BETA_DOWNLOAD, BETA_TESTER_QUICKSTART
+- Using qClip → tutorials
+- Help → Troubleshooting, Known issues
+- Operator pages excluded from henna build
 
 ## Agent-complete
 

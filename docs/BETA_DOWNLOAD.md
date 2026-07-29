@@ -204,7 +204,8 @@ The sections below are for **operators and developers** who prefer the full Dock
 3. Paste the license key from your invite email
 4. Confirm — beta keys unlock **full access**
 
-Manual cohort keys on **beta.5** may require a one-time import — see the [quickstart](BETA_TESTER_QUICKSTART.md#step-2-activate-your-license-key). **beta.6+** seeds keys at install.
+**Docker / self-host:** import cohort keys once with `import_invite_license.py` — [quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker-step-5-activate-your-license-key).  
+**Windows desktop beta.6+:** cohort keys are seeded at install — paste in Settings → License only.
 
 #### Stop qClip
 

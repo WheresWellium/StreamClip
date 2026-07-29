@@ -247,12 +247,12 @@ See MASTER §8.19:
 - [x] Line coverage ≥95% green (`verify_coverage.ps1`) — Phase 0 invite gate cleared 2026-07-09
 - [ ] Coverage 110% green in CI (§3.11) — Phase 1+
 - [x] `verify_stack.ps1` on clean VM (§3.8) — Windows clean-slate PASS recorded 2026-07-09
-- [x] Release notes / known issues current for this wave — `BETA_DOWNLOAD.md` points at `v1.0.0-beta.4`; `BETA_KNOWN_ISSUES.md` covers Phase 0 limits
+- [x] Release notes / known issues current for this wave — `BETA_DOWNLOAD.md` + GitHub `v1.0.0-beta.6`; `BETA_KNOWN_ISSUES.md` updated
 - [ ] LS test purchase → key → activate end-to-end — operator evidence still required; use `BETA_OPS_PHASE0.md` §6 checklist
 - [x] OAuth redirect URIs match deployed `WEB_ORIGIN` — copy-paste checklist in `distribution-runbook.md`
 - [x] Beat + worker documented for scheduled publish testers (`distribution-runbook` + quickstart/ops)
 
-No standalone `CHANGELOG.md` exists yet; treat `BETA_DOWNLOAD.md` plus the GitHub `v1.0.0-beta.4` release as the current beta release notes until a changelog is added.
+No standalone `CHANGELOG.md` yet; treat `BETA_DOWNLOAD.md` plus the GitHub Latest release as current beta notes.
 
 ---
 

@@ -1,12 +1,12 @@
 # qClip Beta — FAQ
 
-Short answers for Phase 0 testers. For step-by-step setup, see [Get qClip](BETA_DOWNLOAD.md) and the [15-minute quickstart](BETA_TESTER_QUICKSTART.md).
+Short answers. Step-by-step: [Get qClip](BETA_DOWNLOAD.md) · [Quickstart](BETA_TESTER_QUICKSTART.md).
 
 ---
 
-## How do I install?
+## How do I install (Windows)?
 
-**[Download qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** — run it, open qClip from the Start menu.
+**[Download qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (v1.0.0-beta.6) → run → open from Start menu → paste your key in **Settings → License**.
 
 No Docker, no zip, no GitHub account.
 
@@ -14,51 +14,55 @@ No Docker, no zip, no GitHub account.
 
 ## I'm on a Mac — how do I install?
 
-The one-click `.dmg` is **not a public download yet**. Mac beta uses **Docker self-host**:
+No public `.dmg` yet. Use **Docker Desktop**:
 
-1. Install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/) (Apple Silicon or Intel).
-2. Clone or download the repo (reply to your invite email if you need a link).
-3. From the repo: `cp .env.example .env` then `docker compose up -d`.
-4. Open [http://localhost:3000](http://localhost:3000), import your SCPRO key once (see [quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker-step-5-activate-your-license-key)), then paste it in **Settings → License**.
+1. Install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/).
+2. Get the repo (reply to your invite if you need a link).
+3. `cp .env.example .env` then `docker compose up -d`.
+4. Open [http://localhost:3000](http://localhost:3000), import your key once ([quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker-step-5-activate-your-license-key)), then **Settings → License**.
 
-Clips run **CPU-only** on Mac — slower than GPU Windows Docker; try shorter sources. Full steps: [Get qClip](BETA_DOWNLOAD.md#advanced-docker-self-host-operators) (macOS tab).
+CPU-only on Mac — try shorter sources. Full steps: [Get qClip → Docker](BETA_DOWNLOAD.md#advanced-docker-self-host-operators).
 
 ---
 
 ## Where is my license key?
 
-In your **BETA TEST INFO** invite email. Copy the `SCPRO-…` key and paste it in **Settings → License**.
+In your invite / setup email (`SCPRO-…`). Paste it in **Settings → License**.
+
+Desktop **beta.6+** seeds cohort keys at boot — paste and activate. Docker self-host still needs a one-time `import_invite_license.py` (see quickstart).
+
+---
+
+## Upgraded from beta.5?
+
+Re-download [Latest](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) and **re-paste your license key once**. That refreshes install secrets and the claim-device fix.
 
 ---
 
 ## "Link jobs" error?
 
-Click **Skip**. This is a known desktop bug — a fix is coming. Your jobs still work on your PC; you can create and review clips without linking.
+Update to **beta.6**. On an old beta.5 install, click **Skip** — jobs still work locally.
 
 ---
 
 ## Do I need to sign up?
 
-No. An account is optional. You can paste a URL, upload a file, and clip on desktop without signing up or logging in.
+No. Account optional. Clip from a URL or upload without signing in.
 
 ---
 
 ## Why is first run slow?
 
-qClip downloads AI speech models once on first use (~1–2 GB for the beta `medium` model). Keep the app open — a banner shows download progress. Later runs are much faster.
+Speech models download once (~1.5 GB for `medium`). Keep the app open; the loading screen shows progress.
 
 ---
 
 ## SmartScreen warning?
 
-This beta build is not code-signed yet, so Windows may show **"Windows protected your PC."** That does not mean the file is a virus.
-
-1. Click **More info**
-2. Click **Run anyway**
-3. Finish install and open qClip
+Unsigned beta — not a virus. **More info → Run anyway**.
 
 ---
 
 ## Who do I contact?
 
-In the app: **Help → Beta feedback** or **Report a bug**. You can also reply to your invite email if you need a human.
+**Help → Beta feedback** or **Report a bug**, or reply to your invite email.

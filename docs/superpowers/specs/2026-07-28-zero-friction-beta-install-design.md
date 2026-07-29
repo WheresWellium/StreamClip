@@ -1,8 +1,8 @@
 # Zero-friction beta install — design
 
-**Date:** 2026-07-28
-**Status:** Draft — awaiting approval
-**Trigger:** Beta tester feedback: "all I want is a link to download the installer." Testers are not reading the docs.
+**Date:** 2026-07-28  
+**Status:** Implemented in **v1.0.0-beta.6** (W1 docs + W2 seed + W3 secrets + W4 medium whisper). Historical design — do not treat version numbers below as current.  
+**Trigger:** Beta tester feedback: "all I want is a link to download the installer."
 
 ---
 

@@ -1,44 +1,36 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-28 (beta.6 merged; delivery package complete)
+**Last updated:** 2026-07-28 (beta.6 published + cohort re-email sent)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | Post–PR #10 ops | — | beta.6 code merged; O12 publish pending |
+| `master` | Phase 0 monitor | — | `v1.0.0-beta.6` Latest; docs cleanup |
 
 ## Readiness
 
 | Metric | % | Notes |
 |--------|---|-------|
-| Tester-ready **local** (tree) | **~90%** | G4+W2+W3+W4 merged on master |
-| Tester-ready **shipped** (releases) | **~65%** | beta.5 live; O12 beta.6 publish |
+| Tester-ready **shipped** | **~85%** | beta.6 installer live; W2/W3/W4/G4 shipped |
 | Phase 0 **exit** | **~65%** | O4/O5/O11/O14 human ops remain |
 
-**Merge-ready:** yes — [PR #10](https://github.com/WheresWellium/StreamClip/pull/10) **MERGED** 2026-07-28.
-
-## P0 slice (delivered)
+## Shipped (2026-07-28)
 
 | Item | Status |
 |------|--------|
-| G4 claim-device SQLite fix | ✅ merged |
-| W2 cohort license seed | ✅ merged |
-| W3 per-install secrets | ✅ merged |
-| W4 CPU throughput config | ✅ merged |
-| Web modal/warmup/format | ✅ merged |
-| Dual-platform tester email | ✅ `tmp/tester-reply-draft.txt` |
-| Mac FAQ dead-end fix | ✅ `BETA_FAQ.md` |
-| O12 beta.6 installer publish | ⏳ operator |
+| PR #10 + #11 | ✅ merged |
+| beta.6 Windows installer (O12) | ✅ [release](https://github.com/WheresWellium/StreamClip/releases/tag/v1.0.0-beta.6) |
+| Cohort re-email (Win + Mac) | ✅ 8/8 sent |
+| Claim / license seed / install secrets / CPU config | ✅ in beta.6 |
 
 ## Blockers (human-only)
 
-- O12 — `scripts/publish_desktop_release.ps1`; bump `docs/BETA_DOWNLOAD.md` to beta.6
-- O5 — on-call tokens · O4 — evidence pack · O11 — code signing · O14 — Mac `.dmg` public release
+- O4 — cohort exit evidence · O5 — on-call names · O11 — EV signing · O14 — public Mac `.dmg`
 
 ## Next steps
 
-1. Publish beta.6 installer (O12); bump download docs version.
-2. Send cohort re-email from `tmp/tester-reply-draft.txt` (Windows + Mac blocks ready).
-3. Mac testers: Docker path + repo link on request; no public `.dmg` yet.
+1. Fill `BETA_COHORT_EXIT.md` as testers report (O4).
+2. Fill on-call tokens in `BETA_ON_CALL.md` (O5).
+3. Mac testers: Docker path only until O14.

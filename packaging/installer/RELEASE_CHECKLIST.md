@@ -25,7 +25,7 @@ secrets or local PFX.
 4. Install Windows SDK Build Tools on the local signing workstation so
    `signtool.exe` is available, or set `SIGNTOOL` to the full path.
 5. Keep the current unsigned beta truth unchanged until the signed build ships:
-   `docs/BETA_DOWNLOAD.md` says `v1.0.0-beta.4` is unsigned and
+   `docs/BETA_DOWNLOAD.md` says Latest (`v1.0.0-beta.6`) is unsigned and
    `docs/BETA_KNOWN_ISSUES.md` documents SmartScreen "More info -> Run anyway".
 
 ## Required signing variables
@@ -90,7 +90,7 @@ Pass criteria:
 1. Add GitHub Actions secrets `WINDOWS_CSC_LINK` and
    `WINDOWS_CSC_KEY_PASSWORD`.
 2. Run the `Desktop release` workflow manually with:
-   - `version`: the target version, e.g. `1.0.0-beta.5`
+   - `version`: the target version, e.g. `1.0.0-beta.6`
    - `require_signed`: `true`
 3. Confirm the `Desktop signing preflight` step prints `CSC_* configured`.
 4. Confirm the release draft contains both:

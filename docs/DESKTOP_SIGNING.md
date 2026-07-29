@@ -19,7 +19,7 @@ Related:
 | Item | State |
 |------|--------|
 | NSIS installer + electron-builder | ✅ Ready |
-| Unsigned beta publish path | ✅ Ready (`1.0.0-beta.4`) |
+| Unsigned beta publish path | ✅ Ready (`1.0.0-beta.6` Latest) |
 | Signing scripts / CI preflight | ✅ Ready |
 | EV certificate purchased + installed | ❌ **Blocked** (operator purchase) |
 | First signed GitHub Release | ❌ Blocked on cert |
@@ -93,7 +93,7 @@ $env:STREAMCLIP_REQUIRE_SIGNED_INSTALLER = "1"
 .\scripts\verify_desktop_signing_ready.ps1 -RequireSigning
 .\scripts\build_desktop_installer.ps1
 .\scripts\sign_windows_artifact.ps1 -Path apps\desktop\release\qClip-Setup-win-x64.exe
-.\scripts\publish_desktop_release.ps1 -Version 1.0.0-beta.5 -SkipBuild -RequireSigned
+.\scripts\publish_desktop_release.ps1 -Version 1.0.0-beta.6 -SkipBuild -RequireSigned
 ```
 
 ### D — Azure Trusted Signing (recommended modern alternative)
@@ -161,7 +161,7 @@ and electron-builder’s azure signer. Prefer Path D for CI; Path C for a one-of
 
 1. Add secrets `WINDOWS_CSC_LINK` + `WINDOWS_CSC_KEY_PASSWORD`.
 2. Manual run (`workflow_dispatch`):
-   - `version`: e.g. `1.0.0-beta.5`
+   - `version`: e.g. `1.0.0-beta.6`
    - `require_signed`: **`true`** for the first EV ship (fails if secrets missing)
 3. Confirm step **Desktop signing preflight** prints `CSC_* configured`.
 4. Workflow publishes a **draft** release on `workflow_dispatch` — download the Setup exe on a clean Windows VM and verify before publishing.
@@ -215,7 +215,7 @@ Safe on any workstation; does not publish or require a PFX:
 cd D:\Projects\streamclip
 .\scripts\verify_desktop_signing_ready.ps1 -DryRun
 .\scripts\enable_electron_signing.ps1 -Mode Auto -DryRun
-.\scripts\publish_desktop_release.ps1 -Version 1.0.0-beta.4 -SkipBuild -DryRun
+.\scripts\publish_desktop_release.ps1 -Version 1.0.0-beta.6 -SkipBuild -DryRun
 ```
 
 Expect: unsigned path OK, `signAndEditExecutable` would stay `false`, publish dry-run reports installer presence + signature status without calling `gh`.

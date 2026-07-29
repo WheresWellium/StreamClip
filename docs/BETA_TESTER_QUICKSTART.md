@@ -21,7 +21,7 @@ You do **not** need a GitHub account, Docker, Python, or coding experience for t
 
 ## Step 1 — Download and install (Windows)
 
-1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 490 MB)
+1. Download **[qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (about 393 MB — v1.0.0-beta.6)
 2. Run the installer
 3. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway** (unsigned beta — normal)
 4. Open qClip from the Start menu

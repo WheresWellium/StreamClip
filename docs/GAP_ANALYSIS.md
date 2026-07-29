@@ -4,8 +4,9 @@
 
 ### Audit snapshot (2026-07-28 — Phase 0 exit strategic)
 
-Strategic gap audit (desktop tester path + exit gates, no CI re-run): **`tmp/gap-analysis-audit-2026-07-28.md`**.  
-**Readiness ~58%.** Top blockers: desktop license seed (W2), publish secrets (W3), fixes not in beta.5 (O12), claim-device 500 (in flight), cohort exit evidence (O4). **Do not invite new `.exe` testers** until W2+W3 ship in a republished installer.
+Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audit-2026-07-28.md`**.  
+**Shipped (2026-07-28):** W2/W3/W4/G4 + **v1.0.0-beta.6** installer + cohort re-email 8/8.  
+**Readiness ~85% shipped / ~65% Phase 0 exit.** Remaining: O4 cohort evidence, O5 on-call names, O11 EV signing, O14 Mac `.dmg`.
 
 ## Executive summary
 
@@ -25,8 +26,8 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | O8 | Weak default AUTH secret (length not warned) | P1 | code | **Fixed** — non-dev settings reject missing/placeholder/short secrets; dev startup logs redacted `SECURITY_WARNING`; `tests/test_auth_secret_strength.py` |
 | O9 | No seat-release UX (max 3 activations) | P1 | code | **Fixed** — Settings → License seat list/release + confirm; migration `0012_license_activation_seats` applied (head); same-machine activate upserts one seat row |
 | O10 | Revoke ≠ jti blocklist for entitlement JWT | P1 | code | **Fixed** — `revoke_entitlement_hash` + verify check (`core/licensing.py`); admin revoke writes Redis/in-process set; `tests/test_licensing_blocklist.py` |
-| O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D (thumbprint + Azure Trusted Signing) — ☐ buy/install cert (MASTER §4.10); beta.4 stays unsigned |
-| O12 | Loader / desktop publish tree cleanliness | P1 | ops | Polish ✅; coverage **PASS 96%** — ☐ user commit + desktop publish → beta.5; UI journey e2e now green without `E2E_RUN` (`test:e2e:ui-journey`) |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D — ☐ buy/install cert (MASTER §4.10); **beta.6 remains unsigned** |
+| O12 | Loader / desktop publish | P1 | ops | **Closed 2026-07-28** — `v1.0.0-beta.6` published; UI journey e2e green (`test:e2e:ui-journey`) |
 | O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
 | O14 | macOS DMG + notarization | P2 | ops | Scaffold ✅ 30-min runbook [`MACOS_INSTALLER.md`](MACOS_INSTALLER.md) + build/verify/notarize scripts — ☐ borrowed Mac host builds live `.dmg` |
 | O15 | GAP / 110% Phase 1 coverage stretch | P2 | test | Defer — not Phase 0 blocker |

@@ -32,7 +32,7 @@
 
 **Phase 0 exit:** still **open**. Fill [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) (T0 matrix, H+2 / H+24 / H+72, on-call, LS staging), then sync ticks here and MASTER §8.16. Do not mark exit green without that pack.
 
-**Download / installer:** **v1.0.0-beta.4** — see [`BETA_DOWNLOAD.md`](BETA_DOWNLOAD.md). Windows builds are **unsigned** until EV Authenticode (MASTER §4.10 / GAP O11) — SmartScreen “More info → Run anyway”.
+**Download / installer:** **v1.0.0-beta.6** — see [`BETA_DOWNLOAD.md`](BETA_DOWNLOAD.md). Windows builds are **unsigned** until EV Authenticode (MASTER §4.10 / GAP O11) — SmartScreen “More info → Run anyway”.
 
 ---
 

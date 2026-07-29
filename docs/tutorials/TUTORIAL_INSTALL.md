@@ -1,26 +1,26 @@
-# Tutorial — Install StreamClip (Docker)
+# Tutorial — Install qClip (Docker self-host)
 
-**Time:** ~15 minutes · **Prerequisite:** [Beta quickstart](../BETA_TESTER_QUICKSTART.md)
+**Time:** ~15–30 minutes · **Audience:** macOS testers and operators who need Docker
 
-This tutorial walks through the **recommended install path** for Phase 0 beta: Docker Desktop + `start_local.ps1` on Windows, with macOS equivalents where they differ.
+**Windows creators:** prefer the one-click installer — [Get qClip](../BETA_DOWNLOAD.md#one-click-installers). Skip this page unless you specifically want Docker.
 
 !!! tip "Windows one-click installer"
-    Using the `.exe` from [Get StreamClip](../BETA_DOWNLOAD.md#one-click-installers)? Skip Docker steps — open the app and use **Settings → Get started** until you see **Ready**.
+    Download [qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (v1.0.0-beta.6), run it, open from Start menu, paste your key in **Settings → License**. No Docker.
 
 ---
 
 ## What you need
 
-| Requirement | Windows | macOS |
-|-------------|---------|-------|
+| Requirement | Windows (Docker) | macOS |
+|-------------|------------------|-------|
 | OS | Windows 10/11 64-bit | macOS 12+ |
-| Runtime | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (WSL2) | Docker Desktop for Mac (Apple Silicon or Intel) |
+| Runtime | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (WSL2) | Docker Desktop for Mac |
 | RAM | 16 GB min / 32 GB recommended | Same |
 | GPU | NVIDIA recommended | CPU-only (expected) |
-| Accounts | **None required** to install or run | Same |
+| Project files | Repo clone or kit from operator | Same |
+| Accounts | None to install or run | Same |
 
-!!! tip "No GitHub account needed"
-    Use the `.zip` from your invite email — [Get StreamClip](../BETA_DOWNLOAD.md).
+---
 
 ## Step 1 — Install Docker Desktop
 
@@ -28,125 +28,88 @@ This tutorial walks through the **recommended install path** for Phase 0 beta: D
 
     1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
     2. Install and launch Docker Desktop
-    3. Enable **WSL 2** if prompted (recommended)
+    3. Enable **WSL 2** if prompted
     4. Wait until the taskbar whale shows **Docker Desktop is running**
 
 === "macOS"
 
-    1. Download **Docker Desktop for Mac** — pick **Apple Silicon** or **Intel** to match your Mac
+    1. Download **Docker Desktop for Mac** — **Apple Silicon** or **Intel** to match your Mac
     2. Drag Docker to Applications and launch it
     3. Wait until the menu-bar whale shows **Docker Desktop is running**
 
 ---
 
-## Step 2 — Get the StreamClip files
+## Step 2 — Get the qClip project files
 
-Extract the beta `.zip` from your invite email to a folder, for example:
+There is **no zip in the invite email** for the Windows installer path. For Docker you need the repo once:
 
-- Windows: `C:\StreamClip`
-- macOS: `~/StreamClip`
+- Reply to your invite email and ask for a clone/kit link, **or**
+- Clone the private/public repo if you already have access
 
-If your invite included a private repo link, clone with Git. When unsure, reply to your invite email.
+Example folders:
+
+- Windows: `C:\qClip` or `D:\Projects\streamclip`
+- macOS: `~/qClip` or `~/Projects/streamclip`
 
 ---
 
-## Step 3 — Start the stack (primary path)
+## Step 3 — Start the stack
 
 === "Windows"
 
-    Open **PowerShell**, `cd` into your StreamClip folder, then run:
+    Open **PowerShell**, `cd` into the project folder, then:
 
     ```powershell
     .\scripts\start_local.ps1
     ```
 
-    This script:
-
-    1. Checks Docker is running
-    2. Creates `.env` from `.env.example` if missing
-    3. Runs `docker compose up -d --build`
-    4. Applies database migrations
-    5. Runs `verify_stack.ps1` automatically
+    This checks Docker, creates `.env` if needed, runs `docker compose up -d --build`, migrates the DB, and runs `verify_stack.ps1`.
 
 === "macOS"
 
-    Docker Desktop does not ship PowerShell by default. Use the manual equivalent:
-
     ```bash
-    cd ~/StreamClip
-    cp .env.example .env    # skip if .env already exists
+    cd ~/qClip   # adjust path
+    cp .env.example .env
     docker compose up -d --build
     docker compose exec -T api alembic upgrade head
     ```
 
-    Optional — if [PowerShell Core](https://github.com/PowerShell/PowerShell) is installed:
-
-    ```bash
-    pwsh -File ./scripts/start_local.ps1
-    ```
+    Optional with [PowerShell Core](https://github.com/PowerShell/PowerShell): `pwsh -File ./scripts/start_local.ps1`
 
 !!! note "First run"
-    Docker downloads images (~2–5 GB). Allow 5–15 minutes on a good connection.
+    Docker downloads images (~2–5 GB). Allow 5–15 minutes.
 
 ---
 
 ## Step 4 — Verify you're ready
 
-**In the app (all paths):**
-
-1. Open [http://localhost:3000](http://localhost:3000) (Docker) or launch the desktop app (`.exe`)
-2. Go to **Settings → Get started**
-3. **Ready** — proceed to [First job](TUTORIAL_FIRST_JOB.md). **Needs attention** — open **Help → Troubleshooting** before creating jobs.
-
-**Docker only (optional):**
-
-=== "Windows"
-
-    `start_local.ps1` already runs verify. To re-check later:
-
-    ```powershell
-    .\scripts\verify_stack.ps1
-    ```
-
-=== "macOS"
-
-    ```bash
-    docker compose ps
-    curl -s http://localhost:8000/api/health
-    open http://localhost:3000
-    ```
-
-    Or: `pwsh -File ./scripts/verify_stack.ps1`
-
-**Pass criteria:** **Ready** in the app, or all checks green from `verify_stack.ps1` (Windows) / healthy containers (Mac).
-
-| Check | Expected |
-|-------|----------|
-| **Settings → Get started** | **Ready** |
-| [http://localhost:3000](http://localhost:3000) | StreamClip home screen |
-
-!!! warning "Stop if not ready"
-    Do **not** create jobs until **Get started** shows **Ready** (or Docker verify passes). Post output via **Report a bug** or your beta channel. See [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md).
-
----
-
-## Step 5 — Account and license (optional)
-
 1. Open [http://localhost:3000](http://localhost:3000)
-2. **Sign up** is optional for local beta — defaults work without API keys
-3. **License key** (from invite email) is optional for Phase 0 technical testing; paste in **Settings → License** when you have one
+2. Go to **Settings → Get started** — you want **Ready**
+3. Import your cohort key once, then activate:
 
-Beta keys unlock full access. Without a key, most local pipeline features still work for T0-1 through T0-4 flows.
+```bash
+docker compose exec -e PYTHONPATH=/app api python scripts/import_invite_license.py \
+  --key SCPRO-XXXX-XXXX-XXXX-XXXX --tier admin --email you@example.com
+```
+
+Then paste the **same** key in **Settings → License**.
+
+**Optional Docker health check:**
+
+```bash
+docker compose ps
+curl -s http://localhost:8000/api/health
+```
 
 ---
 
-## Step 6 — Stop when done
+## Step 5 — Stop when done
 
 ```bash
 docker compose down
 ```
 
-Data persists in Docker volumes. Add `-v` only to wipe everything.
+Data stays in Docker volumes. Add `-v` only to wipe everything.
 
 ---
 
@@ -154,10 +117,8 @@ Data persists in Docker volumes. Add `-v` only to wipe everything.
 
 | Tutorial | What you'll do |
 |----------|----------------|
-| [First job](TUTORIAL_FIRST_JOB.md) | Submit a URL and watch live progress |
-| [GPU setup](TUTORIAL_GPU_SETUP.md) | Enable NVIDIA on Windows |
+| [First job](TUTORIAL_FIRST_JOB.md) | Submit a URL and watch progress |
+| [GPU setup](TUTORIAL_GPU_SETUP.md) | Enable NVIDIA on Windows Docker |
 | [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) | Top failures and fixes |
-
----
 
 *See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

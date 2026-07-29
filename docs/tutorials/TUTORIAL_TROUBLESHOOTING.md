@@ -14,7 +14,7 @@ Before terminal commands:
 2. Check **Settings → Get started** — **Ready** means you can create jobs; **Needs attention** means fix setup first
 3. Use **Report a bug** or **Beta feedback** in the header (saved even when email routing is not configured)
 
-**Windows `.exe` users:** you usually do **not** need Docker or `verify_stack.ps1` — use the steps above and [Get StreamClip](../BETA_DOWNLOAD.md#one-click-installers).
+**Windows `.exe` users:** you usually do **not** need Docker or `verify_stack.ps1` — use the steps above and [Get qClip](../BETA_DOWNLOAD.md#one-click-installers).
 
 **Docker beta users:** run [Install](TUTORIAL_INSTALL.md) verify if the in-app check stays on **Needs attention**.
 

@@ -6,7 +6,7 @@
 # Signed gate:              .\scripts\publish_desktop_release.ps1 -Version ... -SkipBuild -RequireSigned
 # No upload / no docs bump: .\scripts\publish_desktop_release.ps1 -Version ... -SkipBuild -DryRun
 param(
-    [string]$Version = "1.0.0-beta.4",
+    [string]$Version = "1.0.0-beta.6",
     [switch]$SkipBuild,
     [switch]$PublishOnly,
     [switch]$NoDocsBump,

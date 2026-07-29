@@ -78,7 +78,9 @@ def test_render_body_manual_includes_henna_flow_and_license_key() -> None:
     assert "BETA_TESTER_QUICKSTART/" in body
     assert "SCPRO-AAAA-BBBB-CCCC-DDDD" in body
     assert HENNA in body
-    assert "no GitHub account, no Docker, no terminal" in body
+    assert "qClip-Setup-win-x64.exe" in body
+    assert "Windows (recommended)" in body
+    assert "macOS" in body
     assert "Help menu" in body
 
 

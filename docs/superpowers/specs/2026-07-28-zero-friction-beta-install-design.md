@@ -1,14 +1,14 @@
 # Zero-friction beta install — design
 
 **Date:** 2026-07-28  
-**Status:** Implemented in **v1.0.0-beta.6** (W1 docs + W2 seed + W3 secrets + W4 medium whisper). Historical design — do not treat version numbers below as current.  
+**Status:** Implemented in **v1.0.0-beta.6** (W1–W4). **Archive only** — narrative below describes the pre-fix state. Current truth: [BETA_DOWNLOAD.md](../../BETA_DOWNLOAD.md).  
 **Trigger:** Beta tester feedback: "all I want is a link to download the installer."
 
 ---
 
-## Problem
+## Problem (as of design day — resolved in beta.6)
 
-Getting a Phase 0 tester from invite email to a finished clip currently requires reading two documents, choosing between two install paths, and running a terminal command. The terminal command is impossible on the path we tell most people to use.
+Getting a Phase 0 tester from invite email to a finished clip required reading two documents, choosing between two install paths, and running a terminal command. The terminal command was impossible on the Windows `.exe` path.
 
 ## Goal
 

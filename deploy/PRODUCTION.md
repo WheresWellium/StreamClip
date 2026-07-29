@@ -131,18 +131,18 @@ Published tags are `ghcr.io/<github.repository_owner>/{api,worker,web}:<version>
 ```bash
 # .env.production
 STREAMCLIP_IMAGE_PREFIX=ghcr.io/WheresWellium   # example: match repository owner
-STREAMCLIP_VERSION=1.0.0-beta.2                 # tag without leading v
+STREAMCLIP_VERSION=1.0.0-beta.6                 # tag without leading v
 ```
 
 **First publish (operator):**
 
 ```bash
 # Option A — push a version tag (triggers images.yml)
-git tag v1.0.0-beta.3
-git push origin v1.0.0-beta.3
+git tag v1.0.0-beta.6
+git push origin v1.0.0-beta.6
 
 # Option B — manual run from Actions → "images" → Run workflow
-#   version input e.g. 1.0.0-beta.3  (omit → sha-XXXXXXX)
+#   version input e.g. 1.0.0-beta.6  (omit → sha-XXXXXXX)
 
 # Then on the host:
 docker compose -f docker-compose.prod.yml --env-file .env.production pull

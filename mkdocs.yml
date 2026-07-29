@@ -81,7 +81,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Download:
-      - Get StreamClip (Windows & Mac): BETA_DOWNLOAD.md
+      - Get qClip (Windows & Mac): BETA_DOWNLOAD.md
       - macOS DMG builders: MACOS_INSTALLER.md
   - Getting started:
       - Beta quickstart: BETA_TESTER_QUICKSTART.md
@@ -89,7 +89,7 @@ nav:
       - Beta test plan: BETA_TESTER_PLAN.md
       - Known issues: BETA_KNOWN_ISSUES.md
   - Tutorials:
-      - Install (Docker): tutorials/TUTORIAL_INSTALL.md
+      - Install (Docker / Mac): tutorials/TUTORIAL_INSTALL.md
       - First job: tutorials/TUTORIAL_FIRST_JOB.md
       - Edit & approve: tutorials/TUTORIAL_EDIT_APPROVE.md
       - Publish to YouTube: tutorials/TUTORIAL_PUBLISH_YOUTUBE.md

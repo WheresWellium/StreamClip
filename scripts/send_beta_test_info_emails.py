@@ -72,27 +72,25 @@ Thanks,
 Wellium
 """
 
-# Aligned with docs/BETA_DOWNLOAD.md + BETA_TESTER_QUICKSTART.md (installer-first flow).
+# Aligned with docs/BETA_DOWNLOAD.md + BETA_TESTER_QUICKSTART.md (installer-first + Mac Docker).
 BODY_TEMPLATE = """\
 Hi {name},
 
 You're in — welcome to the qClip Phase 0 beta.
 
-Three steps — no GitHub account, no Docker, no terminal:
-
-1. Download qClip for Windows:
-   {henna_base}/BETA_DOWNLOAD/
-
-2. Quickstart — install to your first clip (~15 min):
-   {henna_base}/BETA_TESTER_QUICKSTART/
-
-3. Paste your license key in Settings → License:
+**Windows (recommended):**
+1. Download the installer (no GitHub account):
+   https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe
+2. Run it → open qClip → paste your license key in Settings → License:
    {license_key}
 
-This key gives you full access to every feature. No feature gates.
+**macOS:** no public .dmg yet — use Docker self-host:
+   {henna_base}/BETA_DOWNLOAD/
+   {henna_base}/BETA_TESTER_QUICKSTART/
 
-Use the **Help menu (?)** in the app header → **Beta feedback** or **Report a bug** for support.
-We read every submission even if you don't get an auto-reply yet.
+Docs: {henna_base}/BETA_DOWNLOAD/ · FAQ: {henna_base}/BETA_FAQ/
+
+This key gives you full access. Help menu (?) → Beta feedback or Report a bug.
 
 Thanks,
 Wellium

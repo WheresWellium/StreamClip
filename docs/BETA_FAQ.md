@@ -1,27 +1,22 @@
-# qClip Beta — FAQ
+# FAQ
 
-Short answers. Step-by-step: [Get qClip](BETA_DOWNLOAD.md) · [Quickstart](BETA_TESTER_QUICKSTART.md).
-
----
-
-## How do I install (Windows)?
-
-**[Download qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** (v1.0.0-beta.6) → run → open from Start menu → paste your key in **Settings → License**.
-
-No Docker, no zip, no GitHub account.
+Short answers for beta testers. For steps with a clear next action, use **[Install](BETA_DOWNLOAD.md)** or **[First clip](BETA_TESTER_QUICKSTART.md)**.
 
 ---
 
-## I'm on a Mac — how do I install?
+## How do I install on Windows?
 
-No public `.dmg` yet. Use **Docker Desktop**:
+**Call to action:** [Download the installer](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) → run → **Settings → License** → paste your `SCPRO-…` key.
 
-1. Install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/).
-2. Get the repo (reply to your invite if you need a link).
-3. `cp .env.example .env` then `docker compose up -d`.
-4. Open [http://localhost:3000](http://localhost:3000), import your key once ([quickstart Docker step 5](BETA_TESTER_QUICKSTART.md#docker-step-5-activate-your-license-key)), then **Settings → License**.
+Details: [Install qClip](BETA_DOWNLOAD.md#one-click-installers)
 
-CPU-only on Mac — try shorter sources. Full steps: [Get qClip → Docker](BETA_DOWNLOAD.md#advanced-docker-self-host-operators).
+---
+
+## How do I install on Mac?
+
+No public `.dmg` yet. Use Docker Desktop + project files from your operator.
+
+**Call to action:** Follow [Install → macOS](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet)
 
 ---
 
@@ -29,19 +24,22 @@ CPU-only on Mac — try shorter sources. Full steps: [Get qClip → Docker](BETA
 
 In your invite / setup email (`SCPRO-…`). Paste it in **Settings → License**.
 
-Desktop **beta.6+** seeds cohort keys at boot — paste and activate. Docker self-host still needs a one-time `import_invite_license.py` (see quickstart).
+- **Windows desktop (beta.6+):** paste and activate — keys are seeded at boot.  
+- **Docker:** run `import_invite_license.py` once first — see [Install → macOS](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
 
 ---
 
-## Upgraded from beta.5?
+## I upgraded from an older beta
 
-Re-download [Latest](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) and **re-paste your license key once**. That refreshes install secrets and the claim-device fix.
+Install [Latest](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) and **re-paste your key once**.
 
 ---
 
 ## "Link jobs" error?
 
-Update to **beta.6**. On an old beta.5 install, click **Skip** — jobs still work locally.
+Update to **beta.6**. On beta.5 only, click **Skip** — local jobs still work.
+
+**Call to action:** [Download beta.6](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
 
 ---
 
@@ -53,7 +51,7 @@ No. Account optional. Clip from a URL or upload without signing in.
 
 ## Why is first run slow?
 
-Speech models download once (~1.5 GB for `medium`). Keep the app open; the loading screen shows progress.
+Models download once (~1.5 GB). Keep the app open — the loading screen shows progress. Then create a job: [First clip](BETA_TESTER_QUICKSTART.md).
 
 ---
 
@@ -65,4 +63,4 @@ Unsigned beta — not a virus. **More info → Run anyway**.
 
 ## Who do I contact?
 
-**Help → Beta feedback** or **Report a bug**, or reply to your invite email.
+**Help → Beta feedback** or **Report a bug** in the app, or reply to your invite email.

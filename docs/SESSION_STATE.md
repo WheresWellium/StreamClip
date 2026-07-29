@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-28 (beta.6 published + cohort re-email sent)
+**Last updated:** 2026-07-29 (henna customer docs consolidated)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | Phase 0 monitor | — | `v1.0.0-beta.6` Latest; docs cleanup |
+| `master` | Phase 0 monitor | — | Henna nav: Home → Install → First clip → Help |
 
 ## Readiness
 

@@ -1,67 +1,42 @@
-# qClip docs
+# qClip
 
-**qClip** turns long videos into short vertical clips on **your own computer**. Nothing is uploaded to our servers unless you choose to publish to YouTube or TikTok.
+**Clip any length. Frame any ratio. Rank what wins.**
 
----
-
-!!! tip "Beta testers — start here"
-    **You do not need a GitHub account.**
-
-    1. **[Get qClip](BETA_DOWNLOAD.md)** — pick Windows or Mac and follow the steps
-    2. **[Quickstart](BETA_TESTER_QUICKSTART.md)** — from install to your first clip (~15 minutes)
-    3. Paste your **license key** in **Settings → License** (from your invite email)
-
-    **Stuck?** Open **Help** in the app (guides stay in-window) or use **Report a bug** in the header. Reply to your invite email if you need a human.
+qClip is an all-in-one clip studio that runs on **your computer**. Paste a URL or upload a file — it finds moments, reframes to any aspect ratio, and scores clips so you know what to ship first. Nothing leaves your machine unless you choose to publish.
 
 ---
 
-## Pick your guide
+## Start here (beta)
 
-| If you want to… | Open this |
-|-----------------|-----------|
-| **Install and run the beta** | [Get qClip](BETA_DOWNLOAD.md) |
-| **Step-by-step: first clip** | [Beta quickstart](BETA_TESTER_QUICKSTART.md) |
-| **Follow the full test checklist** | [Beta test plan](BETA_TESTER_PLAN.md) |
-| **Quick answers** | [Beta FAQ](BETA_FAQ.md) |
-| **Fix a problem** | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) · [Known issues](BETA_KNOWN_ISSUES.md) |
-| **Build the macOS installer** (helpers only) | [macOS installer — builders](MACOS_INSTALLER.md) |
+!!! tip "You do not need a GitHub account"
+    Have your `SCPRO-…` license key from your invite email ready.
 
-!!! note "Operator / engineering docs"
-    Architecture, performance, and runbooks stay in the repo for contributors but are **not** linked in the public docs nav or the shipped app. Partners who need HTTP API reference should ask your operator privately.
+| Step | Action |
+|------|--------|
+| **1** | [**Install qClip**](BETA_DOWNLOAD.md) — Windows installer, or Mac via Docker |
+| **2** | [**Create your first clip**](BETA_TESTER_QUICKSTART.md) — New job → done |
+| **3** | Stuck? [FAQ](BETA_FAQ.md) · [Known issues](BETA_KNOWN_ISSUES.md) · [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
+
+**Primary call to action:** → [Install qClip](BETA_DOWNLOAD.md)
 
 ---
 
-## What qClip does (simple version)
+## What happens in a job
 
-1. **You paste a link** — Twitch, YouTube, Kick, or a public `.mp4`
-2. **It listens and reads** — speech is turned into text on your machine
-3. **It finds the best moments** — software picks highlight sections
-4. **It makes short clips** — vertical videos ready for Shorts / TikTok
-5. **You review and publish** — approve clips, then post if you want
-
-Your raw video files stay on your computer.
+1. You paste a **public** video URL or upload a file  
+2. Speech is transcribed on your machine  
+3. Highlights are detected and scored  
+4. Short clips are rendered for review  
+5. You approve, then optionally publish
 
 ---
 
 ## Words you might see
 
-| Word | Plain meaning |
-|------|----------------|
-| **Docker** | A free app that runs qClip in the background (like a mini server on your PC) |
-| **License key** | A code from your invite email (`SCPRO-…`) that unlocks all features |
+| Word | Meaning |
+|------|---------|
+| **License key** | `SCPRO-…` from your invite — unlocks Pro features |
 | **Job** | One video you asked qClip to process |
-| **Clip** | One short video cut from that job |
-| **Vault** | Your saved favorite clips |
-| **GPU** | Your graphics card — makes processing much faster when acceleration is on |
-| **Help center** | In-app guides at **Help** — same topics as this site, embedded in qClip |
-
----
-
-## Preview these docs on your computer
-
-```bash
-pip install -r docs/requirements.txt
-python -m mkdocs serve -a 127.0.0.1:8001
-```
-
-Open [http://127.0.0.1:8001](http://127.0.0.1:8001).
+| **Clip** | One short cut from that job |
+| **Vault** | Saved favorites |
+| **Docker** | Optional runtime for Mac / self-host (not needed on Windows `.exe`) |

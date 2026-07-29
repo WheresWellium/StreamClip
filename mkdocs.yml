@@ -4,7 +4,7 @@
 # Deploy: Vercel (vercel.json) — see README § Documentation
 
 site_name: qClip Docs
-site_description: Wellium — self-hosted AI clip pipeline guides and architecture
+site_description: Install qClip, create your first clip, and get help — beta docs for creators
 site_url: https://streamclip-henna.vercel.app/
 repo_url: https://github.com/WheresWellium/StreamClip
 repo_name: streamclip
@@ -15,7 +15,8 @@ docs_dir: docs
 site_dir: site
 strict: true
 
-# Internal engineering registers — kept in-repo, never published (see docs/INTERNAL.md)
+# Keep customer henna lean. Operator/engineering files stay in-repo but are not published.
+# See docs/INTERNAL.md for the full internal register.
 exclude_docs: |
   GAP_ANALYSIS.md
   MASTER_TODO.md
@@ -25,9 +26,34 @@ exclude_docs: |
   BETA_GO_LIVE.md
   BETA_ON_CALL.md
   BETA_INVITE_PACK.md
+  BETA_TESTER_PLAN.md
+  BETA_COHORT_EXIT.md
+  BETA_DISTRIBUTION.md
+  BETA_OBSERVABILITY.md
   SESSION_STATE.md
   AGENT_COORDINATION.md
+  MACOS_INSTALLER.md
+  DESKTOP_SIGNING.md
+  CLEAN_VM_VERIFY.md
+  CREATOR_PLATFORM.md
+  PERFORMANCE.md
+  TECHNICAL_DESIGN.md
+  THEME_SKINS.md
+  FIGMA_LINKS.md
+  ADR-001-desktop-packaging.md
+  cloud-deploy.md
+  distribution-runbook.md
   .agent-lock.example.json
+  commercial/
+  evidence/
+  superpowers/
+  design/
+  tutorials/TUTORIAL_INSTALL.md
+  tutorials/TUTORIAL_GPU_SETUP.md
+  tutorials/TUTORIAL_EDIT_APPROVE.md
+  tutorials/TUTORIAL_VAULT.md
+  tutorials/TUTORIAL_FIRST_JOB.md
+  tutorials/TUTORIAL_PUBLISH_YOUTUBE.md
 
 theme:
   name: material
@@ -78,26 +104,15 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+# Customer journey only — one forward path: Install → First clip → Help
 nav:
   - Home: index.md
-  - Download:
-      - Get qClip (Windows & Mac): BETA_DOWNLOAD.md
-      - macOS DMG builders: MACOS_INSTALLER.md
-  - Getting started:
-      - Beta quickstart: BETA_TESTER_QUICKSTART.md
-      - Beta FAQ: BETA_FAQ.md
-      - Beta test plan: BETA_TESTER_PLAN.md
+  - Install: BETA_DOWNLOAD.md
+  - First clip: BETA_TESTER_QUICKSTART.md
+  - Help:
+      - FAQ: BETA_FAQ.md
       - Known issues: BETA_KNOWN_ISSUES.md
-  - Tutorials:
-      - Install (Docker / Mac): tutorials/TUTORIAL_INSTALL.md
-      - First job: tutorials/TUTORIAL_FIRST_JOB.md
-      - Edit & approve: tutorials/TUTORIAL_EDIT_APPROVE.md
-      - Publish to YouTube: tutorials/TUTORIAL_PUBLISH_YOUTUBE.md
-      - Clip Vault: tutorials/TUTORIAL_VAULT.md
-      - GPU setup: tutorials/TUTORIAL_GPU_SETUP.md
       - Troubleshooting: tutorials/TUTORIAL_TROUBLESHOOTING.md
-  - Design:
-      - Figma links: design/FIGMA_LINKS.md
 
 extra:
   generator: false

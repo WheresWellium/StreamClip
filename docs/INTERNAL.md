@@ -1,31 +1,37 @@
-# Internal documentation (not published)
+# Internal documentation (not published on henna)
 
-These files live in `docs/` for version control and agent workflows but are **excluded from the public MkDocs site** (`exclude_docs` in `mkdocs.yml`). They are not linked in navigation and are not deployed to Vercel or GitHub Pages.
+These files live in `docs/` for version control and agents but are **excluded from the public MkDocs site** (`exclude_docs` in `mkdocs.yml`). They are not in customer navigation and are not deployed to Vercel.
 
-| File | Purpose | Update when |
-|------|---------|-------------|
-| [GAP_ANALYSIS.md](GAP_ANALYSIS.md) | Doc vs code / UX gap register | After gap-analysis runs, releases, major refactors |
-| [MASTER_TODO.md](MASTER_TODO.md) | Engineering backlog and ship checklist | When closing or opening beta blockers |
-| [PLAN.md](../PLAN.md) | Short-lived execution tracker (repo root) | During multi-step agent plans |
-| [BETA_KNOWN_ISSUES.md](BETA_KNOWN_ISSUES.md) | Beta tester limitations and SLAs | Each beta wave |
-| [OPS_ALERTING.md](OPS_ALERTING.md) | Autonomous ops webhook + Sentry (no n8n) | When `OPS_WEBHOOK_URL` or Sentry DSN changes |
-| [BETA_OPS_PHASE0.md](BETA_OPS_PHASE0.md) | Phase 0 keys, support triage, invite template | Each beta wave |
-| [BETA_OBSERVABILITY.md](BETA_OBSERVABILITY.md) | Phase 0 health, metrics, log-tail, opt-in diagnostics | Before and during each beta wave |
-| [BETA_INVITE_PACK.md](BETA_INVITE_PACK.md) | Pre-invite checklist, fresh-reader §8.14, send steps §8.15 | Before each cohort wave |
+## Customer henna (published)
 
-**Coverage gate:** canonical rules in [MASTER_TODO.md §3.10](MASTER_TODO.md); run `scripts/verify_coverage.ps1`.
+| Nav | File | Role |
+|-----|------|------|
+| Home | `index.md` | One CTA → Install |
+| Install | `BETA_DOWNLOAD.md` | Windows `.exe` + Mac Docker |
+| First clip | `BETA_TESTER_QUICKSTART.md` | Job → approve → publish |
+| Help | `BETA_FAQ.md`, `BETA_KNOWN_ISSUES.md`, `tutorials/TUTORIAL_TROUBLESHOOTING.md` | Answers / limits / fixes |
 
-**Workflow:** run the `streamclip-gap-analysis` skill (`.cursor/skills/streamclip-gap-analysis/SKILL.md`) — it updates `GAP_ANALYSIS.md` in place. Sync `MASTER_TODO.md` when items move to done or new gates appear.
+## Excluded — operators / engineering
 
-**Verify exclusion before sharing a docs URL:**
+| File | Purpose |
+|------|---------|
+| `GAP_ANALYSIS.md`, `MASTER_TODO.md`, `SESSION_STATE.md` | Planning registers |
+| `BETA_GO_LIVE.md`, `BETA_OPS_PHASE0.md`, `BETA_ON_CALL.md`, `BETA_INVITE_PACK.md` | Cohort ops |
+| `BETA_TESTER_PLAN.md`, `BETA_COHORT_EXIT.md` | Acceptance / exit evidence |
+| `MACOS_INSTALLER.md`, `DESKTOP_SIGNING.md` | Builder / signing runbooks |
+| `OPS_ALERTING.md`, `BETA_OBSERVABILITY.md`, `distribution-runbook.md` | Ops |
+| `PERFORMANCE.md`, `TECHNICAL_DESIGN.md`, `ADR-*`, `CREATOR_PLATFORM.md` | Architecture |
+| `commercial/`, `evidence/`, `superpowers/`, `design/` | Internal research / specs |
+| Extra tutorials (`TUTORIAL_INSTALL`, GPU, vault, YouTube, …) | Deep dives — content kept in repo; not on henna nav |
+
+**Coverage gate:** `scripts/verify_coverage.ps1` (rules in `MASTER_TODO.md` §3.10).
+
+**Verify exclusion:**
 
 ```bash
 python -m mkdocs build --strict
-# Confirm site/ contains no gap_analysis or master_todo HTML
+# site/ should not contain gap_analysis, master_todo, macos_installer, etc.
 ```
 
-Public site deploy: **Vercel** (`vercel.json` at repo root).
-
-**Production URL:** https://streamclip-henna.vercel.app/ (team **wellium**, project `streamclip`).
-
-**Do not use** `streamclip.vercel.app` — that alias is bound to an old unrelated deployment (blank French landing page). To reclaim it: remove the alias on the other Vercel project, then `npx vercel alias <deployment-url> streamclip.vercel.app` from this repo.
+**Production URL:** https://streamclip-henna.vercel.app/  
+Do **not** use `streamclip.vercel.app` (bound to an unrelated old project).

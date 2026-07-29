@@ -1,6 +1,6 @@
 "use client";
 
-import { Bug, CircleHelp, ExternalLink, MessageCircle } from "lucide-react";
+import { Bug, CircleHelp, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -15,16 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const DOCS_BASE = "https://streamclip-henna.vercel.app";
-
-const DOC_LINKS = [
-  { href: `${DOCS_BASE}/BETA_TESTER_QUICKSTART/`, label: "Quickstart" },
-  { href: `${DOCS_BASE}/tutorials/TUTORIAL_INSTALL/`, label: "Install guide" },
-  { href: `${DOCS_BASE}/tutorials/TUTORIAL_FIRST_JOB/`, label: "First job" },
-  { href: `${DOCS_BASE}/tutorials/TUTORIAL_TROUBLESHOOTING/`, label: "Troubleshooting" },
-  { href: `${DOCS_BASE}/BETA_KNOWN_ISSUES/`, label: "Known issues" },
-] as const;
+import { HELP_TOPICS, helpHref } from "@/lib/docs";
 
 /** Consolidated help + support menu — one header slot instead of seven. */
 export function HeaderHelpMenu() {
@@ -48,17 +39,9 @@ export function HeaderHelpMenu() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuLabel>Documentation</DropdownMenuLabel>
-          {DOC_LINKS.map(({ href, label }) => (
-            <DropdownMenuItem key={href} asChild>
-              <Link
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between"
-              >
-                {label}
-                <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              </Link>
+          {HELP_TOPICS.map(({ id, label, docsPath }) => (
+            <DropdownMenuItem key={id} asChild>
+              <Link href={helpHref(docsPath)}>{label}</Link>
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />

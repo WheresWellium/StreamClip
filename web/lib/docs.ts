@@ -1,6 +1,8 @@
 /**
  * Product docs (MkDocs on Vercel). Prefer in-app `/help` routes so desktop
  * users stay inside qClip instead of bouncing to a browser.
+ *
+ * Paths MUST match pages published by mkdocs.yml (customer henna set).
  */
 import { devToolsEnabled } from "@/lib/dev-tools";
 export const DOCS_BASE =
@@ -14,42 +16,37 @@ export type HelpTopic = {
   docsPath: string;
 };
 
+/** Mirrors henna nav: Home → Install → First clip → Help. */
 export const HELP_TOPICS: HelpTopic[] = [
-  {
-    id: "quickstart",
-    label: "Quickstart",
-    description: "The shortest path from install to your first finished clip.",
-    docsPath: "/BETA_TESTER_QUICKSTART/",
-  },
   {
     id: "install",
     label: "Install",
-    description: "Set up qClip and confirm the local engine is healthy.",
-    docsPath: "/tutorials/TUTORIAL_INSTALL/",
+    description: "Windows installer or Mac Docker — get qClip running.",
+    docsPath: "/BETA_DOWNLOAD/",
   },
   {
-    id: "first-job",
-    label: "First job",
-    description: "Follow a complete source-to-ranked-clips walkthrough.",
-    docsPath: "/tutorials/TUTORIAL_FIRST_JOB/",
+    id: "first-clip",
+    label: "First clip",
+    description: "Create a job, wait for clips, approve, and publish.",
+    docsPath: "/BETA_TESTER_QUICKSTART/",
   },
   {
-    id: "gpu",
-    label: "GPU setup",
-    description: "When to use GPU vs CPU, and how to turn acceleration on.",
-    docsPath: "/tutorials/TUTORIAL_GPU_SETUP/",
-  },
-  {
-    id: "troubleshooting",
-    label: "Troubleshooting",
-    description: "Resolve startup, GPU, download, and processing problems.",
-    docsPath: "/tutorials/TUTORIAL_TROUBLESHOOTING/",
+    id: "faq",
+    label: "FAQ",
+    description: "Short answers for license, SmartScreen, Mac, and upgrades.",
+    docsPath: "/BETA_FAQ/",
   },
   {
     id: "known-issues",
     label: "Known issues",
-    description: "Check current limitations and recommended workarounds.",
+    description: "Beta.6 fixes and limits (TikTok, CPU speed, SmartScreen).",
     docsPath: "/BETA_KNOWN_ISSUES/",
+  },
+  {
+    id: "troubleshooting",
+    label: "Troubleshooting",
+    description: "Symptom → fix for desktop and Docker setups.",
+    docsPath: "/tutorials/TUTORIAL_TROUBLESHOOTING/",
   },
 ];
 

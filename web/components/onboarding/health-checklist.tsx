@@ -204,12 +204,12 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
       )}
 
       <p className="text-xs text-muted-foreground">
-        GPU checks are optional. See{" "}
+        GPU checks are optional. CPU-only is supported but slower — see{" "}
         <Link
-          href={helpHref("/tutorials/TUTORIAL_GPU_SETUP/")}
+          href={helpHref("/BETA_KNOWN_ISSUES/")}
           className="underline hover:text-foreground"
         >
-          GPU setup
+          known issues
         </Link>{" "}
         or{" "}
         <Link
@@ -217,8 +217,8 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
           className="underline hover:text-foreground"
         >
           troubleshooting
-        </Link>{" "}
-        in the in-app Help center.
+        </Link>
+        .
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-29 (henna customer docs consolidated)
+**Last updated:** 2026-07-29 (henna consolidated + Help 404 gap fixed)
 
 ## Active chats
 

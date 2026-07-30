@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>qClip — engine did not start</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: #0a0f1c;
+        color: #e6edf7;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      body { display: flex; align-items: center; justify-content: center; padding: 32px; }
+      .card { width: min(640px, 100%); }
+      h1 { margin: 0 0 10px; font-size: 20px; font-weight: 600; }
+      .sub { margin: 0 0 20px; color: #93a4bd; font-size: 14px; line-height: 1.6; }
+      .reason {
+        border: 1px solid rgba(248, 113, 113, 0.4);
+        background: rgba(248, 113, 113, 0.08);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 13px;
+        margin-bottom: 18px;
+        word-break: break-word;
+      }
+      ol { margin: 0 0 20px; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.9; }
+      code {
+        font-family: "Cascadia Mono", Consolas, monospace;
+        background: rgba(148, 163, 184, 0.14);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        word-break: break-all;
+      }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      button {
+        font: inherit;
+        font-size: 13px;
+        padding: 9px 16px;
+        border-radius: 7px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: transparent;
+        color: #e6edf7;
+        cursor: pointer;
+      }
+      button.primary { background: #38bdf8; border-color: #38bdf8; color: #05121f; font-weight: 600; }
+      button:hover { border-color: #38bdf8; }
+      .status { margin-top: 14px; font-size: 12px; color: #93a4bd; min-height: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>qClip could not start its local engine</h1>
+      <p class="sub">
+        The app window opened but the background engine never became ready, so there is nothing to show yet.
+      </p>
+
+      <div class="reason" id="reason">Local engine did not respond in time.</div>
+
+      <ol>
+        <li>Click <strong>Retry</strong> below — most first launches just need another attempt.</li>
+        <li>If it keeps failing, open the log and send it to support: <code id="log"></code></li>
+        <li>Antivirus or a locked install folder can block the engine. Reinstalling to the default location usually fixes it.</li>
+      </ol>
+
+      <div class="row">
+        <button class="primary" id="retry">Retry</button>
+        <button id="restart">Restart engine</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const targetUrl = params.get("url") || "http://127.0.0.1:8765/";
+      document.getElementById("reason").textContent =
+        params.get("reason") || "Local engine did not respond in time.";
+      document.getElementById("log").textContent = params.get("log") || "(log unavailable)";
+
+      const statusEl = document.getElementById("status");
+      const api = window.streamclip;
+
+      async function waitForHealth(attempts) {
+        for (let i = 0; i < attempts; i += 1) {
+          try {
+            const res = await api.sidecar.health();
+            if (res && res.healthy) return true;
+          } catch (_) {
+            /* keep polling */
+          }
+          await new Promise((r) => setTimeout(r, 700));
+        }
+        return false;
+      }
+
+      async function attempt(restartFirst) {
+        statusEl.textContent = restartFirst ? "Restarting engine…" : "Checking engine…";
+        try {
+          if (restartFirst && api) await api.sidecar.start();
+        } catch (_) {
+          /* start is best-effort */
+        }
+        const ok = api ? await waitForHealth(40) : false;
+        if (ok) {
+          statusEl.textContent = "Engine ready — loading qClip…";
+          location.href = targetUrl;
+        } else {
+          statusEl.textContent = "Still not responding. Please open the log above.";
+        }
+      }
+
+      document.getElementById("retry").addEventListener("click", () => attempt(false));
+      document.getElementById("restart").addEventListener("click", () => attempt(true));
+    </script>
+  </body>
+</html>

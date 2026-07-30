@@ -69,7 +69,8 @@ def configure_data_dirs(data_dir: Path) -> None:
     workspace = data_dir / "workspace"
     storage = data_dir / "storage"
     cache = data_dir / "cache"
-    for d in (data_dir, workspace, storage, cache):
+    output = data_dir / "output"
+    for d in (data_dir, workspace, storage, cache, output):
         d.mkdir(parents=True, exist_ok=True)
 
     db_path = (data_dir / "streamclip.db").as_posix()
@@ -78,6 +79,9 @@ def configure_data_dirs(data_dir: Path) -> None:
     os.environ.setdefault("STREAMCLIP_STORAGE__LOCAL_ROOT", str(storage))
     os.environ.setdefault("STREAMCLIP_WORKSPACE_DIR", str(workspace))
     os.environ.setdefault("STREAMCLIP_CACHE_DIR", str(cache))
+    # Without this the relative default ("output") resolves against the install
+    # prefix, which is read-only for per-machine installs (C:\Program Files).
+    os.environ.setdefault("STREAMCLIP_OUTPUT_DIR", str(output))
     log.info("sidecar_data_dir", path=str(data_dir))
 
 

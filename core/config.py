@@ -19,6 +19,31 @@ from core.creator_options import (
     is_valid_reframe_preset,
 )
 
+_APP_DATA_DIR_NAME = "StreamClip"
+
+
+def user_data_root() -> Path:
+    """Per-user writable root used when a configured dir is not writable."""
+    override = os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR")
+    if override:
+        return Path(override)
+    if os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / _APP_DATA_DIR_NAME
+    return Path.home() / f".{_APP_DATA_DIR_NAME.lower()}"
+
+
+def _writable_fallback_dir(field: str, target: Path) -> Path | None:
+    """Relocate *target* under the per-user data root; None if already there."""
+    candidate = (user_data_root() / target.name).resolve()
+    try:
+        if candidate == target.resolve():
+            return None
+    except OSError:
+        return None
+    return candidate
+
 
 # ─── ML sub-configs ───────────────────────────────────────────────────────────
 
@@ -440,8 +465,26 @@ class Settings(BaseSettings):
         return self
 
     def ensure_dirs(self) -> None:
-        for d in (self.workspace_dir, self.output_dir, self.cache_dir):
-            d.mkdir(parents=True, exist_ok=True)
+        """Create writable runtime dirs, relocating any that the OS refuses.
+
+        Packaged desktop installs can land in a read-only prefix (e.g.
+        ``C:\\Program Files``); a relative dir would otherwise raise
+        PermissionError at import time and take the whole sidecar down.
+        """
+        for field in ("workspace_dir", "output_dir", "cache_dir"):
+            target = getattr(self, field)
+            try:
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            except OSError as exc:
+                fallback = _writable_fallback_dir(field, target)
+                if fallback is None:
+                    raise
+                try:
+                    fallback.mkdir(parents=True, exist_ok=True)
+                except OSError:
+                    raise exc from None
+                setattr(self, field, fallback)
 
 
 _settings: Settings | None = None

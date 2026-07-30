@@ -67,19 +67,25 @@ async def health(
     except Exception as exc:
         log.warning("health_storage_fail", error=str(exc))
 
+    # Keep this probe short and async — desktop boot polls /api/health every
+    # few hundred ms; a sync 3s Ollama timeout was blocking the event loop and
+    # making the ready-gate feel hung when Ollama isn't running yet.
     ollama_ok: bool | None = None
     if cfg.llm.provider == "ollama":
         try:
             import httpx
-            with httpx.Client(timeout=3.0) as client:
-                resp = client.get(f"{cfg.llm.base_url.rstrip('/')}/api/tags")
+
+            async with httpx.AsyncClient(timeout=0.5) as client:
+                resp = await client.get(f"{cfg.llm.base_url.rstrip('/')}/api/tags")
             ollama_ok = resp.is_success
         except Exception as exc:
             log.warning("health_ollama_fail", error=str(exc))
             ollama_ok = False
 
     checks = [db_ok, redis_ok, storage_ok]
-    if ollama_ok is not None:
+    # Desktop/inprocess: report Ollama but don't mark the sidecar degraded —
+    # models may still be downloading on first run.
+    if ollama_ok is not None and not inprocess_mode:
         checks.append(ollama_ok)
 
     return HealthResponse(

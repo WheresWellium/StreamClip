@@ -6,8 +6,8 @@ import { LoadingScreen } from "@/components/loading";
 import { createQClipBootConfig, LOADING_TIPS_DESKTOP } from "@/lib/loading";
 import { metaApi } from "@/lib/api/client";
 
-const POLL_MS = 750;
-const MAX_ATTEMPTS = 120;
+const POLL_MS = 400;
+const MAX_ATTEMPTS = 180;
 const FAILED_OPEN_TIPS = [
   "Engine still starting — the studio will reconnect when ready.",
 ] as const;

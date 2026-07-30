@@ -19,6 +19,7 @@ _DATA_ENV_KEYS = (
     "STREAMCLIP_STORAGE__LOCAL_ROOT",
     "STREAMCLIP_WORKSPACE_DIR",
     "STREAMCLIP_CACHE_DIR",
+    "STREAMCLIP_OUTPUT_DIR",
 )
 
 
@@ -87,9 +88,11 @@ def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
         assert os.environ["STREAMCLIP_STORAGE__LOCAL_ROOT"] == str(data_dir / "storage")
         assert os.environ["STREAMCLIP_WORKSPACE_DIR"] == str(data_dir / "workspace")
         assert os.environ["STREAMCLIP_CACHE_DIR"] == str(data_dir / "cache")
+        assert os.environ["STREAMCLIP_OUTPUT_DIR"] == str(data_dir / "output")
     assert (data_dir / "workspace").is_dir()
     assert (data_dir / "storage").is_dir()
     assert (data_dir / "cache").is_dir()
+    assert (data_dir / "output").is_dir()
 
 
 def test_configure_data_dirs_respects_explicit_env(tmp_path):

@@ -29,8 +29,10 @@ async def test_health_ollama_failure(client, monkeypatch):
 
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.llm, "provider", "ollama")
-    with patch("httpx.Client") as hc:
-        hc.return_value.__enter__.return_value.get.side_effect = OSError("down")
+    with patch("httpx.AsyncClient") as hc:
+        client_mock = AsyncMock()
+        client_mock.get = AsyncMock(side_effect=OSError("down"))
+        hc.return_value.__aenter__.return_value = client_mock
         resp = await client.get("/api/health")
     assert resp.json()["ollama"] is False
 
@@ -99,7 +101,10 @@ async def test_health_stack_with_ollama_in_checks(client, monkeypatch):
 
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.llm, "provider", "ollama")
-    with patch("httpx.Client") as hc:
+    with patch("httpx.AsyncClient") as ahc, patch("httpx.Client") as hc:
+        aclient = AsyncMock()
+        aclient.get = AsyncMock(return_value=MagicMock(is_success=True))
+        ahc.return_value.__aenter__.return_value = aclient
         inst = hc.return_value.__enter__.return_value
         inst.get.return_value = MagicMock(is_success=True)
         resp = await client.get("/api/health/stack")

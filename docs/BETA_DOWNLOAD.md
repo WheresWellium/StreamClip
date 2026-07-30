@@ -32,6 +32,9 @@ No Docker. No terminal. No zip file.
 !!! tip "Upgrading from beta.5 or earlier?"
     Install beta.6, then **re-paste your license key once**. That refreshes install secrets and the Link-jobs fix.
 
+!!! warning "White screen / many blank tray icons?"
+    That was a Program Files write crash in older beta.6 builds. **Task Manager → end all `qClip` processes**, uninstall, then reinstall from the link above (republished 2026-07-30). You should see one tray icon and a dark splash, not a blank window.
+
 **Next:** [Create your first clip →](BETA_TESTER_QUICKSTART.md)
 
 ---

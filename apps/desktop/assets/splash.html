@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>qClip</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: #0a0f1c;
+        color: #e6edf7;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(900px 500px at 50% -10%, rgba(56, 189, 248, 0.16), transparent 60%),
+          #0a0f1c;
+      }
+      .wrap { text-align: center; width: min(420px, 80vw); }
+      .mark {
+        width: 56px; height: 56px;
+        margin: 0 auto 20px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(56, 189, 248, 0.7);
+        color: #38bdf8;
+        border-radius: 10px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      .mark svg { width: 26px; height: 26px; }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      p { margin: 0; font-size: 13px; color: #93a4bd; }
+      .bar {
+        margin-top: 24px;
+        height: 3px;
+        width: 100%;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.18);
+        overflow: hidden;
+      }
+      .bar span {
+        display: block;
+        height: 100%;
+        width: 38%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+        animation: slide 1.25s ease-in-out infinite;
+      }
+      @keyframes slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(320%); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .mark, .bar span { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
+      </div>
+      <h1>qClip</h1>
+      <p>Starting the local engine…</p>
+      <div class="bar"><span></span></div>
+    </div>
+  </body>
+</html>

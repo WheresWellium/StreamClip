@@ -25,8 +25,9 @@ async def test_health_ollama_branch(client, monkeypatch):
     from core.config import get_settings
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.llm, "provider", "ollama")
-    with patch("httpx.Client") as hc:
-        inst = hc.return_value.__enter__.return_value
-        inst.get.return_value = MagicMock(is_success=True)
+    with patch("httpx.AsyncClient") as hc:
+        client_mock = AsyncMock()
+        client_mock.get = AsyncMock(return_value=MagicMock(is_success=True))
+        hc.return_value.__aenter__.return_value = client_mock
         resp = await client.get("/api/health")
     assert "ollama" in resp.json()

@@ -141,13 +141,12 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
         )}
 
         <p className="text-xs text-muted-foreground">
-          <Link
-            href={helpHref("/tutorials/TUTORIAL_TROUBLESHOOTING/")}
-            className="underline hover:text-foreground"
-          >
-            How to fix common issues
+          See{" "}
+          <Link href={helpHref("/")} className="underline hover:text-foreground">
+            Help
           </Link>{" "}
-          in the Help center.
+          for download and setup steps, or use{" "}
+          <span className="text-foreground">Help → Beta feedback</span> in the app.
         </p>
       </div>
     );
@@ -204,19 +203,9 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
       )}
 
       <p className="text-xs text-muted-foreground">
-        GPU checks are optional. CPU-only is supported but slower — see{" "}
-        <Link
-          href={helpHref("/BETA_KNOWN_ISSUES/")}
-          className="underline hover:text-foreground"
-        >
-          known issues
-        </Link>{" "}
-        or{" "}
-        <Link
-          href={helpHref("/tutorials/TUTORIAL_TROUBLESHOOTING/")}
-          className="underline hover:text-foreground"
-        >
-          troubleshooting
+        GPU checks are optional. CPU-only works but is slower. For steps, open{" "}
+        <Link href={helpHref("/")} className="underline hover:text-foreground">
+          Help
         </Link>
         .
       </p>

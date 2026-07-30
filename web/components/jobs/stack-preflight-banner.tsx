@@ -49,8 +49,8 @@ export function StackPreflightBanner() {
           Run setup wizard
         </Link>
         {" · "}
-        <Link href={helpHref("/tutorials/TUTORIAL_TROUBLESHOOTING/")} className="underline hover:text-foreground">
-          Troubleshooting guide
+        <Link href={helpHref("/")} className="underline hover:text-foreground">
+          Help
         </Link>
         {devToolsEnabled ? (
           <>

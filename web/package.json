@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:loading": "npx --yes tsx --test lib/loading/lifecycle.test.ts",
     "test:license-seats": "npx --yes tsx --test lib/license-seats.test.ts",
+    "test:docs": "npx --yes tsx --test lib/docs.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui-journey": "playwright test e2e/journey-create-review.spec.ts e2e/failure-paths.spec.ts e2e/onboarding-first-run.spec.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""

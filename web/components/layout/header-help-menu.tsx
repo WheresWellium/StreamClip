@@ -38,7 +38,10 @@ export function HeaderHelpMenu() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel>Documentation</DropdownMenuLabel>
+          <DropdownMenuLabel>Help</DropdownMenuLabel>
+          <DropdownMenuItem asChild>
+            <Link href="/help">Download & how to use</Link>
+          </DropdownMenuItem>
           {HELP_TOPICS.map(({ id, label, docsPath }) => (
             <DropdownMenuItem key={id} asChild>
               <Link href={helpHref(docsPath)}>{label}</Link>

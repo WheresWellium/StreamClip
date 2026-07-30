@@ -2,41 +2,61 @@
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
-qClip is an all-in-one clip studio that runs on **your computer**. Paste a URL or upload a file — it finds moments, reframes to any aspect ratio, and scores clips so you know what to ship first. Nothing leaves your machine unless you choose to publish.
+Download the app, then follow the steps below. You do not need GitHub, Docker, or a terminal.
 
 ---
 
-## Start here (beta)
+## 1. Download {#download}
 
-!!! tip "You do not need a GitHub account"
-    Have your `SCPRO-…` license key from your invite email ready.
+Pick your computer:
 
-| Step | Action |
-|------|--------|
-| **1** | [**Install qClip**](BETA_DOWNLOAD.md) — Windows installer, or Mac via Docker |
-| **2** | [**Create your first clip**](BETA_TESTER_QUICKSTART.md) — New job → done |
-| **3** | Stuck? [FAQ](BETA_FAQ.md) · [Known issues](BETA_KNOWN_ISSUES.md) · [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
+| | |
+|-|-|
+| **Windows** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) |
+| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) |
 
-**Primary call to action:** → [Install qClip](BETA_DOWNLOAD.md)
+Have your license key ready (`SCPRO-…` from your invite email).
 
 ---
 
-## What happens in a job
+## 2. Install {#install}
 
-1. You paste a **public** video URL or upload a file  
-2. Speech is transcribed on your machine  
-3. Highlights are detected and scored  
-4. Short clips are rendered for review  
-5. You approve, then optionally publish
+### Windows
+
+1. Open the file you downloaded.
+2. If Windows says *Windows protected your PC* → click **More info** → **Run anyway**.
+3. Open **qClip** from the Start menu.
+
+### Mac (Apple Silicon)
+
+1. Open the downloaded file.
+2. Drag **qClip** into **Applications**.
+3. First time: right-click **qClip** → **Open** (or System Settings → Privacy & Security → **Open Anyway**).
 
 ---
 
-## Words you might see
+## 3. Activate {#activate}
 
-| Word | Meaning |
-|------|---------|
-| **License key** | `SCPRO-…` from your invite — unlocks Pro features |
-| **Job** | One video you asked qClip to process |
-| **Clip** | One short cut from that job |
-| **Vault** | Saved favorites |
-| **Docker** | Optional runtime for Mac / self-host (not needed on Windows `.exe`) |
+1. In qClip, go to **Settings → License**.
+2. Paste your key (`SCPRO-…`).
+3. Click **Activate**.
+
+The first launch may download speech models (~1.5 GB). Keep the app open until that finishes.
+
+---
+
+## 4. Make a clip {#use}
+
+1. Click **New job**.
+2. Paste a **public** video link (YouTube, Twitch, etc.) or upload a video file.
+3. Click **Submit**.
+4. Wait until the job says **done**.
+5. Open a clip → preview → **Approve**.
+
+Optional: in **Settings → Distribution**, connect YouTube Shorts, then **Publish** an approved clip.
+
+---
+
+## Need help?
+
+In the app, open **Help → Beta feedback** or **Report a bug**.

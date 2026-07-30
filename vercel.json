@@ -7,83 +7,68 @@
   "ignoreCommand": "exit 1",
   "redirects": [
     {
-      "source": "/tutorials/TUTORIAL_INSTALL",
-      "destination": "/BETA_DOWNLOAD/",
+      "source": "/BETA_DOWNLOAD",
+      "destination": "/#download",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_INSTALL/",
-      "destination": "/BETA_DOWNLOAD/",
+      "source": "/BETA_DOWNLOAD/",
+      "destination": "/#download",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_FIRST_JOB",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "source": "/BETA_TESTER_QUICKSTART",
+      "destination": "/#use",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_FIRST_JOB/",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "source": "/BETA_TESTER_QUICKSTART/",
+      "destination": "/#use",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_GPU_SETUP",
-      "destination": "/BETA_KNOWN_ISSUES/",
+      "source": "/BETA_FAQ",
+      "destination": "/",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_GPU_SETUP/",
-      "destination": "/BETA_KNOWN_ISSUES/",
+      "source": "/BETA_FAQ/",
+      "destination": "/",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_EDIT_APPROVE",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "source": "/BETA_KNOWN_ISSUES",
+      "destination": "/",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_EDIT_APPROVE/",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "source": "/BETA_KNOWN_ISSUES/",
+      "destination": "/",
       "permanent": true
     },
     {
-      "source": "/tutorials/TUTORIAL_PUBLISH_YOUTUBE",
-      "destination": "/BETA_TESTER_QUICKSTART/",
-      "permanent": true
-    },
-    {
-      "source": "/tutorials/TUTORIAL_PUBLISH_YOUTUBE/",
-      "destination": "/BETA_TESTER_QUICKSTART/",
-      "permanent": true
-    },
-    {
-      "source": "/tutorials/TUTORIAL_VAULT",
-      "destination": "/BETA_TESTER_QUICKSTART/",
-      "permanent": true
-    },
-    {
-      "source": "/tutorials/TUTORIAL_VAULT/",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "source": "/tutorials/:path*",
+      "destination": "/",
       "permanent": true
     },
     {
       "source": "/BETA_TESTER_PLAN",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "destination": "/#use",
       "permanent": true
     },
     {
       "source": "/BETA_TESTER_PLAN/",
-      "destination": "/BETA_TESTER_QUICKSTART/",
+      "destination": "/#use",
       "permanent": true
     },
     {
       "source": "/MACOS_INSTALLER",
-      "destination": "/BETA_DOWNLOAD/",
+      "destination": "/#download",
       "permanent": true
     },
     {
       "source": "/MACOS_INSTALLER/",
-      "destination": "/BETA_DOWNLOAD/",
+      "destination": "/#download",
       "permanent": true
     }
   ]

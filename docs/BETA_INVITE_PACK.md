@@ -24,19 +24,19 @@
 
 ## 2. Fresh-reader review (§8.14) — 20 min
 
-Hand someone who has **never** run this repo:
+Hand someone who has **never** used qClip (Windows `.exe` path preferred):
 
-1. Open [BETA_TESTER_QUICKSTART](https://streamclip-henna.vercel.app/BETA_TESTER_QUICKSTART/)
-2. Follow Steps 1–4 only (Docker up → `verify_stack.ps1`)
-3. Capture: stuck step, missing link, wrong path, unclear GPU note
+1. Open [henna home](https://streamclip-henna.vercel.app/) → download for their OS → install → activate → make a clip
+2. Capture: stuck step, missing link, wrong path, unclear warning (SmartScreen / Gatekeeper)
 
 Operator records result here (private notes OK):
 
 | Date | Reviewer | Stuck at step? | Fixes filed? |
 |------|----------|----------------|--------------|
 | 2026-07-09 | Agent fresh-reader walk (operator host) | No P0 blockers | Yes — `SCBETA`→`SCPRO` key format; `start_local.ps1` stale “exe not built”; Step 4 “beta channel” → in-app Report a bug |
+| 2026-07-29 | Docs IA refresh | — | Quickstart walk retargeted off Docker-first Steps 1–4 |
 
-**Walk evidence:** `verify_stack.ps1` EXIT 0 (health + full unit suite); published quickstart/download HTTP 200; linked paths (`start_local`, tutorials, known issues) present. MASTER §8.14 ✅.
+**Walk evidence (historical):** `verify_stack.ps1` EXIT 0; published install/quickstart/help HTTP 200. MASTER §8.14 ✅. Re-walk against installer-first steps when next cohort expands.
 
 ---
 

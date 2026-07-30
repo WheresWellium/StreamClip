@@ -1,10 +1,10 @@
-# Jet Stream / StreamClip — public documentation site (Wellium)
+# qClip Docs (henna) — customer site only; see docs/INTERNAL.md for excluded pages
 # Build: pip install -r docs/requirements.txt && python -m mkdocs build --strict
 # Dev:   python -m mkdocs serve -a 127.0.0.1:8001
-# Deploy: Vercel (vercel.json) — see README § Documentation
+# Deploy: Vercel (vercel.json) — https://streamclip-henna.vercel.app/
 
-site_name: qClip Docs
-site_description: Install qClip, create your first clip, and get help — beta docs for creators
+site_name: qClip
+site_description: Download qClip and make your first clip
 site_url: https://streamclip-henna.vercel.app/
 repo_url: https://github.com/WheresWellium/StreamClip
 repo_name: streamclip
@@ -15,7 +15,7 @@ docs_dir: docs
 site_dir: site
 strict: true
 
-# Keep customer henna lean. Operator/engineering files stay in-repo but are not published.
+# Customer henna = one page (download + how to use). Everything else stays in-repo.
 # See docs/INTERNAL.md for the full internal register.
 exclude_docs: |
   GAP_ANALYSIS.md
@@ -30,6 +30,10 @@ exclude_docs: |
   BETA_COHORT_EXIT.md
   BETA_DISTRIBUTION.md
   BETA_OBSERVABILITY.md
+  BETA_DOWNLOAD.md
+  BETA_TESTER_QUICKSTART.md
+  BETA_FAQ.md
+  BETA_KNOWN_ISSUES.md
   SESSION_STATE.md
   AGENT_COORDINATION.md
   MACOS_INSTALLER.md
@@ -48,12 +52,8 @@ exclude_docs: |
   evidence/
   superpowers/
   design/
-  tutorials/TUTORIAL_INSTALL.md
-  tutorials/TUTORIAL_GPU_SETUP.md
-  tutorials/TUTORIAL_EDIT_APPROVE.md
-  tutorials/TUTORIAL_VAULT.md
-  tutorials/TUTORIAL_FIRST_JOB.md
-  tutorials/TUTORIAL_PUBLISH_YOUTUBE.md
+  tutorials/
+  share/
 
 theme:
   name: material
@@ -74,13 +74,8 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
   features:
-    - navigation.tabs
-    - navigation.sections
     - navigation.top
-    - navigation.indexes
     - content.code.copy
-    - search.suggest
-    - search.highlight
     - toc.follow
 
 plugins:
@@ -104,15 +99,9 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# Customer journey only — one forward path: Install → First clip → Help
+# Single customer page: download + how to use
 nav:
   - Home: index.md
-  - Install: BETA_DOWNLOAD.md
-  - First clip: BETA_TESTER_QUICKSTART.md
-  - Help:
-      - FAQ: BETA_FAQ.md
-      - Known issues: BETA_KNOWN_ISSUES.md
-      - Troubleshooting: tutorials/TUTORIAL_TROUBLESHOOTING.md
 
 extra:
   generator: false

@@ -336,7 +336,8 @@ The optical-flow signal is the heaviest CPU cost. Set `highlight.weight_optical_
 
 ## Documentation
 
-**Browseable site (MkDocs Material):**
+**Public site (henna):** https://streamclip-henna.vercel.app/  
+One customer page: **download + how to use** ([docs/index.md](docs/index.md)).
 
 ```bash
 pip install -r docs/requirements.txt
@@ -344,23 +345,17 @@ python -m mkdocs serve -a 127.0.0.1:8001   # http://127.0.0.1:8001 (not the API 
 python -m mkdocs build --strict
 ```
 
-**Internal tracking (repo only, not published):** `docs/GAP_ANALYSIS.md` and `docs/MASTER_TODO.md` are excluded via `exclude_docs` in `mkdocs.yml` and omitted from nav — see [docs/INTERNAL.md](docs/INTERNAL.md).
+**In-app Help** embeds the same page (`web/app/help`, `web/lib/docs.ts`).
 
-| Doc | Purpose |
-|-----|---------|
-| [docs/index.md](docs/index.md) | Docs home / nav entry |
-| [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Implementer-focused architecture |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Performance doctrine, SLIs, hot-path map |
-| [docs/design/FIGMA_LINKS.md](docs/design/FIGMA_LINKS.md) | FigJam diagrams |
+**Repo-only (not on henna):** architecture, ops, commercial, builder runbooks, demoted tutorials — listed in [docs/INTERNAL.md](docs/INTERNAL.md) and `exclude_docs` in `mkdocs.yml`. Examples: `TECHNICAL_DESIGN.md`, `PERFORMANCE.md`, `GAP_ANALYSIS.md`, `MASTER_TODO.md`, `design/FIGMA_LINKS.md`.
 
 ### Deploy docs (Vercel — primary)
 
-Team: **wellium** (`WHERESWELLIUM`). `vercel.json` builds the static site (`pip install -r docs/requirements.txt` → `mkdocs build --strict` → `site/`).
+Team: **wellium** (`WHERESWELLIUM`). Project already live at **https://streamclip-henna.vercel.app/**. `vercel.json` builds MkDocs (`pip install -r docs/requirements.txt` → `mkdocs build --strict` → `site/`).
 
-1. Push repo to GitHub, then [vercel.com](https://vercel.com) → **Add New Project** → import under team **wellium**.
-2. Framework preset: **Other** — do not override install/build/output (`vercel.json` owns them).
-3. Production domain: **https://streamclip-henna.vercel.app/** — set matching `site_url` in `mkdocs.yml` and redeploy.
-4. Optional CLI: `npx vercel link` (team wellium) → `npx vercel --prod`.
+1. Framework preset: **Other** — do not override install/build/output (`vercel.json` owns them).
+2. Keep `site_url` in `mkdocs.yml` matched to the henna domain.
+3. Optional CLI: `npx vercel link` (team wellium) → `npx vercel --prod`.
 
 Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should be **<1 MB**, not GB).
 
@@ -368,7 +363,7 @@ Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should
 
 **Upload size (critical):** `.vercelignore` whitelists only `docs/`, `mkdocs.yml`, and config — without it, CLI uploads the full monorepo (~**5.9 GB** observed). Cancel stuck uploads and redeploy after pulling this file.
 
-**Expected build profile (MkDocs static, ~3 MB / 59 files):**
+**Expected build profile (lean henna, ~3 MB / ~50–55 static files):**
 
 | Phase | Cold | Cached |
 |-------|------|--------|
@@ -377,13 +372,9 @@ Redeploy after `.vercelignore` changes: `npx vercel --prod --yes` (upload should
 | Upload to CDN | ~2–5s | ~2–5s |
 | **Total** | **~30–55s** | **~10–20s** |
 
-No qClip docs project exists on Vercel yet — first deploy creates metrics baseline.
-
 ### Deploy docs (GitHub Pages — optional backup)
 
-`.github/workflows/docs.yml` builds and deploys on push to `main`/`master` when `docs/**` or `mkdocs.yml` changes.
-
-**Blocked until:** a Git remote is configured (`git remote add origin …`), the repo is pushed, and **Settings → Pages → GitHub Actions** is enabled. This workspace currently has **no git remote** (`git remote -v` is empty).
+`.github/workflows/docs.yml` builds and deploys on push to `main`/`master` when `docs/**` or `mkdocs.yml` changes. Enable **Settings → Pages → GitHub Actions** if you want the backup path.
 
 ## Ship checklist
 

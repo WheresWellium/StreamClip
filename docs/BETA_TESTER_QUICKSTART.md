@@ -1,4 +1,6 @@
-# Create your first clip
+# Create your first clip (operator notes)
+
+> **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
 You already installed qClip and activated your license. This page is only about **running a job**.
 
@@ -9,7 +11,7 @@ You already installed qClip and activated your license. This page is only about 
 
 ## 1. Confirm you're ready
 
-1. Open qClip (Start menu on Windows, or [http://localhost:3000](http://localhost:3000) on Docker).
+1. Open qClip (Start menu on Windows, **Applications** on Mac, or [http://localhost:3000](http://localhost:3000) on Docker).
 2. **Settings → Get started** should say **Ready**.
 3. If it says **Needs attention**, fix those items first — or see [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md).
 

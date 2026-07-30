@@ -21,7 +21,7 @@ description: >-
 1. **`docs/GAP_ANALYSIS.md`** — living register (update in place, date-stamp section)
 2. Optional fixes — code for P0/P1, doc updates for intentional deferrals
 
-**Publishing:** `GAP_ANALYSIS.md` and `MASTER_TODO.md` are **internal-only** — listed in `exclude_docs` in `mkdocs.yml`, omitted from nav, and not deployed (Vercel / GitHub Pages). See `docs/INTERNAL.md`.
+**Publishing:** Gap registers are **internal-only**. Full exclude list is `exclude_docs` in `mkdocs.yml` (GAP/MASTER plus ops, commercial, design, demoted tutorials, etc.) — see `docs/INTERNAL.md`. Henna publishes only `docs/index.md` (download + how to use).
 
 ## Workflow
 

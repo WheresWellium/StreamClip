@@ -1,6 +1,8 @@
-# FAQ
+# FAQ (operator notes)
 
-Short answers for beta testers. For steps with a clear next action, use **[Install](BETA_DOWNLOAD.md)** or **[First clip](BETA_TESTER_QUICKSTART.md)**.
+> **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
+
+Short answers for operators. Creator-facing steps live on henna home.
 
 ---
 
@@ -14,9 +16,9 @@ Details: [Install qClip](BETA_DOWNLOAD.md#one-click-installers)
 
 ## How do I install on Mac?
 
-No public `.dmg` yet. Use Docker Desktop + project files from your operator.
+**Call to action:** [Download qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) → Applications → right-click **Open** (unsigned) → **Settings → License**.
 
-**Call to action:** Follow [Install → macOS](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet)
+Apple Silicon today; universal (Intel + Silicon) DMG coming next. Details: [Install → macOS](BETA_DOWNLOAD.md#macos). Docker remains an [operator fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
 
 ---
 
@@ -24,8 +26,8 @@ No public `.dmg` yet. Use Docker Desktop + project files from your operator.
 
 In your invite / setup email (`SCPRO-…`). Paste it in **Settings → License**.
 
-- **Windows desktop (beta.6+):** paste and activate — keys are seeded at boot.  
-- **Docker:** run `import_invite_license.py` once first — see [Install → macOS](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
+- **Windows / Mac desktop (beta.6+):** paste and activate — keys are seeded at boot.  
+- **Docker:** run `import_invite_license.py` once first — see [Install → Docker fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
 
 ---
 

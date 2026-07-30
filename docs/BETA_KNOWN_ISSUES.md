@@ -1,4 +1,6 @@
-# Known issues
+# Known issues (operator notes)
+
+> **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
 **Updated:** 2026-07-28 · Current Windows build: **v1.0.0-beta.6**
 
@@ -24,10 +26,13 @@ Still on beta.5? Upgrade, or click **Skip** on Link jobs until you do.
 |------|----------------|
 | TikTok | Inbox / drafts only — finish in the TikTok app |
 | Instagram | Not supported |
-| macOS `.dmg` | Not public — use [Docker install](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet) |
+| macOS Gatekeeper | Unsigned `.dmg` — right-click → **Open** / Privacy & Security → **Open Anyway** |
+| macOS notarization | Not notarized yet — Gatekeeper warning is expected |
+| macOS universal DMG | Prefer `qClip-mac-universal.dmg`; rebuild on Mac if only `arm64` is on the release |
 | SmartScreen | Unsigned — **More info → Run anyway** |
 | First-run models | ~1.5 GB download once |
 | CPU desktop speed | Slow vs GPU — prefer short sources for feedback |
+| GPU / Docker acceleration | Windows `.exe` uses GPU when the PC has one; Mac Docker is CPU-only. Stuck or unexpected speed → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
 | Scheduled publish | Fires only while the desktop app is open |
 
 ---

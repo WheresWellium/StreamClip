@@ -1,4 +1,7 @@
-# StreamClip — Figma Diagrams
+# qClip — Figma Diagrams
+
+**Not on the public docs site** (`design/` is excluded from henna).  
+Theme-skin Figma files: [`../THEME_SKINS.md`](../THEME_SKINS.md).
 
 Visual references for architecture, pipeline, UX, and modules. Generated in FigJam.
 

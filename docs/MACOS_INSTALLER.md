@@ -1,11 +1,10 @@
 # macOS installer — 30-minute builder runbook
 
-**End users:** you do **not** need this page. Install with Docker on Mac — see
-[Get qClip](BETA_DOWNLOAD.md) (macOS tab).
+**End users:** you do **not** need this page. Download the published DMG —
+[Install → macOS](BETA_DOWNLOAD.md#macos).
 
-**Builders with a borrowed Mac:** this is the complete path to an unsigned arm64
-`.dmg` in ~30 minutes. Notarization (Gatekeeper-clean) is an optional extra step
-after you have an Apple Developer ID.
+**Builders:** this is the path to rebuild an unsigned arm64 `.dmg`. Notarization
+(Gatekeeper-clean) still needs an Apple Developer ID.
 
 Companion detail: `packaging/installer/MACOS.md` (repo root) ·
 ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
@@ -21,10 +20,16 @@ ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
 | Build script | ✅ `scripts/build_desktop_installer_macos.sh` |
 | Verify script | ✅ `scripts/verify_desktop_installer_macos.sh` |
 | Notarize script (skips if no Apple secrets) | ✅ `scripts/notarize_macos_artifact.sh` |
-| Live `.dmg` on GitHub Releases | ❌ Needs Mac host (cannot build on Windows) |
+| Live `.dmg` on GitHub Releases | ✅ arm64 uploaded 2026-07-30; **universal** = rebuild with updated script → `qClip-mac-universal.dmg` |
 | Notarized / Gatekeeper-clean | ❌ Needs Apple Developer Program |
 
-Beta testers today use **Docker on Mac** — the DMG is Phase 2 polish, not a Phase 0 blocker.
+Beta testers: use the [universal DMG](BETA_DOWNLOAD.md#macos) once published. On the Mac builder:
+
+```bash
+./scripts/build_desktop_installer_macos.sh
+# needs Rosetta + /usr/local x86_64 Python for the Intel sidecar half
+gh release upload v1.0.0-beta.6 apps/desktop/release/qClip-mac-universal.dmg --clobber
+```
 
 ---
 
@@ -118,7 +123,7 @@ Full matrix: `packaging/installer/MACOS.md`.
 
 ## Related
 
-- [Get qClip (Docker — Windows & Mac)](BETA_DOWNLOAD.md)
-- [Beta quickstart](BETA_TESTER_QUICKSTART.md)
+- [Install qClip](BETA_DOWNLOAD.md)
+- [First clip](BETA_TESTER_QUICKSTART.md)
 - [Windows EV signing](DESKTOP_SIGNING.md)
 - [ADR-001 Desktop packaging](ADR-001-desktop-packaging.md)

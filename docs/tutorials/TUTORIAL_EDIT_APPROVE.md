@@ -1,6 +1,9 @@
 # Tutorial — Edit & Approve Clips
 
-**Time:** ~10 minutes · **Prerequisite:** [First job](TUTORIAL_FIRST_JOB.md) with at least one **done** clip
+!!! warning "Not on the public docs site"
+    Creators: use **[First clip → Approve and publish](../BETA_TESTER_QUICKSTART.md)**. This page is an operator deep-dive kept in the repo only.
+
+**Time:** ~10 minutes · **Prerequisite:** [First clip](../BETA_TESTER_QUICKSTART.md) (or [First job deep-dive](TUTORIAL_FIRST_JOB.md)) with at least one **done** clip
 
 Review AI-generated clips, adjust title and trim boundaries, fix transcript words, then **approve** clips you want to publish or save.
 

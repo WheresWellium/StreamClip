@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Build the StreamClip macOS desktop DMG (MASTER_TODO §5 / ADR-001).
+# Build the qClip macOS desktop DMG (MASTER_TODO §5 / ADR-001).
 #
-# Pipeline: static UI -> PyInstaller sidecar -> stage (no .exe) -> electron-builder --mac.
-# Requires a macOS host (Apple Silicon preferred; arm64-first per §5.5).
-# Code signing / notarization (optional): see packaging/installer/MACOS.md.
+# Pipeline: static UI -> PyInstaller sidecar(s) -> stage -> electron-builder --mac --universal.
+# Requires a macOS host. Universal DMG needs BOTH arm64 + x64 sidecars (Rosetta + x86 Python on Apple Silicon).
 #
 # Usage:
 #   ./scripts/build_desktop_installer_macos.sh
 #   ./scripts/build_desktop_installer_macos.sh --skip-ui --skip-sidecar
+#   STREAMCLIP_MAC_SINGLE_ARCH=arm64 ./scripts/build_desktop_installer_macos.sh   # escape hatch
 #   STREAMCLIP_SKIP_PYINSTALLER=1 ./scripts/build_desktop_installer_macos.sh
 #
 # Env (signing — fail soft when unset):
@@ -50,9 +50,43 @@ DESKTOP_DIR="$ROOT/apps/desktop"
 SIDECAR_DIST="$ROOT/dist/streamclip-sidecar"
 STAGING="$DESKTOP_DIR/.staging/sidecar"
 SIDECAR_BIN_NAME="streamclip-sidecar"
+SINGLE_ARCH="${STREAMCLIP_MAC_SINGLE_ARCH:-}"
 
 signing_configured() {
   [[ -n "${CSC_LINK:-}" && -n "${CSC_KEY_PASSWORD:-}" ]] || [[ -n "${CSC_NAME:-}" ]]
+}
+
+host_electron_arch() {
+  case "$(uname -m)" in
+    arm64) echo "arm64" ;;
+    x86_64) echo "x64" ;;
+    *)
+      echo "ERROR: unsupported uname -m=$(uname -m)" >&2
+      exit 1
+      ;;
+  esac
+}
+
+# x86_64 Python under Rosetta (Homebrew /usr/local) for Intel sidecar on Apple Silicon.
+find_x86_python() {
+  if ! arch -x86_64 /usr/bin/true >/dev/null 2>&1; then
+    return 1
+  fi
+  local c
+  for c in \
+    /usr/local/bin/python3.12 \
+    /usr/local/bin/python3.11 \
+    /usr/local/bin/python3.10 \
+    /usr/local/bin/python3; do
+    if [[ -x "$c" ]] && arch -x86_64 "$c" -c 'import struct; assert struct.calcsize("P") == 8' >/dev/null 2>&1; then
+      # Reject arm64 binary mistakenly on PATH
+      if arch -x86_64 "$c" -c 'import platform; assert platform.machine() == "x86_64"' >/dev/null 2>&1; then
+        echo "$c"
+        return 0
+      fi
+    fi
+  done
+  return 1
 }
 
 preflight() {
@@ -75,7 +109,7 @@ preflight() {
     missing=1
   fi
   if (( missing )); then exit 1; fi
-  echo "Preflight OK"
+  echo "Preflight OK (host arch=$(host_electron_arch))"
 }
 
 verify_static_ui() {
@@ -90,8 +124,40 @@ verify_static_ui() {
   echo "Static UI OK ($(du -sh "$ROOT/static/ui" | awk '{print $1}'))"
 }
 
-echo "=== StreamClip macOS desktop installer build ==="
-echo "Arch preference: arm64 (Apple Silicon first; universal2 later — §5.5)"
+build_and_stage_sidecar() {
+  local electron_arch="$1"
+  local py="$2"
+  local use_rosetta="$3" # 1 or 0
+
+  echo ""
+  echo "=== PyInstaller sidecar ($electron_arch) ==="
+  rm -rf "$SIDECAR_DIST"
+  if [[ "$use_rosetta" == "1" ]]; then
+    arch -x86_64 "$py" -m pip install -r requirements-desktop.txt -r requirements-packaging.txt -q
+    arch -x86_64 "$py" -m PyInstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
+  else
+    "$py" -m pip install -r requirements-desktop.txt -r requirements-packaging.txt -q
+    "$py" -m PyInstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
+  fi
+
+  if [[ ! -f "$SIDECAR_DIST/$SIDECAR_BIN_NAME" ]]; then
+    echo "ERROR: Missing $SIDECAR_DIST/$SIDECAR_BIN_NAME after $electron_arch build." >&2
+    exit 1
+  fi
+  if [[ -f "$SIDECAR_DIST/${SIDECAR_BIN_NAME}.exe" ]]; then
+    echo "ERROR: Windows .exe sidecar on macOS host." >&2
+    exit 1
+  fi
+
+  local dest="$STAGING/$electron_arch"
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  cp -R "$SIDECAR_DIST"/. "$dest"/
+  rm -f "$dest/${SIDECAR_BIN_NAME}.exe"
+  echo "Staged $electron_arch sidecar ($(du -sm "$dest" | awk '{print $1}') MB) -> $dest"
+}
+
+echo "=== qClip macOS desktop installer build (universal) ==="
 preflight
 
 # --- ffmpeg (Darwin) ---
@@ -124,49 +190,67 @@ else
 fi
 verify_static_ui
 
-# --- PyInstaller sidecar ---
+# --- PyInstaller sidecar(s) ---
+rm -rf "$STAGING"
+mkdir -p "$STAGING"
+
 if [[ "$SKIP_SIDECAR" -eq 0 ]]; then
-  echo ""
-  echo "=== PyInstaller sidecar ==="
   if [[ "${STREAMCLIP_SKIP_PYINSTALLER:-}" == "1" ]]; then
-    echo "STREAMCLIP_SKIP_PYINSTALLER=1 — skipping PyInstaller."
+    echo "STREAMCLIP_SKIP_PYINSTALLER=1 — skipping PyInstaller (expect staged sidecars)."
   else
-    if ! command -v pyinstaller >/dev/null 2>&1; then
-      echo "Installing desktop + packaging requirements..."
-      python3 -m pip install -r requirements-desktop.txt -r requirements-packaging.txt -q
+    HOST_EARCH="$(host_electron_arch)"
+    if [[ -n "$SINGLE_ARCH" ]]; then
+      echo "STREAMCLIP_MAC_SINGLE_ARCH=$SINGLE_ARCH — single-arch sidecar only (not a full universal runtime)."
+      if [[ "$SINGLE_ARCH" == "x64" && "$HOST_EARCH" == "arm64" ]]; then
+        X86_PY="$(find_x86_python || true)"
+        [[ -n "$X86_PY" ]] || { echo "ERROR: x86_64 Python required under Rosetta (/usr/local/bin/python3)." >&2; exit 1; }
+        build_and_stage_sidecar "x64" "$X86_PY" 1
+      else
+        build_and_stage_sidecar "$SINGLE_ARCH" "python3" 0
+      fi
+    else
+      # Universal: need arm64 + x64 sidecars.
+      if [[ "$HOST_EARCH" == "arm64" ]]; then
+        build_and_stage_sidecar "arm64" "python3" 0
+        X86_PY="$(find_x86_python || true)"
+        if [[ -z "$X86_PY" ]]; then
+          echo "" >&2
+          echo "ERROR: Universal DMG needs an Intel (x86_64) sidecar as well." >&2
+          echo "  1) softwareupdate --install-rosetta" >&2
+          echo "  2) Install Homebrew into /usr/local under Rosetta, then:" >&2
+          echo "       arch -x86_64 /usr/local/bin/brew install python@3.12" >&2
+          echo "  3) Re-run this script." >&2
+          echo "  Escape hatch (Apple Silicon only): STREAMCLIP_MAC_SINGLE_ARCH=arm64 $0" >&2
+          exit 1
+        fi
+        build_and_stage_sidecar "x64" "$X86_PY" 1
+      else
+        # Intel Mac host: build x64 natively; arm64 sidecar cannot be produced here.
+        build_and_stage_sidecar "x64" "python3" 0
+        echo "" >&2
+        echo "ERROR: Universal DMG needs an arm64 sidecar (build on Apple Silicon, or copy" >&2
+        echo "       apps/desktop/.staging/sidecar/arm64 from an Apple Silicon build)." >&2
+        echo "  Escape hatch (Intel only): STREAMCLIP_MAC_SINGLE_ARCH=x64 $0" >&2
+        exit 1
+      fi
     fi
-    python3 -m PyInstaller packaging/pyinstaller/streamclip-sidecar.spec --noconfirm
   fi
 else
   echo "Skipping sidecar build (--skip-sidecar)."
 fi
 
-# --- Stage sidecar (Darwin binary name, no .exe) ---
-echo ""
-echo "=== Stage sidecar for Electron ==="
-if [[ ! -d "$SIDECAR_DIST" ]]; then
-  echo "ERROR: Missing $SIDECAR_DIST — build sidecar first (or drop --skip-sidecar)." >&2
-  exit 1
-fi
-
-# Prefer bare binary; accept .exe only if somehow present (cross-copy mistake).
-if [[ -f "$SIDECAR_DIST/$SIDECAR_BIN_NAME" ]]; then
-  :
-elif [[ -f "$SIDECAR_DIST/${SIDECAR_BIN_NAME}.exe" ]]; then
-  echo "ERROR: Found Windows .exe sidecar on macOS host. Rebuild with PyInstaller on Darwin." >&2
-  exit 1
+# Validate staging layout
+if [[ -n "$SINGLE_ARCH" ]]; then
+  [[ -f "$STAGING/$SINGLE_ARCH/$SIDECAR_BIN_NAME" ]] \
+    || { echo "ERROR: missing staged sidecar $STAGING/$SINGLE_ARCH/$SIDECAR_BIN_NAME" >&2; exit 1; }
 else
-  echo "ERROR: Missing $SIDECAR_DIST/$SIDECAR_BIN_NAME" >&2
-  exit 1
+  [[ -f "$STAGING/arm64/$SIDECAR_BIN_NAME" ]] \
+    || { echo "ERROR: missing staged arm64 sidecar" >&2; exit 1; }
+  [[ -f "$STAGING/x64/$SIDECAR_BIN_NAME" ]] \
+    || { echo "ERROR: missing staged x64 sidecar" >&2; exit 1; }
 fi
-
-rm -rf "$STAGING"
-mkdir -p "$STAGING"
-cp -R "$SIDECAR_DIST"/. "$STAGING"/
-# Never ship a Windows exe into the .app bundle.
-rm -f "$STAGING/${SIDECAR_BIN_NAME}.exe"
-STAGED_MB=$(du -sm "$STAGING" | awk '{print $1}')
-echo "Staged sidecar (${STAGED_MB} MB) -> apps/desktop/.staging/sidecar/"
+echo "Staged sidecar tree:"
+du -sh "$STAGING"/* 2>/dev/null || true
 
 if ! signing_configured; then
   echo ""
@@ -181,19 +265,28 @@ if [[ "$SKIP_ELECTRON" -eq 1 ]]; then
 fi
 
 echo ""
-echo "=== Electron compile + macOS DMG (arm64) ==="
+if [[ -n "$SINGLE_ARCH" ]]; then
+  echo "=== Electron compile + macOS DMG ($SINGLE_ARCH only) ==="
+  # Temporarily override package.json target via CLI arch flag
+  EB_ARCH_FLAG="--$SINGLE_ARCH"
+else
+  echo "=== Electron compile + macOS DMG (universal) ==="
+  EB_ARCH_FLAG="--universal"
+fi
+
 pushd "$DESKTOP_DIR" >/dev/null
 if [[ ! -d node_modules ]]; then
   npm ci
 fi
 npm run build
 # Prefer explicit --mac so Linux/Windows hosts never accidentally run this path.
-npx electron-builder --mac --arm64 --publish never
+# shellcheck disable=SC2086
+npx electron-builder --mac $EB_ARCH_FLAG --publish never
 popd >/dev/null
 
 DMG=""
 shopt -s nullglob
-for f in "$DESKTOP_DIR"/release/qClip-mac-arm64.dmg \
+for f in "$DESKTOP_DIR"/release/qClip-mac-universal.dmg \
          "$DESKTOP_DIR"/release/qClip-mac-*.dmg; do
   if [[ -f "$f" ]]; then
     DMG="$f"
@@ -223,4 +316,6 @@ else
 fi
 
 echo ""
+echo "Stable URL after upload:"
+echo "  https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-universal.dmg"
 echo "Docs: packaging/installer/MACOS.md"

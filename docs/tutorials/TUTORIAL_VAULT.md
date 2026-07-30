@@ -1,6 +1,9 @@
 # Tutorial — Clip Vault
 
-**Time:** ~5 minutes · **Prerequisite:** At least one **approved** or **done** clip from [First job](TUTORIAL_FIRST_JOB.md)
+!!! warning "Not on the public docs site"
+    Creators: finish a job via **[First clip](../BETA_TESTER_QUICKSTART.md)**, then use **Vault** in the app. This page is an operator deep-dive kept in the repo only.
+
+**Time:** ~5 minutes · **Prerequisite:** At least one **approved** or **done** clip from [First clip](../BETA_TESTER_QUICKSTART.md)
 
 The **Vault** is durable storage for clips you want to keep across jobs — publish later, reuse overlays, or organize a content library. Beta tier limits apply.
 
@@ -67,7 +70,7 @@ Vault capacity is tier-limited:
 | Beta / admin key | Full quota unlocked |
 
 !!! info "Beta keys"
-    Keys from your invite email unlock **admin-tier** limits. Activate in **Settings → License** — optional but recommended for T0-5. See [Install](TUTORIAL_INSTALL.md).
+    Keys from your invite email unlock **admin-tier** limits. Activate in **Settings → License** — optional but recommended for T0-5. See [Install](../BETA_DOWNLOAD.md).
 
 When quota is full, saving returns an error — delete old vault clips or upgrade tier.
 

@@ -1,6 +1,9 @@
 # Tutorial — Your First Job
 
-**Time:** ~5 minutes to start + waiting while clips render · **Prerequisite:** [Install tutorial](TUTORIAL_INSTALL.md)
+!!! warning "Not on the public docs site"
+    Creators: follow **[Create your first clip](../BETA_TESTER_QUICKSTART.md)**. This page is an operator deep-dive kept in the repo only.
+
+**Time:** ~5 minutes to start + waiting while clips render · **Prerequisite:** [Install](../BETA_DOWNLOAD.md) (or [Docker deep-dive](TUTORIAL_INSTALL.md))
 
 This walks you through turning **one video link** into short clips.
 
@@ -89,9 +92,10 @@ When everything is done:
 
 | Goal | Guide |
 |------|-------|
-| Edit title, trim, fix words | [Edit & approve](TUTORIAL_EDIT_APPROVE.md) |
-| Save favorites | [Vault](TUTORIAL_VAULT.md) |
-| Post to YouTube Shorts | [Publish YouTube](TUTORIAL_PUBLISH_YOUTUBE.md) |
+| Creators — approve / publish | [First clip](../BETA_TESTER_QUICKSTART.md) (published) |
+| Edit title, trim, fix words | [Edit & approve](TUTORIAL_EDIT_APPROVE.md) (repo only) |
+| Save favorites | [Vault](TUTORIAL_VAULT.md) (repo only) |
+| Post to YouTube Shorts | [Publish YouTube](TUTORIAL_PUBLISH_YOUTUBE.md) (repo only) |
 
 ---
 

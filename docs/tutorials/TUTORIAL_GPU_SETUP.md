@@ -1,6 +1,9 @@
 # Tutorial — GPU Setup
 
-**Time:** ~15 minutes · **Prerequisite:** [Windows installer](../BETA_DOWNLOAD.md#one-click-installers) or [Docker install](TUTORIAL_INSTALL.md)
+!!! warning "Not on the public docs site"
+    Creators: see **[Known issues](../BETA_KNOWN_ISSUES.md)** for CPU vs GPU expectations. This page is an operator deep-dive kept in the repo only.
+
+**Time:** ~15 minutes · **Prerequisite:** [Install](../BETA_DOWNLOAD.md#one-click-installers) or [Docker deep-dive](TUTORIAL_INSTALL.md)
 
 qClip is **much faster** with **GPU acceleration on**. How you turn it on depends on how you installed:
 
@@ -156,8 +159,8 @@ Report timings via **Beta feedback** in the app header.
 
 ## Next steps
 
-- [First job](TUTORIAL_FIRST_JOB.md) — run a timed test
-- [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) — GPU not detected
+- [First clip](../BETA_TESTER_QUICKSTART.md) — run a timed test (published)
+- [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) — GPU not detected (published)
 
 ---
 

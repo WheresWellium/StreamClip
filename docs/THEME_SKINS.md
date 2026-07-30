@@ -166,3 +166,25 @@ Each screen: `AppShell/default` **instance** + sibling `MainZone` frame (`1200×
 | kinetic-storm-manga | 0–2px sharp · 3px ink · vermillion/cobalt/lemon · NO orange |
 
 **Typography (all skins):** Space Grotesk + JetBrains Mono only.
+
+---
+
+## Figma page structure (each skin file)
+
+| Page | Contents |
+|------|----------|
+| Cover | Hero — theme name, slug, emotional one-liner, signature visual |
+| Foundations | Palette, typography, shape language, spacing, emotion→color mapping |
+| Components | 19 sections · 34 components (Button, Badge, Input, InputField, Select, Card, Avatar, NavItem, Toast, Alert, Tooltip, ProgressBar, Pipeline, Skeleton, EmptyState, Modal, Dialog, Drawer, AppShell) |
+| Screens | New Job, Job Progress, Vault Grid, Clip Detail Drawer |
+| Motion | Panel enter, badge pop, pipeline, toast (SFX placeholders) |
+| Theme Index | Slug, CSS tokens, when-to-use, contrast notes |
+
+## Archived — v2 Industrial Manga
+
+- **File:** [StreamClip Design System v2](https://www.figma.com/design/xOMtagKsZ5bMLnWYX9jKcq/StreamClip-Design-System-v2)
+- **File key:** `xOMtagKsZ5bMLnWYX9jKcq`
+- **Status:** Superseded — rejected “too corner” CEO feel
+- **State ledger:** `tmp/dsb-state-streamclip-v2.json`
+
+**Related:** architecture FigJam boards live in [`design/FIGMA_LINKS.md`](design/FIGMA_LINKS.md).

@@ -6,7 +6,7 @@
 
 Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audit-2026-07-28.md`**.  
 **Shipped (2026-07-28):** W2/W3/W4/G4 + **v1.0.0-beta.6** installer + cohort re-email 8/8.  
-**Readiness ~85% shipped / ~65% Phase 0 exit.** Remaining: O4 cohort evidence, O5 on-call names, O11 EV signing, O14 Mac `.dmg`.
+**Readiness ~90% shipped / ~70% Phase 0 exit.** Remaining: O4 cohort evidence, O5 on-call names, O11 EV signing. O14 Mac `.dmg` **published** (unsigned arm64 on beta.6).
 
 ## Executive summary
 
@@ -29,7 +29,7 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D — ☐ buy/install cert (MASTER §4.10); **beta.6 remains unsigned** |
 | O12 | Loader / desktop publish | P1 | ops | **Closed 2026-07-28** — `v1.0.0-beta.6` published; UI journey e2e green (`test:e2e:ui-journey`) |
 | O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
-| O14 | macOS DMG + notarization | P2 | ops | Scaffold ✅ 30-min runbook [`MACOS_INSTALLER.md`](MACOS_INSTALLER.md) + build/verify/notarize scripts — ☐ borrowed Mac host builds live `.dmg` |
+| O14 | macOS DMG + notarization | P2 | ops | arm64 DMG on beta.6 ✅; **universal** pipeline ✅ (`arch: universal` + dual sidecars) — ☐ host rebuild/upload `qClip-mac-universal.dmg`; ☐ notarization |
 | O15 | GAP / 110% Phase 1 coverage stretch | P2 | test | Defer — not Phase 0 blocker |
 
 ### New gaps from revision 10 audit (2026-07-28)

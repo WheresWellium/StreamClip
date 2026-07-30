@@ -1,6 +1,9 @@
 # Tutorial — Publish to YouTube Shorts
 
-**Time:** ~10 minutes · **Prerequisite:** [Edit & approve](TUTORIAL_EDIT_APPROVE.md) — at least one **approved** clip
+!!! warning "Not on the public docs site"
+    Creators: use **[First clip → Approve and publish](../BETA_TESTER_QUICKSTART.md)** for the short path. This page is an operator deep-dive (BYO OAuth) kept in the repo only.
+
+**Time:** ~10 minutes · **Prerequisite:** [First clip](../BETA_TESTER_QUICKSTART.md) — at least one **approved** clip
 
 Connect your own Google account (**BYO OAuth**), configure distribution settings, and publish a vertical clip to **YouTube Shorts**.
 

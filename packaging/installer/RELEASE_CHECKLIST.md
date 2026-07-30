@@ -141,7 +141,7 @@ For beta-only unsigned validation, leave `CSC_LINK` and `CSC_KEY_PASSWORD` unset
 
 1. `./scripts/download_ffmpeg_macos.sh`
 2. `./scripts/build_desktop_installer_macos.sh` (builds UI via `build_desktop_ui.sh`)
-3. `./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg`
+3. `./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-universal.dmg`
 4. Optional: Developer ID sign + notarize (`packaging/installer/MACOS.md`)
 5. Bump `docs/BETA_DOWNLOAD.md` macOS row when a DMG ships
 

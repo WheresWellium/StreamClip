@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell } from "electron";
 import { spawn, ChildProcess } from "child_process";
+import { existsSync } from "fs";
 import path from "path";
 import { autoUpdater } from "electron-updater";
 
@@ -14,6 +15,19 @@ let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let sidecarProc: ChildProcess | null = null;
 
+/** Packaged macOS ships dual-arch sidecars under sidecar/{arm64,x64}/; legacy flat layout still works. */
+function packagedSidecarDir(exeName: string): string {
+  const base = path.join(process.resourcesPath, "sidecar");
+  if (process.platform === "darwin") {
+    const archDir = process.arch === "arm64" ? "arm64" : "x64";
+    const nested = path.join(base, archDir);
+    if (existsSync(path.join(nested, exeName))) {
+      return nested;
+    }
+  }
+  return base;
+}
+
 function sidecarCommand(): { cmd: string; args: string[]; cwd: string } {
   if (isDev) {
     return {
@@ -23,8 +37,9 @@ function sidecarCommand(): { cmd: string; args: string[]; cwd: string } {
     };
   }
   const exeName = process.platform === "win32" ? "streamclip-sidecar.exe" : "streamclip-sidecar";
-  const exePath = path.join(process.resourcesPath, "sidecar", exeName);
-  return { cmd: exePath, args: [], cwd: path.dirname(exePath) };
+  const dir = packagedSidecarDir(exeName);
+  const exePath = path.join(dir, exeName);
+  return { cmd: exePath, args: [], cwd: dir };
 }
 
 function startSidecar(): void {

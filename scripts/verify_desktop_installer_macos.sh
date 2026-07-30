@@ -2,7 +2,7 @@
 # Post-build checks for macOS desktop installer artifacts.
 #
 # Usage:
-#   ./scripts/verify_desktop_installer_macos.sh [path/to/qClip-mac-arm64.dmg]
+#   ./scripts/verify_desktop_installer_macos.sh [path/to/qClip-mac-universal.dmg]
 #
 # Without a DMG path, verifies static UI + staged sidecar only (pre-electron).
 
@@ -23,8 +23,21 @@ echo "=== verify_desktop_installer_macos ==="
 
 STAGING="$ROOT/apps/desktop/.staging/sidecar"
 if [[ -d "$STAGING" ]]; then
-  [[ -f "$STAGING/streamclip-sidecar" ]] || fail "staged sidecar binary missing"
   [[ ! -f "$STAGING/streamclip-sidecar.exe" ]] || fail "Windows .exe found in macOS staging"
+  if [[ -f "$STAGING/arm64/streamclip-sidecar" || -f "$STAGING/x64/streamclip-sidecar" ]]; then
+    # Universal dual-arch layout
+    if [[ -d "$STAGING/arm64" ]]; then
+      [[ -f "$STAGING/arm64/streamclip-sidecar" ]] || fail "arm64 sidecar binary missing"
+    fi
+    if [[ -d "$STAGING/x64" ]]; then
+      [[ -f "$STAGING/x64/streamclip-sidecar" ]] || fail "x64 sidecar binary missing"
+    fi
+    echo "Staged dual-arch sidecar layout OK"
+  elif [[ -f "$STAGING/streamclip-sidecar" ]]; then
+    echo "NOTE: legacy flat sidecar layout (arm64-only beta)"
+  else
+    fail "staged sidecar binary missing (expected sidecar/{arm64,x64}/streamclip-sidecar)"
+  fi
 else
   echo "NOTE: apps/desktop/.staging/sidecar not present (run stage step or full build)"
 fi

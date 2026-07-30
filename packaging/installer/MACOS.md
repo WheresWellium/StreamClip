@@ -1,26 +1,27 @@
 # macOS desktop installer (§5) — builders
 
-**Beta testers / end users:** install with **Docker on Mac**, not this DMG path —
-see [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md) (macOS tab) and
+**Beta testers / end users:** download the universal DMG —
+see [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md#macos) and
 [docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).
 
-StreamClip on macOS follows the same **Electron shell + PyInstaller sidecar** layout as
+qClip on macOS follows the same **Electron shell + PyInstaller sidecar** layout as
 Windows ([ADR-001](../../docs/ADR-001-desktop-packaging.md)). This document covers the
 DMG **build** path; Windows NSIS remains in [README.md](./README.md).
 
-**Status:** scaffold ready. A real `.dmg` must be built on a **Mac host** (Apple Silicon
-preferred). Running `scripts/build_desktop_installer_macos.sh` on Windows exits early.
+**Status:** build on a **Mac host**. Universal DMG needs Apple Silicon + Rosetta x86 Python
+so both sidecars can be produced. Running the script on Windows exits early.
 
 ## Architecture decision (§5.5)
 
 | Choice | Decision |
 |--------|----------|
-| First ship | **arm64** (Apple Silicon) only |
-| Later | x86_64 and/or **universal2** if Intel Mac demand appears |
-| Rationale | MPS / CTranslate2 arm64 wheels; smaller artifact; matches current creator hardware |
+| Ship | **universal** Electron wrapper + **dual sidecars** (`sidecar/arm64` + `sidecar/x64`) |
+| Artifact | `qClip-mac-universal.dmg` |
+| Rationale | One download for Apple Silicon and Intel; Electron lipo + arch-selected PyInstaller tree |
 
-`apps/desktop/package.json` `build.mac` targets `dmg` + `arch: ["arm64"]` with
-`artifactName: qClip-mac-{arch}.${ext}`.
+`apps/desktop/package.json` `build.mac` targets `dmg` + `arch: ["universal"]` with
+`artifactName: qClip-mac-{arch}.${ext}`. The main process picks `sidecar/{arm64,x64}/`
+at runtime (`apps/desktop/src/main.ts`).
 
 ## Data directory (§5.4)
 
@@ -48,7 +49,11 @@ Reuse existing artifacts:
 
 Expected output:
 
-`apps/desktop/release/qClip-mac-arm64.dmg`
+`apps/desktop/release/qClip-mac-universal.dmg`
+
+**Rosetta / Intel sidecar (required for universal):** on Apple Silicon install Rosetta, then
+x86_64 Homebrew Python under `/usr/local`, then re-run the script. Escape hatch:
+`STREAMCLIP_MAC_SINGLE_ARCH=arm64` (Silicon-only; not for Intel testers).
 
 Static UI is built via `scripts/build_desktop_ui.sh` (no PowerShell required).
 Windows operators can still use `scripts/build_desktop_ui.ps1`.
@@ -56,8 +61,8 @@ Windows operators can still use `scripts/build_desktop_ui.ps1`.
 ### Sidecar binary name
 
 PyInstaller on Darwin produces `dist/streamclip-sidecar/streamclip-sidecar` (**no** `.exe`).
-The macOS build script stages that tree into `apps/desktop/.staging/sidecar/` and refuses
-a Windows `.exe` copy.
+The macOS build script stages **per-arch** trees into
+`apps/desktop/.staging/sidecar/{arm64,x64}/` and refuses a Windows `.exe` copy.
 
 ### §5.1 VideoToolbox (code path — no Mac host required)
 
@@ -81,10 +86,9 @@ live encode smoke on Apple Silicon. The codec fallback logic itself does not.
 | PyInstaller sidecar with ML dylibs | Script scaffold | Build on `macos-latest` / Apple Silicon; fix dyld / entitlements |
 | DMG artifact | Script + CI job (`continue-on-error`) | Successful `build_desktop_installer_macos.sh` producing `.dmg` |
 
-**Operator note:** pin arm64 wheels on the Mac builder (`pip install torch` from the
-official macOS arm64 index; CTranslate2 must publish `macosx_arm64` for the Python
-version in use). Intel Mac / universal2 is deferred (§5.5). Until the Mac build lands,
-beta testers use **Docker on Mac** (`docs/BETA_DOWNLOAD.md`).
+**Operator note:** pin arch-matching wheels for each sidecar build (arm64 native Python +
+x86_64 Python under Rosetta). CTranslate2/torch must resolve for that arch. Notarization
+is still optional (§5.3).
 
 Track remaining §5.2/§5.3 work in `docs/MASTER_TODO.md` §5.
 

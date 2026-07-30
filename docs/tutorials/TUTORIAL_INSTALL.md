@@ -1,8 +1,11 @@
 # Tutorial — Install qClip (Docker self-host)
 
-**Time:** ~15–30 minutes · **Audience:** macOS testers and operators who need Docker
+!!! warning "Not on the public docs site"
+    Creators: use **[Install qClip](../BETA_DOWNLOAD.md)** (Windows `.exe` or Mac Docker). This page is an operator deep-dive kept in the repo only.
 
-**Windows creators:** prefer the one-click installer — [Get qClip](../BETA_DOWNLOAD.md#one-click-installers). Skip this page unless you specifically want Docker.
+**Time:** ~15–30 minutes · **Audience:** operators and advanced Docker self-host
+
+**Windows creators:** prefer the one-click installer — [Install → Windows](../BETA_DOWNLOAD.md#one-click-installers).
 
 !!! tip "Windows one-click installer"
     Download [qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (v1.0.0-beta.6), run it, open from Start menu, paste your key in **Settings → License**. No Docker.
@@ -117,8 +120,9 @@ Data stays in Docker volumes. Add `-v` only to wipe everything.
 
 | Tutorial | What you'll do |
 |----------|----------------|
-| [First job](TUTORIAL_FIRST_JOB.md) | Submit a URL and watch progress |
-| [GPU setup](TUTORIAL_GPU_SETUP.md) | Enable NVIDIA on Windows Docker |
-| [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) | Top failures and fixes |
+| [First clip](../BETA_TESTER_QUICKSTART.md) | Creators — run a job (published) |
+| [First job (deep-dive)](TUTORIAL_FIRST_JOB.md) | Operator walkthrough (repo only) |
+| [GPU setup](TUTORIAL_GPU_SETUP.md) | NVIDIA on Windows Docker (repo only) |
+| [Troubleshooting](TUTORIAL_TROUBLESHOOTING.md) | Top failures and fixes (published) |
 
 *See also: [Beta quickstart](../BETA_TESTER_QUICKSTART.md) · [Known issues](../BETA_KNOWN_ISSUES.md)*

@@ -39,10 +39,11 @@ export function JobsListFilters() {
         className="h-8 text-sm w-36"
       >
         <option value="">All statuses</option>
-        <option value="done">Done</option>
-        <option value="processing">Processing</option>
-        <option value="error">Error</option>
         <option value="queued">Queued</option>
+        <option value="processing">Processing</option>
+        <option value="done">Done</option>
+        <option value="error">Error</option>
+        <option value="cancelled">Cancelled</option>
       </Select>
     </div>
   );

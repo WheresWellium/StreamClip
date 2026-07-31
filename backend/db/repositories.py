@@ -131,7 +131,7 @@ class JobRepository:
         device_scoped: bool = True,
         limit: int = 50,
         offset: int = 0,
-        status: JobStatus | None = None,
+        status: JobStatus | list[JobStatus] | tuple[JobStatus, ...] | None = None,
         search: str | None = None,
     ) -> list[Job]:
         stmt = (
@@ -146,7 +146,12 @@ class JobRepository:
         else:
             stmt = stmt.where(Job.owner_id.is_(None))
         if status is not None:
-            stmt = stmt.where(Job.status == status)
+            # A UI "Processing" filter maps to several running stages, so accept
+            # a set of statuses and match with IN (not exact equality).
+            if isinstance(status, (list, tuple, set, frozenset)):
+                stmt = stmt.where(Job.status.in_(list(status)))
+            else:
+                stmt = stmt.where(Job.status == status)
         if search:
             pattern = f"%{search}%"
             stmt = stmt.where(

@@ -2,6 +2,7 @@ import {
   clearAuthTokens,
   setAuthTokens,
 } from "@/lib/auth/client-session";
+import { validatePassword } from "@/lib/auth/password-policy";
 
 export type AuthActionState = {
   status: "idle" | "ok" | "error";
@@ -56,6 +57,10 @@ export async function registerAction(
 
   if (password !== confirmPassword) {
     return { status: "error", message: "Passwords do not match" };
+  }
+  const policyError = validatePassword(password);
+  if (policyError) {
+    return { status: "error", message: policyError };
   }
 
   try {
@@ -125,6 +130,10 @@ export async function resetPasswordAction(
 
   if (password !== confirmPassword) {
     return { status: "error", message: "Passwords do not match" };
+  }
+  const policyError = validatePassword(password);
+  if (policyError) {
+    return { status: "error", message: policyError };
   }
 
   try {
@@ -197,8 +206,9 @@ export async function changePasswordAction(
   newPassword: string,
   authToken: string,
 ): Promise<ProfileActionState> {
-  if (newPassword.length < 8) {
-    return { status: "error", message: "New password must be at least 8 characters" };
+  const policyError = validatePassword(newPassword);
+  if (policyError) {
+    return { status: "error", message: policyError };
   }
   try {
     const res = await fetch("/api/auth/change-password", {

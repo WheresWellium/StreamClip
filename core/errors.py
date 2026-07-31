@@ -222,6 +222,12 @@ class AuthError(StreamClipError):
     http_status = 401
 
 
+class EmailAlreadyRegisteredError(AuthError):
+    code = "email_already_registered"
+    user_message = "That email is already registered. Try signing in instead."
+    http_status = 409
+
+
 class DeviceIdRequiredError(StreamClipError):
     code = "device_id_required"
     user_message = "X-Device-Id header required for anonymous requests"

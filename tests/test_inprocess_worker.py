@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from celery import chain, chord, group
 
-from core.celery_app import celery_app, publish_progress
+from core.celery_app import ProgressTask, celery_app, publish_progress
 from core.config import get_settings
 from core import inprocess_worker as ipw_mod
 from core.inprocess_worker import InProcessWorker, start_inprocess_worker, stop_inprocess_worker
@@ -54,6 +54,56 @@ def test_inprocess_worker_runs_mock_task():
         future = worker._submit_callable(echo_task, ("hi",), {})
         assert future.result(timeout=5) == "hi"
         assert calls == [("hi",)]
+    finally:
+        worker.shutdown()
+
+
+def test_progress_task_extracts_job_id_from_args_and_kwargs():
+    @celery_app.task(base=ProgressTask, bind=True, name="tests.inprocess.jobid_probe")
+    def jobid_probe(self, job_id: str) -> str:  # noqa: ANN001
+        return job_id
+
+    assert jobid_probe._job_id_from_call(("job-abc",), {}) == "job-abc"
+    assert jobid_probe._job_id_from_call((), {"job_id": "job-kw"}) == "job-kw"
+    assert jobid_probe._job_id_from_call((), {}) is None
+
+
+def test_on_failure_marks_job_errored(monkeypatch):
+    """A non-StreamClipError in a stage must transition the job to ERROR."""
+    marked: list[tuple] = []
+    import core.tasks.pipeline_tasks as pt
+
+    monkeypatch.setattr(pt, "_mark_error", lambda job_id, code, msg: marked.append((job_id, code, msg)))
+
+    @celery_app.task(base=ProgressTask, bind=True, name="tests.inprocess.on_fail_probe")
+    def on_fail_probe(self, job_id: str) -> str:  # noqa: ANN001
+        raise RuntimeError("kaboom")
+
+    on_fail_probe.on_failure(RuntimeError("kaboom"), "tid", ("job-err",), {}, None)
+    assert len(marked) == 1
+    assert marked[0][0] == "job-err"
+    assert marked[0][1] == "internal_error"
+
+
+def test_inprocess_worker_marks_job_errored_on_stage_failure(monkeypatch):
+    """The in-process worker must run on_failure so desktop jobs don't hang."""
+    marked: list[tuple] = []
+    import core.tasks.pipeline_tasks as pt
+
+    monkeypatch.setattr(pt, "_mark_error", lambda job_id, code, msg: marked.append((job_id, code, msg)))
+
+    cfg = get_settings(reload=True)
+    worker = InProcessWorker(cfg)
+
+    @celery_app.task(base=ProgressTask, bind=True, name="tests.inprocess.boom_stage")
+    def boom_stage(self, job_id: str) -> str:  # noqa: ANN001
+        raise RuntimeError("stage exploded")
+
+    try:
+        future = worker._submit_callable(boom_stage, ("job-777",), {})
+        with pytest.raises(RuntimeError, match="stage exploded"):
+            future.result(timeout=5)
+        assert marked and marked[0][0] == "job-777"
     finally:
         worker.shutdown()
 

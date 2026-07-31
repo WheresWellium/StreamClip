@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
 
 import { resetPasswordAction, type AuthActionState } from "@/lib/api/actions/auth";
@@ -9,8 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { LabelWithTip } from "@/components/ui/help-tip";
 import { AUTH_LEGEND } from "@/lib/help/legends";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 
 const initial: AuthActionState = { status: "idle" };
+
+function ResetSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? "Resetting…" : "Reset password"}
+    </Button>
+  );
+}
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -40,9 +51,12 @@ function ResetPasswordForm() {
         name="password"
         type="password"
         required
-        minLength={8}
+        minLength={MIN_PASSWORD_LENGTH}
         autoComplete="new-password"
       />
+      <p className="text-xs text-muted-foreground">
+        At least {MIN_PASSWORD_LENGTH} characters, with letters and a number or symbol.
+      </p>
       <LabelWithTip htmlFor="confirm_password" tip={AUTH_LEGEND.password} tipLabel="Confirm">
         Confirm password
       </LabelWithTip>
@@ -51,7 +65,7 @@ function ResetPasswordForm() {
         name="confirm_password"
         type="password"
         required
-        minLength={8}
+        minLength={MIN_PASSWORD_LENGTH}
         autoComplete="new-password"
       />
       {state.status === "error" && (
@@ -60,9 +74,7 @@ function ResetPasswordForm() {
       {state.status === "ok" && (
         <p className="text-xs text-emerald-400">{state.message}</p>
       )}
-      <Button type="submit" className="w-full">
-        Reset password
-      </Button>
+      <ResetSubmitButton />
       {state.status === "ok" && (
         <p className="text-center text-sm">
           <Link href="/login" className="text-sky-400 hover:underline">

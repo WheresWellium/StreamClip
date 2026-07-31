@@ -93,6 +93,34 @@ async def rate_limit_request(
     request.state.ratelimit_remaining = remaining
 
 
+async def rate_limit_auth(request: Request) -> None:
+    """Tighter, IP-scoped limit for unauthenticated auth endpoints.
+
+    Login / register / forgot-password are the brute-force and email-bombing
+    surface, so they get a dedicated, lower ceiling than the general API limit.
+    Keyed by client IP because there is no authenticated user yet.
+    """
+    cfg = get_settings()
+    if not cfg.rate_limit.enabled:
+        return
+
+    identity = request.client.host if request.client else "unknown"
+    key = f"ratelimit:auth:{identity}"
+
+    redis = await _get_redis(cfg)
+    allowed, _ = await _check_window(
+        redis, key,
+        window_secs=60, limit=cfg.rate_limit.auth_per_minute,
+    )
+
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts. Wait a minute and try again.",
+            headers={"Retry-After": "60"},
+        )
+
+
 async def rate_limit_job_creation(
     request: Request,
     user_id: Annotated[str | None, Depends(get_current_user_id)] = None,

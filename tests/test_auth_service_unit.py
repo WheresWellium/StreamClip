@@ -8,7 +8,7 @@ import pytest
 
 from backend.services.auth_service import AuthService
 from core.config import get_settings
-from core.errors import AuthError
+from core.errors import AuthError, EmailAlreadyRegisteredError
 
 
 @pytest.mark.asyncio
@@ -17,8 +17,10 @@ async def test_register_validation():
     svc = AuthService(db, get_settings())
     with pytest.raises(AuthError):
         await svc.register("bad", "short")
-    with pytest.raises(AuthError):
+    with pytest.raises(AuthError, match="letters and at least one number"):
         await svc.register("a@b.com", "longenough")
+    with pytest.raises(AuthError, match="too common"):
+        await svc.register("a@b.com", "password1")
 
 
 @pytest.mark.asyncio
@@ -26,8 +28,9 @@ async def test_register_duplicate():
     db = AsyncMock()
     svc = AuthService(db, get_settings())
     svc.users.get_by_email = AsyncMock(return_value=MagicMock())
-    with pytest.raises(AuthError):
+    with pytest.raises(EmailAlreadyRegisteredError) as exc_info:
         await svc.register("a@b.com", "password12")
+    assert exc_info.value.http_status == 409
 
 
 @pytest.mark.asyncio

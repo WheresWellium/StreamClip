@@ -183,7 +183,25 @@ class JobService:
     ) -> list[Job]:
         from backend.db.models import JobStatus
 
-        job_status = JobStatus(status) if status else None
+        # "processing" is a UI bucket: a running job is actually ingesting /
+        # transcribing / detecting most of the time, so exact-equality on
+        # PROCESSING hid the currently-running job. Expand it to the full
+        # running set. Unknown values fall through to no filter (never a 500).
+        job_status: JobStatus | list[JobStatus] | None
+        if not status:
+            job_status = None
+        elif status == "processing":
+            job_status = [
+                JobStatus.INGESTING,
+                JobStatus.TRANSCRIBING,
+                JobStatus.DETECTING,
+                JobStatus.PROCESSING,
+            ]
+        else:
+            try:
+                job_status = JobStatus(status)
+            except ValueError:
+                job_status = None
         return await self.jobs.list_for_scope(
             owner_id=scope.user_id,
             device_id=scope.device_id,

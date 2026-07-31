@@ -51,3 +51,27 @@ async def test_rate_limit_job_creation_blocks():
             with patch("backend.middleware.rate_limit._check_window", new_callable=AsyncMock, return_value=(False, 0)):
                 with pytest.raises(HTTPException):
                     await rl.rate_limit_job_creation(req, user_id="u1")
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_auth_blocks_and_skips_when_disabled():
+    req = MagicMock()
+    req.client.host = "9.9.9.9"
+    cfg = MagicMock()
+    cfg.rate_limit.enabled = False
+    cfg.rate_limit.auth_per_minute = 10
+    with patch("backend.middleware.rate_limit.get_settings", return_value=cfg):
+        await rl.rate_limit_auth(req)  # no-op
+
+    cfg.rate_limit.enabled = True
+    with patch("backend.middleware.rate_limit.get_settings", return_value=cfg):
+        with patch("backend.middleware.rate_limit._get_redis", new_callable=AsyncMock):
+            with patch(
+                "backend.middleware.rate_limit._check_window",
+                new_callable=AsyncMock,
+                return_value=(False, 0),
+            ):
+                with pytest.raises(HTTPException) as exc:
+                    await rl.rate_limit_auth(req)
+                assert exc.value.status_code == 429
+                assert "Too many attempts" in exc.value.detail

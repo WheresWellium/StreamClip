@@ -70,7 +70,8 @@ export const AUTH_LEGEND = {
   privacy:
     "Signed-in jobs are private to your account. Without signing in, jobs are tied to this browser via a device cookie and are not visible on other devices.",
   email: "Used to sign in and associate jobs with your account.",
-  password: "Minimum 8 characters. Stored hashed — never sent in plain text.",
+  password:
+    "At least 8 characters with letters and a number or symbol. Stored hashed — never sent in plain text.",
   displayName: "Shown in your profile; defaults to your email prefix.",
 };
 

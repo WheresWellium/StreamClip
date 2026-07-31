@@ -162,6 +162,15 @@ class InProcessWorker:
                 error=str(exc),
                 exc_type=type(exc).__name__,
             )
+            # There is no broker here to run the task's failure path, so invoke
+            # on_failure directly — otherwise the job would hang forever with no
+            # error status (the desktop "stuck in processing" bug).
+            on_failure = getattr(celery_task, "on_failure", None)
+            if callable(on_failure):
+                try:
+                    on_failure(exc, str(uuid.uuid4()), args, kwargs, None)
+                except Exception:
+                    log.error("inprocess_on_failure_error", name=celery_task.name)
             raise
         finally:
             log.info("inprocess_task_end", name=celery_task.name)

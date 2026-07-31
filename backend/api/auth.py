@@ -39,7 +39,7 @@ from backend.middleware.auth import (
 )
 from backend.services.auth_service import AuthService
 from backend.services.license_link import link_licenses_by_email
-from backend.middleware.rate_limit import rate_limit_request
+from backend.middleware.rate_limit import rate_limit_auth, rate_limit_request
 from backend.db.repositories import DeviceRepository
 from core.config import get_settings
 from core.errors import AuthError
@@ -70,7 +70,7 @@ def _auth_response(user, *, remember_me: bool = True) -> AuthResponse:
     "/register",
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limit_request)],
+    dependencies=[Depends(rate_limit_auth)],
 )
 async def register(
     body: RegisterRequest,
@@ -87,7 +87,7 @@ async def register(
 @router.post(
     "/login",
     response_model=AuthResponse,
-    dependencies=[Depends(rate_limit_request)],
+    dependencies=[Depends(rate_limit_auth)],
 )
 async def login(
     body: LoginRequest,
@@ -170,7 +170,7 @@ async def change_password(
 @router.post(
     "/forgot-password",
     response_model=MessageResponse,
-    dependencies=[Depends(rate_limit_request)],
+    dependencies=[Depends(rate_limit_auth)],
 )
 async def forgot_password(
     body: ForgotPasswordRequest,
@@ -192,7 +192,7 @@ async def forgot_password(
 @router.post(
     "/reset-password",
     response_model=MessageResponse,
-    dependencies=[Depends(rate_limit_request)],
+    dependencies=[Depends(rate_limit_auth)],
 )
 async def reset_password(
     body: ResetPasswordRequest,

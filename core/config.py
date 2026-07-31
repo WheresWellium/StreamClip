@@ -379,6 +379,9 @@ class RateLimitConfig(BaseModel):
     requests_per_minute: int = 60
     jobs_per_hour: int = 20
     burst: int = 10
+    # Dedicated, tighter ceiling for unauthenticated auth endpoints
+    # (login / register / forgot-password) to blunt brute-force + email bombing.
+    auth_per_minute: int = 10
 
 
 class ObservabilityConfig(BaseModel):

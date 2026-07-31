@@ -20,6 +20,12 @@ from core.creator_options import (
     is_valid_reframe_preset,
 )
 from core.ingest.url_normalize import normalize_source_url
+from core.password_policy import (
+    MAX_PASSWORD_LENGTH,
+    MIN_PASSWORD_LENGTH,
+    PasswordPolicyError,
+    validate_password,
+)
 from core.support.attachments import ALLOWED_SUPPORT_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES
 
 
@@ -328,10 +334,27 @@ class UploadInitResponse(BaseModel):
 
 # ─── Health / Meta ───────────────────────────────────────────────────────────
 
+def _password_field(**extra: object) -> object:
+    return Field(..., min_length=MIN_PASSWORD_LENGTH, max_length=MAX_PASSWORD_LENGTH, **extra)
+
+
+def _check_password(value: str) -> str:
+    try:
+        validate_password(value)
+    except PasswordPolicyError as exc:
+        raise ValueError(str(exc)) from exc
+    return value
+
+
 class RegisterRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = _password_field()
     display_name: str | None = Field(None, max_length=120)
+
+    @field_validator("password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return _check_password(value)
 
 
 class LoginRequest(BaseModel):
@@ -367,8 +390,13 @@ class UpdateProfileRequest(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str = Field(..., min_length=1, max_length=128)
-    new_password: str = Field(..., min_length=8, max_length=128)
+    current_password: str = Field(..., min_length=1, max_length=MAX_PASSWORD_LENGTH)
+    new_password: str = _password_field()
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return _check_password(value)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -377,7 +405,12 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str = Field(..., min_length=16, max_length=128)
-    new_password: str = Field(..., min_length=8, max_length=128)
+    new_password: str = _password_field()
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return _check_password(value)
 
 
 class MessageResponse(BaseModel):

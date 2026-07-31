@@ -21,7 +21,7 @@ async def test_register_and_login(client):
         return
 
     # User may already exist from a prior run
-    assert reg.status_code in (401, 201)
+    assert reg.status_code in (201, 409)
 
     login = await client.post(
         "/api/auth/login",

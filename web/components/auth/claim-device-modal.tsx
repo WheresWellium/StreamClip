@@ -14,11 +14,17 @@ import {
 
 type Props = {
   deviceId: string;
+  onClose?: () => void;
 };
 
-export function ClaimDeviceModal({ deviceId }: Props) {
+export function ClaimDeviceModal({ deviceId, onClose }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
+
+  const close = () => {
+    setOpen(false);
+    onClose?.();
+  };
   const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">(
     "idle",
   );
@@ -58,7 +64,7 @@ export function ClaimDeviceModal({ deviceId }: Props) {
   return (
     <Modal
       open={open}
-      onClose={() => setOpen(false)}
+      onClose={close}
       labelledBy="claim-device-title"
       className="w-full max-w-md"
     >
@@ -86,7 +92,7 @@ export function ClaimDeviceModal({ deviceId }: Props) {
           </p>
         )}
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={close}>
             {status === "done" ? "Close" : "Skip"}
           </Button>
           <Button

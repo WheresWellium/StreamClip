@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 import { forgotPasswordAction, type AuthActionState } from "@/lib/api/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,10 @@ import { AUTH_LEGEND } from "@/lib/help/legends";
 const initial: AuthActionState = { status: "idle" };
 
 function ForgotSubmitButton() {
+  const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full">
-      Send reset link
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? "Sending…" : "Send reset link"}
     </Button>
   );
 }

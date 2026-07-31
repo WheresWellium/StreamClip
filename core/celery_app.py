@@ -15,6 +15,7 @@ Key production patterns applied:
 
 from __future__ import annotations
 
+import inspect
 import json
 import time
 from typing import Any
@@ -25,6 +26,7 @@ from celery import Celery, Task
 from celery.signals import task_failure, task_prerun, task_postrun, task_retry
 
 from core.config import get_settings
+from core.errors import StreamClipError, clip_failure_message
 from core.progress_timing import record_stage_progress, set_eta_context
 
 log = structlog.get_logger(__name__)
@@ -272,6 +274,55 @@ class ProgressTask(Task):
             job_id, stage=stage, progress=progress,
             message=message, status="processing", extra=extra,
         )
+
+    def _job_id_from_call(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> str | None:
+        """Best-effort ``job_id`` for the failing call, so on_failure can mark
+        the right job errored. Reads the kwarg first, else maps positional args
+        onto the task signature (skipping the bound ``self``)."""
+        if isinstance(kwargs.get("job_id"), str):
+            return kwargs["job_id"]
+        try:
+            params = [
+                name
+                for name in inspect.signature(self.run).parameters
+                if name not in ("self", "cls")
+            ]
+        except (TypeError, ValueError):
+            return None
+        for name, value in zip(params, args):
+            if name == "job_id" and isinstance(value, str):
+                return value
+        return None
+
+    def on_failure(
+        self,
+        exc: BaseException,
+        task_id: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        einfo: Any,
+    ) -> None:
+        """Mark the job errored when a stage fails terminally.
+
+        Without this, an unexpected (non-``StreamClipError``) exception left the
+        job hung forever — the stages only self-report ``StreamClipError``. This
+        is the single place both the Celery worker (after retries) and the
+        desktop in-process worker converge on to surface failures to the UI.
+        """
+        try:
+            job_id = self._job_id_from_call(args, kwargs)
+            if not job_id:
+                return
+            # Lazy import: pipeline_tasks imports this module, so a top-level
+            # import here would be circular. The module is loaded by call time.
+            from core.tasks.pipeline_tasks import _mark_error
+
+            if isinstance(exc, StreamClipError):
+                _mark_error(job_id, exc.code, exc.user_message)
+            else:
+                _mark_error(job_id, "internal_error", clip_failure_message(exc))
+        except Exception:  # never let failure-handling raise
+            log.error("on_failure_mark_error_failed", task=self.name, exc_info=True)
 
 
 # ─── Signal handlers — structured logging for every task lifecycle event ────

@@ -15,9 +15,15 @@ from backend.db.models import User
 from backend.db.repositories import PasswordResetRepository, UserRepository
 from backend.middleware.auth import hash_password, verify_password
 from core.config import Settings
-from core.errors import AuthError
+from core.errors import AuthError, EmailAlreadyRegisteredError
+from core.password_policy import PasswordPolicyError, validate_password
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+# Pre-computed bcrypt hash used to keep failed logins constant-time even when
+# the account does not exist — otherwise "no such user" returns measurably
+# faster than "wrong password" and leaks which emails are registered.
+_DUMMY_PASSWORD_HASH = hash_password("qclip-constant-time-guard")
 
 
 def _hash_reset_token(raw_token: str) -> str:
@@ -32,8 +38,10 @@ class AuthService:
         self.reset_tokens = PasswordResetRepository(db)
 
     def _validate_password(self, password: str) -> None:
-        if len(password) < 8:
-            raise AuthError("Password must be at least 8 characters")
+        try:
+            validate_password(password)
+        except PasswordPolicyError as exc:
+            raise AuthError(str(exc), user_message=str(exc)) from exc
 
     async def register(
         self,
@@ -48,7 +56,7 @@ class AuthService:
         self._validate_password(password)
         existing = await self.users.get_by_email(normalised)
         if existing is not None:
-            raise AuthError("Email already registered", user_message="Email already registered")
+            raise EmailAlreadyRegisteredError()
         return await self.users.create(
             email=normalised,
             hashed_password=hash_password(password),
@@ -58,6 +66,9 @@ class AuthService:
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.users.get_by_email(email.strip().lower())
         if user is None or not user.hashed_password:
+            # Burn the same bcrypt time as a real check so response timing does
+            # not reveal whether the email exists.
+            verify_password(password, _DUMMY_PASSWORD_HASH)
             raise AuthError("Invalid email or password")
         if not verify_password(password, user.hashed_password):
             raise AuthError("Invalid email or password")

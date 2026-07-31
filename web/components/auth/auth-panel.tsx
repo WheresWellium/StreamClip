@@ -21,6 +21,7 @@ import { SectionLegend } from "@/components/ui/section-legend";
 import { useToastSafe } from "@/components/providers/toast-provider";
 import { AUTH_LEGEND } from "@/lib/help/legends";
 import { getClientAccessToken } from "@/lib/auth/client-session";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 
 const initial: AuthActionState = { status: "idle" };
 
@@ -160,10 +161,10 @@ function AuthPanelSignedIn() {
           />
           <Input
             type="password"
-            placeholder="New password (8+)"
+            placeholder={`New password (${MIN_PASSWORD_LENGTH}+)`}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
           />
           <Input
@@ -171,14 +172,18 @@ function AuthPanelSignedIn() {
             placeholder="Confirm new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
           />
           <Button
             type="button"
             size="sm"
             variant="outline"
-            disabled={passwordPending || !currentPassword || newPassword.length < 8}
+            disabled={
+              passwordPending ||
+              !currentPassword ||
+              newPassword.length < MIN_PASSWORD_LENGTH
+            }
             onClick={() => void handlePasswordChange()}
           >
             {passwordPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Update password"}
@@ -242,11 +247,25 @@ function AuthPanelSignedOut() {
           <LabelWithTip htmlFor="reg-password" tip={AUTH_LEGEND.password} tipLabel="Password help">
             Password
           </LabelWithTip>
-          <Input id="reg-password" name="password" type="password" placeholder="Password (8+)" required minLength={8} />
+          <Input
+            id="reg-password"
+            name="password"
+            type="password"
+            placeholder={`Password (${MIN_PASSWORD_LENGTH}+)`}
+            required
+            minLength={MIN_PASSWORD_LENGTH}
+          />
           <LabelWithTip htmlFor="reg-confirm" tip={AUTH_LEGEND.password} tipLabel="Confirm password">
             Confirm password
           </LabelWithTip>
-          <Input id="reg-confirm" name="confirm_password" type="password" placeholder="Confirm password" required minLength={8} />
+          <Input
+            id="reg-confirm"
+            name="confirm_password"
+            type="password"
+            placeholder="Confirm password"
+            required
+            minLength={MIN_PASSWORD_LENGTH}
+          />
           <LabelWithTip htmlFor="reg-display" tip={AUTH_LEGEND.displayName} tipLabel="Display name help">
             Display name
           </LabelWithTip>

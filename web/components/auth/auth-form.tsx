@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { LabelWithTip } from "@/components/ui/help-tip";
 import { AUTH_LEGEND } from "@/lib/help/legends";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 
 const initial: AuthActionState = { status: "idle" };
 
@@ -52,7 +53,7 @@ export function AuthForm({ mode, action }: Props) {
         name="password"
         type="password"
         required
-        minLength={8}
+        minLength={mode === "register" ? MIN_PASSWORD_LENGTH : undefined}
         autoComplete={mode === "login" ? "current-password" : "new-password"}
       />
       {mode === "register" && (
@@ -65,7 +66,7 @@ export function AuthForm({ mode, action }: Props) {
             name="confirm_password"
             type="password"
             required
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
           />
           <LabelWithTip htmlFor="display_name" tip={AUTH_LEGEND.displayName} tipLabel="Name">

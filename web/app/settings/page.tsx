@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { AdminLicensePanel } from "@/components/settings/admin-license-panel";
 import { AuthPanel } from "@/components/auth/auth-panel";
+import { OPEN_CLAIM_EVENT } from "@/components/auth/auth-extras";
 import { ActivationChecklist } from "@/components/settings/activation-checklist";
 import { BillingPanel } from "@/components/settings/billing-panel";
 import { CreatorToolsCard } from "@/components/settings/creator-tools-card";
@@ -293,6 +294,24 @@ function SettingsPageContent() {
     <div className="space-y-6">
       {token && vaultQuota ? <QuotaMeter quota={vaultQuota} /> : null}
       <AuthPanel isAuthenticated={!!token} />
+      {token ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Local jobs</CardTitle>
+            <CardDescription>
+              Attach anonymous jobs created on this device to your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              onClick={() => window.dispatchEvent(new Event(OPEN_CLAIM_EVENT))}
+            >
+              Link local jobs
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
       <CreatorToolsCard />
       <p className="text-sm text-muted-foreground">
         New here?{" "}

@@ -4,6 +4,7 @@ import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 import { ClientProviders } from "@/components/providers/client-providers";
+import { HeaderBackButton } from "@/components/layout/header-back-button";
 import { HeaderNavWrapper } from "@/components/layout/header-nav-wrapper";
 import { HeaderHelpMenu } from "@/components/layout/header-help-menu";
 import { SidecarReadyGate } from "@/components/layout/sidecar-ready-gate";
@@ -48,7 +49,8 @@ export default function RootLayout({
           <SidecarReadyGate>
           <div className="min-h-screen hero-gradient">
           <header className="border-b border-white/25 bg-background/85 backdrop-blur-sm sticky top-0 z-40">
-            <div className="container flex h-12 items-center gap-4">
+            <div className="container flex h-12 items-center gap-3 sm:gap-4">
+              <HeaderBackButton />
               <Link
                 href="/"
                 className="flex shrink-0 items-center gap-2 font-mono text-sm font-medium uppercase tracking-[0.12em] text-foreground hover:text-sky-400 transition-colors"

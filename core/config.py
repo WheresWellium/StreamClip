@@ -7,9 +7,11 @@ production-ready sub-configs (storage, queue, db, auth, observability).
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
+import structlog
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +20,8 @@ from core.creator_options import (
     is_valid_caption_style,
     is_valid_reframe_preset,
 )
+
+log = structlog.get_logger(__name__)
 
 _APP_DATA_DIR_NAME = "StreamClip"
 
@@ -464,27 +468,89 @@ class Settings(BaseSettings):
             )
         return self
 
+    def _writable_slots(self) -> list[tuple[str, Path, bool, Callable[[Path], None]]]:
+        """Single source of truth for every runtime path that must be writable.
+
+        Each slot is ``(label, path, is_file, rebind)``. Anything listed here is
+        automatically (a) created/relocated by :meth:`ensure_dirs` when the OS
+        refuses the configured location, (b) probed by :meth:`verify_writable`,
+        and (c) enforced by ``tests/test_config.py``.
+
+        This registry exists so we never again ship a writable path that
+        resolves under a read-only install prefix (e.g. ``C:\\Program Files``) —
+        the root cause of both the white-screen crash and the license 500.
+        Add new writable paths here, not with ad-hoc ``setdefault`` calls.
+        """
+        return [
+            ("workspace_dir", self.workspace_dir, False,
+             lambda p: setattr(self, "workspace_dir", p)),
+            ("output_dir", self.output_dir, False,
+             lambda p: setattr(self, "output_dir", p)),
+            ("cache_dir", self.cache_dir, False,
+             lambda p: setattr(self, "cache_dir", p)),
+            ("storage.local_root", self.storage.local_root, False,
+             lambda p: setattr(self.storage, "local_root", p)),
+            ("licensing.license_file", self.licensing.license_file, True,
+             lambda p: setattr(self.licensing, "license_file", p)),
+        ]
+
+    @staticmethod
+    def _make_dir_writable(label: str, directory: Path) -> Path:
+        """Create *directory*, relocating under the per-user data root when the
+        OS refuses it. Returns the directory that actually exists and is usable.
+        """
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            return directory
+        except OSError as exc:
+            fallback = _writable_fallback_dir(label, directory)
+            if fallback is None:
+                raise
+            try:
+                fallback.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                raise exc from None
+            log.warning(
+                "runtime_dir_relocated",
+                label=label,
+                attempted=str(directory),
+                fallback=str(fallback),
+            )
+            return fallback
+
     def ensure_dirs(self) -> None:
         """Create writable runtime dirs, relocating any that the OS refuses.
 
         Packaged desktop installs can land in a read-only prefix (e.g.
         ``C:\\Program Files``); a relative dir would otherwise raise
         PermissionError at import time and take the whole sidecar down.
+        Iterates :meth:`_writable_slots` so every writable path is covered.
         """
-        for field in ("workspace_dir", "output_dir", "cache_dir"):
-            target = getattr(self, field)
-            try:
-                target.mkdir(parents=True, exist_ok=True)
+        for label, target, is_file, rebind in self._writable_slots():
+            directory = target.parent if is_file else target
+            final = self._make_dir_writable(label, directory)
+            if final == directory:
                 continue
+            rebind(final / target.name if is_file else final)
+
+    def verify_writable(self) -> list[str]:
+        """Probe every writable slot with a real write and return failures.
+
+        Fail-fast helper for desktop startup: a clear, aggregated error beats a
+        random 500 on the first job or license activation. Returns a list of
+        human-readable failure strings (empty when everything is writable).
+        """
+        failures: list[str] = []
+        for label, target, is_file, _rebind in self._writable_slots():
+            directory = target.parent if is_file else target
+            probe = directory / ".qclip-write-probe"
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+                probe.write_text("ok", encoding="utf-8")
+                probe.unlink()
             except OSError as exc:
-                fallback = _writable_fallback_dir(field, target)
-                if fallback is None:
-                    raise
-                try:
-                    fallback.mkdir(parents=True, exist_ok=True)
-                except OSError:
-                    raise exc from None
-                setattr(self, field, fallback)
+                failures.append(f"{label} -> {directory} ({exc})")
+        return failures
 
 
 _settings: Settings | None = None

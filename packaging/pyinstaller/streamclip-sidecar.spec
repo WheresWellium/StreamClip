@@ -101,22 +101,40 @@ ML_HIDDEN = [
     "scipy._cyutility",
 ]
 
+# Critical packages: without these the core transcribe → clip path cannot run,
+# so a collection failure MUST abort the build. Previously these were swallowed
+# with a print(), so a misconfigured env produced a "successful" build that
+# crashed on the first job. Optional packages (optical flow, scene detection,
+# embeddings) degrade gracefully at runtime, so a failure there only warns.
+ML_CRITICAL = {"torch", "ctranslate2", "faster_whisper"}
+
 if not LITE:
+    degraded: list[str] = []
     for pkg in ML_COLLECT_ALL:
         try:
             d, b, h = collect_all(pkg)
             datas += d
             binaries += b
             hiddenimports += h
-        except Exception as exc:  # package genuinely absent → fail loudly later
-            print(f"[spec] collect_all({pkg!r}) failed: {exc}")
+        except Exception as exc:
+            if pkg in ML_CRITICAL:
+                raise SystemExit(
+                    f"[spec] FATAL: collect_all({pkg!r}) failed — this package is "
+                    f"required for transcription and the bundle would crash on the "
+                    f"first job. Fix the packaging env and rebuild. Cause: {exc}"
+                )
+            print(f"[spec] WARN: optional collect_all({pkg!r}) failed (feature degrades): {exc}")
+            degraded.append(pkg)
     for pkg in ML_COLLECT_DATA:
         try:
             datas += collect_data_files(pkg)
             hiddenimports += collect_submodules(pkg, filter=lambda n: ".tests" not in n)
         except Exception as exc:
-            print(f"[spec] collect_data_files({pkg!r}) failed: {exc}")
+            print(f"[spec] WARN: collect_data_files({pkg!r}) failed: {exc}")
+            degraded.append(pkg)
     hiddenimports += ML_HIDDEN
+    if degraded:
+        print(f"[spec] NOTE: optional ML packages not fully bundled: {sorted(set(degraded))}")
 
 excludes = [
     "tkinter",

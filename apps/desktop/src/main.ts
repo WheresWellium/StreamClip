@@ -10,12 +10,71 @@ import {
 } from "electron";
 import { spawn, ChildProcess } from "child_process";
 import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
+import { createServer } from "net";
 import path from "path";
 import { autoUpdater } from "electron-updater";
 
 const SIDECAR_HOST = process.env.STREAMCLIP_SIDECAR_HOST ?? "127.0.0.1";
-const SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765");
-const WEB_URL = process.env.STREAMCLIP_WEB_URL ?? `http://${SIDECAR_HOST}:${SIDECAR_PORT}/`;
+const DEFAULT_SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765");
+// The user pinned the endpoint if they set either var — never auto-relocate it.
+const PORT_IS_EXPLICIT =
+  process.env.STREAMCLIP_SIDECAR_PORT != null || process.env.STREAMCLIP_WEB_URL != null;
+
+// Resolved at startup: normally the default port, but relocated to a free port
+// if 8765 is already held by an unrelated process (so we don't dead-end on the
+// error page). Mutable because the chosen port is not known until app-ready.
+let SIDECAR_PORT = DEFAULT_SIDECAR_PORT;
+let WEB_URL = process.env.STREAMCLIP_WEB_URL ?? `http://${SIDECAR_HOST}:${SIDECAR_PORT}/`;
+
+function webUrlForPort(port: number): string {
+  return `http://${SIDECAR_HOST}:${port}/`;
+}
+
+/** True if we can bind host:port right now (i.e. it is free to use). */
+function isPortFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.once("listening", () => probe.close(() => resolve(true)));
+    probe.listen(port, SIDECAR_HOST);
+  });
+}
+
+/** Ask the OS for a free ephemeral port on the sidecar host. */
+function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, SIDECAR_HOST, () => {
+      const address = probe.address();
+      if (address && typeof address === "object") {
+        const { port } = address;
+        probe.close(() => resolve(port));
+      } else {
+        probe.close(() => reject(new Error("could not resolve a free port")));
+      }
+    });
+  });
+}
+
+/**
+ * Decide which port the engine should use. Reuses a healthy leftover engine,
+ * keeps the default when free, and only relocates when the default is occupied
+ * by something else — never when the user pinned the endpoint.
+ */
+async function resolveSidecarPort(): Promise<void> {
+  if (PORT_IS_EXPLICIT) return;
+  if (await sidecarHealthy(600)) return; // healthy engine already on the default port
+  if (await isPortFree(DEFAULT_SIDECAR_PORT)) return;
+  try {
+    const free = await findFreePort();
+    SIDECAR_PORT = free;
+    WEB_URL = webUrlForPort(free);
+    console.warn(`Port ${DEFAULT_SIDECAR_PORT} is busy; using ${free} for the engine.`);
+  } catch (err) {
+    console.error("Free-port resolution failed; keeping default.", err);
+  }
+}
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const ASSETS_DIR = path.join(__dirname, "../assets");
@@ -328,6 +387,9 @@ if (!gotSingleInstanceLock) {
 
   app.whenReady().then(async () => {
     createTray();
+
+    // Pick a usable port before spawning so a busy 8765 doesn't dead-end.
+    await resolveSidecarPort();
 
     // Reuse an already-healthy engine (e.g. left over from a previous session).
     if (!(await sidecarHealthy(800))) {

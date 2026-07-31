@@ -28,6 +28,7 @@
       "output": "release",
       "buildResources": "assets"
     },
+    "afterPack": "./build/validate-sidecar.js",
     "files": [
       "dist/**/*",
       "assets/**/*"
@@ -93,11 +94,6 @@
       "gatekeeperAssess": false,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
     }
   }
 }

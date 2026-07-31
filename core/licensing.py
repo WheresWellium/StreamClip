@@ -14,7 +14,7 @@ import jwt
 import structlog
 
 from backend.db.models import UserTier
-from core.config import Settings, get_settings
+from core.config import Settings, get_settings, user_data_root
 
 log = structlog.get_logger(__name__)
 
@@ -148,9 +148,30 @@ def activate_license_key(
 
 
 def _persist_license_file(token: str, cfg: Settings) -> None:
+    payload = json.dumps({"entitlement_jwt": token}, indent=2)
     path = cfg.licensing.license_file
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"entitlement_jwt": token}, indent=2), encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(payload, encoding="utf-8")
+        return
+    except OSError as exc:
+        # Packaged installs can land in a read-only prefix (e.g. Program Files),
+        # which would otherwise turn a valid activation into a 500. Relocate the
+        # license file into the per-user data root and remember it for this run.
+        fallback = (user_data_root() / path.name).resolve()
+        if fallback == path.resolve():
+            raise
+        try:
+            fallback.parent.mkdir(parents=True, exist_ok=True)
+            fallback.write_text(payload, encoding="utf-8")
+        except OSError:
+            raise exc from None
+        cfg.licensing.license_file = fallback
+        log.warning(
+            "license_file_relocated",
+            attempted=str(path),
+            fallback=str(fallback),
+        )
 
 
 def load_persisted_entitlement(cfg: Settings | None = None) -> str | None:

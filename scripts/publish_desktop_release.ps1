@@ -160,31 +160,24 @@ if (-not $NoDocsBump) {
         $today = Get-Date -Format "yyyy-MM-dd"
         # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
         $py = @"
+import re
 from pathlib import Path
 p = Path(r'$docsPath')
 text = p.read_text(encoding='utf-8')
 version = '$Version'
-if version in text:
+if f'``{version}``' in text or f'`{version}`' in text:
     print('docs already mention version')
 else:
-    today = '$today'
-    banner = f'> **Current Windows installer:** ``{version}`` ({today}) — [download Setup exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)\n'
-    lines = text.splitlines(keepends=True)
-    out = []
-    done = False
-    for line in lines:
-        out.append(line)
-        if not done and line.startswith('# Get qClip'):
-            nl = '\r\n' if line.endswith('\r\n') else '\n'
-            out.append(nl)
-            out.append(banner.replace('\n', nl))
-            out.append(nl)
-            done = True
-    if done:
-        p.write_text(''.join(out), encoding='utf-8', newline='')
-        print('bumped')
-    else:
-        raise SystemExit('title not found in BETA_DOWNLOAD.md')
+    text2, n = re.subn(
+        r'(> \*\*Current Windows build:\*\* `)[^`]+(`)',
+        rf'\g<1>{version}\2',
+        text,
+        count=1,
+    )
+    if not n:
+        raise SystemExit('Windows build banner not found in BETA_DOWNLOAD.md')
+    p.write_text(text2, encoding='utf-8', newline='')
+    print('bumped')
 "@
         $result = $py | python -
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

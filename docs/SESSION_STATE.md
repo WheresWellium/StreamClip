@@ -1,39 +1,39 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-07-31 (auth hardening #5)
+**Last updated:** 2026-07-31 (beta.7 published)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `cursor/pipeline-and-ux-fixes` | #5 auth robustness | — | password policy, 409 register, auth rate limit, forgot/reset UX |
+| `master` | beta.7 ship | — | pipeline UX + auth in `v1.0.0-beta.7` exe |
 
 ## Readiness
 
 | Metric | % | Notes |
 |--------|---|-------|
-| Tester-ready **shipped** | **~92%** | Live `.exe` still **pre** pipeline/UX/auth WIP — needs republish |
+| Tester-ready **shipped** | **~95%** | Win installer **beta.7** live (2026-07-31) |
 | Phase 0 **exit** | **~70%** | O4/O5/O11; Mac universal ☐; notarize/EV ☐ |
 
-## On this branch (not yet merged)
+## Shipped in beta.7
 
-1. Stuck jobs → `ProgressTask.on_failure` + in-process worker
-2. Status filter “Processing” → ingesting/transcribing/detecting
-3. Link Jobs modal → event-driven only (Settings button)
-4. **#5 Auth:** `core/password_policy.py`, 409 duplicate email, `rate_limit_auth`, client policy + pending forgot/reset
+- Stuck-job error surfacing (`ProgressTask.on_failure` + in-process worker)
+- Status filter “Processing” → ingesting/transcribing/detecting
+- Link Jobs modal event-driven (Settings only)
+- Auth: password policy, 409 duplicate email, auth rate limit, forgot/reset pending UX
+- Prior: license LocalAppData path, SPA job shells, header Back, white-screen fix
 
-## Deferred (auth architecture)
+## Download
 
-Email verification before license claim · token_version/session kill · HttpOnly refresh cookie · desktop Sentry SDK
+https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe
 
-## Blockers (human-only)
+## Deferred
 
-- O4 cohort exit · O5 on-call · O11 EV signing
-- Mac universal upload · notarization
+Email verification · session kill on reset · HttpOnly refresh · desktop Sentry · Mac universal
 
 ## Next steps
 
-1. Finish verify #5 tests → commit/merge `cursor/pipeline-and-ux-fixes`
-2. Republish Windows installer (`publish_desktop_release.ps1`) + bump `docs/BETA_DOWNLOAD.md`
-3. Retest: license, Twitch → progress, status filter, no Link Jobs on boot, Back, register/reset
+1. Testers: uninstall old → install beta.7 → retest license, Twitch→progress, filters, auth
+2. O4 / O5 human gates
+3. Mac universal when ready

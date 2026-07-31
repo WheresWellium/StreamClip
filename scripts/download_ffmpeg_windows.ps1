@@ -4,11 +4,18 @@
 # Source: BtbN/FFmpeg-Builds (GPL static build, no external DLL dependencies).
 # Run once before scripts/build_sidecar.ps1 (or scripts/build_desktop_installer.ps1).
 #
+# Reproducibility: pin -Ref to a dated BtbN release tag (e.g. autobuild-2025-01-01-12-00)
+# and pass -Sha256 (or set STREAMCLIP_FFMPEG_SHA256) to verify the archive. Defaults
+# stay on the rolling `latest` build for convenience but WARN that it is unpinned.
+#
 # Usage:
 #   .\scripts\download_ffmpeg_windows.ps1
-#   .\scripts\download_ffmpeg_windows.ps1 -Force   # re-download even if binaries exist
+#   .\scripts\download_ffmpeg_windows.ps1 -Force
+#   .\scripts\download_ffmpeg_windows.ps1 -Ref autobuild-2025-01-01-12-00 -Sha256 HEX
 param(
-    [switch]$Force
+    [switch]$Force,
+    [string]$Ref = $(if ($env:STREAMCLIP_FFMPEG_REF) { $env:STREAMCLIP_FFMPEG_REF } else { "latest" }),
+    [string]$Sha256 = $env:STREAMCLIP_FFMPEG_SHA256
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,12 +30,18 @@ if (-not $Force -and (Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe)) {
     exit 0
 }
 
-$zipUrl  = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+# BtbN keeps the inner archive name stable across tags; only the release tag path changes.
+$zipUrl  = "https://github.com/BtbN/FFmpeg-Builds/releases/download/$Ref/ffmpeg-master-latest-win64-gpl.zip"
 $zipPath = Join-Path $env:TEMP "ffmpeg-win64.zip"
 $extractDir = Join-Path $env:TEMP "ffmpeg-win64-extract"
 
 Write-Host "Downloading ffmpeg (GPL static build for Windows x64)..." -ForegroundColor Cyan
+Write-Host "  Ref: $Ref"
 Write-Host "  URL: $zipUrl"
+if ($Ref -eq "latest" -and -not $Sha256) {
+    Write-Host "  WARNING: using rolling 'latest' with no -Sha256 - build is not reproducible." -ForegroundColor Yellow
+    Write-Host "           Pin -Ref (autobuild tag) and -Sha256 (hex) for reproducible installers." -ForegroundColor Yellow
+}
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $progressPreferencePrev = $ProgressPreference
@@ -37,6 +50,18 @@ try {
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
 } finally {
     $ProgressPreference = $progressPreferencePrev
+}
+
+if ($Sha256) {
+    $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
+    if ($actual -ne $Sha256.Trim().ToUpper()) {
+        Remove-Item -Force $zipPath -ErrorAction SilentlyContinue
+        Write-Host "ERROR: ffmpeg archive SHA256 mismatch." -ForegroundColor Red
+        Write-Host ("  expected: {0}" -f $Sha256.Trim().ToUpper()) -ForegroundColor Yellow
+        Write-Host ("  actual:   {0}" -f $actual) -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "  SHA256 verified." -ForegroundColor Green
 }
 
 Write-Host "Extracting..."

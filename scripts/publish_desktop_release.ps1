@@ -6,7 +6,7 @@
 # Signed gate:              .\scripts\publish_desktop_release.ps1 -Version ... -SkipBuild -RequireSigned
 # No upload / no docs bump: .\scripts\publish_desktop_release.ps1 -Version ... -SkipBuild -DryRun
 param(
-    [string]$Version = "1.0.0-beta.6",
+    [string]$Version = "",
     [switch]$SkipBuild,
     [switch]$PublishOnly,
     [switch]$NoDocsBump,
@@ -16,6 +16,19 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+
+# Single source of truth for the release version is apps/desktop/package.json
+# (electron-builder stamps latest.yml from it). Deriving $Version from there —
+# and asserting they match — prevents the recurring drift where package.json,
+# the git tag, and latest.yml disagree and auto-update silently stops working.
+$pkgPath = Join-Path $root "apps\desktop\package.json"
+$pkgVersion = (Get-Content $pkgPath -Raw | ConvertFrom-Json).version
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = $pkgVersion
+    Write-Host "Version not passed; using package.json: $Version" -ForegroundColor Cyan
+} elseif ($Version -ne $pkgVersion) {
+    Write-Error "Version mismatch: -Version '$Version' != apps/desktop/package.json '$pkgVersion'. Bump package.json or pass the matching -Version so the tag, installer, and latest.yml agree."
+}
 
 $releaseDir = Join-Path $root "apps\desktop\release"
 $installer = Join-Path $releaseDir "qClip-Setup-win-x64.exe"
@@ -58,6 +71,15 @@ Write-Host ("  Authenticode: {0}{1}" -f $sigStatus, $(if ($sigPublisher) { " | $
     -ForegroundColor $(if ($isSignedValid) { "Green" } else { "Yellow" })
 if (Test-Path $latestYml) {
     Write-Host "  $latestYml"
+    # Guard against uploading auto-update metadata that points at a different
+    # version than the installer we built (stale latest.yml).
+    $ymlMatch = Select-String -Path $latestYml -Pattern '^version:\s*(.+)$' | Select-Object -First 1
+    if ($ymlMatch) {
+        $ymlVersion = $ymlMatch.Matches.Groups[1].Value.Trim()
+        if ($ymlVersion -ne $pkgVersion) {
+            Write-Error "latest.yml version '$ymlVersion' != package.json '$pkgVersion' - auto-update metadata is stale. Rebuild the installer before publishing."
+        }
+    }
 } else {
     Write-Host "WARNING: latest.yml missing - electron-updater auto-update metadata will not ship." -ForegroundColor Yellow
 }

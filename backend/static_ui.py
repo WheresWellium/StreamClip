@@ -31,6 +31,31 @@ def _is_reserved_api_path(path: str) -> bool:
     )
 
 
+def resolve_spa_html(static_dir: Path, normalized: str) -> Path | None:
+    """Resolve an exported HTML shell for a client-side route.
+
+    Next.js static export writes dynamic segments (``/jobs/[id]``) to a literal
+    ``_`` directory (``jobs/_/index.html``). Walk the export tree preferring the
+    literal segment, then the ``_`` dynamic shell, so real ids like
+    ``/jobs/<uuid>/`` open the correct page instead of falling back to home.
+    Returns ``None`` when no shell matches (caller serves the root index).
+    """
+    segments = [seg for seg in normalized.split("/") if seg]
+    cursor = static_dir
+    for segment in segments:
+        literal = cursor / segment
+        if literal.is_dir():
+            cursor = literal
+            continue
+        dynamic = cursor / "_"
+        if dynamic.is_dir():
+            cursor = dynamic
+            continue
+        return None
+    index_html = cursor / "index.html"
+    return index_html if index_html.is_file() else None
+
+
 def resolve_static_dir(cfg: Settings) -> Path | None:
     """Return static UI directory if enabled and present."""
     if not cfg.web.serve_static:
@@ -77,10 +102,12 @@ def mount_static_ui(app: FastAPI, cfg: Settings) -> bool:
             # should not be cached so desktop installs pick up fresh UI after update.
             headers = _SPA_NO_CACHE if candidate.suffix == ".html" else None
             return FileResponse(candidate, headers=headers)
-        # Next export may emit path/index.html
-        index_nested = static_dir / normalized / "index.html"
-        if index_nested.is_file():
-            return FileResponse(index_nested, headers=_SPA_NO_CACHE)
+        # Exported route shell (literal ``path/index.html`` or dynamic ``_`` shell
+        # for routes like ``/jobs/<id>/``). Falls back to the root index for
+        # genuinely unknown paths so the SPA can render its own not-found.
+        shell = resolve_spa_html(static_dir, normalized)
+        if shell is not None:
+            return FileResponse(shell, headers=_SPA_NO_CACHE)
         return FileResponse(static_dir / "index.html", headers=_SPA_NO_CACHE)
 
     log.info("static_ui_mounted", dir=str(static_dir))

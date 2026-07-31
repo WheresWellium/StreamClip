@@ -20,6 +20,7 @@ _DATA_ENV_KEYS = (
     "STREAMCLIP_WORKSPACE_DIR",
     "STREAMCLIP_CACHE_DIR",
     "STREAMCLIP_OUTPUT_DIR",
+    "STREAMCLIP_LICENSING__LICENSE_FILE",
 )
 
 
@@ -89,6 +90,9 @@ def test_configure_data_dirs_sets_env_and_creates_dirs(tmp_path):
         assert os.environ["STREAMCLIP_WORKSPACE_DIR"] == str(data_dir / "workspace")
         assert os.environ["STREAMCLIP_CACHE_DIR"] == str(data_dir / "cache")
         assert os.environ["STREAMCLIP_OUTPUT_DIR"] == str(data_dir / "output")
+        assert os.environ["STREAMCLIP_LICENSING__LICENSE_FILE"] == str(
+            data_dir / "workspace" / ".streamclip-license.json"
+        )
     assert (data_dir / "workspace").is_dir()
     assert (data_dir / "storage").is_dir()
     assert (data_dir / "cache").is_dir()

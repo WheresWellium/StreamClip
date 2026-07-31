@@ -55,6 +55,36 @@ def test_activate_rejects_short_key():
         activate_license_key("short", "machine-1", tier=UserTier.PRO)
 
 
+def test_activate_relocates_license_file_when_dir_unwritable(tmp_path, monkeypatch):
+    """A read-only license path must relocate, not raise (would 500 activation)."""
+    cfg = get_settings()
+    old_file = cfg.licensing.license_file
+    unwritable = tmp_path / "program-files" / ".streamclip-license.json"
+    writable_root = tmp_path / "userdata"
+    writable_root.mkdir()
+    cfg.licensing.license_file = unwritable
+    monkeypatch.setattr("core.licensing.user_data_root", lambda: writable_root)
+
+    real_write_text = type(unwritable).write_text
+
+    def guarded_write_text(self, *args, **kwargs):
+        if self == unwritable:
+            raise PermissionError("read-only prefix")
+        return real_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(type(unwritable), "write_text", guarded_write_text)
+    try:
+        token, _ = activate_license_key(
+            "SCPRO-AAAA-BBBB-CCCC-DDDD", "machine-x", tier=UserTier.PRO, cfg=cfg
+        )
+        relocated = writable_root / ".streamclip-license.json"
+        assert relocated.is_file()
+        assert token in relocated.read_text(encoding="utf-8")
+        assert cfg.licensing.license_file == relocated.resolve()
+    finally:
+        cfg.licensing.license_file = old_file
+
+
 def test_load_persisted_entitlement_missing_file(tmp_path):
     cfg = get_settings()
     old = cfg.licensing.license_file

@@ -28,6 +28,12 @@
 
 Sidecar created relative `output/` under Program Files → Access denied → no :8765 → Electron blank. Multi-launch → ghost trays (no single-instance lock).
 
+## Critical fixes in flight (branch `cursor/desktop-critical-fixes`)
+
+- **License 500**: `licensing.license_file` default was relative (`workspace/...`) → write under Program Files → OSError → 500. Fix: sidecar sets `STREAMCLIP_LICENSING__LICENSE_FILE` under LocalAppData + `_persist_license_file` relocates on OSError.
+- **Job nav loop (desktop)**: static export serves dynamic `/jobs/<id>/` from home shell. Fix: `backend/static_ui.py resolve_spa_html()` resolves exported `_` dynamic shells (`jobs/_/index.html`).
+- Also on separate branch `cursor/header-back-button`: persistent header Back control.
+
 ## Blockers (human-only)
 
 - O4 cohort exit · O5 on-call · O11 EV signing

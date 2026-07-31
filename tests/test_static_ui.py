@@ -22,6 +22,15 @@ def static_ui_env(tmp_path, monkeypatch):
     (ui / "_next" / "chunk.js").write_text("//", encoding="utf-8")
     (ui / "jobs").mkdir()
     (ui / "jobs" / "index.html").write_text("<html><body>Jobs</body></html>", encoding="utf-8")
+    # Next static export writes dynamic routes ([id]) to a literal "_" dir.
+    (ui / "jobs" / "_").mkdir()
+    (ui / "jobs" / "_" / "index.html").write_text(
+        "<html><body>Job Detail</body></html>", encoding="utf-8"
+    )
+    (ui / "jobs" / "_" / "clips").mkdir()
+    (ui / "jobs" / "_" / "clips" / "index.html").write_text(
+        "<html><body>Job Clips</body></html>", encoding="utf-8"
+    )
 
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg.web, "serve_static", True)
@@ -61,6 +70,43 @@ async def test_static_ui_serves_nested_route(static_ui_env):
         resp = await client.get("/jobs/")
         assert resp.status_code == 200
         assert "Jobs" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_static_ui_serves_dynamic_job_detail_shell(static_ui_env):
+    """A real job id must open the job detail shell, not the home page."""
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/jobs/abc123def456/")
+        assert resp.status_code == 200
+        assert "Job Detail" in resp.text
+        assert "StreamClip UI" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_static_ui_serves_nested_dynamic_clips_shell(static_ui_env):
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/jobs/abc123def456/clips/")
+        assert resp.status_code == 200
+        assert "Job Clips" in resp.text
+
+
+def test_resolve_spa_html_prefers_literal_then_dynamic(static_ui_env):
+    from backend.static_ui import resolve_spa_html
+
+    root = static_ui_env
+    assert resolve_spa_html(root, "jobs") == root / "jobs" / "index.html"
+    assert resolve_spa_html(root, "jobs/xyz") == root / "jobs" / "_" / "index.html"
+    assert (
+        resolve_spa_html(root, "jobs/xyz/clips")
+        == root / "jobs" / "_" / "clips" / "index.html"
+    )
+    assert resolve_spa_html(root, "totally/unknown/path") is None
 
 
 @pytest.mark.asyncio

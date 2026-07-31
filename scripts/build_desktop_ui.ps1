@@ -19,33 +19,42 @@ $env:NEXT_STATIC_EXPORT = "1"
 $env:NEXT_PUBLIC_DEV_TOOLS = "0"
 $env:NEXT_PRIVATE_WORKER_THREADS = "false"
 
-# Next.js static export does not support middleware — stash it for the build.
-if (Test-Path $middleware) {
-    if (Test-Path $middlewareDev) { Remove-Item $middlewareDev -Force }
-    Move-Item $middleware $middlewareDev
-    $middlewareMoved = $true
+$buildOk = $false
+# try/finally guarantees the source tree (middleware + BFF api routes) is
+# always restored — a Ctrl+C or failed export must never leave the repo with
+# `app/api` renamed to `_api.desktop-stash`, which silently breaks dev + next export.
+try {
+    # Next.js static export does not support middleware — stash it for the build.
+    if (Test-Path $middleware) {
+        if (Test-Path $middlewareDev) { Remove-Item $middlewareDev -Force }
+        Move-Item $middleware $middlewareDev
+        $middlewareMoved = $true
+    }
+
+    # BFF route handlers (SSE proxies) are not static-exportable; desktop UI hits FastAPI /api directly.
+    if (Test-Path $apiDir) {
+        if (Test-Path $apiStash) { Remove-Item -Recurse -Force $apiStash }
+        Move-Item $apiDir $apiStash
+        $apiMoved = $true
+    }
+
+    npm run build
+    $buildOk = $LASTEXITCODE -eq 0
 }
-
-# BFF route handlers (SSE proxies) are not static-exportable; desktop UI hits FastAPI /api directly.
-if (Test-Path $apiDir) {
-    if (Test-Path $apiStash) { Remove-Item -Recurse -Force $apiStash }
-    Move-Item $apiDir $apiStash
-    $apiMoved = $true
+finally {
+    if ($apiMoved -and (Test-Path $apiStash)) {
+        if (Test-Path $apiDir) { Remove-Item -Recurse -Force $apiDir }
+        Move-Item $apiStash $apiDir
+    }
+    if ($middlewareMoved -and (Test-Path $middlewareDev)) {
+        Move-Item $middlewareDev $middleware
+    }
+    # Don't leak export-only env into a subsequent dev build in this shell.
+    Remove-Item Env:NEXT_STATIC_EXPORT -ErrorAction SilentlyContinue
+    Remove-Item Env:NEXT_PUBLIC_DEV_TOOLS -ErrorAction SilentlyContinue
+    Remove-Item Env:NEXT_PRIVATE_WORKER_THREADS -ErrorAction SilentlyContinue
+    Pop-Location
 }
-
-npm run build
-$buildOk = $LASTEXITCODE -eq 0
-
-if ($apiMoved -and (Test-Path $apiStash)) {
-    if (Test-Path $apiDir) { Remove-Item -Recurse -Force $apiDir }
-    Move-Item $apiStash $apiDir
-}
-
-if ($middlewareMoved -and (Test-Path $middlewareDev)) {
-    Move-Item $middlewareDev $middleware
-}
-
-Pop-Location
 
 if (-not $buildOk) {
     Write-Host "Static export failed." -ForegroundColor Red

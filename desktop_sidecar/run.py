@@ -82,6 +82,13 @@ def configure_data_dirs(data_dir: Path) -> None:
     # Without this the relative default ("output") resolves against the install
     # prefix, which is read-only for per-machine installs (C:\Program Files).
     os.environ.setdefault("STREAMCLIP_OUTPUT_DIR", str(output))
+    # Same trap for the license file: its default (``workspace/...``) is relative
+    # to the install prefix, so activation would 500 on write. Anchor it in the
+    # writable per-user workspace.
+    os.environ.setdefault(
+        "STREAMCLIP_LICENSING__LICENSE_FILE",
+        str(workspace / ".streamclip-license.json"),
+    )
     log.info("sidecar_data_dir", path=str(data_dir))
 
 
@@ -158,6 +165,14 @@ def run_server(
     from backend.main import create_app
     bind_host = host or os.environ.get("STREAMCLIP_SIDECAR_HOST", DEFAULT_HOST)
     bind_port = int(port or os.environ.get("STREAMCLIP_SIDECAR_PORT", DEFAULT_PORT))
+
+    # Fail-fast on an unwritable install (read-only prefix) with an actionable
+    # message, instead of a downstream 500 on the first job / license activation.
+    from core.config import get_settings
+
+    writable_failures = get_settings().verify_writable()
+    if writable_failures:
+        log.error("sidecar_unwritable_dirs", failures=writable_failures)
 
     if os.environ.get("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "").lower() not in ("1", "true", "yes"):
         run_migrations(base)

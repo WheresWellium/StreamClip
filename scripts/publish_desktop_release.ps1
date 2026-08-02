@@ -157,31 +157,37 @@ if ($releaseExists) {
 if (-not $NoDocsBump) {
     $docsPath = Join-Path $root "docs\BETA_DOWNLOAD.md"
     if (Test-Path $docsPath) {
-        $today = Get-Date -Format "yyyy-MM-dd"
         # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
-        $py = @"
+        # Use a single-quoted here-string so backticks in the regex are not PowerShell escapes.
+        $env:STREAMCLIP_DOCS_BUMP_PATH = $docsPath
+        $env:STREAMCLIP_DOCS_BUMP_VERSION = $Version
+        $py = @'
+import os
 import re
 from pathlib import Path
-p = Path(r'$docsPath')
-text = p.read_text(encoding='utf-8')
-version = '$Version'
-if f'``{version}``' in text or f'`{version}`' in text:
-    print('docs already mention version')
+
+p = Path(os.environ["STREAMCLIP_DOCS_BUMP_PATH"])
+text = p.read_text(encoding="utf-8")
+version = os.environ["STREAMCLIP_DOCS_BUMP_VERSION"]
+if f"`{version}`" in text:
+    print("docs already mention version")
 else:
     text2, n = re.subn(
-        r'(> \*\*Current Windows build:\*\* `)[^`]+(`)',
-        rf'\g<1>{version}\2',
+        r"(> \*\*Current Windows build:\*\* `)[^`]+(`)",
+        rf"\g<1>{version}\2",
         text,
         count=1,
     )
     if not n:
-        raise SystemExit('Windows build banner not found in BETA_DOWNLOAD.md')
-    p.write_text(text2, encoding='utf-8', newline='')
-    print('bumped')
-"@
+        raise SystemExit("Windows build banner not found in BETA_DOWNLOAD.md")
+    p.write_text(text2, encoding="utf-8", newline="")
+    print("bumped")
+'@
         $result = $py | python -
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         Write-Host "BETA_DOWNLOAD.md: $result" -ForegroundColor Green
+        Remove-Item Env:STREAMCLIP_DOCS_BUMP_PATH -ErrorAction SilentlyContinue
+        Remove-Item Env:STREAMCLIP_DOCS_BUMP_VERSION -ErrorAction SilentlyContinue
     }
 }
 

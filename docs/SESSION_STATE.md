@@ -7,7 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `desktop/mastery-ship-gate` | beta.8 redeploy | — | mastery gates + F13 honest copy → publish `v1.0.0-beta.8` |
+| `master` | beta.8 live | — | `v1.0.0-beta.8` published 2026-08-02; F13 collector still open |
 
 ## Desktop-first finish line — SHIPPED (2026-07-31)
 
@@ -23,16 +23,17 @@
 
 | Metric | % | Notes |
 |--------|---|-------|
-| Tester-ready **shipped** | **~95%** | Win installer **beta.7** live (2026-07-31) |
+| Tester-ready **shipped** | **~95%** | Win installer **beta.8** live (2026-08-02) |
 | Phase 0 **exit** | **~70%** | O4/O5/O11; Mac universal ☐; notarize/EV ☐ |
 
-## Shipped in beta.7
+## Shipped in beta.8
 
-- Stuck-job error surfacing (`ProgressTask.on_failure` + in-process worker)
-- Status filter “Processing” → ingesting/transcribing/detecting
-- Link Jobs modal event-driven (Settings only)
-- Auth: password policy, 409 duplicate email, auth rate limit, forgot/reset pending UX
-- Prior: license LocalAppData path, SPA job shells, header Back, white-screen fix
+- F1 writable-dir fail-fast (`verify_writable` → SystemExit + startup-error page)
+- F4 Electron failure-reason mapping + boot-failure propagation
+- F6 model prefetch `failed`/`hint` + Retry banner + `POST /api/health/models/retry`
+- Turnkey `verify_desktop_release.ps1` (coverage/upgrade/clean/signing readiness)
+- F13 honest copy: local-only toasts; invites → GitHub beta-bug template (collector still TODO)
+- Prior beta.7: stuck-job errors, status filter, Link Jobs, auth hardening, license path
 
 ## Download
 
@@ -44,6 +45,6 @@ Email verification · session kill on reset · HttpOnly refresh · desktop Sentr
 
 ## Next steps
 
-1. Merge mastery branch → `verify_desktop_release.ps1` → `publish_desktop_release.ps1` beta.8
-2. Testers: uninstall → install beta.8; report via GitHub beta-bug template (not in-app)
-3. O4 / O5 / O11 (EV) human gates; clean-VM + cohort evidence (`DESKTOP_COHORT_EXIT.md`)
+1. Testers: uninstall → install beta.8; report via GitHub beta-bug template
+2. Operator: clean-VM install→first-clip (`CLEAN_DESKTOP_VM_VERIFY.md`); O4/O5/O11
+3. F13 hosted collector (MASTER §4.22) before trusting in-app Help → Report a bug

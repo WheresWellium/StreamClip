@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-> **Current Windows build:** `1.0.0-beta.7` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned)  
+> **Current Windows build:** `1.0.0-beta.8` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned)  
 > **Mac (Apple Silicon interim):** [qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) · universal DMG coming next
 
 Pick your platform. When install is done, continue to **[Create your first clip →](BETA_TESTER_QUICKSTART.md)**.
@@ -29,11 +29,11 @@ No Docker. No terminal. No zip file.
 | Disk | 10 GB+ free (20 GB recommended) |
 | GPU | Optional — CPU works, slower |
 
-!!! tip "Upgrading from beta.6 or earlier?"
-    Install beta.7, then **re-paste your license key once** if activation fails. beta.7 includes license path fix, job progress navigation, stuck-job error surfacing, status filter, Link Jobs opt-in, and stronger password rules.
+!!! tip "Upgrading from beta.7 or earlier?"
+    Install beta.8, then **re-paste your license key once** if activation fails. beta.8 adds writable-dir fail-fast, model-download Retry, clearer boot failure pages, and honest local-only bug-report toasts. Report issues via the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml).
 
 !!! warning "White screen / many blank tray icons?"
-    That was a Program Files write crash in older builds. **Task Manager → end all `qClip` processes**, uninstall, then reinstall from the link above (beta.7, 2026-07-31). You should see one tray icon and a dark splash, not a blank window.
+    That was a Program Files write crash in older builds. **Task Manager → end all `qClip` processes**, uninstall, then reinstall from the link above (beta.8). You should see one tray icon and a dark splash (or a clear startup error), not a blank window.
 
 **Next:** [Create your first clip →](BETA_TESTER_QUICKSTART.md)
 

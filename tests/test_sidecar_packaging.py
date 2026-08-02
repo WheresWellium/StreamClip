@@ -145,6 +145,49 @@ def test_run_server_invokes_uvicorn(monkeypatch):
                 assert uvicorn_run.call_args.kwargs.get("port") == 9999
 
 
+def test_run_server_exits_when_data_dirs_unwritable(monkeypatch):
+    """A read-only install must fail fast, not boot into a guaranteed 500.
+
+    Regression for the desktop white-screen / license-500 root cause: when
+    ``verify_writable`` reports failures the sidecar must raise SystemExit so
+    the Electron shell surfaces the reason instead of a blank window.
+    """
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "1")
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", "1")
+
+    class _Unwritable:
+        def verify_writable(self):
+            return ["output_dir -> C:/Program Files/qClip/output (read-only)"]
+
+    with patch.object(sidecar, "configure_desktop_env") as cfg:
+        cfg.return_value = Path(".")
+        with patch("core.config.get_settings", return_value=_Unwritable()):
+            with patch("uvicorn.run") as uvicorn_run:
+                with pytest.raises(SystemExit):
+                    sidecar.run_server(host="127.0.0.1", port=9999, root=Path("."))
+                uvicorn_run.assert_not_called()
+
+
+def test_run_server_propagates_boot_failure_nonzero(monkeypatch):
+    """A boot failure (e.g. migrations) must propagate so the process exits
+    non-zero — that is what populates Electron's sidecarExitInfo and makes the
+    startup-error page reachable instead of an eternal spinner (F4).
+    """
+    monkeypatch.delenv("STREAMCLIP_SIDECAR_SKIP_MIGRATE", raising=False)
+    monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", "1")
+
+    with patch.object(sidecar, "configure_desktop_env") as cfg:
+        cfg.return_value = Path(".")
+        with patch.object(
+            sidecar, "run_migrations", side_effect=RuntimeError("alembic boom")
+        ):
+            with patch("uvicorn.run") as uvicorn_run:
+                with pytest.raises(RuntimeError, match="alembic boom"):
+                    sidecar.run_server(host="127.0.0.1", port=9999, root=Path("."))
+                # Never reaches the server — a hang here is the F4 bug.
+                uvicorn_run.assert_not_called()
+
+
 def test_run_server_starts_model_prefetch(monkeypatch):
     monkeypatch.setenv("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "1")
     monkeypatch.delenv("STREAMCLIP_SIDECAR_SKIP_PREFETCH", raising=False)

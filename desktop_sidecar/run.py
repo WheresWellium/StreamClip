@@ -168,11 +168,23 @@ def run_server(
 
     # Fail-fast on an unwritable install (read-only prefix) with an actionable
     # message, instead of a downstream 500 on the first job / license activation.
+    # This is the desktop white-screen / license-500 root cause: booting anyway
+    # only defers a guaranteed failure to the first write. Exiting non-zero here
+    # lets the Electron shell surface the reason on its startup-error page (it
+    # reads the sidecar exit code and log) rather than showing a blank window.
     from core.config import get_settings
 
     writable_failures = get_settings().verify_writable()
     if writable_failures:
         log.error("sidecar_unwritable_dirs", failures=writable_failures)
+        detail = "; ".join(writable_failures)
+        sys.stderr.write(
+            "FATAL: qClip cannot write to its data folders. This usually means "
+            "the app was installed to a read-only location (e.g. C\\Program Files) "
+            "without a writable per-user data dir. Reinstall to the default "
+            f"location or set STREAMCLIP_DESKTOP_DATA_DIR. Unwritable: {detail}\n"
+        )
+        raise SystemExit(1)
 
     if os.environ.get("STREAMCLIP_SIDECAR_SKIP_MIGRATE", "").lower() not in ("1", "true", "yes"):
         run_migrations(base)

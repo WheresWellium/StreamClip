@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "npm run build && electron .",
     "start:sidecar-dev": "cd ../.. && python -m desktop_sidecar",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/**/*.test.js\"",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --publish never"
   },

@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-07-28 · Current Windows build: **v1.0.0-beta.6**
+**Updated:** 2026-07-31 · Current Windows build: **v1.0.0-beta.7**
 
 ---
 
@@ -15,8 +15,9 @@
 | "Link jobs" Internal Server Error | Fixed in beta.6 |
 | SCPRO key won't activate on empty desktop DB | Fixed — cohort keys seeded at boot |
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
+| White screen / blank window on launch | Fixed — writable-path fail-fast; if the engine truly can't write, you now get a clear error page with a log link, not a blank window (beta.7+) |
 
-Still on beta.5? Upgrade, or click **Skip** on Link jobs until you do.
+Still on beta.5/.6? Upgrade to beta.7.
 
 ---
 

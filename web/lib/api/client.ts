@@ -312,14 +312,19 @@ export const uploadsApi = {
 
 // ─── Meta / Health ───────────────────────────────────────────────────────────
 
+export type ModelFailureCause = "disk_full" | "network" | "permission" | "unknown";
+
 export interface ModelPrefetchStatus {
   state: "pending" | "downloading" | "ready" | "failed" | "skipped";
   detail: string;
   elapsed_secs: number;
+  cause?: ModelFailureCause | null;
 }
 
 export interface ModelsHealthResponse {
   ready: boolean;
+  failed?: boolean;
+  hint?: string;
   models: Record<string, ModelPrefetchStatus>;
 }
 
@@ -334,6 +339,11 @@ export const metaApi = {
       worker?: boolean | null;
     }>("/api/health/stack"),
   modelsHealth: () => request<ModelsHealthResponse>("/api/health/models"),
+  modelsRetry: () =>
+    request<{ started: boolean; models: Record<string, ModelPrefetchStatus> }>(
+      "/api/health/models/retry",
+      { method: "POST" },
+    ),
   meta: () => request<Record<string, unknown>>("/api/meta"),
 };
 

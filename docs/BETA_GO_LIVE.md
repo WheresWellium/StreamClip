@@ -1,7 +1,9 @@
 # qClip — Beta Go-Live Checklist
 
-**Purpose:** Single-page runbook for Phase 0 (Docker technical beta). Phase 1/2 still gated on 110% (see [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3.10).  
-**Last updated:** 2026-07-27  
+> **DESKTOP RE-CENTER (2026-07-31):** The product is the **installer**, so the real beta is the **desktop closed beta** — validate via [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) + [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md), **not** `docker compose` + `verify_stack.ps1`. The original Docker Phase 0 sections below are retained as the **Pro/managed-cloud self-host** validation path only. Desktop exit gate: crash-free > 98% (7d) + install→first-clip < 45 min median (MASTER §8.16d).
+
+**Purpose:** Single-page runbook. Desktop beta is primary; Docker Phase 0 = Pro/self-host validation. Phase 1/2 still gated on 110% (see [`docs/MASTER_TODO.md`](MASTER_TODO.md) §3.10).  
+**Last updated:** 2026-07-31  
 **Companions:** [`BETA_TESTER_PLAN.md`](BETA_TESTER_PLAN.md) · [`BETA_TESTER_QUICKSTART.md`](BETA_TESTER_QUICKSTART.md) · [`BETA_OPS_PHASE0.md`](BETA_OPS_PHASE0.md) · [`BETA_ON_CALL.md`](BETA_ON_CALL.md) · [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) · [`OPS_ALERTING.md`](OPS_ALERTING.md) · [`MASTER_TODO.md`](MASTER_TODO.md) · [`GAP_ANALYSIS.md`](GAP_ANALYSIS.md)
 
 ### Status legend
@@ -15,9 +17,27 @@
 
 ---
 
-## 1. Gate status (Phase 0)
+## 0. Desktop ship gate (PRIMARY — 2026-07-31)
 
-**Authoritative coverage rules:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10** (canonical command, scope, phase waivers).
+The product is the installer, so this is the gate that blocks a desktop release. Run one command, then complete the operator-only clean-VM + cohort evidence.
+
+| Gate | Target | Verify | Status |
+|------|--------|--------|--------|
+| Automated pre-ship battery | all green | `.\scripts\verify_desktop_release.ps1` (chains coverage F10, upgrade F5, clean-boot F1/F12, signing readiness F9) | 🟢 passing |
+| Clean-desktop-VM install → first clip | no white screen; clip in <45m | [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md) sign-off | ☐ operator (clean VM) |
+| Install → first-clip median | < 45 min | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
+| Crash-free sessions (7d) | > 98% | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
+| Signed build (or accepted unsigned) | Authenticode Valid | `publish_desktop_release.ps1 -RequireSigned` | ☐ EV cert (O11) |
+
+Desktop exit = automated battery ✅ + the four operator/cohort rows above (MASTER §8.16d). Do not mark green without the evidence pack.
+
+> ⚠️ **Invite blocker — F13:** desktop in-app bug reports / feedback are **not delivered** to the operator (env-only channels unset; reports stay in the tester's local SQLite). Fix = MASTER §4.22 (hosted collector on Vercel). Until then the invite **must** point testers at the GitHub issue template instead of "Help → Report a bug".
+
+---
+
+## 1. Gate status (Docker Phase 0 — Pro/self-host path only)
+
+**Authoritative coverage rules:** [`docs/MASTER_TODO.md`](MASTER_TODO.md) **§3.10** (canonical command, scope, phase waivers). *(These Docker rows now validate the future Pro/managed-cloud SKU, not the primary desktop launch — see §0.)*
 
 | Gate | Target | Verify | Status |
 |------|--------|--------|--------|
@@ -100,29 +120,49 @@ Kit includes:
 
 ---
 
-## 6. Invite email template (Phase 0)
+## 6. Invite email template (desktop beta — primary)
 
-**Subject:** qClip technical beta — Docker self-host (Phase 0)
+**Subject:** You're in the qClip desktop beta — download & make your first clip
 
 Body:
 
-> You're in the qClip **Phase 0** cohort (technical self-host).
+> You're in the qClip **desktop beta**. No Docker, no command line — just install and make clips.
 >
-> **Goal:** Run the full clip pipeline locally and report breakages.
-> **Time:** ~15 min setup, ~1 h first real job (GPU recommended).
+> **Goal:** Install the app, turn a video into clips, and tell us anything that breaks or confuses you.
+> **Time:** ~5 min install (first launch downloads ~1.5 GB of models once), then a few minutes per clip.
+>
+> 1. **Download:** [qClip installer](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
+> 2. **Run it.** _(If Windows SmartScreen warns "unrecognized app": click **More info → Run anyway** — the beta build is not yet code-signed.)_
+> 3. Wait for the model warm-up banner to finish, then paste a Twitch/YouTube URL or drop a video file.
+> 4. Download a clip and share it.
+> 5. If you got a Pro key: **Settings → License**, paste it.
+> 6. Report anything via **Help → Report a bug** (or the GitHub template) — include the OS and, if a job failed, the job id.
+>
+> **What we're measuring:** did it install cleanly, did you reach your first clip, and how long did that take.
+>
+> Thanks — your logs directly shape launch quality.
+
+**Track results in:** [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) (T0-1..T0-4, install→first-clip median, crash-free).
+
+---
+
+### 6b. Docker self-host invite (Pro / technical only — not the primary beta)
+
+<details><summary>Retained for the future Pro/managed-cloud self-host validation path.</summary>
+
+**Subject:** qClip technical beta — Docker self-host (Pro path)
+
+> You're testing the qClip **self-host** path (technical).
 >
 > 1. Clone/access: `[REPO_OR_ZIP]`
 > 2. Follow `docs/BETA_TESTER_QUICKSTART.md`
 > 3. Run `.\scripts\verify_stack.ps1` — must exit 0 before your first job
 > 4. Complete flows T0-1 through T0-4 in `docs/BETA_TESTER_PLAN.md`
-> 5. Post feedback in `[DISCORD_OR_DISCUSSIONS]` using the pinned template
-> 6. If you received a Pro/cohort key: import per quickstart (`import_invite_license`), then **Settings → License**
->
-> **Commerce note:** Beta validates a **buy-once, run-local** model (no metered cloud). Pro keys are optional for T0-6.
->
-> Thanks — your logs directly shape launch quality.
+> 5. If you received a Pro/cohort key: import per quickstart (`import_invite_license`), then **Settings → License**
 
 **Re-send rule:** Rebuild or confirm the invite pack against current keys (`tmp/beta-keys.csv` / `cohort.csv`) before any re-send (GAP O6). Do not ship stale key bodies.
+
+</details>
 
 ---
 

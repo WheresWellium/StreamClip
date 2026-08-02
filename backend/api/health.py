@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.schemas import HealthResponse, StackHealthResponse
 from backend.db.session import get_db
 from core.config import get_settings
+from core.model_prefetch import has_failures as model_prefetch_has_failures
+from core.model_prefetch import retry_prefetch as model_prefetch_retry
 from core.model_prefetch import snapshot as model_prefetch_snapshot
 from core.storage import make_storage
 
@@ -112,7 +114,26 @@ async def health_models() -> dict[str, object]:
     else:
         terminal = ("ready", "skipped", "failed")
         ready = all(s["state"] in terminal for s in models.values())
-    return {"ready": ready, "models": models}
+    failed = model_prefetch_has_failures()
+    # Surface the first actionable hint so the UI never shows a dead spinner (F6).
+    hint = ""
+    if failed:
+        for status in models.values():
+            if status["state"] == "failed" and status.get("detail"):
+                hint = status["detail"]
+                break
+    return {"ready": ready, "failed": failed, "hint": hint, "models": models}
+
+
+@router.post("/health/models/retry")
+async def health_models_retry() -> dict[str, object]:
+    """Retry first-run model prefetch after a failure (F6).
+
+    Resets non-ready models to pending and restarts the background thread.
+    Returns ``started: false`` when a prefetch is already running.
+    """
+    started = model_prefetch_retry(get_settings())
+    return {"started": started, "models": model_prefetch_snapshot()}
 
 
 @router.get("/health/stack", response_model=StackHealthResponse)

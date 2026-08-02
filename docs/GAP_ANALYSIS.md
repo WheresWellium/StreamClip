@@ -1,6 +1,30 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-07-28 (revision 10 — full dual-track audit: 23-claim technical matrix + 30-row UX sweep)
+**Last run:** 2026-07-31 (revision 11 — **desktop-primary** re-center audit)
+
+### Revision 11 — desktop-first mastery audit (2026-07-31)
+
+Re-centered the gap lens on the **product = the installer** (not Docker). Full architecture + seam audit from code; decision **harden, not rewrite** (TDD Appendix C). New truth docs: [`TECHNICAL_DESIGN.md`](TECHNICAL_DESIGN.md) Rev 5 (desktop-primary; Docker → Appendix D), [`DESKTOP_FAILURE_TAXONOMY.md`](DESKTOP_FAILURE_TAXONOMY.md) (F1–F12), [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md), [`DESKTOP_UPGRADE_MATRIX.md`](DESKTOP_UPGRADE_MATRIX.md).
+
+| ID | Gap (desktop-primary) | Sev | Fix | Status |
+|----|-----------------------|-----|-----|--------|
+| D1 | Writable check was **log-only** → sidecar booted into a guaranteed 500 / white screen (F1) | P0 | code | **Fixed** — `SystemExit(1)` with actionable message in `desktop_sidecar/run.py`; regression `test_run_server_exits_when_data_dirs_unwritable` |
+| D2 | TDD/CLEAN_VM/README treated Docker as canonical while the exe is the product (F11) | P0 | doc | **Fixed** — TDD Rev 5 desktop-primary, README hero leads with installer, Docker demoted to Appendix D |
+| D3 | No product ship gate — Docker clean-VM proved compose, not the `.exe` | P0 | ops/code | **Fixed** — `CLEAN_DESKTOP_VM_VERIFY.md` + `scripts/verify_desktop_clean.ps1` (fresh-data-dir boot smoke) |
+| D4 | Desktop seam excluded from coverage (`-m "not desktop"` waiver, F10) | P1 | test | **Fixed** — `scripts/verify_desktop_coverage.ps1` measures the seam at **91%** (gate floor 85), wired into `verify_desktop.ps1` |
+| D5 | Upgrade path (old build → new) untested (F5) | P1 | test | **Fixed** — `scripts/verify_desktop_upgrade.ps1` (old-rev DB → boot → data + licenses preserved; passes 0012→head) + manual matrix |
+| D6 | BETA_KNOWN_ISSUES stale at beta.6 | P2 | doc | **Fixed** — beta.7; white-screen row added |
+| D7 | First-run model failure copy (disk/network/AV) still generic (F6) | P1 | code | **Fixed** — `classify_failure`/`failure_hint`/`retry_prefetch`; `/api/health/models` +`failed`/`hint` + `POST …/retry`; `ModelWarmupBanner` failed state + Retry; 17 tests |
+| D8 | Supervise UX (F4) | — | — | **Fixed + proven** — `failure-reason.ts` extracted (6 node tests); sidecar boot failures propagate non-zero (`test_run_server_propagates_boot_failure_nonzero`) |
+| D9 | EV signing / SmartScreen (F9) | P1 | ops | **Tooling done** — `publish_desktop_release.ps1 -RequireSigned` + `verify_desktop_release.ps1 -RequireSigning` + [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md); **blocked on operator EV cert purchase (O11)** |
+| D11 | **Desktop feedback black hole (F13)** — in-app bug reports / beta feedback never reach the operator (env-only `OPS_WEBHOOK_URL` / `SMTP_HOST` unset on desktop; row stays in the tester's local SQLite; UI claims "we'll review it") | **P0** | code+infra | **OPEN** — MASTER §4.22; direction chosen = hosted collector on existing Vercel project; only working channel today is the manual GitHub issue template |
+| D10 | Beta program still validated Docker, not the installer | P0 | doc | **Fixed** — [DESKTOP_COHORT_EXIT.md](DESKTOP_COHORT_EXIT.md) + MASTER §8.16d merge Phase0/Phase2; invite email rewritten for installer; Docker retained as Pro-only |
+
+**Net:** all desktop P0s and code P1s closed. Residue is **operator-only**: EV cert purchase (D9/O11), clean-VM install→first-clip sign-off, cohort numbers (DESKTOP_COHORT_EXIT). Pipeline untouched — performance-first + minimize-work held. Turnkey gate: `.\scripts\verify_desktop_release.ps1` (green).
+
+---
+
+**Prior run:** 2026-07-28 (revision 10 — full dual-track audit: 23-claim technical matrix + 30-row UX sweep)
 
 ### Audit snapshot (2026-07-28 — Phase 0 exit strategic)
 

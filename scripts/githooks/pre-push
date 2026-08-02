@@ -1,0 +1,21 @@
+#!/bin/sh
+# Mandatory henna docs gate before any push.
+# Installed via: powershell -File scripts/install_git_hooks.ps1
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT" || exit 1
+
+if [ "$STREAMCLIP_SKIP_HENNA_VERIFY" = "1" ]; then
+  echo "WARN: STREAMCLIP_SKIP_HENNA_VERIFY=1 - skipping henna docs pre-push gate."
+  exit 0
+fi
+
+echo "pre-push: running scripts/verify_henna_docs.ps1 ..."
+if command -v powershell.exe >/dev/null 2>&1; then
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$ROOT/scripts/verify_henna_docs.ps1"
+elif command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/scripts/verify_henna_docs.ps1"
+else
+  echo "ERROR: PowerShell required to run verify_henna_docs.ps1" >&2
+  exit 1
+fi

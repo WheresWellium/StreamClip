@@ -88,7 +88,7 @@ Write-Host "Stable download URL (after GitHub Release publish):" -ForegroundColo
 Write-Host "  https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe"
 Write-Host ""
 Write-Host "Docs page:" -ForegroundColor Cyan
-Write-Host "  https://streamclip-henna.vercel.app/BETA_DOWNLOAD/"
+Write-Host "  https://streamclip-henna.vercel.app/"
 Write-Host "Signing runbook: docs/DESKTOP_SIGNING.md"
 Write-Host ""
 
@@ -101,7 +101,7 @@ if ($DryRun) {
     Write-Host ("Tag:            v{0}" -f $Version)
     Write-Host ("Path:           {0}" -f $(if ($isSignedValid) { "SIGNED" } else { "UNSIGNED (beta)" }))
     Write-Host ("RequireSigned:  {0}" -f $(if ($RequireSigned) { "yes" } else { "no" }))
-    Write-Host ("NoDocsBump:     {0}" -f $(if ($NoDocsBump) { "yes" } else { "no (would bump BETA_DOWNLOAD.md)" }))
+    Write-Host ("NoDocsBump:     {0}" -f $(if ($NoDocsBump) { "yes" } else { "no (would bump docs/index.md + BETA_DOWNLOAD.md)" }))
     Write-Host "Dry-run complete." -ForegroundColor Green
     exit 0
 }
@@ -120,14 +120,14 @@ if ($isSignedValid) {
     $releaseNotes = @"
 Windows 64-bit installer (Authenticode signed). SmartScreen reputation may still warm up on early downloads.
 
-Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+Docs: https://streamclip-henna.vercel.app/
 Signing: docs/DESKTOP_SIGNING.md
 "@
 } else {
     $releaseNotes = @"
 Windows 64-bit installer. SmartScreen may warn on unsigned beta builds - More info, Run anyway.
 
-Docs: https://streamclip-henna.vercel.app/BETA_DOWNLOAD/
+Docs: https://streamclip-henna.vercel.app/
 "@
 }
 
@@ -155,23 +155,26 @@ if ($releaseExists) {
 }
 
 if (-not $NoDocsBump) {
-    $docsPath = Join-Path $root "docs\BETA_DOWNLOAD.md"
-    if (Test-Path $docsPath) {
-        # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
-        # Use a single-quoted here-string so backticks in the regex are not PowerShell escapes.
-        $env:STREAMCLIP_DOCS_BUMP_PATH = $docsPath
-        $env:STREAMCLIP_DOCS_BUMP_VERSION = $Version
-        $py = @'
+    # UTF-8 safe bump via Python (PowerShell Set-Content corrupts emoji/emdash).
+    # Bump henna home (published) + operator BETA_DOWNLOAD in lockstep with package.json.
+    $env:STREAMCLIP_DOCS_BUMP_VERSION = $Version
+    $env:STREAMCLIP_DOCS_BUMP_BETA = (Join-Path $root "docs\BETA_DOWNLOAD.md")
+    $env:STREAMCLIP_DOCS_BUMP_INDEX = (Join-Path $root "docs\index.md")
+    $py = @'
 import os
 import re
 from pathlib import Path
 
-p = Path(os.environ["STREAMCLIP_DOCS_BUMP_PATH"])
-text = p.read_text(encoding="utf-8")
 version = os.environ["STREAMCLIP_DOCS_BUMP_VERSION"]
-if f"`{version}`" in text:
-    print("docs already mention version")
-else:
+today = __import__("datetime").date.today().isoformat()
+
+
+def bump_beta(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    if f"`{version}`" in text and re.search(
+        rf"> \*\*Current Windows build:\*\* `{re.escape(version)}`", text
+    ):
+        return "already current"
     text2, n = re.subn(
         r"(> \*\*Current Windows build:\*\* `)[^`]+(`)",
         rf"\g<1>{version}\2",
@@ -180,15 +183,49 @@ else:
     )
     if not n:
         raise SystemExit("Windows build banner not found in BETA_DOWNLOAD.md")
-    p.write_text(text2, encoding="utf-8", newline="")
-    print("bumped")
+    path.write_text(text2, encoding="utf-8", newline="")
+    return "bumped"
+
+
+def bump_index(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    tick = f"`{version}`"
+    if f"Current Windows installer: **{tick}**" in text:
+        return "already current"
+    text2, n = re.subn(
+        r"(Current Windows installer:\s*\*\*`)[^`]+(`\*\*)(\s*\()[^)]+(\))",
+        rf"\g<1>{version}\2\3{today}\4",
+        text,
+        count=1,
+    )
+    if not n:
+        raise SystemExit("Current Windows installer banner not found in docs/index.md")
+    # Keep the download-table version pin in sync when present.
+    text2, _ = re.subn(
+        r"(\]\([^)]*qClip-Setup-win-x64\.exe\)\s*\(`)[^`]+(`\))",
+        rf"\g<1>{version}\2",
+        text2,
+        count=1,
+    )
+    path.write_text(text2, encoding="utf-8", newline="")
+    return "bumped"
+
+
+beta = Path(os.environ["STREAMCLIP_DOCS_BUMP_BETA"])
+index = Path(os.environ["STREAMCLIP_DOCS_BUMP_INDEX"])
+print(f"BETA_DOWNLOAD.md: {bump_beta(beta)}")
+print(f"docs/index.md: {bump_index(index)}")
 '@
-        $result = $py | python -
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        Write-Host "BETA_DOWNLOAD.md: $result" -ForegroundColor Green
-        Remove-Item Env:STREAMCLIP_DOCS_BUMP_PATH -ErrorAction SilentlyContinue
-        Remove-Item Env:STREAMCLIP_DOCS_BUMP_VERSION -ErrorAction SilentlyContinue
-    }
+    $result = $py | python -
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Write-Host $result -ForegroundColor Green
+    Remove-Item Env:STREAMCLIP_DOCS_BUMP_VERSION -ErrorAction SilentlyContinue
+    Remove-Item Env:STREAMCLIP_DOCS_BUMP_BETA -ErrorAction SilentlyContinue
+    Remove-Item Env:STREAMCLIP_DOCS_BUMP_INDEX -ErrorAction SilentlyContinue
 }
 
-Write-Host "Published. Download link is live on BETA_DOWNLOAD.md." -ForegroundColor Green
+Write-Host "Running henna docs gate ..." -ForegroundColor Cyan
+& "$PSScriptRoot\verify_henna_docs.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "Published. Henna home + GitHub latest download are the customer truth." -ForegroundColor Green

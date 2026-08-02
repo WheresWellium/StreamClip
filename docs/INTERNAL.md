@@ -28,12 +28,24 @@ Old customer pages (`BETA_DOWNLOAD`, quickstart, FAQ, known issues, tutorials) s
 
 **Coverage gate:** `scripts/verify_coverage.ps1` (rules in `MASTER_TODO.md` §3.10).
 
-**Verify exclusion:**
+**Verify exclusion + version lock (mandatory before push):**
 
-```bash
-python -m mkdocs build --strict
-# site/ should contain index.html only (plus Material assets) — no BETA_*, tutorials, gap_analysis, etc.
+```powershell
+.\scripts\verify_henna_docs.ps1
+# Asserts docs/index.md + BETA_DOWNLOAD.md match apps/desktop/package.json,
+# bans stale private-repo / "we'll review it" copy on henna home,
+# runs python -m mkdocs build --strict, and checks site/ for leaks.
 ```
+
+Install once per clone so **every `git push` runs that gate** (versioned hook under `scripts/githooks/pre-push`):
+
+```powershell
+.\scripts\install_git_hooks.ps1   # sets core.hooksPath=scripts/githooks
+```
+
+`publish_desktop_release.ps1` bumps `docs/index.md` + `BETA_DOWNLOAD.md` and re-runs the gate after upload. Emergency only: `$env:STREAMCLIP_SKIP_HENNA_VERIFY='1'`.
+
+Clones without `install_git_hooks.ps1` will not enforce the gate — treat that script as part of onboarding (see CONTRIBUTING).
 
 **Production URL:** https://streamclip-henna.vercel.app/  
 Do **not** use `streamclip.vercel.app` (bound to an unrelated old project).

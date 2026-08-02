@@ -66,6 +66,10 @@ pytest
 
 # Pre-invite gate
 .\scripts\verify_stack.ps1 -WithCoverage
+
+# Customer henna docs must match apps/desktop/package.json (also runs on every git push)
+.\scripts\install_git_hooks.ps1   # once per clone
+.\scripts\verify_henna_docs.ps1
 ```
 
 ```bash

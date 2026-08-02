@@ -13,6 +13,7 @@ import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
 import { createServer } from "net";
 import path from "path";
 import { autoUpdater } from "electron-updater";
+import { failureReasonFor } from "./failure-reason";
 
 const SIDECAR_HOST = process.env.STREAMCLIP_SIDECAR_HOST ?? "127.0.0.1";
 const DEFAULT_SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765");
@@ -228,11 +229,7 @@ function trayIcon(): Electron.NativeImage {
 }
 
 function failureReason(): string {
-  if (sidecarSpawnError) return sidecarSpawnError;
-  if (sidecarExitInfo) {
-    return `Local engine exited (code ${sidecarExitInfo.code ?? "unknown"}) before it finished starting.`;
-  }
-  return "Local engine did not respond in time.";
+  return failureReasonFor(sidecarSpawnError, sidecarExitInfo);
 }
 
 async function showErrorPage(win: BrowserWindow): Promise<void> {

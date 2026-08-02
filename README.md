@@ -35,13 +35,29 @@ All-in-one clip studio for creators — paste a URL or upload, auto-reframe to a
 
 ## Quick start
 
-### Prerequisites
+### For creators — the desktop app (recommended)
+
+qClip ships as a **one-click Windows/macOS installer**. No Docker, no CLI, no cloud account. It runs entirely on your own machine (using your GPU when present, CPU otherwise).
+
+**[Download the latest Windows installer](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)** → run it → paste a URL or drop a file → get clips.
+
+First launch downloads ~1.5 GB of models once. See [docs/BETA_DOWNLOAD.md](docs/BETA_DOWNLOAD.md) for the tester quickstart, and [docs/BETA_KNOWN_ISSUES.md](docs/BETA_KNOWN_ISSUES.md) for the SmartScreen "unrecognized app" workaround (unsigned during beta).
+
+The desktop app is the **product**. Its architecture (Electron shell + embedded Python sidecar, SQLite, in-process worker, local storage) is documented in [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) and [ADR-001](docs/ADR-001-desktop-packaging.md).
+
+---
+
+### For developers / self-hosters — the Docker stack
+
+The Docker Compose stack is the **development environment** and the backend for the future managed/Pro self-host tier. It is **not** what end users install (see [TECHNICAL_DESIGN Appendix D](docs/TECHNICAL_DESIGN.md)).
+
+#### Prerequisites
 
 - Docker + Docker Compose
 - Optional: NVIDIA GPU + Container Toolkit for the `gpu-worker` service
 - ~10 GB free disk for models on first run
 
-### One command
+#### One command
 
 ```bash
 git clone https://github.com/yourname/streamclip.git
@@ -49,7 +65,7 @@ cd streamclip
 docker compose up --build
 ```
 
-**Windows (recommended):** start Docker Desktop first, then:
+**Windows:** start Docker Desktop first, then:
 
 ```powershell
 .\scripts\start_local.ps1

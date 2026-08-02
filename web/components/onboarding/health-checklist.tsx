@@ -146,7 +146,9 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
             Help
           </Link>{" "}
           for download and setup steps, or use{" "}
-          <span className="text-foreground">Help → Beta feedback</span> in the app.
+          the{" "}
+          <span className="text-foreground">GitHub beta bug template</span>{" "}
+          (in-app Help is local-only for now).
         </p>
       </div>
     );

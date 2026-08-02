@@ -223,8 +223,10 @@ ffmpeg, PyInstaller sidecar, static UI, first-run model download).
 | Crash dumps | No | Optional | Yes | Yes |
 | Source URLs / clip content | **Never** collect | **Never** | **Never** | — |
 
-Use the in-app **Report a bug** button (`POST /api/support/bug-reports`) plus structured
-GitHub issues or your beta Discord channel. In-app reports always persist in the local
+**Primary for desktop beta:** structured GitHub issues via the **beta-bug** template
+(`.github/ISSUE_TEMPLATE/beta-bug.yml`). In-app **Report a bug** (`POST /api/support/bug-reports`)
+is local-only on desktop until MASTER §4.22 (F13 collector) ships — do not treat it as operator delivery.
+Optional: beta Discord channel. In-app reports still persist in the local
 `bug_reports` table; operator email requires `SMTP_HOST` + `BUG_REPORT_TO` on the
 api/worker stack (see `.env.example`). Prometheus stays local unless tester enables
 phone-home (future).

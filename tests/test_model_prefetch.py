@@ -31,6 +31,11 @@ def _wait_done(timeout: float = 5.0) -> dict[str, mp.ModelStatus]:
     while time.time() < deadline:
         snap = mp.snapshot()
         if snap and all(s["state"] not in ("pending", "downloading") for s in snap.values()):
+            # Also let the worker thread fully exit so a follow-up
+            # retry_prefetch/start_prefetch is not rejected by the liveness guard.
+            thread = mp._thread
+            if thread is not None:
+                thread.join(timeout=max(0.0, deadline - time.time()))
             return snap
         time.sleep(0.02)
     raise AssertionError(f"prefetch did not finish: {mp.snapshot()}")
@@ -151,3 +156,109 @@ async def test_health_models_ready_when_all_failed():
     body = resp.json()
     assert body["ready"] is True
     assert body["models"]["bad"]["state"] == "failed"
+
+
+# ── F6: actionable first-run failure copy + retry ────────────────────────────
+
+
+def test_classify_failure_disk_full():
+    exc = OSError()
+    exc.errno = 28  # ENOSPC
+    assert mp.classify_failure(exc) == "disk_full"
+    assert mp.classify_failure(RuntimeError("No space left on device")) == "disk_full"
+
+
+def test_classify_failure_network():
+    assert mp.classify_failure(RuntimeError("Connection timed out")) == "network"
+    assert mp.classify_failure(RuntimeError("failed to resolve DNS")) == "network"
+
+
+def test_classify_failure_permission():
+    exc = PermissionError()
+    exc.errno = 13  # EACCES
+    assert mp.classify_failure(exc) == "permission"
+    assert mp.classify_failure(RuntimeError("Access is denied (quarantine)")) == "permission"
+
+
+def test_classify_failure_unknown():
+    assert mp.classify_failure(RuntimeError("something odd")) == "unknown"
+
+
+def test_failed_status_carries_actionable_hint_and_cause():
+    def _no_net(cfg):
+        raise RuntimeError("Connection reset by peer")
+
+    with patch.object(mp, "_LOADERS", {"whisper": _no_net}):
+        mp.start_prefetch(get_settings())
+        snap = _wait_done()
+
+    assert snap["whisper"]["state"] == "failed"
+    assert snap["whisper"]["cause"] == "network"
+    # Detail is the human hint, not a raw traceback.
+    assert "internet" in snap["whisper"]["detail"].lower()
+    assert mp.has_failures() is True
+
+
+def test_retry_prefetch_reruns_failed_models():
+    calls = {"n": 0}
+
+    def _flaky(cfg):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("Connection timed out")
+        return "ok-after-retry"
+
+    with patch.object(mp, "_LOADERS", {"whisper": _flaky}):
+        mp.start_prefetch(get_settings())
+        first = _wait_done()
+        assert first["whisper"]["state"] == "failed"
+
+        assert mp.retry_prefetch(get_settings()) is True
+        second = _wait_done()
+
+    assert second["whisper"]["state"] == "ready"
+    assert calls["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_health_models_endpoint_surfaces_failure_hint():
+    def _disk(cfg):
+        raise RuntimeError("No space left on device")
+
+    with patch.object(mp, "_LOADERS", {"whisper": _disk}):
+        mp.start_prefetch(get_settings())
+        _wait_done()
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/health/models")
+    body = resp.json()
+    assert body["failed"] is True
+    assert "disk" in body["hint"].lower()
+    assert body["models"]["whisper"]["cause"] == "disk_full"
+
+
+@pytest.mark.asyncio
+async def test_health_models_retry_endpoint():
+    calls = {"n": 0}
+
+    def _flaky(cfg):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("network unreachable")
+        return "recovered"
+
+    with patch.object(mp, "_LOADERS", {"whisper": _flaky}):
+        mp.start_prefetch(get_settings())
+        _wait_done()
+
+        app = create_app()
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/health/models/retry")
+            assert resp.status_code == 200
+            assert resp.json()["started"] is True
+            _wait_done()
+
+    assert mp.snapshot()["whisper"]["state"] == "ready"

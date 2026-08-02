@@ -28,8 +28,19 @@ python -m pytest tests/test_model_prefetch.py tests/test_splice_module.py tests/
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
+Write-Host "=== desktop seam coverage gate (F10) ===" -ForegroundColor Cyan
+& "$PSScriptRoot\verify_desktop_coverage.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host ""
+Write-Host "=== desktop upgrade simulation (F5) ===" -ForegroundColor Cyan
+& "$PSScriptRoot\verify_desktop_upgrade.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host ""
 Write-Host "Optional: in-process stack against Docker API (requires Docker running):"
 Write-Host "  .\scripts\verify_inprocess.ps1"
+Write-Host "Product ship gate (fresh Windows 11 VM): docs\CLEAN_DESKTOP_VM_VERIFY.md"
 
 Write-Host ""
 Write-Host "Desktop profile verification passed." -ForegroundColor Green

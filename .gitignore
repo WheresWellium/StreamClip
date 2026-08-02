@@ -21,6 +21,8 @@ static/ui/**
 !static/ui/index.html
 apps/desktop/release/
 apps/desktop/.staging/
+apps/desktop/dist/
+apps/desktop/dist-test/
 *.sqlite3
 *.db
 *.egg-info/

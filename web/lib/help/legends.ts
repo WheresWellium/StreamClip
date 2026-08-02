@@ -96,7 +96,7 @@ export const PIPELINE_STEPPER_LEGEND: Record<string, string> = {
 
 export const ERROR_LEGEND = {
   generic:
-    "Something unexpected happened. Try again, or use Report a bug in the header if it keeps failing.",
+    "Something unexpected happened. Try again, or open a GitHub beta bug report if it keeps failing.",
   jobDetail:
     "The job page failed to load or render. Try again — if the job still exists, progress may continue on the server.",
 };

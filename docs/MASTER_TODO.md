@@ -151,6 +151,15 @@ Shortcut: `.\scripts\verify_coverage.ps1`
 
 **Decision (4.0):** ✅ **Accepted 2026-07-07** — embedded runtime (SQLite + in-process queue + bundled Python sidecar, no Docker). Rationale: `docs/ADR-001-desktop-packaging.md`.
 
+**Desktop is the product (2026-07-31 mastery audit):** the installer path is canonical for design/tests/gates. Truth docs: [`docs/TECHNICAL_DESIGN.md`](TECHNICAL_DESIGN.md) Rev 5 (desktop-primary; Docker → Appendix D), [`docs/DESKTOP_FAILURE_TAXONOMY.md`](DESKTOP_FAILURE_TAXONOMY.md) (F1–F12), [`docs/CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md). **Product ship gate = `scripts/verify_desktop_clean.ps1` + manual fresh-VM install→first-clip**, NOT `verify_coverage.ps1` alone (that stays the contributor/Pro gate). Decision: harden, don't rewrite (TDD Appendix C). Residue: 4.19 upgrade matrix, 4.20 first-run failure copy, 4.21 lift desktop coverage waiver, §4.10 EV signing.
+
+| # | Item | Sev | Effort |
+|---|------|-----|--------|
+| 4.19 | **Upgrade matrix (F5)** — ✅ `scripts/verify_desktop_upgrade.ps1` (old-rev DB → boot → data + licenses preserved; passes 0012→head) + `docs/DESKTOP_UPGRADE_MATRIX.md`; wired into `verify_desktop.ps1`. ☐ manual installer beta.5/.6→.7 per release | 🟢 | S |
+| 4.20 | **First-run model failure copy (F6)** — ✅ `classify_failure`/`failure_hint`/`retry_prefetch` + `/api/health/models` `failed`/`hint` + `POST …/retry` + `ModelWarmupBanner` failed state with Retry; 17 tests green | 🟢 | S |
+| 4.22 | **Feedback black hole (F13) — P0 before cohort invites** — desktop bug reports / beta feedback are written to the tester's **local SQLite** and never delivered: `OPS_WEBHOOK_URL` + `SMTP_HOST`/`BUG_REPORT_TO` are env-only and unset in the desktop profile, so `_queue_support_notifications` dispatches nothing (`backend/api/support.py` 69–78). UI still says "saved — we'll review it". **Decision: hosted collector on the existing Vercel project** (sidecar POSTs → forwards to Discord/email; no extractable secret in the exe) — infra to be stood up, then wire desktop client + honest fallback copy. Detail: [`DESKTOP_FAILURE_TAXONOMY.md`](DESKTOP_FAILURE_TAXONOMY.md) F13 | 🔴 | M |
+| 4.21 | **Lift desktop coverage waiver (F10)** — ✅ `scripts/verify_desktop_coverage.ps1` measures the seam (`inprocess_worker`/`progress_bus`/`task_dispatch`/`task_runner`/`gpu_profile`/`model_prefetch`/`static_ui`/`desktop_sidecar`) at **91%** (gate floor 85), wired into `verify_desktop.ps1`. Waiver no longer hides the seam | 🟢 | M |
+
 | # | Item | Sev | Effort |
 |---|------|-----|--------|
 | 4.1 | **Database**: ✅ SQLite (aiosqlite) profile + portable Alembic migrations (`backend/db/types.py`, `config/desktop.yaml`) | 🟢 | M |
@@ -243,9 +252,10 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 | 8.13 | ~~**OAuth redirect URIs**~~ ✅ 2026-07-09 — copy-paste checklist in `docs/distribution-runbook.md` (`youtube_shorts` / `tiktok` + `WEB_ORIGIN`) | ✅ | S |
 | 8.14 | ~~**Quickstart fresh-reader review**~~ ✅ 2026-07-09 — Steps 1–4 + `verify_stack.ps1` PASS; published quickstart/download 200; fixed `SCBETA`→`SCPRO` key format + stale “exe not built” message; recorded in `BETA_INVITE_PACK.md` §2 | ✅ | S |
 | 8.15 | ~~**Invite comms**~~ ✅ 2026-07-09 — operator confirmed Phase 0 invites sent; pack tooling in `prepare_invite_pack.ps1` / `BETA_INVITE_PACK.md` | ✅ | S |
-| 8.16 | **Phase exit — Phase 0** (`BETA_TESTER_PLAN` §4.5): ≥4/5 complete T0-1..T0-4; no 🔴 >7d; LS test purchase → activate; 110% before Phase 1 — fill [`BETA_COHORT_EXIT.md`](BETA_COHORT_EXIT.md) then sync `BETA_GO_LIVE` §7–§8 | 🟡 | M |
+| 8.16d | **Desktop beta exit (PRIMARY — 2026-07-31 re-center)** — merges old Phase 0 (8.16) + Phase 2 (8.18) into ONE desktop gate: ≥4/5 testers complete T0-1..T0-4; **install→first-clip < 45m median**; **crash-free > 98% (7d)**; no 🔴 >7d; signed build (§4.10) or accepted unsigned workaround. Fill [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) then sync `BETA_GO_LIVE`. Product gate = [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md), not `verify_stack.ps1` | 🔴 | M |
+| 8.16 | ~~**Phase exit — Phase 0 (Docker)**~~ → **superseded by 8.16d for launch.** Docker T0 language now validates only the future Pro/managed-cloud self-host SKU; `BETA_COHORT_EXIT.md` retained for that path | 🟡 | M |
 | 8.17 | **Phase exit — Phase 1** (§5.6): ≥70% T1-1..T1-3; Playwright CI green (§3.3); GPU perf within `PERFORMANCE.md` (+25% beta tolerance) | 🟡 | M |
-| 8.18 | **Phase exit — Phase 2** (§6.4): crash-free >98% (7d); install→first clip <45m median; signing (§4.10); macOS scoped (§5) | 🔴 | L |
+| 8.18 | ~~**Phase exit — Phase 2 (desktop)**~~ → **merged into 8.16d** (desktop is now the primary beta, not a later phase) | 🟢 | — |
 | 8.19 | **Week-before-invite checklist** (`BETA_TESTER_PLAN` §8): **§3.5 green ✅** · **§3.8 clean-slate ✅ (2026-07-09)** · changelog/known issues · LS E2E purchase · **OAuth URIs (§8.13) ✅** · **Beat/scheduled-publish docs ✅** (`distribution-runbook` + quickstart/ops cross-links) | 🟡 | M |
 
 ## 9. Self-host / ops (Docker path — parallel to desktop)
@@ -302,6 +312,9 @@ technical) → Phase 1 (creator closed, GHCR/hosted) → Phase 2 (desktop `.exe`
 ---
 
 ### FS-3 — Deferred consolidation (post-release, P2) 🟢
+
+> **DIRECTOR SCOPE LOCK (2026-07-31):** FS-3 refactor consolidation AND all §2c roadmap features (speaker diarization, Instagram Reels, TikTok direct-post) are **explicitly out of scope for launch**. Finish-line work is desktop hardening + the desktop exit gate (§8.16d) only. Do not open FS-3/roadmap items until after the desktop beta exits. Performance-first: no pipeline/ML changes at the finish line.
+
 
 | Area | Files | Target pattern |
 |------|-------|----------------|

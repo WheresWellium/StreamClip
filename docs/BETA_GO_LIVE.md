@@ -136,7 +136,7 @@ Body:
 > 3. Wait for the model warm-up banner to finish, then paste a Twitch/YouTube URL or drop a video file.
 > 4. Download a clip and share it.
 > 5. If you got a Pro key: **Settings → License**, paste it.
-> 6. Report anything via **Help → Report a bug** (or the GitHub template) — include the OS and, if a job failed, the job id.
+> 6. Report anything via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** — include the OS and, if a job failed, the job id. _(In-app Help → Report a bug stays on your PC until the hosted collector ships — do not rely on it.)_
 >
 > **What we're measuring:** did it install cleanly, did you reach your first clip, and how long did that take.
 >

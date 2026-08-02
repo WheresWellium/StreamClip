@@ -110,7 +110,10 @@ function supportDeliveryToast(
     toast("Feedback sent", "Thanks — the team will follow up.");
     return;
   }
-  toast("Feedback saved", "Saved — we'll review it.");
+  toast(
+    "Saved on this device only",
+    "We cannot see local feedback yet — open a GitHub beta bug so we get it.",
+  );
 }
 
 export function BetaFeedbackDialog({

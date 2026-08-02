@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-07-31 · Current Windows build: **v1.0.0-beta.7**
+**Updated:** 2026-08-02 · Current Windows build: **v1.0.0-beta.8** (pending publish)
 
 ---
 
@@ -43,4 +43,4 @@ Still on beta.5/.6? Upgrade to beta.7.
 → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md)  
 → [FAQ](BETA_FAQ.md)
 
-Report issues in-app: **Help → Report a bug** (include OS, `job_id`, short steps).
+Report issues via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (include OS, `job_id`, short steps). In-app Help → Report a bug is **local-only** on desktop until the F13 collector ships.

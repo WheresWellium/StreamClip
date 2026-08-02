@@ -102,7 +102,10 @@ export function BugReportDialog({
     ) {
       toast("Bug report sent", "Thanks — we'll take a look.");
     } else {
-      toast("Bug report saved", "Saved — we'll review it.");
+      toast(
+        "Saved on this device only",
+        "We cannot see local reports yet — open a GitHub beta bug so we get it.",
+      );
     }
   }
 

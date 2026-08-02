@@ -7,8 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | beta.7 ship | — | pipeline UX + auth in `v1.0.0-beta.7` exe |
-| `master` | desktop mastery audit | — | TDD Rev 5 desktop-primary; taxonomy + clean-desktop-VM gate |
+| `desktop/mastery-ship-gate` | beta.8 redeploy | — | mastery gates + F13 honest copy → publish `v1.0.0-beta.8` |
 
 ## Desktop-first finish line — SHIPPED (2026-07-31)
 
@@ -45,6 +44,6 @@ Email verification · session kill on reset · HttpOnly refresh · desktop Sentr
 
 ## Next steps
 
-1. Testers: uninstall old → install beta.7 → retest license, Twitch→progress, filters, auth
-2. O4 / O5 human gates
-3. Mac universal when ready
+1. Merge mastery branch → `verify_desktop_release.ps1` → `publish_desktop_release.ps1` beta.8
+2. Testers: uninstall → install beta.8; report via GitHub beta-bug template (not in-app)
+3. O4 / O5 / O11 (EV) human gates; clean-VM + cohort evidence (`DESKTOP_COHORT_EXIT.md`)

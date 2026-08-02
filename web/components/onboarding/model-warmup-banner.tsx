@@ -171,7 +171,7 @@ export function ModelWarmupBanner() {
   const isFailed = phase === "failed";
   const failHint =
     status.hint ||
-    "Model download failed. Click Retry; if it keeps failing, open Help - Report a bug.";
+    "Model download failed. Click Retry; if it keeps failing, open a GitHub beta bug report.";
 
   if (isFailed) {
     return (

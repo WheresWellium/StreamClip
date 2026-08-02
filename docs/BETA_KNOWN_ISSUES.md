@@ -17,7 +17,7 @@
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
 | White screen / blank window on launch | Fixed — writable-path fail-fast; if the engine truly can't write, you now get a clear error page with a log link, not a blank window (beta.7+) |
 
-Still on beta.5/.6? Upgrade to beta.7.
+Still on beta.5–beta.7? Upgrade to beta.8.
 
 ---
 

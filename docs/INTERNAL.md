@@ -20,7 +20,7 @@ Old customer pages (`BETA_DOWNLOAD`, quickstart, FAQ, known issues, tutorials) s
 | `GAP_ANALYSIS.md`, `MASTER_TODO.md`, `SESSION_STATE.md` | Planning registers |
 | `BETA_GO_LIVE.md`, `BETA_OPS_PHASE0.md`, `BETA_ON_CALL.md`, `BETA_INVITE_PACK.md` | Cohort ops |
 | `BETA_TESTER_PLAN.md`, `BETA_COHORT_EXIT.md` | Acceptance / exit evidence |
-| `MACOS_INSTALLER.md`, `DESKTOP_SIGNING.md` | Builder / signing runbooks |
+| `MACOS_INSTALLER.md`, `DESKTOP_SIGNING.md`, `CLEAN_DESKTOP_VM_VERIFY.md`, `DESKTOP_*` | Builder / signing / desktop ship-gate runbooks |
 | `OPS_ALERTING.md`, `BETA_OBSERVABILITY.md`, `distribution-runbook.md` | Ops |
 | `PERFORMANCE.md`, `TECHNICAL_DESIGN.md`, `ADR-*`, `CREATOR_PLATFORM.md` | Architecture |
 | `commercial/`, `evidence/`, `superpowers/`, `design/`, `share/` | Internal research / specs |

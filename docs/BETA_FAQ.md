@@ -39,7 +39,7 @@ Install [Latest](https://github.com/WheresWellium/StreamClip/releases/latest/dow
 
 ## "Link jobs" error?
 
-Update to **beta.6**. On beta.5 only, click **Skip** — local jobs still work.
+Update to **beta.8**. On beta.5 only, click **Skip** — local jobs still work.
 
 **Call to action:** [Download beta.6](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
 
@@ -65,4 +65,4 @@ Unsigned beta — not a virus. **More info → Run anyway**.
 
 ## Who do I contact?
 
-**Help → Beta feedback** or **Report a bug** in the app, or reply to your invite email.
+Use the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml), or reply to your invite email. In-app Help → Report a bug is local-only on desktop until the feedback collector ships.

@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-02 · Current Windows build: **v1.0.0-beta.8**
+**Updated:** 2026-08-02 · Current Windows build: **v1.0.0-beta.9**
 
 ---
 
@@ -17,7 +17,7 @@
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
 | White screen / blank window on launch | Fixed — writable-path fail-fast; if the engine truly can't write, you now get a clear error page with a log link, not a blank window (beta.7+) |
 
-Still on beta.5–beta.7? Upgrade to beta.8.
+Still on beta.5–beta.8? Upgrade to beta.9 (fixes engine Retry on the startup-error page).
 
 ---
 

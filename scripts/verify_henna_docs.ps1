@@ -61,10 +61,14 @@ if ($betaDl -match '>\s*\*\*Current Windows build:\*\*\s*`([^`]+)`') {
     Add-Fail "docs/BETA_DOWNLOAD.md missing Current Windows build banner"
 }
 
-# 3) Stable latest download URL (never a pinned stale tag on the customer page)
+# 3) Stable latest Windows download URL (never a pinned stale Windows tag)
 $latestWin = "https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe"
 if (-not $index.Contains($latestWin)) {
     Add-Fail "docs/index.md must link Windows download to releases/latest/download/qClip-Setup-win-x64.exe"
+}
+# Mac must not point at Latest DMG while beta.8 has no Mac asset (404 trap)
+if ($index -match "releases/latest/download/qClip-mac-arm64\.dmg") {
+    Add-Fail "docs/index.md must not use releases/latest for Mac DMG until Latest ships a DMG (use a pinned release that has the asset)"
 }
 
 # 4) Ban stale private-repo / invite-kit-only messaging on the customer page
@@ -91,9 +95,14 @@ if ($index -notmatch "issues/new\?template=beta-bug\.yml") {
 # 6) Strict MkDocs build + assert only customer home is published
 if (-not $SkipBuild) {
     Write-Host "Running: python -m mkdocs build --strict"
-    python -m mkdocs build --strict
-    if ($LASTEXITCODE -ne 0) {
-        Add-Fail "mkdocs build --strict failed (exit $LASTEXITCODE)"
+    # MkDocs prints warnings to stderr; do not let PowerShell NativeCommandError abort.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    python -m mkdocs build --strict 2>&1 | ForEach-Object { Write-Host $_ }
+    $mkExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    if ($mkExit -ne 0) {
+        Add-Fail "mkdocs build --strict failed (exit $mkExit)"
     } else {
         $siteIndex = Join-Path $root "site\index.html"
         if (-not (Test-Path $siteIndex)) {

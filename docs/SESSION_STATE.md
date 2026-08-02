@@ -7,7 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | beta.8 live | — | `v1.0.0-beta.8` published 2026-08-02; F13 collector still open |
+| `master` | beta.9 ship | — | bootstrap Retry/FATAL surface + Mac link fix; F13 collector still open |
 
 ## Desktop-first finish line — SHIPPED (2026-07-31)
 
@@ -23,17 +23,15 @@
 
 | Metric | % | Notes |
 |--------|---|-------|
-| Tester-ready **shipped** | **~95%** | Win installer **beta.8** live (2026-08-02) |
+| Tester-ready **shipped** | **~95%** | Win installer **beta.9** (bootstrap recovery fixes) |
 | Phase 0 **exit** | **~70%** | O4/O5/O11; Mac universal ☐; notarize/EV ☐ |
 
-## Shipped in beta.8
+## Shipped in beta.9
 
-- F1 writable-dir fail-fast (`verify_writable` → SystemExit + startup-error page)
-- F4 Electron failure-reason mapping + boot-failure propagation
-- F6 model prefetch `failed`/`hint` + Retry banner + `POST /api/health/models/retry`
-- Turnkey `verify_desktop_release.ps1` (coverage/upgrade/clean/signing readiness)
-- F13 honest copy: local-only toasts; invites → GitHub beta-bug template (collector still TODO)
-- Prior beta.7: stuck-job errors, status filter, Link Jobs, auth hardening, license path
+- Startup-error **Retry actually restarts** the engine (stop+start); Open log button; FATAL log line on error page
+- Model banner no longer hides after health poll failures
+- Henna Mac link pinned to beta.6 DMG (Latest had 404)
+- Prior beta.8: F1/F4/F6, turnkey release gate, F13 honest toasts
 
 ## Download
 
@@ -45,6 +43,6 @@ Email verification · session kill on reset · HttpOnly refresh · desktop Sentr
 
 ## Next steps
 
-1. Testers: uninstall → install beta.8; report via GitHub beta-bug template
+1. Testers: uninstall → install beta.9; report via GitHub beta-bug template
 2. Operator: clean-VM install→first-clip (`CLEAN_DESKTOP_VM_VERIFY.md`); O4/O5/O11
 3. F13 hosted collector (MASTER §4.22) before trusting in-app Help → Report a bug

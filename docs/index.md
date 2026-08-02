@@ -2,8 +2,7 @@
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
-Current Windows installer: **`1.0.0-beta.8`** (2026-08-02) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned).  
-Mac (Apple Silicon): [qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg).
+Current Windows installer: **`1.0.0-beta.9`** (2026-08-02) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned).
 
 Download the app, then follow the steps below. You do not need Docker or a terminal.
 
@@ -11,16 +10,14 @@ Download the app, then follow the steps below. You do not need Docker or a termi
 
 ## 1. Download {#download}
 
-Pick your computer:
-
 | | |
 |-|-|
-| **Windows** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.8`) |
-| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) |
+| **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.9`) |
+| **Mac** (Apple Silicon) | Interim build: [qClip-mac-arm64.dmg on v1.0.0-beta.6](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.6/qClip-mac-arm64.dmg) — a newer Mac build is not on Latest yet |
 
 Have your license key ready (`SCPRO-…` from your invite email).
 
-Still on beta.5–beta.7? Install beta.8 from the links above, then **re-paste your license key once** if activation fails.
+Still on an older Windows beta? Install beta.9 from the link above, then **re-paste your license key once** if activation fails.
 
 ---
 
@@ -34,7 +31,7 @@ Still on beta.5–beta.7? Install beta.8 from the links above, then **re-paste y
 
 ### Mac (Apple Silicon)
 
-1. Open the downloaded file.
+1. Open the downloaded `.dmg`.
 2. Drag **qClip** into **Applications**.
 3. First time: right-click **qClip** → **Open** (or System Settings → Privacy & Security → **Open Anyway**).
 

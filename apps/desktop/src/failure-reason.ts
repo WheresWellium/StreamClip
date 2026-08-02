@@ -12,13 +12,22 @@ export interface SidecarExitInfo {
   signal: string | null;
 }
 
+/**
+ * Prefer an actionable FATAL line from the engine log (writable-path, migrate)
+ * over a bare exit code so the error page is useful without opening the log.
+ */
 export function failureReasonFor(
   spawnError: string | null,
   exitInfo: SidecarExitInfo | null,
+  fatalFromLog: string | null = null,
 ): string {
   if (spawnError) return spawnError;
+  const fatal = fatalFromLog?.trim();
+  if (fatal) {
+    return fatal.replace(/^FATAL:\s*/i, "").trim();
+  }
   if (exitInfo) {
-    return `Local engine exited (code ${exitInfo.code ?? "unknown"}) before it finished starting.`;
+    return `Local engine exited (code ${exitInfo.code ?? "unknown"}) before it finished starting. Open the engine log for details.`;
   }
   return "Local engine did not respond in time.";
 }
@@ -34,4 +43,12 @@ export function shouldShowErrorPage(
   exitInfo: SidecarExitInfo | null,
 ): boolean {
   return !procAlive && (spawnError !== null || exitInfo !== null);
+}
+
+/** Pull the last FATAL line from a sidecar log body (newest match wins). */
+export function extractFatalFromLog(logText: string | null | undefined): string | null {
+  if (!logText) return null;
+  const matches = logText.match(/^.*FATAL:.*$/gim);
+  if (!matches || matches.length === 0) return null;
+  return matches[matches.length - 1].trim();
 }

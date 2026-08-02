@@ -48,6 +48,7 @@
       }
       button.primary { background: #38bdf8; border-color: #38bdf8; color: #05121f; font-weight: 600; }
       button:hover { border-color: #38bdf8; }
+      button:disabled { opacity: 0.55; cursor: wait; }
       .status { margin-top: 14px; font-size: 12px; color: #93a4bd; min-height: 16px; }
     </style>
   </head>
@@ -61,14 +62,15 @@
       <div class="reason" id="reason">Local engine did not respond in time.</div>
 
       <ol>
-        <li>Click <strong>Retry</strong> below — most first launches just need another attempt.</li>
-        <li>If it keeps failing, open the log and send it to support: <code id="log"></code></li>
-        <li>Antivirus or a locked install folder can block the engine. Reinstalling to the default location usually fixes it.</li>
+        <li>Click <strong>Retry</strong> — this stops and restarts the engine (most first launches need another attempt).</li>
+        <li>If Windows blocked the install earlier with <em>Windows protected your PC</em>, reinstall and choose <strong>More info → Run anyway</strong> (unsigned beta).</li>
+        <li>Open the engine log and file a GitHub beta bug if it keeps failing: <code id="log"></code></li>
+        <li>Antivirus or a locked install folder can block the engine. Prefer the default install location.</li>
       </ol>
 
       <div class="row">
         <button class="primary" id="retry">Retry</button>
-        <button id="restart">Restart engine</button>
+        <button id="openLog">Open engine log</button>
       </div>
       <div class="status" id="status"></div>
     </div>
@@ -81,6 +83,7 @@
       document.getElementById("log").textContent = params.get("log") || "(log unavailable)";
 
       const statusEl = document.getElementById("status");
+      const retryBtn = document.getElementById("retry");
       const api = window.streamclip;
 
       async function waitForHealth(attempts) {
@@ -96,24 +99,44 @@
         return false;
       }
 
-      async function attempt(restartFirst) {
-        statusEl.textContent = restartFirst ? "Restarting engine…" : "Checking engine…";
-        try {
-          if (restartFirst && api) await api.sidecar.start();
-        } catch (_) {
-          /* start is best-effort */
+      async function retryEngine() {
+        if (!api) {
+          statusEl.textContent = "Desktop bridge unavailable. Quit qClip from the tray and reopen.";
+          return;
         }
-        const ok = api ? await waitForHealth(40) : false;
+        retryBtn.disabled = true;
+        statusEl.textContent = "Restarting engine…";
+        try {
+          // Prefer restart (stop + start). Fall back to start for older bridges.
+          if (api.sidecar.restart) {
+            await api.sidecar.restart();
+          } else {
+            try { await api.sidecar.stop(); } catch (_) { /* best-effort */ }
+            await api.sidecar.start();
+          }
+        } catch (_) {
+          /* start is best-effort; health poll is the truth */
+        }
+        const ok = await waitForHealth(50);
         if (ok) {
           statusEl.textContent = "Engine ready — loading qClip…";
           location.href = targetUrl;
-        } else {
-          statusEl.textContent = "Still not responding. Please open the log above.";
+          return;
         }
+        statusEl.textContent = "Still not responding. Open the engine log and try again.";
+        retryBtn.disabled = false;
       }
 
-      document.getElementById("retry").addEventListener("click", () => attempt(false));
-      document.getElementById("restart").addEventListener("click", () => attempt(true));
+      document.getElementById("retry").addEventListener("click", () => {
+        void retryEngine();
+      });
+      document.getElementById("openLog").addEventListener("click", () => {
+        if (api && api.sidecar.openLog) {
+          void api.sidecar.openLog();
+        } else {
+          statusEl.textContent = "Open the log path above from File Explorer, or use the tray menu → Open engine log.";
+        }
+      });
     </script>
   </body>
 </html>

@@ -9,11 +9,11 @@ import {
   shell,
 } from "electron";
 import { spawn, ChildProcess } from "child_process";
-import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, WriteStream } from "fs";
 import { createServer } from "net";
 import path from "path";
 import { autoUpdater } from "electron-updater";
-import { failureReasonFor } from "./failure-reason";
+import { extractFatalFromLog, failureReasonFor } from "./failure-reason";
 
 const SIDECAR_HOST = process.env.STREAMCLIP_SIDECAR_HOST ?? "127.0.0.1";
 const DEFAULT_SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765");
@@ -189,6 +189,26 @@ function stopSidecar(): void {
   sidecarProc = null;
 }
 
+/** Stop any live engine, then spawn a fresh one (error-page Retry/Restart). */
+function restartSidecar(): void {
+  stopSidecar();
+  // Clear stale death evidence so waitForSidecar does not give up immediately.
+  sidecarSpawnError = null;
+  sidecarExitInfo = null;
+  startSidecar();
+}
+
+function readFatalFromLog(): string | null {
+  try {
+    const text = readFileSync(logFilePath(), "utf8");
+    // Tail only — FATAL is written near the end of a failed boot.
+    const tail = text.length > 32_000 ? text.slice(-32_000) : text;
+    return extractFatalFromLog(tail);
+  } catch {
+    return null;
+  }
+}
+
 async function sidecarHealthy(timeoutMs = 1500): Promise<boolean> {
   try {
     const res = await fetch(`${WEB_URL}api/health`, {
@@ -229,7 +249,7 @@ function trayIcon(): Electron.NativeImage {
 }
 
 function failureReason(): string {
-  return failureReasonFor(sidecarSpawnError, sidecarExitInfo);
+  return failureReasonFor(sidecarSpawnError, sidecarExitInfo, readFatalFromLog());
 }
 
 async function showErrorPage(win: BrowserWindow): Promise<void> {
@@ -329,8 +349,20 @@ function buildMenu(): Menu {
     {
       label: "Restart engine",
       click: () => {
-        stopSidecar();
-        startSidecar();
+        restartSidecar();
+        // If the user is stuck on the error page, Retry-equivalent reload happens
+        // when they click Retry/Restart there; tray restart brings the process up.
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          void (async () => {
+            const ok = await waitForSidecar(30_000);
+            if (ok && !mainWindow?.isDestroyed()) {
+              await mainWindow.loadURL(WEB_URL, {
+                extraHeaders: "Cache-Control: no-cache\r\n",
+              });
+              announceReady();
+            }
+          })();
+        }
       },
     },
     {
@@ -365,9 +397,19 @@ ipcMain.handle("streamclip:sidecar-stop", async () => {
   return { stopped: true };
 });
 
+ipcMain.handle("streamclip:sidecar-restart", async () => {
+  restartSidecar();
+  return { restarted: true };
+});
+
 ipcMain.handle("streamclip:sidecar-health", async () => {
   const healthy = await sidecarHealthy();
   return { healthy, url: WEB_URL };
+});
+
+ipcMain.handle("streamclip:sidecar-open-log", async () => {
+  const result = await shell.openPath(logFilePath());
+  return { opened: result === "" };
 });
 
 ipcMain.handle("streamclip:version", () => app.getVersion());

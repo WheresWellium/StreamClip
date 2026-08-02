@@ -117,7 +117,19 @@ export function ModelWarmupBanner() {
     } catch {
       failuresRef.current += 1;
       if (failuresRef.current >= MAX_POLL_FAILURES) {
-        if (!cancelledRef.current) setPhase("hidden");
+        // Do not silently hide — that looks like "warming forever then vanished"
+        // when the sidecar is flapping (F6). Keep a Retry path visible.
+        if (!cancelledRef.current) {
+          setStatus((prev) =>
+            prev ?? {
+              ready: false,
+              models: {},
+              failed: true,
+              hint: "Could not reach the local engine to check model download. Click Retry.",
+            },
+          );
+          setPhase("failed");
+        }
         stopPolling();
       }
     }

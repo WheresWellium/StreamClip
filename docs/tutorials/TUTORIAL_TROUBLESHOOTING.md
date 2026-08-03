@@ -26,7 +26,7 @@ Full beta limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 | SmartScreen / “Windows protected your PC” | **More info → Run anyway** |
 | Mac “app can’t be opened” / Gatekeeper | Right-click → **Open**, or Privacy & Security → **Open Anyway** |
 | License key rejected (desktop) | Paste full `SCPRO-…` with dashes; on upgrade, re-paste once |
-| License key rejected (Docker) | Run `import_invite_license.py` once — [Install → Docker fallback](../BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet) |
+| License key rejected (Docker) | Run `import_invite_license.py` once — [Install → Docker fallback](../BETA_DOWNLOAD.md#macos-docker-fallback) |
 | Stuck on first launch | Wait for ~1.5 GB model download; keep app open |
 | “Link jobs” error | [Install beta.8](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe); on old beta.5 click **Skip** |
 | Clips very slow / expected GPU? | Mac desktop and Docker are CPU-only today — try a ~15 min source. Windows `.exe` uses GPU when available; check **Settings → Get started** |

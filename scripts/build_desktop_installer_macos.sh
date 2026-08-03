@@ -292,8 +292,10 @@ if [[ -n "$SINGLE_ARCH" ]]; then
   pkg.build = pkg.build || {};
   pkg.build.mac = pkg.build.mac || {};
   pkg.build.mac.target = [{ target: "dmg", arch: [arch] }];
+  // Hardcode arch in the name so a broken "{arch}" macro cannot ship.
+  pkg.build.mac.artifactName = "qClip-mac-" + arch + ".${ext}";
   fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-  console.log("Forced mac.target arch=", arch);
+  console.log("Forced mac.target arch=", arch, "artifactName=", pkg.build.mac.artifactName);
   ' "$EB_ARCH"
   npx electron-builder --mac "--${EB_ARCH}" --publish never
 else
@@ -302,16 +304,34 @@ else
 fi
 popd >/dev/null
 
+# Canonical name for CI verify / release upload
+EXPECTED_DMG="qClip-mac-universal.dmg"
+if [[ -n "$SINGLE_ARCH" ]]; then
+  EXPECTED_DMG="qClip-mac-${SINGLE_ARCH}.dmg"
+fi
+
 DMG=""
-shopt -s nullglob
-for f in "$DESKTOP_DIR"/release/qClip-mac-universal.dmg \
-         "$DESKTOP_DIR"/release/qClip-mac-*.dmg; do
-  if [[ -f "$f" ]]; then
-    DMG="$f"
-    break
-  fi
-done
-shopt -u nullglob
+# Prefer the canonical filename; rename common misfires (literal {arch} macro).
+if [[ -f "$DESKTOP_DIR/release/$EXPECTED_DMG" ]]; then
+  DMG="$DESKTOP_DIR/release/$EXPECTED_DMG"
+elif [[ -f "$DESKTOP_DIR/release/qClip-mac-{arch}.dmg" ]]; then
+  mv "$DESKTOP_DIR/release/qClip-mac-{arch}.dmg" "$DESKTOP_DIR/release/$EXPECTED_DMG"
+  DMG="$DESKTOP_DIR/release/$EXPECTED_DMG"
+  echo "Renamed literal qClip-mac-{arch}.dmg -> $EXPECTED_DMG"
+else
+  shopt -s nullglob
+  for f in "$DESKTOP_DIR"/release/qClip-mac-*.dmg; do
+    if [[ -f "$f" ]]; then
+      if [[ "$(basename "$f")" != "$EXPECTED_DMG" ]]; then
+        mv "$f" "$DESKTOP_DIR/release/$EXPECTED_DMG"
+        echo "Renamed $(basename "$f") -> $EXPECTED_DMG"
+      fi
+      DMG="$DESKTOP_DIR/release/$EXPECTED_DMG"
+      break
+    fi
+  done
+  shopt -u nullglob
+fi
 
 if [[ -n "$DMG" ]]; then
   DMG_MB=$(( $(wc -c < "$DMG") / 1024 / 1024 ))
@@ -330,10 +350,11 @@ if [[ -n "$DMG" ]]; then
   fi
 else
   echo "electron-builder finished but no qClip-mac-*.dmg under apps/desktop/release/" >&2
+  ls -la "$DESKTOP_DIR/release" 2>/dev/null || true
   exit 1
 fi
 
 echo ""
 echo "Stable URL after upload:"
-echo "  https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-universal.dmg"
+echo "  https://github.com/WheresWellium/StreamClip/releases/latest/download/${EXPECTED_DMG}"
 echo "Docs: packaging/installer/MACOS.md"

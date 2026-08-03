@@ -268,23 +268,38 @@ if [[ "$SKIP_ELECTRON" -eq 1 ]]; then
 fi
 
 echo ""
-if [[ -n "$SINGLE_ARCH" ]]; then
-  echo "=== Electron compile + macOS DMG ($SINGLE_ARCH only) ==="
-  # Temporarily override package.json target via CLI arch flag
-  EB_ARCH_FLAG="--$SINGLE_ARCH"
-else
-  echo "=== Electron compile + macOS DMG (universal) ==="
-  EB_ARCH_FLAG="--universal"
-fi
-
 pushd "$DESKTOP_DIR" >/dev/null
 if [[ ! -d node_modules ]]; then
   npm ci
 fi
 npm run build
+
 # Prefer explicit --mac so Linux/Windows hosts never accidentally run this path.
-# shellcheck disable=SC2086
-npx electron-builder --mac $EB_ARCH_FLAG --publish never
+# package.json defaults to universal; CLI --arm64 alone still merges to universal
+# and then @electron/universal fails on identical sidecar dylibs. Force arch when
+# STREAMCLIP_MAC_SINGLE_ARCH is set.
+if [[ -n "$SINGLE_ARCH" ]]; then
+  echo "=== Electron compile + macOS DMG ($SINGLE_ARCH only) ==="
+  EB_ARCH="$SINGLE_ARCH"
+  if [[ "$EB_ARCH" == "x64" ]]; then
+    EB_ARCH="x64"
+  fi
+  node --input-type=commonjs -e '
+  const fs = require("fs");
+  const arch = process.argv[1];
+  const path = "package.json";
+  const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+  pkg.build = pkg.build || {};
+  pkg.build.mac = pkg.build.mac || {};
+  pkg.build.mac.target = [{ target: "dmg", arch: [arch] }];
+  fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+  console.log("Forced mac.target arch=", arch);
+  ' "$EB_ARCH"
+  npx electron-builder --mac "--${EB_ARCH}" --publish never
+else
+  echo "=== Electron compile + macOS DMG (universal) ==="
+  npx electron-builder --mac --universal --publish never
+fi
 popd >/dev/null
 
 DMG=""

@@ -29,7 +29,7 @@
       "output": "release",
       "buildResources": "assets"
     },
-    "afterPack": "./build/validate-sidecar.js",
+    "afterPack": "./scripts/validate-sidecar.js",
     "files": [
       "dist/**/*",
       "assets/**/*"

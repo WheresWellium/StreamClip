@@ -31,7 +31,7 @@ The product is the installer, so this is the gate that blocks a desktop release.
 
 Desktop exit = automated battery ✅ + the four operator/cohort rows above (MASTER §8.16d). Do not mark green without the evidence pack.
 
-> ✅ **F13 closed 2026-08-03:** packaged desktop posts to henna `api/support-ingest` (Vercel `SMTP_*` + `BUG_REPORT_TO`). GitHub beta-bug template remains a backup channel.
+> ✅ **F13 closed 2026-08-03:** packaged desktop → henna `api/support-ingest` → **GitHub Issues** + [Project #4](https://github.com/users/WheresWellium/projects/4). GitHub beta-bug template remains a backup channel.
 
 ---
 
@@ -136,7 +136,7 @@ Body:
 > 3. Wait for the model warm-up banner to finish, then paste a Twitch/YouTube URL or drop a video file.
 > 4. Download a clip and share it.
 > 5. If you got a Pro key: **Settings → License**, paste it.
-> 6. Report anything via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** — include the OS and, if a job failed, the job id. _(In-app Help → Report a bug stays on your PC until the hosted collector ships — do not rely on it.)_
+> 6. Prefer in-app **Help (?) → Report a bug** / **Beta feedback** (tracked on GitHub). Backup: the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** — include the OS and, if a job failed, the job id.
 >
 > **What we're measuring:** did it install cleanly, did you reach your first clip, and how long did that take.
 >

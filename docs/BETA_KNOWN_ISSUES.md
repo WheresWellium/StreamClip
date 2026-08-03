@@ -17,7 +17,7 @@
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
 | White screen / blank window on launch | Fixed — writable-path fail-fast; if the engine truly can't write, you now get a clear error page with a log link, not a blank window (beta.7+) |
 | Partial job fail toasted as “Job complete”; Edit blocked | Fixed in beta.22 — honest “Completed with errors” + Edit/Regenerate on failed clips |
-| Support reports never left the device (F13) | Fixed — packaged Help → Report routes to henna + SMTP when configured |
+| Support reports never left the device (F13) | Fixed — packaged Help → Report → GitHub Issues on [Project #4](https://github.com/users/WheresWellium/projects/4) |
 | Virality blank when Ollama down | Fixed — local heuristic score + source badge |
 
 Still on beta.5–beta.8? Upgrade to Latest (fixes engine Retry on the startup-error page).
@@ -56,4 +56,4 @@ Still on beta.5–beta.8? Upgrade to Latest (fixes engine Retry on the startup-e
 → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md)  
 → [FAQ](BETA_FAQ.md)
 
-Report issues via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (include OS, `job_id`, short steps). Packaged desktop routes Help → Report a bug to the henna support collector when SMTP is configured on Vercel (F13).
+Prefer in-app **Help → Report a bug** / **Beta feedback** (lands on GitHub + Project #4). Backup: the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (include OS, `job_id`, short steps).

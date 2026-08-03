@@ -147,8 +147,8 @@ export function HealthChecklist({ data, loading, onRetry, compact }: Props) {
           </Link>{" "}
           for download and setup steps, or use{" "}
           the{" "}
-          <span className="text-foreground">GitHub beta bug template</span>{" "}
-          (in-app Help is local-only for now).
+          <span className="text-foreground">Help (?) → Report a bug</span>
+          {" "}or the GitHub beta bug template.
         </p>
       </div>
     );

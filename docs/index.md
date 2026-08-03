@@ -17,7 +17,7 @@ Download the app, then follow the steps below. You do not need Docker or a termi
 
 Have your license key ready (`SCPRO-…` from your invite email).
 
-Still on an older Windows beta? Install beta.11 from the link above, then **re-paste your license key once** if activation fails.
+Still on an older beta? Install Latest from the link above, then **re-paste your license key once** if activation fails.
 
 ---
 
@@ -61,6 +61,6 @@ Optional: in **Settings → Distribution**, connect YouTube Shorts, then **Publi
 
 ## Need help?
 
-Report problems with the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** — include your OS and, if a job failed, the job id.
+Prefer in-app **Help (?) → Report a bug** or **Beta feedback** — that files a tracked issue for us (include the job id if a clip failed).
 
-In-app **Help → Report a bug** / **Beta feedback** saves on your computer only for now; use the GitHub template so we see it.
+Backup: the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** if the app cannot submit.

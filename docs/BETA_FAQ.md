@@ -65,4 +65,4 @@ Unsigned beta — not a virus. **More info → Run anyway**.
 
 ## Who do I contact?
 
-Use in-app **Help → Report a bug** / **Beta feedback** (packaged desktop emails the operator via the henna collector), the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml), or reply to your invite email.
+Use in-app **Help → Report a bug** / **Beta feedback** (files a GitHub Issue on our board), the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml) as backup, or reply to your invite email.

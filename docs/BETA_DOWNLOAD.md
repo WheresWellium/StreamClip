@@ -30,7 +30,7 @@ No Docker. No terminal. No zip file.
 | GPU | Optional — CPU works, slower |
 
 !!! tip "Upgrading from beta.7 or earlier?"
-    Install beta.8, then **re-paste your license key once** if activation fails. beta.8 adds writable-dir fail-fast, model-download Retry, clearer boot failure pages, and honest local-only bug-report toasts. Report issues via the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml).
+    Install Latest, then **re-paste your license key once** if activation fails. Prefer in-app **Help → Report a bug** (tracked on GitHub); backup: the [GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml).
 
 !!! warning "White screen / many blank tray icons?"
     That was a Program Files write crash in older builds. **Task Manager → end all `qClip` processes**, uninstall, then reinstall from the link above (beta.8). You should see one tray icon and a dark splash (or a clear startup error), not a blank window.

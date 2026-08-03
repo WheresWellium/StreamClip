@@ -5,11 +5,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  afterCreateJobSuccess,
   isPlaceholderJobPath,
   parseJobIdFromPathname,
   resolveJobId,
   jobClipsPath,
   jobOverviewPath,
+  navigateToJob,
 } from "./job-route-id";
 
 describe("parseJobIdFromPathname", () => {
@@ -46,12 +48,50 @@ describe("resolveJobId", () => {
 
 describe("helpers", () => {
   it("builds job hrefs for hard navigation", () => {
-    assert.equal(jobOverviewPath("x"), "/jobs/x");
-    assert.equal(jobClipsPath("x"), "/jobs/x/clips");
+    assert.equal(jobOverviewPath("x"), "/jobs/x/");
+    assert.equal(jobClipsPath("x"), "/jobs/x/clips/");
   });
 
   it("detects placeholder shells", () => {
     assert.equal(isPlaceholderJobPath("/jobs/_/"), true);
     assert.equal(isPlaceholderJobPath("/jobs/abc/"), false);
+  });
+});
+
+describe("afterCreateJobSuccess", () => {
+  it("navigates immediately even when onJobCreated rejects", async () => {
+    const assigned: string[] = [];
+    // @ts-expect-error node stub
+    globalThis.window = {
+      location: { assign: (url: string) => assigned.push(url) },
+      sessionStorage: { setItem() {}, getItem() { return null; } },
+    };
+    try {
+      afterCreateJobSuccess("abc", async () => {
+        throw new Error("caller boom");
+      });
+      assert.deepEqual(assigned, ["/jobs/abc/"]);
+      // Let the rejected promise settle without failing the test runner.
+      await new Promise((r) => setImmediate(r));
+    } finally {
+      // @ts-expect-error teardown
+      delete globalThis.window;
+    }
+  });
+
+  it("navigateToJob uses trailing-slash overview path", () => {
+    const assigned: string[] = [];
+    // @ts-expect-error node stub
+    globalThis.window = {
+      location: { assign: (url: string) => assigned.push(url) },
+      sessionStorage: { setItem() {}, getItem() { return null; } },
+    };
+    try {
+      navigateToJob("z");
+      assert.deepEqual(assigned, ["/jobs/z/"]);
+    } finally {
+      // @ts-expect-error teardown
+      delete globalThis.window;
+    }
   });
 });

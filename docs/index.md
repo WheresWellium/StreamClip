@@ -2,7 +2,7 @@
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
-Current Windows installer: **`1.0.0-beta.23`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned).
+Current Windows installer: **`1.0.0-beta.24`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned).
 
 Download the app, then follow the steps below. You do not need Docker or a terminal.
 
@@ -12,8 +12,8 @@ Download the app, then follow the steps below. You do not need Docker or a termi
 
 | | |
 |-|-|
-| **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.23`) |
-| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.23`, unsigned) |
+| **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.24`) |
+| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.24`, unsigned) |
 
 Have your license key ready (`SCPRO-…` from your invite email).
 
@@ -51,7 +51,7 @@ The first launch may download speech models (~1.5 GB). Keep the app open until t
 
 1. Click **New job**.
 2. Paste a **public** video link (YouTube, Twitch, etc.) or upload a video file.
-3. Click **Submit**.
+3. Click **Generate clips**.
 4. Wait until the job says **done**.
 5. Open a clip → preview → **Approve**.
 

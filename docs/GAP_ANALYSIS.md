@@ -1,6 +1,23 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-08-03 (revision 14 — Mac arm64 on beta.22 Latest)
+**Last run:** 2026-08-03 (revision 15 — create→live nav + beta.23 truth)
+
+### Revision 15 — create → live job navigation (2026-08-03)
+
+Friend report on **v1.0.0-beta.23**: file upload + gaming + 16:9 + 1 clip → **home shell** after Generate clips; job still processing under Jobs. Root causes: SPA home fallback for `/jobs/*` misses, async create effect cancel race, trailing-slash mismatch vs `trailingSlash: true`.
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| U78 | Create job lands on home instead of live overview | **P1** | code | **Closed in beta.24** — `afterCreateJobSuccess` + trailing-slash paths; `static_ui` jobs-miss ≠ home; build guards; matrix tests |
+| U79 | Clip count ignored when **More options** collapsed | **P1** | code | **Closed in beta.24** — always-submit hidden `target_clips` |
+| D14 | Henna how-to said **Submit**; UI says **Generate clips** | P2 | doc | **Fixed** — `docs/index.md` step 3 |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | **Still open** — beta.24 unsigned |
+| O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** |
+| O14b | Universal Mac DMG + notarization | P2 | ops | **Still open** |
+
+**Net:** U78 + U79 ship in **beta.24**. Residue remains operator: EV (O11), clean-VM (O4d), notarization (O14b), cohort numbers.
+
+**Desktop seams re-verified ok:** sidecar `verify_writable` fail-fast; `_writable_slots`; F13 henna support-ingest; virality heuristic fallback; `task_dispatch` on create; “Completed with errors”; `verify_desktop_release.ps1`.
 
 ### Revision 14 — Mac parity (2026-08-03)
 
@@ -65,7 +82,7 @@ Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audi
 
 ## Executive summary
 
-The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-to-end**. Phase 0 **engineering invite gates are green** (coverage ≥95%, clean-slate stack). Remaining work is mostly **ops truth, cohort exit evidence, desktop trust (EV signing), and license/notify leftovers**. Coverage snapshot in SESSION_STATE ≈**96%**; Phase 1 still needs the **110%** row (MASTER §3.10 / §8.1).
+**Product = desktop installer** (Latest **v1.0.0-beta.24** Win + Mac arm64). Pipeline, F13 support egress, heuristic virality, create→live nav (U78), and clip-count submit (U79) are in good shape. Remaining blockers are **operator-only**: clean-VM install→first-clip (O4d), EV signing (O11), Mac notarization (O14b), cohort exit numbers. Coverage gate remains green (~96%); Phase 1 **110%** stretch still deferred.
 
 ### Open register (2026-07-28)
 
@@ -137,6 +154,8 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | U26 | Save template omits profanity | **Fixed** | P2 | code | Template save/apply includes `profanity_filter` in `create-job-form.tsx` |
 | U27 | Playwright full journey | Partial | P2 | defer | MASTER §3.3 — blocks 110% gate |
 | U28 | Phase 3 UX (bug report, privacy, checklist) | **Fixed** | — | — | Wired in layout + settings hub |
+| U78 | Create → home (not live overview) | **Fixed** | P1 | code | beta.24 — trailing slash + sync nav + jobs-miss ≠ home |
+| U79 | Clip count drop when More options collapsed | **Fixed** | P1 | code | beta.24 — hidden `target_clips` always submitted |
 
 ## Modularity & duplication register
 
@@ -167,6 +186,12 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | Web build | `npx next build` | **Green** |
 
 See `docs/BETA_GO_LIVE.md`, `docs/BETA_TESTER_PLAN.md` §1.
+
+## Resolved since last run (rev 15)
+
+- U78 — Create→home: fixed in tree (ship beta.24); known-issues still warn beta.23 testers
+- U79 — Collapsed More options dropped `target_clips` from FormData (always hidden field now)
+- D14 — Henna CTA **Generate clips** (was Submit); promote henna for public copy
 
 ## Resolved since revision 6 (2026-07-07)
 

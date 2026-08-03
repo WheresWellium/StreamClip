@@ -30,12 +30,17 @@ function Test-SigningConfigured {
 function Test-DesktopStaticUi {
     $uiIndex = Join-Path $root "static\ui\index.html"
     $uiNext = Join-Path $root "static\ui\_next"
+    $jobShell = Join-Path $root "static\ui\jobs\_\index.html"
     if (-not (Test-Path $uiIndex)) {
         Write-Host "ERROR: static/ui/index.html missing - UI build failed or was skipped." -ForegroundColor Red
         exit 1
     }
     if (-not (Test-Path $uiNext)) {
         Write-Host "ERROR: static/ui/_next missing - static export incomplete." -ForegroundColor Red
+        exit 1
+    }
+    if (-not (Test-Path $jobShell)) {
+        Write-Host "ERROR: static/ui/jobs/_/index.html missing - job detail shell not exported." -ForegroundColor Red
         exit 1
     }
     Write-Host "Static UI OK" -ForegroundColor Green

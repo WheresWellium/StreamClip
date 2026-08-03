@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-03 · Current build: **v1.0.0-beta.23** (Windows + Mac Apple Silicon)
+**Updated:** 2026-08-03 · Current build: **v1.0.0-beta.24** (Windows + Mac Apple Silicon)
 
 ---
 
@@ -12,6 +12,8 @@
 
 | Issue | Status |
 |-------|--------|
+| Create job lands on home instead of live overview | Fixed in beta.24 — hard-nav + job SPA shell |
+| Clip count ignored when More options collapsed | Fixed in beta.24 — `target_clips` always submitted |
 | "Link jobs" Internal Server Error | Fixed in beta.6 |
 | SCPRO key won't activate on empty desktop DB | Fixed — cohort keys seeded at boot |
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
@@ -20,7 +22,7 @@
 | Support reports never left the device (F13) | Fixed — packaged Help → Report → GitHub Issues on [Project #4](https://github.com/users/WheresWellium/projects/4) |
 | Virality blank when Ollama down | Fixed — local heuristic score + source badge |
 
-Still on beta.5–beta.8? Upgrade to Latest (fixes engine Retry on the startup-error page).
+Still on beta.5–beta.23? Upgrade to Latest (create→live overview + clip-count fix in beta.24).
 
 ---
 

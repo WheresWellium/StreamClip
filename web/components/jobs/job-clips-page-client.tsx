@@ -62,7 +62,7 @@ export function JobClipsPageClient() {
           access.
         </p>
         <Link
-          href="/jobs"
+          href="/jobs/"
           className="text-sky-400 hover:underline text-sm"
         >
           Back to jobs
@@ -103,7 +103,7 @@ export function JobClipsPageClient() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <Link
-          href="/jobs"
+          href="/jobs/"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           All jobs

@@ -103,7 +103,7 @@ test.describe("API-down and not-found paths", () => {
     // Regression lock for GAP T63 — user stays put and is told why.
     await expect(page.getByRole("heading", { name: /job not found/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /back to jobs/i })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe(`/jobs/${JOB_ID}`);
+    expect(new URL(page.url()).pathname).toMatch(new RegExp(`^/jobs/${JOB_ID}/?$`));
   });
 
   test("missing job on the clips route also renders not-found in place", async ({
@@ -117,7 +117,9 @@ test.describe("API-down and not-found paths", () => {
     await gotoApp(page, `/jobs/${JOB_ID}/clips`);
 
     await expect(page.getByRole("heading", { name: /job not found/i })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe(`/jobs/${JOB_ID}/clips`);
+    expect(new URL(page.url()).pathname).toMatch(
+      new RegExp(`^/jobs/${JOB_ID}/clips/?$`),
+    );
   });
 
   test("vault surfaces a load error instead of a fake empty state", async ({ page }) => {

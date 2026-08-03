@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (beta.23 shipped)
+**Last updated:** 2026-08-03 (beta.24 ship — U78/U79)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | — | — | beta.23 Latest; ping testers |
+| `master` | — | — | beta.24 Latest; ping friend to upgrade |
 
 ## Pipeline capability (desktop)
 
@@ -25,9 +25,9 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 
 ## Shipped
 
-- **1.0.0-beta.23** Latest — Win Setup + Mac arm64 DMG
-- F13 → GitHub Issues + [Project #4](https://github.com/users/WheresWellium/projects/4)
-- Henna honesty (prefer in-app Report)
+- **1.0.0-beta.24** Latest — Win Setup + Mac arm64 DMG
+- U78 create→live overview + U79 clip-count when More options collapsed
+- F13 → GitHub Issues + Project #4
 
 ## Still operator-gated
 

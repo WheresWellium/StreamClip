@@ -38,7 +38,7 @@ def resolve_spa_html(static_dir: Path, normalized: str) -> Path | None:
     ``_`` directory (``jobs/_/index.html``). Walk the export tree preferring the
     literal segment, then the ``_`` dynamic shell, so real ids like
     ``/jobs/<uuid>/`` open the correct page instead of falling back to home.
-    Returns ``None`` when no shell matches (caller serves the root index).
+    Returns ``None`` when no shell matches (caller chooses a fallback).
     """
     segments = [seg for seg in normalized.split("/") if seg]
     cursor = static_dir
@@ -54,6 +54,26 @@ def resolve_spa_html(static_dir: Path, normalized: str) -> Path | None:
         return None
     index_html = cursor / "index.html"
     return index_html if index_html.is_file() else None
+
+
+def is_jobs_spa_path(normalized: str) -> bool:
+    """True for ``jobs`` / ``jobs/...`` client routes (not ``/api/jobs``)."""
+    return normalized == "jobs" or normalized.startswith("jobs/")
+
+
+def resolve_jobs_miss(static_dir: Path) -> Path | None:
+    """Fallback HTML when a ``/jobs/*`` path has no resolved shell.
+
+    Prefer the dynamic job shell so create→``/jobs/<id>/`` still opens the
+    live overview. Never return the site home index.
+    """
+    job_shell = static_dir / "jobs" / "_" / "index.html"
+    if job_shell.is_file():
+        return job_shell
+    not_found = static_dir / "404.html"
+    if not_found.is_file():
+        return not_found
+    return None
 
 
 def resolve_static_dir(cfg: Settings) -> Path | None:
@@ -102,12 +122,17 @@ def mount_static_ui(app: FastAPI, cfg: Settings) -> bool:
             # should not be cached so desktop installs pick up fresh UI after update.
             headers = _SPA_NO_CACHE if candidate.suffix == ".html" else None
             return FileResponse(candidate, headers=headers)
-        # Exported route shell (literal ``path/index.html`` or dynamic ``_`` shell
-        # for routes like ``/jobs/<id>/``). Falls back to the root index for
-        # genuinely unknown paths so the SPA can render its own not-found.
+        # Exported route shell (literal path or dynamic ``_``). Unknown non-job
+        # paths fall back to home; job misses never do (create→home bug).
         shell = resolve_spa_html(static_dir, normalized)
         if shell is not None:
             return FileResponse(shell, headers=_SPA_NO_CACHE)
+        if is_jobs_spa_path(normalized):
+            job_miss = resolve_jobs_miss(static_dir)
+            if job_miss is not None:
+                status = 404 if job_miss.name == "404.html" else 200
+                return FileResponse(job_miss, status_code=status, headers=_SPA_NO_CACHE)
+            raise HTTPException(status_code=404, detail="Job UI shell missing")
         return FileResponse(static_dir / "index.html", headers=_SPA_NO_CACHE)
 
     log.info("static_ui_mounted", dir=str(static_dir))

@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/actions/jobs";
 import { assetsApi, type OverlayAsset } from "@/lib/api/client";
 import { getClientAccessToken } from "@/lib/auth/client-session";
-import { navigateToJob } from "@/lib/jobs/job-route-id";
+import { afterCreateJobSuccess } from "@/lib/jobs/job-route-id";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -147,23 +147,14 @@ export function CreateJobForm({
     };
   }, []);
 
+  const onJobCreatedRef = React.useRef(onJobCreated);
+  onJobCreatedRef.current = onJobCreated;
+
   React.useEffect(() => {
     if (state.status !== "ok" || !state.jobId) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        await onJobCreated?.(state.jobId!);
-      } catch {
-        // Navigation still proceeds — caller failures must not trap the user.
-      }
-      // Full document navigation: static export only prebuilds jobs/_/ so
-      // Next soft-nav to a real id shows "Job not found" instantly.
-      if (!cancelled) navigateToJob(state.jobId!);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [state.status, state.jobId, onJobCreated]);
+    // Sync hard-nav; ref avoids re-firing when parent recreates onJobCreated.
+    afterCreateJobSuccess(state.jobId, onJobCreatedRef.current);
+  }, [state.status, state.jobId]);
 
   const selectedProfile = meta.content_profiles.find((p) => p.id === contentProfile);
 
@@ -377,6 +368,8 @@ export function CreateJobForm({
           <input type="hidden" name="reframe_preset" value={reframePreset} />
           <input type="hidden" name="caption_style" value={captionStyle} />
           <input type="hidden" name="aspect_ratio" value={aspectRatio} />
+          {/* Always submit clip count — the visible input unmounts when More options is collapsed. */}
+          <input type="hidden" name="target_clips" value={String(targetClips)} />
           <input
             type="hidden"
             name="profanity_filter"
@@ -459,7 +452,6 @@ export function CreateJobForm({
                   <Label htmlFor="target_clips">Clips to generate (1–20)</Label>
                   <Input
                     id="target_clips"
-                    name="target_clips"
                     type="number"
                     value={targetClips}
                     onChange={(e) => setTargetClips(Number(e.target.value))}

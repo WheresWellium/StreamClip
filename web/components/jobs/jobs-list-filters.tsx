@@ -21,7 +21,7 @@ export function JobsListFilters() {
       if (next.status) params.set("status", next.status);
       else params.delete("status");
     }
-    router.push(`/jobs?${params.toString()}`);
+    router.push(`/jobs/?${params.toString()}`);
   }
 
   return (

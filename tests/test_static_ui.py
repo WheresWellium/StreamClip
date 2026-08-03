@@ -97,7 +97,7 @@ async def test_static_ui_serves_nested_dynamic_clips_shell(static_ui_env):
 
 
 def test_resolve_spa_html_prefers_literal_then_dynamic(static_ui_env):
-    from backend.static_ui import resolve_spa_html
+    from backend.static_ui import is_jobs_spa_path, resolve_jobs_miss, resolve_spa_html
 
     root = static_ui_env
     assert resolve_spa_html(root, "jobs") == root / "jobs" / "index.html"
@@ -107,6 +107,10 @@ def test_resolve_spa_html_prefers_literal_then_dynamic(static_ui_env):
         == root / "jobs" / "_" / "clips" / "index.html"
     )
     assert resolve_spa_html(root, "totally/unknown/path") is None
+    assert is_jobs_spa_path("jobs")
+    assert is_jobs_spa_path("jobs/abc/")
+    assert not is_jobs_spa_path("vault")
+    assert resolve_jobs_miss(root) == root / "jobs" / "_" / "index.html"
 
 
 @pytest.mark.asyncio
@@ -178,3 +182,63 @@ async def test_static_ui_serves_html_file_and_spa_fallback(static_ui_env):
         assert "StreamClip UI" in unknown.text
         reserved = await client.get("/api/does-not-exist")
         assert reserved.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_static_ui_job_miss_never_serves_home(static_ui_env):
+    """When the dynamic job shell cannot resolve, never fall back to home HTML."""
+    # Remove the clips shell so /jobs/<id>/deep/miss fails resolve_spa_html,
+    # but keep jobs/_/index.html as the safe job fallback.
+    clips_index = static_ui_env / "jobs" / "_" / "clips" / "index.html"
+    clips_index.unlink()
+    clips_index.parent.rmdir()
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/jobs/abc123/not-a-real-subroute/")
+        assert resp.status_code == 200
+        assert "Job Detail" in resp.text
+        assert "StreamClip UI" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_static_ui_job_miss_without_shell_is_404_not_home(tmp_path, monkeypatch):
+    """Missing jobs/_ shell must 404 (or 404.html), never root index.html."""
+    ui = tmp_path / "ui-no-job-shell"
+    ui.mkdir()
+    (ui / "index.html").write_text("<html><body>StreamClip UI</body></html>", encoding="utf-8")
+    (ui / "jobs").mkdir()
+    (ui / "jobs" / "index.html").write_text("<html><body>Jobs</body></html>", encoding="utf-8")
+    (ui / "404.html").write_text("<html><body>Not Found</body></html>", encoding="utf-8")
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.web, "serve_static", True)
+    monkeypatch.setattr(cfg.web, "static_dir", ui)
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/jobs/abc123def456/")
+        assert resp.status_code == 404
+        assert "Not Found" in resp.text
+        assert "StreamClip UI" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_static_ui_job_miss_without_shell_or_404_raises(tmp_path, monkeypatch):
+    ui = tmp_path / "ui-bare"
+    ui.mkdir()
+    (ui / "index.html").write_text("<html><body>StreamClip UI</body></html>", encoding="utf-8")
+    (ui / "jobs").mkdir()
+
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.web, "serve_static", True)
+    monkeypatch.setattr(cfg.web, "static_dir", ui)
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/jobs/abc123def456/")
+        assert resp.status_code == 404
+        assert "StreamClip UI" not in resp.text

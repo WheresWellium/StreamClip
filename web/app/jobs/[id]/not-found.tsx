@@ -11,7 +11,7 @@ export default function NotFound() {
         access.
       </p>
       <Button asChild>
-        <Link href="/jobs">Back to jobs</Link>
+          <Link href="/jobs/">Back to jobs</Link>
       </Button>
     </div>
   );

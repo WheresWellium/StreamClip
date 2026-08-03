@@ -56,13 +56,14 @@ export function resolveJobId(
 }
 
 export function jobOverviewPath(jobId: string): string {
-  // No forced trailing slash — FastAPI SPA resolve accepts both; Next static
-  // export may normalize. Soft-nav must never be used for these paths.
-  return `/jobs/${jobId}`;
+  // Trailing slash matches Next static export (`trailingSlash: true`) so
+  // FastAPI resolves `jobs/_/index.html` instead of falling through to home.
+  // Soft-nav must never be used for these paths.
+  return `/jobs/${jobId}/`;
 }
 
 export function jobClipsPath(jobId: string): string {
-  return `/jobs/${jobId}/clips`;
+  return `/jobs/${jobId}/clips/`;
 }
 
 /** Full document navigation — required for desktop static export shells. */
@@ -77,4 +78,19 @@ export function navigateToJob(
     /* ignore */
   }
   window.location.assign(view === "clips" ? jobClipsPath(jobId) : jobOverviewPath(jobId));
+}
+
+/**
+ * Post-create success path: fire optional callback best-effort, then hard-nav
+ * immediately. Never await the callback or gate on effect cleanup — that race
+ * left users on home while the job kept running.
+ */
+export function afterCreateJobSuccess(
+  jobId: string,
+  onJobCreated?: (jobId: string) => void | Promise<void>,
+): void {
+  void Promise.resolve(onJobCreated?.(jobId)).catch(() => {
+    /* caller failures must not trap the user */
+  });
+  navigateToJob(jobId);
 }

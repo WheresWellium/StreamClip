@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from core.creator_options import (
     ASPECT_RATIO_IDS,
     CAPTION_STYLE_IDS,
@@ -94,3 +97,21 @@ def test_aspect_ratio_validators_and_dimensions() -> None:
     assert aspect_ratio_dimensions("4:5") == (1080, 1350)
     # Unknown ids fall back to the 9:16 default
     assert aspect_ratio_dimensions("nonsense") == (1080, 1920)
+
+
+def _ts_string_array(source: str, const_name: str) -> list[str]:
+    match = re.search(
+        rf"export const {const_name} = \[([^\]]+)\] as const;",
+        source,
+        re.DOTALL,
+    )
+    assert match, f"{const_name} not found in creator-option-ids.ts"
+    return re.findall(r'"([^"]+)"', match.group(1))
+
+
+def test_web_creator_option_ids_match_python() -> None:
+    """TS create-form enums must stay in lockstep with core catalogs."""
+    ts_path = Path(__file__).resolve().parents[1] / "web" / "lib" / "creator-option-ids.ts"
+    source = ts_path.read_text(encoding="utf-8")
+    assert _ts_string_array(source, "CONTENT_PROFILE_IDS") == list(CONTENT_PROFILE_IDS)
+    assert _ts_string_array(source, "ASPECT_RATIO_IDS") == list(ASPECT_RATIO_IDS)

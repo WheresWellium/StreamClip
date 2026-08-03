@@ -77,7 +77,7 @@ test.describe("Create → progress → review journey", () => {
     await page.fill("#display_title", "Saturday ranked grind");
     await page.getByRole("button", { name: /generate clips/i }).click();
 
-    await page.waitForURL(new RegExp(`/jobs/${JOB_ID}$`));
+    await page.waitForURL(new RegExp(`/jobs/${JOB_ID}/?$`));
 
     // The form sent exactly what the user typed.
     expect(createdPayload).toMatchObject({

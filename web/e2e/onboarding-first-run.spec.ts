@@ -126,9 +126,9 @@ test.describe("First-run onboarding", () => {
     await createPost;
 
     // Regression lock for GAP T60 — we must land on the job and stay there.
-    await page.waitForURL(new RegExp(`/jobs/${JOB_ID}$`), { timeout: 20_000 });
+    await page.waitForURL(new RegExp(`/jobs/${JOB_ID}/?$`), { timeout: 20_000 });
     await page.waitForTimeout(1500); // give middleware a chance to bounce us
-    expect(new URL(page.url()).pathname).toBe(`/jobs/${JOB_ID}`);
+    expect(new URL(page.url()).pathname).toMatch(new RegExp(`^/jobs/${JOB_ID}/?$`));
 
     // Onboarding was marked complete before the navigation.
     expect(completeCalled).toBe(true);

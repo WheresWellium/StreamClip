@@ -72,4 +72,13 @@ if (Test-Path $uiOut) { Remove-Item -Recurse -Force $uiOut }
 New-Item -ItemType Directory -Path $uiOut | Out-Null
 Copy-Item -Recurse (Join-Path $exportDir "*") $uiOut
 
+# Dynamic job routes resolve through jobs/_/index.html — without it, FastAPI
+# used to serve home HTML and create appeared to "land on home".
+$jobShell = Join-Path $uiOut "jobs\_\index.html"
+if (-not (Test-Path $jobShell)) {
+    Write-Host "ERROR: static/ui/jobs/_/index.html missing after export." -ForegroundColor Red
+    Write-Host "  Job create navigation requires this shell. Check generateStaticParams for jobs/[id]." -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "Static UI ready at static/ui/" -ForegroundColor Green

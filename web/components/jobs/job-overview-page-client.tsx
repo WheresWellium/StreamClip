@@ -74,7 +74,7 @@ export function JobOverviewPageClient() {
           access.
         </p>
         <Button asChild>
-          <Link href="/jobs">Back to jobs</Link>
+          <Link href="/jobs/">Back to jobs</Link>
         </Button>
       </div>
     );
@@ -103,7 +103,7 @@ export function JobOverviewPageClient() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
       <Link
-        href="/jobs"
+        href="/jobs/"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         ← All jobs

@@ -1,6 +1,6 @@
 # macOS desktop installer (§5) — builders
 
-**Beta testers / end users:** download the universal DMG —
+**Beta testers / end users:** download the Apple Silicon DMG on Latest —
 see [docs/BETA_DOWNLOAD.md](../../docs/BETA_DOWNLOAD.md#macos) and
 [docs/MACOS_INSTALLER.md](../../docs/MACOS_INSTALLER.md).
 
@@ -8,20 +8,21 @@ qClip on macOS follows the same **Electron shell + PyInstaller sidecar** layout 
 Windows ([ADR-001](../../docs/ADR-001-desktop-packaging.md)). This document covers the
 DMG **build** path; Windows NSIS remains in [README.md](./README.md).
 
-**Status:** build on a **Mac host**. Universal DMG needs Apple Silicon + Rosetta x86 Python
-so both sidecars can be produced. Running the script on Windows exits early.
+**Status:** Latest ships **arm64** via GHA (`STREAMCLIP_MAC_SINGLE_ARCH=arm64`).
+Universal DMG still needs a Mac host + Rosetta x86 Python. Running the script on
+Windows exits early.
 
 ## Architecture decision (§5.5)
 
 | Choice | Decision |
 |--------|----------|
-| Ship | **universal** Electron wrapper + **dual sidecars** (`sidecar/arm64` + `sidecar/x64`) |
-| Artifact | `qClip-mac-universal.dmg` |
-| Rationale | One download for Apple Silicon and Intel; Electron lipo + arch-selected PyInstaller tree |
+| Ship (Latest) | Apple Silicon `qClip-mac-arm64.dmg` via CI |
+| Fuller local | **universal** Electron + dual sidecars → `qClip-mac-universal.dmg` |
+| Rationale | Arm64 on GHA matches Windows one-arch Latest; universal needs Rosetta |
 
-`apps/desktop/package.json` `build.mac` targets `dmg` + `arch: ["universal"]` with
-`artifactName: qClip-mac-{arch}.${ext}`. The main process picks `sidecar/{arm64,x64}/`
-at runtime (`apps/desktop/src/main.ts`).
+`apps/desktop/package.json` `build.mac` defaults to `dmg` + `arch: ["universal"]` with
+`artifactName: qClip-mac-${arch}.${ext}` (CI single-arch rewrites target + name).
+The main process picks `sidecar/{arm64,x64}/` at runtime (`apps/desktop/src/main.ts`).
 
 ## Data directory (§5.4)
 

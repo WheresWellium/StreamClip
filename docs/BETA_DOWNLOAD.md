@@ -63,7 +63,7 @@ No Docker. No terminal for the normal path.
 
 **Next:** [Create your first clip →](BETA_TESTER_QUICKSTART.md)
 
-### Docker fallback (operators) {#macos-docker-no-public-dmg-yet}
+### Docker fallback (operators) {#macos-docker-fallback}
 
 Need Postgres workers, an Intel Mac, or the compose stack? Use [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/) + project files from your operator:
 

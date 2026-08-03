@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (Mac arm64 on beta.22 Latest)
+**Last updated:** 2026-08-03 (Mac arm64 + henna prod)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | Mac parity | — | GHA arm64 DMG → v1.0.0-beta.22 |
+| `master` | — | — | Mac parity shipped; next = clean-VM / EV |
 
 ## Pipeline capability (desktop)
 
@@ -26,6 +26,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 ## Shipped
 
 - Windows + Mac Apple Silicon on **1.0.0-beta.22** Latest
+- Henna prod promoted (`streamclip-henna.vercel.app` → Latest Mac + beta.22)
 - Partial-fail honesty, heuristic virality, F13 support, job-aspect cards
 
 ## Still operator-gated
@@ -35,4 +36,5 @@ Clean-VM install→first-clip ☐ · EV / notarization ☐ · universal Mac DMG 
 ## Download
 
 Windows → https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe  
-Mac (arm64) → https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg
+Mac (arm64) → https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg  
+Henna → https://streamclip-henna.vercel.app/

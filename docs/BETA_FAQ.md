@@ -18,7 +18,7 @@ Details: [Install qClip](BETA_DOWNLOAD.md#one-click-installers)
 
 **Call to action:** [Download qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.22`) → Applications → right-click **Open** (unsigned) → **Settings → License**. Same code train as Windows Latest.
 
-Apple Silicon on Latest; universal (Intel + Silicon) via local Mac rebuild. Details: [Install → macOS](BETA_DOWNLOAD.md#macos). Docker remains an [operator fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
+Apple Silicon on Latest; universal (Intel + Silicon) via local Mac rebuild. Details: [Install → macOS](BETA_DOWNLOAD.md#macos). Docker remains an [operator fallback](BETA_DOWNLOAD.md#macos-docker-fallback).
 
 ---
 
@@ -27,7 +27,7 @@ Apple Silicon on Latest; universal (Intel + Silicon) via local Mac rebuild. Deta
 In your invite / setup email (`SCPRO-…`). Paste it in **Settings → License**.
 
 - **Windows / Mac desktop (beta.6+):** paste and activate — keys are seeded at boot.  
-- **Docker:** run `import_invite_license.py` once first — see [Install → Docker fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
+- **Docker:** run `import_invite_license.py` once first — see [Install → Docker fallback](BETA_DOWNLOAD.md#macos-docker-fallback).
 
 ---
 
@@ -41,7 +41,7 @@ Install [Latest](https://github.com/WheresWellium/StreamClip/releases/latest/dow
 
 Update to **beta.8**. On beta.5 only, click **Skip** — local jobs still work.
 
-**Call to action:** [Download beta.6](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe)
+**Call to action:** [Download Latest](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.22`)
 
 ---
 

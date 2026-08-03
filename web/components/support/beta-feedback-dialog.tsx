@@ -108,12 +108,12 @@ function supportDeliveryToast(
   emailNotification?: string,
 ) {
   if (opsNotification === "queued" || emailNotification === "queued") {
-    toast("Feedback sent", "Thanks — the team will follow up.");
+    toast("Feedback sent", "Filed for tracking — thanks.");
     return;
   }
   toast(
     "Saved on this device only",
-    "We cannot see local feedback yet — open a GitHub beta bug so we get it.",
+    "Could not reach the tracker — try again online, or reply to your invite email.",
   );
 }
 

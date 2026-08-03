@@ -203,10 +203,17 @@ After checklist step 9:
 - Payloads exclude video URLs and clip content by design
 - Desktop builds: packaged Electron sets `OPS_WEBHOOK_URL` to the hosted
   collector `https://streamclip-henna.vercel.app/api/support-ingest` (F13).
-  That endpoint emails via Vercel `SMTP_*` + `BUG_REPORT_TO` — **configured on
-  henna production 2026-08-03** (GET health + POST email delivery verified).
-  Override with env `OPS_WEBHOOK_URL` / `STREAMCLIP_SUPPORT_COLLECTOR_URL` when
-  launching the app.
+  **In-app bug/feedback → GitHub Issues** (labels `beta`+`bug` / `beta`+`feedback`),
+  optionally added to a user Project board. Testers never touch a template.
+- Henna Vercel secrets (server-side only):
+  - `SUPPORT_GITHUB_TOKEN` — PAT with `repo` (Issues); add `project` to auto-board
+  - `SUPPORT_GITHUB_PROJECT_NUMBER` — e.g. `1` for [qClip Beta](https://github.com/users/WheresWellium/projects)
+  - Optional: `SUPPORT_GITHUB_PROJECT_ID`, `SUPPORT_ALSO_EMAIL=true` + existing `SMTP_*`
+- One-time setup: `.\scripts\setup_support_github.ps1 -Token <pat>`
+- Repo safety net: [`.github/workflows/add-beta-issues-to-project.yml`](../.github/workflows/add-beta-issues-to-project.yml)
+  (`SUPPORT_GITHUB_TOKEN` secret + `SUPPORT_GITHUB_PROJECT_URL` variable)
+- Override collector with `OPS_WEBHOOK_URL` / `STREAMCLIP_SUPPORT_COLLECTOR_URL`
+  when launching the app.
 
 ## Sentry (autonomous triage)
 

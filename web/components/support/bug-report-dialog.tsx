@@ -117,11 +117,11 @@ export function BugReportDialog({
       result.emailNotification === "queued" ||
       result.opsNotification === "queued"
     ) {
-      toast("Bug report sent", "Thanks — we'll take a look.");
+      toast("Bug report sent", "Filed for tracking — thanks.");
     } else {
       toast(
         "Saved on this device only",
-        "We cannot see local reports yet — open a GitHub beta bug so we get it.",
+        "Could not reach the tracker — try again online, or reply to your invite email.",
       );
     }
   }

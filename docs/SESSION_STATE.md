@@ -21,13 +21,14 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 | Virality | LLM when Ollama up; else **heuristic** 0–100 (`virality_source`) |
 | Edit without re-render | Title / hook / approval only |
 | Edit + re-render | Trim, captions, colors, reframe preset/pan/zoom, overlays, aspect |
-| Support (F13) | Packaged → henna `support-ingest` + SMTP (`OPS_WEBHOOK_URL` only) |
+| Support (F13) | Packaged → henna → **GitHub Issues** (+ Project board); SMTP optional |
 
 ## Shipped
 
 - Windows + Mac Apple Silicon on **1.0.0-beta.22** Latest
 - Henna prod promoted (`streamclip-henna.vercel.app` → Latest Mac + beta.22)
-- Partial-fail honesty, heuristic virality, F13 support, job-aspect cards
+- F13: in-app reports file GitHub Issues (no tester template); Project auto-add when configured
+- Partial-fail honesty, heuristic virality, job-aspect cards
 
 ## Still operator-gated
 

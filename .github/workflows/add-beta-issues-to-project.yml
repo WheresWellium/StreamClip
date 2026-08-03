@@ -1,0 +1,38 @@
+# Auto-add in-app beta bug/feedback issues to the qClip Beta GitHub Project.
+# Requires repo secret SUPPORT_GITHUB_TOKEN (classic PAT: repo + project, or
+# fine-grained: Issues R/W + Projects R/W) and variable SUPPORT_GITHUB_PROJECT_URL
+# (e.g. https://github.com/users/WheresWellium/projects/1).
+name: Add beta issues to project
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  add-to-project:
+    if: >-
+      contains(join(github.event.issue.labels.*.name, ','), 'beta')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - name: Require project URL + token
+        id: gate
+        env:
+          PROJECT_URL: ${{ vars.SUPPORT_GITHUB_PROJECT_URL }}
+          TOKEN: ${{ secrets.SUPPORT_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$PROJECT_URL" ] || [ -z "$TOKEN" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "SUPPORT_GITHUB_PROJECT_URL or SUPPORT_GITHUB_TOKEN unset — skip"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Add to project board
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: ${{ vars.SUPPORT_GITHUB_PROJECT_URL }}
+          github-token: ${{ secrets.SUPPORT_GITHUB_TOKEN }}

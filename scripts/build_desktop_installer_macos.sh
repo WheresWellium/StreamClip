@@ -257,6 +257,9 @@ if ! signing_configured; then
   echo "NOTE: No CSC_LINK/CSC_KEY_PASSWORD or CSC_NAME — DMG will be UNSIGNED."
   echo "      Gatekeeper will block until right-click → Open. See packaging/installer/MACOS.md."
   export CSC_IDENTITY_AUTO_DISCOVERY=false
+  # Empty env vars (common when CI injects blank secrets) still trip electron-builder
+  # into a codesign path that fails with "…/apps/desktop not a file".
+  unset CSC_LINK CSC_KEY_PASSWORD CSC_NAME APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID || true
 fi
 
 if [[ "$SKIP_ELECTRON" -eq 1 ]]; then

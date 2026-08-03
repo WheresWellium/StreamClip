@@ -187,9 +187,11 @@ jobs:
       - name: Build macOS DMG (arm64)
         env:
           STREAMCLIP_MAC_SINGLE_ARCH: arm64
-          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
-          CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
+          # Force unsigned CI path unless non-empty secrets are present (set below).
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          MACOS_CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -198,6 +200,10 @@ jobs:
             scripts/build_desktop_ui.sh \
             scripts/notarize_macos_artifact.sh \
             scripts/verify_desktop_installer_macos.sh
+          # Only export CSC_* when secrets are non-empty — blank values break electron-builder.
+          if [ -n "${MACOS_CSC_LINK:-}" ]; then export CSC_LINK="$MACOS_CSC_LINK"; fi
+          if [ -n "${MACOS_CSC_KEY_PASSWORD:-}" ]; then export CSC_KEY_PASSWORD="$MACOS_CSC_KEY_PASSWORD"; fi
+          if [ -n "${MACOS_CSC_NAME:-}" ]; then export CSC_NAME="$MACOS_CSC_NAME"; fi
           ./scripts/build_desktop_installer_macos.sh
 
       - name: Verify DMG artifact

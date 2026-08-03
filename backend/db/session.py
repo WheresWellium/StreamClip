@@ -51,8 +51,16 @@ def get_engine(cfg: Settings | None = None) -> AsyncEngine:
             # SQLite does not enforce FK constraints unless pragma is enabled.
             @event.listens_for(_engine.sync_engine, "connect")
             def _sqlite_pragma(dbapi_conn, _connection_record) -> None:  # noqa: N803
+                # busy_timeout: desktop in-process workers race support inserts
+                # with webhook/email tasks on the same SQLite file.
+                # WAL only for on-disk DBs — :memory: / shared-cache test URLs
+                # break under NullPool if WAL is forced.
                 cursor = dbapi_conn.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.execute("PRAGMA busy_timeout=5000")
+                url_l = db.url.lower()
+                if ":memory:" not in url_l and "mode=memory" not in url_l:
+                    cursor.execute("PRAGMA journal_mode=WAL")
                 cursor.close()
         else:
             _engine = create_async_engine(

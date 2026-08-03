@@ -7,10 +7,13 @@ goes out the door (no leaking internal columns, no accidental N+1 loads).
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, computed_field, field_validator
+
+from core.virality import derive_virality_source
 
 from core.creator_options import (
     DEFAULT_ASPECT_RATIO,
@@ -27,6 +30,16 @@ from core.password_policy import (
     validate_password,
 )
 from core.support.attachments import ALLOWED_SUPPORT_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES
+
+_HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+def _validate_optional_hex_color(v: str | None) -> str | None:
+    if v is None:
+        return v
+    if not _HEX_COLOR_RE.match(v):
+        raise ValueError("Color must be #RRGGBB")
+    return v.upper()
 
 
 # ─── Job ─────────────────────────────────────────────────────────────────────
@@ -166,6 +179,12 @@ class ClipOut(BaseModel):
     download_url: str | None = None
     thumbnail_url: str | None = None
     publish_statuses: list[ClipPublishStatusOut] = Field(default_factory=list)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def virality_source(self) -> Literal["llm", "heuristic", "unavailable"]:
+        """Derived from llm_reason convention (no DB column)."""
+        return derive_virality_source(self.llm_reason, self.llm_score)
 
 
 class ClipWordOut(BaseModel):
@@ -736,6 +755,26 @@ class UpdateClipRequest(BaseModel):
         None, ge=1, le=8,
         description="Max words per on-screen caption line (phrase grouping).",
     )
+    caption_primary_color: str | None = Field(
+        None,
+        description="Caption fill color override as #RRGGBB.",
+    )
+    caption_outline_color: str | None = Field(
+        None,
+        description="Caption outline color override as #RRGGBB.",
+    )
+    reframe_pan_x: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Horizontal crop bias (0=left, 0.5=center, 1=right).",
+    )
+    reframe_zoom: float | None = Field(
+        None,
+        ge=1.0,
+        le=1.4,
+        description="Crop zoom factor (1.0=default, higher=tighter crop).",
+    )
     rerender: bool = True
 
     @field_validator("transcript_edits")
@@ -753,6 +792,11 @@ class UpdateClipRequest(BaseModel):
             if len(text) > 80:
                 raise ValueError("Edited word too long (max 80 chars)")
         return v
+
+    @field_validator("caption_primary_color", "caption_outline_color")
+    @classmethod
+    def _validate_caption_hex_color(cls, v: str | None) -> str | None:
+        return _validate_optional_hex_color(v)
 
     @field_validator("caption_style")
     @classmethod

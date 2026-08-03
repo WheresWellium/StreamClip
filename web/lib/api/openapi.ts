@@ -1255,6 +1255,12 @@ export interface components {
             thumbnail_url?: string | null;
             /** Publish Statuses */
             publish_statuses?: components["schemas"]["ClipPublishStatusOut"][];
+            /**
+             * Virality Source
+             * @description Derived from llm_reason — llm | heuristic | unavailable
+             * @enum {string}
+             */
+            virality_source: "llm" | "heuristic" | "unavailable";
         };
         /** ClipOverlayOut */
         ClipOverlayOut: {
@@ -1822,6 +1828,26 @@ export interface components {
              * @description Max words per on-screen caption line (phrase grouping).
              */
             caption_words_per_group?: number | null;
+            /**
+             * Caption Primary Color
+             * @description Caption fill color override as #RRGGBB.
+             */
+            caption_primary_color?: string | null;
+            /**
+             * Caption Outline Color
+             * @description Caption outline color override as #RRGGBB.
+             */
+            caption_outline_color?: string | null;
+            /**
+             * Reframe Pan X
+             * @description Horizontal crop bias (0=left, 0.5=center, 1=right).
+             */
+            reframe_pan_x?: number | null;
+            /**
+             * Reframe Zoom
+             * @description Crop zoom factor (1.0=default, higher=tighter crop).
+             */
+            reframe_zoom?: number | null;
             /**
              * Rerender
              * @default true

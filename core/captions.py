@@ -37,6 +37,17 @@ from core.profanity import censor_words
 
 log = structlog.get_logger(__name__)
 
+_HEX_COLOR_RE = re.compile(r"^#([0-9A-Fa-f]{6})$")
+
+
+def hex_to_ass_color(hex_color: str) -> str:
+    """Convert ``#RRGGBB`` to ASS ``&HAABBGGRR`` (opaque alpha ``00``)."""
+    match = _HEX_COLOR_RE.match(hex_color.strip())
+    if not match:
+        raise ValueError(f"Invalid hex color: {hex_color!r}")
+    rr, gg, bb = match.group(1)[0:2], match.group(1)[2:4], match.group(1)[4:6]
+    return f"&H00{bb.upper()}{gg.upper()}{rr.upper()}"
+
 
 # ─── Gaming vocabulary: special emphasis words ────────────────────────────────
 
@@ -159,6 +170,22 @@ def _style_with_resolved_font(style: _ASSStyle) -> _ASSStyle:
         using=resolved,
     )
     return replace(style, fontname=resolved)
+
+
+def _style_with_color_overrides(style: _ASSStyle, ccfg: CaptionConfig) -> _ASSStyle:
+    """Apply optional hex color overrides from CaptionConfig onto an ASS style."""
+    updates: dict[str, str] = {}
+    if ccfg.primary_color:
+        try:
+            updates["primary_colour"] = hex_to_ass_color(ccfg.primary_color)
+        except ValueError:
+            log.warning("invalid_caption_primary_color", value=ccfg.primary_color)
+    if ccfg.outline_color:
+        try:
+            updates["outline_colour"] = hex_to_ass_color(ccfg.outline_color)
+        except ValueError:
+            log.warning("invalid_caption_outline_color", value=ccfg.outline_color)
+    return replace(style, **updates) if updates else style
 
 
 _STYLES: dict[str, _ASSStyle] = {
@@ -458,8 +485,11 @@ def build_ass_for_clip_window(
     groups = finalize_display_groups(
         group_words_for_display(all_words, ccfg.words_per_group, ccfg.max_chars_per_line),
     )
-    style_def = _style_with_resolved_font(
-        _STYLES.get(caption_style, _STYLES["gaming_impact"]),
+    style_def = _style_with_color_overrides(
+        _style_with_resolved_font(
+            _STYLES.get(caption_style, _STYLES["gaming_impact"]),
+        ),
+        ccfg,
     )
     builder = _ASSBuilder(style_def)
     hold = ccfg.word_hold_secs
@@ -586,8 +616,11 @@ def generate_captions(
         ),
     )
 
-    style_def = _style_with_resolved_font(
-        _STYLES.get(ccfg.style, _STYLES["gaming_impact"]),
+    style_def = _style_with_color_overrides(
+        _style_with_resolved_font(
+            _STYLES.get(ccfg.style, _STYLES["gaming_impact"]),
+        ),
+        ccfg,
     )
     builder = _ASSBuilder(style_def)
     hold = ccfg.word_hold_secs

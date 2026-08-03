@@ -51,5 +51,9 @@ export type UpdateClipBody = {
   reframe_preset?: string;
   aspect_ratio?: string;
   overlay_enabled?: boolean;
+  caption_primary_color?: string;
+  caption_outline_color?: string;
+  reframe_pan_x?: number;
+  reframe_zoom?: number;
   rerender?: boolean;
 };

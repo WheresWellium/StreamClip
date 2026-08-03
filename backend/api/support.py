@@ -12,9 +12,11 @@ Slack, Zapier Catch Hook, or a custom agent inbox — never n8n).
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import (
@@ -79,6 +81,33 @@ def _queue_support_notifications(report_id: str, *, event: str) -> tuple[str, st
         dispatch_task(send_ops_webhook, args=(report_id, event), queue="default")
 
     return email_status, ops_status
+
+
+async def _commit_with_sqlite_retry(db: AsyncSession, *, attempts: int = 4) -> None:
+    """Retry SQLite locked commits so rapid support posts don't 500."""
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            await db.commit()
+            return
+        except OperationalError as exc:
+            last = exc
+            msg = str(exc).lower()
+            if "locked" not in msg and "busy" not in msg:
+                raise StreamClipError(
+                    str(exc),
+                    user_message="Could not save your report. Please try again.",
+                    code="support_db_error",
+                    http_status=503,
+                ) from exc
+            await db.rollback()
+            await asyncio.sleep(0.05 * (2 ** attempt))
+    raise StreamClipError(
+        str(last) if last else "database locked",
+        user_message="The app is busy saving another report. Please try again in a moment.",
+        code="support_db_busy",
+        http_status=503,
+    ) from last
 
 
 def _feedback_environment(
@@ -198,7 +227,7 @@ async def submit_bug_report(
                 http_status=400,
             ) from exc
 
-    await db.commit()
+    await _commit_with_sqlite_retry(db)
 
     email_status, ops_status = _queue_support_notifications(report.id, event="bug_report")
     out = BugReportOut.model_validate(report)
@@ -235,7 +264,7 @@ async def submit_beta_feedback(
         environment=_feedback_environment(body, None),
         message=body.message.strip(),
     )
-    await db.commit()
+    await _commit_with_sqlite_retry(db)
 
     email_status, ops_status = _queue_support_notifications(
         report.id, event="beta_feedback",

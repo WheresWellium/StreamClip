@@ -42,6 +42,17 @@ def _resolve_smooth_window(preset: _Preset, cfg: ReframeConfig) -> int:
     return max(MIN_SMOOTH_WINDOW_FRAMES, preset.smooth_window, cfg.smooth_window_frames)
 
 
+def bias_crop_cx(cx_norm: float, pan_x: float = 0.5) -> float:
+    """Bias a normalized crop center by pan_x (0.5 = no bias)."""
+    return max(0.0, min(1.0, float(cx_norm) + (float(pan_x) - 0.5)))
+
+
+def apply_reframe_zoom(crop_w: int, crop_h: int, zoom: float = 1.0) -> tuple[int, int]:
+    """Shrink the crop window by zoom (1.0–1.4); higher zoom = tighter crop."""
+    z = max(1.0, min(1.4, float(zoom)))
+    return max(1, int(crop_w / z)), max(1, int(crop_h / z))
+
+
 # ─── Preset definitions ────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -278,11 +289,14 @@ def _reframe_with_tracking(
 
     # Crop window: largest target-AR rectangle inside the HUD-safe band.
     # Works for both narrow (9:16) and wide (16:9, 1:1) targets.
+    pan_x = max(0.0, min(1.0, float(cfg.pan_x)))
+    zoom = max(1.0, min(1.4, float(cfg.zoom)))
     hud_top_px = int(src_h * preset.hud_top)
     hud_bot_px = int(src_h * preset.hud_bottom)
     usable_h = src_h - hud_top_px - hud_bot_px
     crop_w = min(src_w, int(usable_h * target_ar))
     crop_h = min(usable_h, int(crop_w / target_ar))
+    crop_w, crop_h = apply_reframe_zoom(crop_w, crop_h, zoom)
     # Centre the crop vertically within the HUD-safe band
     crop_y1 = hud_top_px + (usable_h - crop_h) // 2
 
@@ -366,7 +380,10 @@ def _reframe_with_tracking(
         if not ret:
             break
 
-        cx_norm = smooth_cx[min(frame_idx, len(smooth_cx) - 1)]
+        cx_norm = bias_crop_cx(
+            smooth_cx[min(frame_idx, len(smooth_cx) - 1)],
+            pan_x,
+        )
 
         # Compute crop x1
         x1 = int((cx_norm * src_w) - crop_w / 2)
@@ -443,10 +460,14 @@ def reframe(
         if not rcfg.fallback_center_crop:
             raise
 
-        # Fallback: FFmpeg centre-crop (largest target-AR rect, any orientation)
+        # Fallback: FFmpeg crop (largest target-AR rect, pan/zoom nudges)
         tw, th = rcfg.target_width, rcfg.target_height
+        pan_x = max(0.0, min(1.0, float(rcfg.pan_x)))
+        zoom = max(1.0, min(1.4, float(rcfg.zoom)))
+        # w/h shrink by zoom; x = (iw-w)*pan_x so 0.5 stays centred
         crop_expr = (
-            f"crop='min(iw,ih*{tw}/{th})':'min(ih,iw*{th}/{tw})',"
+            f"crop='min(iw,ih*{tw}/{th})/{zoom}':'min(ih,iw*{th}/{tw})/{zoom}'"
+            f":'(iw-ow)*{pan_x}':'(ih-oh)/2',"
             f"scale={tw}:{th},setsar=1"
         )
         cmd = [

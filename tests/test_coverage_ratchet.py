@@ -218,6 +218,10 @@ def test_apply_clip_overrides_all_keys(monkeypatch):
         "profanity_filter": True,
         "profanity_mode": "bleep",
         "caption_words_per_group": 4,
+        "caption_primary_color": "#FF0000",
+        "caption_outline_color": "#00FF00",
+        "reframe_pan_x": 0.25,
+        "reframe_zoom": 1.2,
     })
     pt._apply_clip_overrides(pt.cfg, SimpleNamespace(), clip)
     assert pt.cfg.caption.style == "minimal"
@@ -225,6 +229,10 @@ def test_apply_clip_overrides_all_keys(monkeypatch):
     assert pt.cfg.overlay.enabled is False
     assert pt.cfg.caption.profanity_filter is True
     assert pt.cfg.caption.profanity_mode == "bleep"
+    assert pt.cfg.caption.primary_color == "#FF0000"
+    assert pt.cfg.caption.outline_color == "#00FF00"
+    assert pt.cfg.reframe.pan_x == 0.25
+    assert pt.cfg.reframe.zoom == 1.2
 
 
 def test_run_ingest_upload_progress_message(mock_db_cm):

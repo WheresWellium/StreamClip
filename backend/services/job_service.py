@@ -444,6 +444,14 @@ class JobService:
                 overrides.pop("transcript_edits", None)
         if body.caption_words_per_group is not None:
             overrides["caption_words_per_group"] = body.caption_words_per_group
+        if body.caption_primary_color is not None:
+            overrides["caption_primary_color"] = body.caption_primary_color
+        if body.caption_outline_color is not None:
+            overrides["caption_outline_color"] = body.caption_outline_color
+        if body.reframe_pan_x is not None:
+            overrides["reframe_pan_x"] = body.reframe_pan_x
+        if body.reframe_zoom is not None:
+            overrides["reframe_zoom"] = body.reframe_zoom
 
         start = body.start_secs if body.start_secs is not None else clip.start_secs
         end = body.end_secs if body.end_secs is not None else clip.end_secs

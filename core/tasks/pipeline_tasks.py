@@ -149,6 +149,18 @@ def _apply_clip_overrides(cfg_obj: Any, job: Any, clip: Any) -> None:
     wpg = overrides.get("caption_words_per_group")
     if isinstance(wpg, int) and 1 <= wpg <= 8:
         cfg_obj.caption.words_per_group = wpg
+    primary = overrides.get("caption_primary_color")
+    if isinstance(primary, str) and primary:
+        cfg_obj.caption.primary_color = primary
+    outline = overrides.get("caption_outline_color")
+    if isinstance(outline, str) and outline:
+        cfg_obj.caption.outline_color = outline
+    pan_x = overrides.get("reframe_pan_x")
+    if isinstance(pan_x, (int, float)) and 0.0 <= float(pan_x) <= 1.0:
+        cfg_obj.reframe.pan_x = float(pan_x)
+    zoom = overrides.get("reframe_zoom")
+    if isinstance(zoom, (int, float)) and 1.0 <= float(zoom) <= 1.4:
+        cfg_obj.reframe.zoom = float(zoom)
 
 
 def _apply_job_config(cfg_obj: Any, job: Any) -> None:

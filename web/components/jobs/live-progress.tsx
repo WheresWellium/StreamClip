@@ -266,7 +266,12 @@ export function LiveProgress({
   React.useEffect(() => {
     if (state.status === "done") {
       toast("Job complete", "Your clips are ready to download.");
-      router.refresh();
+      // Soft refresh — never throw into the job error boundary from here.
+      try {
+        router.refresh();
+      } catch {
+        /* ignore */
+      }
     }
     if (state.status === "error") {
       const msg = "message" in state ? state.message : undefined;

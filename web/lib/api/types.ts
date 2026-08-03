@@ -41,6 +41,8 @@ export type ClipOut = components["schemas"]["ClipOut"] & {
     publish_job_id: string;
     external_url?: string | null;
   }>;
+  /** Present on API responses; optional for older mocks/fixtures. */
+  virality_source?: "llm" | "heuristic" | "unavailable";
 };
 
 /** One caption word with clip-relative timing (GET .../clips/{id}/words). */

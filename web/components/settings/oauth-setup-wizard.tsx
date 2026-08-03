@@ -19,11 +19,23 @@ import {
 } from "@/components/ui/card";
 import type { OAuthAppConfig } from "@/lib/api/client";
 import { DISTRIBUTION_SETTINGS_HREF } from "@/lib/distribution/routes";
+import { helpHref } from "@/lib/docs";
 
 const PLATFORM_LABELS: Record<string, string> = {
   youtube_shorts: "YouTube Shorts",
   tiktok: "TikTok",
 };
+
+/** Desktop Electron sidecar origin — see docs/tutorials/TUTORIAL_PUBLISH_YOUTUBE.md */
+const DESKTOP_REDIRECT_URIS: Record<string, string> = {
+  youtube_shorts:
+    "http://127.0.0.1:8765/api/distribution/oauth/youtube_shorts/callback",
+  tiktok: "http://127.0.0.1:8765/api/distribution/oauth/tiktok/callback",
+};
+
+const GOOGLE_CREDENTIALS_URL =
+  "https://console.cloud.google.com/apis/credentials";
+const TIKTOK_DEVELOPERS_URL = "https://developers.tiktok.com/";
 
 const initial: DistributionActionState = { status: "idle" };
 
@@ -31,6 +43,83 @@ type Props = {
   apps: OAuthAppConfig[];
   hasPro: boolean;
 };
+
+function PlatformSetupHints({ platform }: { platform: string }) {
+  const desktopUri = DESKTOP_REDIRECT_URIS[platform];
+
+  if (platform === "youtube_shorts") {
+    return (
+      <div className="space-y-2 text-xs text-muted-foreground">
+        <p>
+          Create an OAuth client ID (type{" "}
+          <span className="text-foreground/90">Desktop</span> or{" "}
+          <span className="text-foreground/90">Web</span>) in{" "}
+          <a
+            href={GOOGLE_CREDENTIALS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sky-400 hover:underline"
+          >
+            Google Cloud Console → Credentials
+          </a>
+          . Paste the client ID and secret below.
+        </p>
+        {desktopUri && (
+          <p>
+            Desktop redirect URI (copy into Authorized redirect URIs):{" "}
+            <code className="break-all text-[11px] text-foreground/90">
+              {desktopUri}
+            </code>
+          </p>
+        )}
+        <p>
+          Need a walkthrough?{" "}
+          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
+            Help → How to use
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  if (platform === "tiktok") {
+    return (
+      <div className="space-y-2 text-xs text-muted-foreground">
+        <p>
+          Register an app at{" "}
+          <a
+            href={TIKTOK_DEVELOPERS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sky-400 hover:underline"
+          >
+            TikTok for Developers
+          </a>
+          , then paste the client key and secret below. In this beta, publish
+          lands in inbox/drafts only (not public post).
+        </p>
+        {desktopUri && (
+          <p>
+            Desktop redirect URI (copy into Redirect URI):{" "}
+            <code className="break-all text-[11px] text-foreground/90">
+              {desktopUri}
+            </code>
+          </p>
+        )}
+        <p>
+          Need a walkthrough?{" "}
+          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
+            Help → How to use
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 function PlatformOAuthForm({ app, hasPro }: { app: OAuthAppConfig; hasPro: boolean }) {
   const { push: toast } = useToastSafe();
@@ -62,8 +151,9 @@ function PlatformOAuthForm({ app, hasPro }: { app: OAuthAppConfig; hasPro: boole
           </span>
         )}
       </div>
+      <PlatformSetupHints platform={app.platform} />
       <p className="text-xs text-muted-foreground">
-        Redirect URI: <code className="text-[11px]">{app.redirect_uri}</code>
+        Current redirect URI: <code className="text-[11px]">{app.redirect_uri}</code>
       </p>
       <Input
         name="client_id"
@@ -124,7 +214,11 @@ export function OAuthSetupWizard({ apps, hasPro }: Props) {
         <CardTitle>Publish setup</CardTitle>
         <CardDescription>
           Add your YouTube and TikTok developer credentials before connecting
-          accounts on the Distribution page.
+          accounts on the Distribution page. See{" "}
+          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
+            Help
+          </Link>{" "}
+          for the short path.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

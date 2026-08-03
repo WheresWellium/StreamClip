@@ -142,8 +142,9 @@ def test_score_clips_virality_parallel_missing_client_degrades():
                 max_workers=2,
             )
     assert len(results) == 2
-    assert all(r.score == 0.0 for r in results)
-    assert all(r.reason == "Virality scoring unavailable" for r in results)
+    # Wave 2: heuristic fallback instead of unavailable zeros
+    assert all(r.reason.startswith("Heuristic") for r in results)
+    assert all(0.0 <= r.score <= 100.0 for r in results)
 
 
 def test_score_clips_virality_parallel_skips_when_ollama_down():
@@ -156,4 +157,5 @@ def test_score_clips_virality_parallel_skips_when_ollama_down():
                 max_workers=1,
             )
     build.assert_not_called()
-    assert results[0].score == 0.0
+    assert results[0].reason.startswith("Heuristic")
+    assert 0.0 <= results[0].score <= 100.0

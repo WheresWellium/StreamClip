@@ -333,11 +333,14 @@ export function ClipCard({
           summary={`Ensemble ${formatScore(clip.ensemble_score)} · ${clip.emotion}`}
         >
           <div className="space-y-3">
-            <SectionLegend
-              title="Scores"
-              tip="Signal breakdown for this clip. Virality is scored after creation."
-              className="pt-0"
-            />
+            <div className="flex items-center justify-between gap-2 pt-0">
+              <SectionLegend
+                title="Scores"
+                tip="Signal breakdown for this clip. Virality is scored after creation."
+                className="pt-0"
+              />
+              <ViralitySourceBadge source={resolveViralitySource(clip)} />
+            </div>
             <ScoreBreakdown clip={clip} />
             {clip.overlays && clip.overlays.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -397,10 +400,19 @@ export function ClipCard({
           </CollapsibleSection>
         )}
 
-        {jobDone && clip.status === "error" && (
-          <p className="text-[10px] text-destructive">
-            {userFacingErrorMessage(clip.error_message, null, "Render failed")}
-          </p>
+        {clip.status === "error" && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 space-y-1">
+            <p className="text-[11px] font-medium text-destructive">
+              Clip render failed
+            </p>
+            <p className="text-[10px] text-destructive/90">
+              {userFacingErrorMessage(
+                clip.error_message,
+                null,
+                "Re-open Edit clip and Save again, or Regenerate this clip.",
+              )}
+            </p>
+          </div>
         )}
       </div>
 
@@ -414,12 +426,52 @@ export function ClipCard({
   );
 }
 
+type ViralitySource = "llm" | "heuristic" | "unavailable";
+
+function resolveViralitySource(clip: ClipOut): ViralitySource {
+  if (clip.virality_source) return clip.virality_source;
+  const reason = (clip.llm_reason ?? "").trim();
+  if (reason.startsWith("Heuristic")) return "heuristic";
+  if (reason.startsWith("Virality scoring unavailable")) return "unavailable";
+  if (clip.llm_score > 0 || reason) return "llm";
+  return "unavailable";
+}
+
+function ViralitySourceBadge({ source }: { source: ViralitySource }) {
+  const label =
+    source === "heuristic" ? "Heuristic" : source === "llm" ? "LLM" : "Unavailable";
+  const tip =
+    source === "heuristic"
+      ? CLIP_SCORE_LEGEND.virality_source_heuristic
+      : source === "llm"
+        ? CLIP_SCORE_LEGEND.virality_source_llm
+        : CLIP_SCORE_LEGEND.virality_source_unavailable;
+  const tone =
+    source === "heuristic"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+      : source === "llm"
+        ? "border-sky-500/30 bg-sky-500/10 text-sky-300"
+        : "border-border/60 bg-muted text-muted-foreground";
+  return (
+    <LegendBadge tip={tip} tipLabel="Virality source help" className={tone}>
+      {label}
+    </LegendBadge>
+  );
+}
+
 function ScoreBreakdown({ clip }: { clip: ClipOut }) {
+  const source = resolveViralitySource(clip);
+  const viralityTip =
+    source === "heuristic"
+      ? `${CLIP_SCORE_LEGEND.virality} Bars reflect the local heuristic, not an LLM.`
+      : source === "unavailable"
+        ? CLIP_SCORE_LEGEND.virality_source_unavailable
+        : CLIP_SCORE_LEGEND.virality;
   const scores: Array<{ label: string; value: number; tip: string }> = [
     {
       label: "Virality",
       value: clip.llm_score / 100,
-      tip: CLIP_SCORE_LEGEND.virality,
+      tip: viralityTip,
     },
     {
       label: "Audio",
@@ -451,7 +503,12 @@ function ScoreBreakdown({ clip }: { clip: ClipOut }) {
         <div key={s.label} className="flex flex-col items-center gap-0.5">
           <div className="h-1 w-full bg-secondary overflow-hidden">
             <div
-              className="h-full bg-primary/70"
+              className={cn(
+                "h-full",
+                s.label === "Virality" && source === "heuristic"
+                  ? "bg-amber-400/70"
+                  : "bg-primary/70",
+              )}
               style={{ width: `${Math.min(100, s.value * 100)}%` }}
             />
           </div>

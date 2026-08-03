@@ -9,12 +9,42 @@ Deployed as https://streamclip-henna.vercel.app/api/support-ingest
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import smtplib
+import threading
 import time
 from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler
+
+# Short in-memory debounce so rapid identical posts don't spam SMTP.
+_DEBOUNCE_LOCK = threading.Lock()
+_RECENT: dict[str, float] = {}
+_DEBOUNCE_SECS = 45.0
+
+
+def _debounce_key(payload: dict) -> str:
+    device = str(payload.get("device_id") or "")
+    msg = str(payload.get("message") or "").strip()
+    event = str(payload.get("event") or "support")
+    report_id = str(payload.get("id") or "")
+    raw = f"{event}|{device}|{report_id}|{msg}".encode("utf-8", errors="ignore")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _should_skip_duplicate(payload: dict) -> bool:
+    key = _debounce_key(payload)
+    now = time.time()
+    with _DEBOUNCE_LOCK:
+        # Drop stale entries
+        stale = [k for k, ts in _RECENT.items() if now - ts > _DEBOUNCE_SECS]
+        for k in stale:
+            _RECENT.pop(k, None)
+        if key in _RECENT and (now - _RECENT[key]) < _DEBOUNCE_SECS:
+            return True
+        _RECENT[key] = now
+        return False
 
 
 def _smtp_send(to: str, subject: str, body: str) -> bool:
@@ -53,10 +83,11 @@ def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict) 
     handler.send_header("Content-Type", "application/json")
     handler.send_header("Content-Length", str(len(raw)))
     handler.send_header("Access-Control-Allow-Origin", "*")
-    handler.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+    handler.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
     handler.end_headers()
-    handler.wfile.write(raw)
+    if status != 204:
+        handler.wfile.write(raw)
 
 
 class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel Python convention
@@ -80,6 +111,15 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel Python conventio
             _json_response(self, 400, {"ok": False, "error": "expected_object"})
             return
 
+        # Idempotent accept for duplicate rapid posts (same id/message/device).
+        if _should_skip_duplicate(payload):
+            _json_response(
+                self,
+                200,
+                {"ok": True, "delivered": "deduped", "note": "duplicate_suppressed"},
+            )
+            return
+
         event = str(payload.get("event") or "support")
         severity = str(payload.get("severity") or "medium")
         message = str(payload.get("message") or "").strip()
@@ -91,10 +131,26 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel Python conventio
 
         recipient = os.environ.get("BUG_REPORT_TO", "").strip()
         if not recipient:
-            _json_response(self, 503, {"ok": False, "error": "recipient_unconfigured"})
+            _json_response(
+                self,
+                503,
+                {
+                    "ok": False,
+                    "error": "recipient_unconfigured",
+                    "hint": "Set BUG_REPORT_TO on the Vercel project",
+                },
+            )
             return
         if not os.environ.get("SMTP_HOST", "").strip():
-            _json_response(self, 503, {"ok": False, "error": "smtp_unconfigured"})
+            _json_response(
+                self,
+                503,
+                {
+                    "ok": False,
+                    "error": "smtp_unconfigured",
+                    "hint": "Set SMTP_HOST (and related SMTP_*) on the Vercel project",
+                },
+            )
             return
 
         subject = f"[qClip] {event} ({severity}): {cat_s}"
@@ -116,7 +172,15 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel Python conventio
         ]
         ok = _smtp_send(recipient, subject, "\n".join(body_lines) + "\n")
         if not ok:
-            _json_response(self, 502, {"ok": False, "error": "email_failed"})
+            _json_response(
+                self,
+                502,
+                {
+                    "ok": False,
+                    "error": "email_failed",
+                    "hint": "SMTP send failed after retries; check SMTP_* credentials",
+                },
+            )
             return
         _json_response(self, 200, {"ok": True, "delivered": "email"})
 

@@ -32,6 +32,8 @@ type Severity = (typeof SEVERITIES)[number];
 type BugReportDialogProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Prefill the message textarea when the dialog opens. */
+  defaultMessage?: string;
 };
 
 /** Pull a job id out of /jobs/[id]... paths to pre-fill the report. */
@@ -42,6 +44,7 @@ function jobIdFromPath(pathname: string): string | null {
 export function BugReportDialog({
   open: controlledOpen,
   onOpenChange,
+  defaultMessage = "",
 }: BugReportDialogProps = {}) {
   const pathname = usePathname();
   const { push: toast } = useToastSafe();
@@ -52,12 +55,18 @@ export function BugReportDialog({
   const showTrigger = controlledOpen === undefined;
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [message, setMessage] = React.useState("");
+  const [message, setMessage] = React.useState(defaultMessage);
   const [categories, setCategories] = React.useState<string[]>([]);
   const [severity, setSeverity] = React.useState<Severity>("medium");
   const [includeJob, setIncludeJob] = React.useState(true);
 
   const currentJobId = jobIdFromPath(pathname);
+
+  React.useEffect(() => {
+    if (open && defaultMessage) {
+      setMessage(defaultMessage);
+    }
+  }, [open, defaultMessage]);
 
   function toggleCategory(id: string) {
     setCategories((prev) =>

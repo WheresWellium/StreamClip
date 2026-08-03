@@ -47,7 +47,11 @@ export const CLIP_SCORE_LEGEND = {
   hook: "Transcript excerpt — the spoken line viewers hear in the clip.",
   title: "Short label derived from the clip transcript.",
   virality:
-    "How this clip should stack up against your other cuts for platform performance. Does not gate creation.",
+    "Comparative platform potential (0–100). From the LLM when available; otherwise a local heuristic (hook/punctuation/laughter/duration). Does not gate creation.",
+  virality_source_llm: "Scored by the configured LLM (Ollama or cloud).",
+  virality_source_heuristic:
+    "Local fallback when the LLM is unavailable — not an LLM judgment.",
+  virality_source_unavailable: "No virality score was produced for this clip.",
   audio: "Loudness and energy in this segment.",
   novelty: "Sudden audio changes — reactions, SFX, surprises.",
   motion: "On-screen movement from optical flow analysis.",

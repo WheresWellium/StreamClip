@@ -1,31 +1,40 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (open items close-out)
+**Last updated:** 2026-08-03 (beta.20 feedback polish → beta.21)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | open-items close-out | — | F13 closed; EV + clean-VM operator |
+| `master` | feedback polish ship | — | Waves 1–4 landed |
 
-## Closed this pass
+## Pipeline capability (desktop)
 
-| Item | Evidence |
-|------|----------|
-| TikTok IP docs | `BETA_KNOWN_ISSUES` + troubleshooting |
-| Build-host preflight beta.20 | `verify_desktop_release.ps1` PASS |
-| F13 henna SMTP | Vercel env synced; `GET/POST` email `delivered`; packaged `ops_notification=queued` |
-| Render P0 (prior) | beta.20 hardened Pass |
+```
+create → ingest → transcribe → highlights → virality → fan-out → process_clip×N → finalise
+```
+
+| Layer | Reality |
+|-------|---------|
+| Discovery scores | Audio / novelty / motion / chat (real) |
+| Virality | LLM when Ollama up; else **heuristic** 0–100 (`virality_source`) |
+| Edit without re-render | Title / hook / approval only |
+| Edit + re-render | Trim, captions, colors, reframe preset/pan/zoom, overlays, aspect |
+| Support (F13) | Packaged → henna `support-ingest` + SMTP (not n8n) |
+
+## Feedback polish (this pass)
+
+- SQLite WAL (on-disk) + busy_timeout; support commit retry; henna dedupe
+- Job error boundary: Refresh + Report; clip render error banner
+- Caption color + reframe pan/zoom in `render_overrides`
+- OAuth wizard: Google/TikTok console links + desktop redirect URIs
 
 ## Still operator-gated
 
-| Item | State |
-|------|-------|
-| Clean-VM install→first-clip | Preflight PASS; manual sign-off ☐ — `docs/evidence/clean-desktop-vm-beta20.md` |
-| EV signing | Explicitly blocked — no `CSC_THUMBPRINT`; `-RequireSigned` fail-closed |
+Clean-VM manual sign-off ☐ · EV cert ☐
 
 ## Download
 
-Latest → **1.0.0-beta.20**  
+Target → **1.0.0-beta.21** (publish in flight)  
 https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe

@@ -116,6 +116,9 @@ class ReframeConfig(BaseModel):
     hud_bottom_reserve: float = 0.15
     hud_top_reserve: float = 0.08
     fallback_center_crop: bool = True
+    # Editor nudges (also stored on Clip.render_overrides)
+    pan_x: float = Field(0.5, ge=0.0, le=1.0)
+    zoom: float = Field(1.0, ge=1.0, le=1.4)
 
     @field_validator("preset")
     @classmethod
@@ -142,6 +145,9 @@ class CaptionConfig(BaseModel):
     profanity_filter: bool = False
     profanity_mode: Literal["mask", "bleep", "omit"] = "mask"
     profanity_wordlist: Path | None = None
+    # Optional #RRGGBB overrides from clip editor (render_overrides)
+    primary_color: str | None = None
+    outline_color: str | None = None
 
     @field_validator("style")
     @classmethod

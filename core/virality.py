@@ -13,7 +13,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import structlog
 
@@ -218,6 +218,9 @@ class ViralityResult:
     meme_keywords: list[str]
 
 
+UNAVAILABLE_REASON = "Virality scoring unavailable"
+
+
 def _build_client(cfg: LLMConfig) -> Any:
     if cfg.provider == "ollama":
         from ollama import Client
@@ -311,21 +314,46 @@ def score_clip_virality(
     return ViralityResult(
         score=0.0,
         emotion=Emotion.NEUTRAL,
-        reason="Virality scoring unavailable",
+        reason=UNAVAILABLE_REASON,
         meme_keywords=[],
     )
 
 
-def _unavailable_results(n: int) -> list[ViralityResult]:
-    return [
-        ViralityResult(
-            score=0.0,
-            emotion=Emotion.NEUTRAL,
-            reason="Virality scoring unavailable",
-            meme_keywords=[],
+def _heuristic_results(
+    clips: list[tuple[str, float, float]],
+    contexts: list[ClipScoringContext | None] | None,
+) -> list[ViralityResult]:
+    # Deferred: virality_heuristic imports ViralityResult from this module.
+    from core.virality_heuristic import heuristic_virality_score
+
+    out: list[ViralityResult] = []
+    for i, (text, start, end) in enumerate(clips):
+        ctx = contexts[i] if contexts else None
+        out.append(
+            heuristic_virality_score(
+                text=text,
+                start_secs=start,
+                end_secs=end,
+                audio_score=ctx.audio_score if ctx else None,
+                chat_score=ctx.chat_score if ctx else None,
+            )
         )
-        for _ in range(n)
-    ]
+    return out
+
+
+def derive_virality_source(
+    llm_reason: str,
+    llm_score: float,
+) -> Literal["llm", "heuristic", "unavailable"]:
+    """Map stored reason/score to API ``virality_source`` (no DB column)."""
+    reason = (llm_reason or "").strip()
+    if reason.startswith("Heuristic"):
+        return "heuristic"
+    if reason.startswith(UNAVAILABLE_REASON):
+        return "unavailable"
+    if llm_score > 0 or reason:
+        return "llm"
+    return "unavailable"
 
 
 def _ollama_reachable(base_url: str, *, timeout_secs: float = 0.75) -> bool:
@@ -360,28 +388,45 @@ def score_clips_virality_parallel(
     workers = min(max_workers or cfg.llm.parallel_workers, len(clips))
     if cfg.llm.provider == "ollama" and not _ollama_reachable(cfg.llm.base_url):
         log.info("virality_ollama_unreachable", base_url=cfg.llm.base_url)
-        return _unavailable_results(len(clips))
+        return _heuristic_results(clips, contexts)
     try:
         client = _build_client(cfg.llm)
     except Exception as exc:
         # Missing client package (e.g. ollama not bundled) or bad provider config
         # must not kill the pipeline — discovery clips already exist.
         log.warning("virality_client_unavailable", error=str(exc), provider=cfg.llm.provider)
-        return _unavailable_results(len(clips))
+        return _heuristic_results(clips, contexts)
+
+    # Deferred: virality_heuristic imports ViralityResult from this module.
+    from core.virality_heuristic import HEURISTIC_REASON, heuristic_virality_score
 
     def _score_one(idx_item: tuple[int, tuple[str, float, float]]) -> ViralityResult:
         idx, (text, start, end) = idx_item
-        return score_clip_virality(
+        ctx = contexts[idx] if contexts else None
+        result = score_clip_virality(
             text=text,
             start_secs=start,
             end_secs=end,
             cfg=cfg,
             client=client,
-            context=contexts[idx] if contexts else None,
+            context=ctx,
         )
+        if result.reason == UNAVAILABLE_REASON:
+            return heuristic_virality_score(
+                text=text,
+                start_secs=start,
+                end_secs=end,
+                audio_score=ctx.audio_score if ctx else None,
+                chat_score=ctx.chat_score if ctx else None,
+            )
+        return result
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(_score_one, enumerate(clips)))
+        results = list(pool.map(_score_one, enumerate(clips)))
+    heuristic_n = sum(1 for r in results if r.reason == HEURISTIC_REASON)
+    if heuristic_n:
+        log.info("virality_heuristic_fallback", count=heuristic_n, total=len(results))
+    return results
 
 
 def ensemble_with_virality(

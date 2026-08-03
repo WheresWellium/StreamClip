@@ -37,9 +37,34 @@ type EditorForm = {
   overlayEnabled: boolean;
   transcriptEdits: TranscriptEdits;
   wordsPerGroup: number;
+  captionPrimaryColor: string;
+  captionOutlineColor: string;
+  reframePanX: number;
+  reframeZoom: number;
 };
 
 const DEFAULT_WORDS_PER_GROUP = 3;
+const DEFAULT_CAPTION_PRIMARY = "#FFFFFF";
+const DEFAULT_CAPTION_OUTLINE = "#000000";
+const DEFAULT_REFRAME_PAN_X = 0.5;
+const DEFAULT_REFRAME_ZOOM = 1.0;
+
+function readHexColor(value: unknown, fallback: string): string {
+  if (typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value)) {
+    return value.toUpperCase();
+  }
+  return fallback;
+}
+
+function readBoundedNumber(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
 
 function readTranscriptEdits(overrides: Record<string, unknown>): TranscriptEdits {
   const raw = overrides.transcript_edits;
@@ -114,6 +139,26 @@ function formFromClip(
       overrides.caption_words_per_group <= 8
         ? overrides.caption_words_per_group
         : DEFAULT_WORDS_PER_GROUP,
+    captionPrimaryColor: readHexColor(
+      overrides.caption_primary_color,
+      DEFAULT_CAPTION_PRIMARY,
+    ),
+    captionOutlineColor: readHexColor(
+      overrides.caption_outline_color,
+      DEFAULT_CAPTION_OUTLINE,
+    ),
+    reframePanX: readBoundedNumber(
+      overrides.reframe_pan_x,
+      DEFAULT_REFRAME_PAN_X,
+      0,
+      1,
+    ),
+    reframeZoom: readBoundedNumber(
+      overrides.reframe_zoom,
+      DEFAULT_REFRAME_ZOOM,
+      1,
+      1.4,
+    ),
   };
 }
 
@@ -128,7 +173,11 @@ function formsEqual(a: EditorForm, b: EditorForm): boolean {
     a.aspectRatio === b.aspectRatio &&
     a.overlayEnabled === b.overlayEnabled &&
     editsEqual(a.transcriptEdits, b.transcriptEdits) &&
-    a.wordsPerGroup === b.wordsPerGroup
+    a.wordsPerGroup === b.wordsPerGroup &&
+    a.captionPrimaryColor === b.captionPrimaryColor &&
+    a.captionOutlineColor === b.captionOutlineColor &&
+    Math.abs(a.reframePanX - b.reframePanX) < 0.001 &&
+    Math.abs(a.reframeZoom - b.reframeZoom) < 0.001
   );
 }
 
@@ -142,7 +191,11 @@ function needsRerender(before: EditorForm, after: EditorForm): boolean {
     before.aspectRatio !== after.aspectRatio ||
     before.overlayEnabled !== after.overlayEnabled ||
     !editsEqual(before.transcriptEdits, after.transcriptEdits) ||
-    before.wordsPerGroup !== after.wordsPerGroup
+    before.wordsPerGroup !== after.wordsPerGroup ||
+    before.captionPrimaryColor !== after.captionPrimaryColor ||
+    before.captionOutlineColor !== after.captionOutlineColor ||
+    Math.abs(before.reframePanX - after.reframePanX) >= 0.001 ||
+    Math.abs(before.reframeZoom - after.reframeZoom) >= 0.001
   );
 }
 
@@ -275,7 +328,12 @@ export function ClipEditor({
     }
     if (jobProgress.status === "error") {
       setRerendering(false);
-      toast("Re-render failed", jobProgress.message);
+      toast(
+        "Re-render failed",
+        jobProgress.message ||
+          "Open Edit clip and try Save again, or Regenerate this clip.",
+      );
+      router.refresh();
     }
   }, [jobProgress, rerendering, router, toast]);
 
@@ -328,7 +386,8 @@ export function ClipEditor({
     const rerender = willRerender;
     setPending(true);
     setError(null);
-    const result = await updateClipAction(jobId, clip.id, {
+    const saved = savedRef.current;
+    const payload: Record<string, unknown> = {
       title: form.title.trim(),
       hook: form.hook.trim(),
       start_secs: form.start,
@@ -340,7 +399,22 @@ export function ClipEditor({
       transcript_edits: form.transcriptEdits,
       caption_words_per_group: form.wordsPerGroup,
       rerender,
-    });
+    };
+    // Only persist color/pan/zoom when dirty so metadata-only saves do not
+    // lock editor defaults (#FFFFFF / 0.5 / 1.0) over style presets.
+    if (saved.captionPrimaryColor !== form.captionPrimaryColor) {
+      payload.caption_primary_color = form.captionPrimaryColor;
+    }
+    if (saved.captionOutlineColor !== form.captionOutlineColor) {
+      payload.caption_outline_color = form.captionOutlineColor;
+    }
+    if (Math.abs(saved.reframePanX - form.reframePanX) >= 0.001) {
+      payload.reframe_pan_x = form.reframePanX;
+    }
+    if (Math.abs(saved.reframeZoom - form.reframeZoom) >= 0.001) {
+      payload.reframe_zoom = form.reframeZoom;
+    }
+    const result = await updateClipAction(jobId, clip.id, payload);
     setPending(false);
     if (!result.ok) {
       setError(result.message ?? "Could not save changes");
@@ -353,7 +427,7 @@ export function ClipEditor({
       setRerendering(true);
       toast("Re-render queued", "Processing your clip edits…");
     } else {
-      toast("Saved", "Title updated — no re-render needed.");
+      toast("Saved", "Saved — no re-render needed.");
     }
     router.refresh();
   }
@@ -690,6 +764,127 @@ export function ClipEditor({
                     Fewer words = punchier captions; more words = calmer pacing.
                   </p>
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Caption colors
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor={`cap-primary-${clip.id}`} className="text-xs">
+                        Fill
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={`cap-primary-${clip.id}`}
+                          type="color"
+                          value={form.captionPrimaryColor}
+                          onChange={(e) =>
+                            patch(
+                              "captionPrimaryColor",
+                              e.target.value.toUpperCase(),
+                            )
+                          }
+                          className="h-8 w-10 cursor-pointer rounded border border-input bg-background"
+                          aria-label="Caption fill color"
+                        />
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {form.captionPrimaryColor}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`cap-outline-${clip.id}`} className="text-xs">
+                        Outline
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={`cap-outline-${clip.id}`}
+                          type="color"
+                          value={form.captionOutlineColor}
+                          onChange={(e) =>
+                            patch(
+                              "captionOutlineColor",
+                              e.target.value.toUpperCase(),
+                            )
+                          }
+                          className="h-8 w-10 cursor-pointer rounded border border-input bg-background"
+                          aria-label="Caption outline color"
+                        />
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {form.captionOutlineColor}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p
+                    className="rounded-md border border-border/50 bg-black px-3 py-2 text-center text-sm font-semibold uppercase tracking-wide"
+                    style={{
+                      color: form.captionPrimaryColor,
+                      textShadow: `
+                        -2px -2px 0 ${form.captionOutlineColor},
+                         2px -2px 0 ${form.captionOutlineColor},
+                        -2px  2px 0 ${form.captionOutlineColor},
+                         2px  2px 0 ${form.captionOutlineColor}
+                      `,
+                    }}
+                  >
+                    Sample caption
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Reframe nudge
+                  </Label>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={`pan-${clip.id}`} className="text-xs">
+                        Pan
+                      </Label>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {form.reframePanX.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      id={`pan-${clip.id}`}
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={form.reframePanX}
+                      onChange={(e) =>
+                        patch("reframePanX", Number(e.target.value))
+                      }
+                      className="w-full accent-sky-500"
+                      aria-label="Reframe horizontal pan"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      0 = left · 0.5 = center · 1 = right
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={`zoom-${clip.id}`} className="text-xs">
+                        Zoom
+                      </Label>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {form.reframeZoom.toFixed(2)}×
+                      </span>
+                    </div>
+                    <input
+                      id={`zoom-${clip.id}`}
+                      type="range"
+                      min={1}
+                      max={1.4}
+                      step={0.01}
+                      value={form.reframeZoom}
+                      onChange={(e) =>
+                        patch("reframeZoom", Number(e.target.value))
+                      }
+                      className="w-full accent-sky-500"
+                      aria-label="Reframe zoom"
+                    />
+                  </div>
+                </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="checkbox"
@@ -796,6 +991,23 @@ function ChangeSummary({
         ? "Caption edits cleared"
         : `${count} caption word${count === 1 ? "" : "s"} edited`,
     );
+  }
+  if (before.wordsPerGroup !== after.wordsPerGroup) {
+    lines.push(`Words per group → ${after.wordsPerGroup}`);
+  }
+  if (
+    before.captionPrimaryColor !== after.captionPrimaryColor ||
+    before.captionOutlineColor !== after.captionOutlineColor
+  ) {
+    lines.push(
+      `Caption colors → ${after.captionPrimaryColor} / ${after.captionOutlineColor}`,
+    );
+  }
+  if (Math.abs(before.reframePanX - after.reframePanX) >= 0.001) {
+    lines.push(`Pan → ${after.reframePanX.toFixed(2)}`);
+  }
+  if (Math.abs(before.reframeZoom - after.reframeZoom) >= 0.001) {
+    lines.push(`Zoom → ${after.reframeZoom.toFixed(2)}×`);
   }
   if (lines.length === 0) return null;
   return (

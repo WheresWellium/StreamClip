@@ -9,19 +9,24 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 1.0.0-beta.6)"
+        description: "Release version (e.g. 1.0.0-beta.22)"
         required: false
-        default: "1.0.0-beta.6"
+        default: "1.0.0-beta.22"
       require_signed:
         description: "Fail if WINDOWS_CSC_* secrets missing (EV signing)"
         type: boolean
         default: false
+      skip_windows:
+        description: "Skip Windows job (Mac DMG upload onto an existing release)"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 jobs:
   windows-installer:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.skip_windows != true)
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
@@ -119,12 +124,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Scaffold until Apple Silicon DMG builds are green (§5.2–5.3).
-  # continue-on-error: Windows release must not block on macOS until notarization path is ready.
+  # Apple Silicon DMG (STREAMCLIP_MAC_SINGLE_ARCH=arm64). Universal needs a local Mac
+  # with Rosetta + x86 Python — see docs/MACOS_INSTALLER.md.
   macos-installer:
     runs-on: macos-latest
     timeout-minutes: 180
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -137,6 +141,7 @@ jobs:
           fi
           VER="${VER:-0.0.0-ci}"
           echo "Building version $VER"
+          echo "MAC_VERSION=$VER" >> "$GITHUB_ENV"
           node --input-type=commonjs -e "
           const fs = require('fs');
           const path = 'apps/desktop/package.json';
@@ -181,6 +186,7 @@ jobs:
 
       - name: Build macOS DMG (arm64)
         env:
+          STREAMCLIP_MAC_SINGLE_ARCH: arm64
           CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
           CSC_NAME: ${{ secrets.MACOS_CSC_NAME }}
@@ -200,14 +206,16 @@ jobs:
             ./scripts/verify_desktop_installer_macos.sh apps/desktop/release/qClip-mac-arm64.dmg
           else
             echo "::error::DMG not produced — check PyInstaller sidecar + electron-builder logs"
+            ls -la apps/desktop/release/ || true
             exit 1
           fi
 
-      - name: Upload macOS DMG to release (tag builds only)
-        if: github.ref_type == 'tag'
+      - name: Upload macOS DMG to release
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', github.event.inputs.version) }}
           files: apps/desktop/release/qClip-mac-arm64.dmg
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

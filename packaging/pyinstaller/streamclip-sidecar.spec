@@ -37,10 +37,15 @@ datas = [
 static_ui = ROOT / "static" / "ui"
 if (static_ui / "index.html").exists():
     datas.append((str(static_ui), "static/ui"))
+# Builtin overlay vault (GIF / SFX / stickers) — core/overlay.py + OverlayConfig.assets_dir.
+assets_dir = ROOT / "assets"
+if (assets_dir / "manifest.json").exists():
+    datas.append((str(assets_dir), "assets"))
 # Bundled ffmpeg binaries if present (core/ffmpeg_bins.py resolves them).
 ffmpeg_dir = ROOT / "bin" / "ffmpeg"
 if any(ffmpeg_dir.glob("ffmpeg*")):
     datas.append((str(ffmpeg_dir), "bin/ffmpeg"))
+
 # Bundled yt-dlp CLI if present (core/ytdlp_bin.py resolves it). The Python
 # package is also collected below so ``python -m yt_dlp`` works when frozen.
 ytdlp_dir = ROOT / "bin" / "yt-dlp"

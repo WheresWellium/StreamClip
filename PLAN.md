@@ -1,8 +1,10 @@
 # StreamClip — Consolidated Plan Registry
 
-**Last updated:** 2026-07-27  
+**Last updated:** 2026-08-03  
 **Purpose:** Single index of **active work** (beta + release readiness) vs **future updates** (frozen until the active track is complete).  
 **Canonical task list:** [`docs/MASTER_TODO.md`](docs/MASTER_TODO.md) · **Beta gates:** [`docs/BETA_TESTER_PLAN.md`](docs/BETA_TESTER_PLAN.md) · **Go-live:** [`docs/BETA_GO_LIVE.md`](docs/BETA_GO_LIVE.md)
+
+> **Product truth (2026-08-03):** Shipping surface is the **qClip desktop installer** (`1.0.0-beta.24`). Docker self-host is **dev + future Pro SKU**, not the creator product. Rolling status: [`docs/SESSION_STATE.md`](docs/SESSION_STATE.md). Stale-folder review: [`docs/STALE_FOLDER_AUDIT.md`](docs/STALE_FOLDER_AUDIT.md). Sections below still use the older Phase 0/1/2 labels until MASTER is rewritten — do not treat “Beta Phase 0 — Docker current focus” as live.
 
 ---
 

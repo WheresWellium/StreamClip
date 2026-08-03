@@ -11,6 +11,8 @@
 #   .\scripts\setup_support_github.ps1 -ProjectTitle "qClip Beta" -SkipVercel
 param(
     [string]$ProjectTitle = "qClip Beta",
+    [int]$ProjectNumber = 4,
+    [string]$ProjectUrl = "https://github.com/users/WheresWellium/projects/4",
     [string]$Repo = "WheresWellium/StreamClip",
     [string]$VercelProject = "streamclip",
     [string]$VercelScope = "wellium",

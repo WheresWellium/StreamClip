@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-02 · Current Windows build: **v1.0.0-beta.9**
+**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.20**
 
 ---
 
@@ -25,7 +25,8 @@ Still on beta.5–beta.8? Upgrade to beta.9 (fixes engine Retry on the startup-e
 
 | Area | What to expect |
 |------|----------------|
-| TikTok | Inbox / drafts only — finish in the TikTok app |
+| TikTok publish | Inbox / drafts only — finish in the TikTok app |
+| TikTok URL download | Some networks get an **IP block** from TikTok (yt-dlp). qClip fails fast with a clear error. Workaround: **upload the file**, use a non-TikTok URL, or retry from another network/VPN. Not a desktop bug. |
 | Instagram | Not supported |
 | macOS Gatekeeper | Unsigned `.dmg` — right-click → **Open** / Privacy & Security → **Open Anyway** |
 | macOS notarization | Not notarized yet — Gatekeeper warning is expected |
@@ -43,4 +44,4 @@ Still on beta.5–beta.8? Upgrade to beta.9 (fixes engine Retry on the startup-e
 → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md)  
 → [FAQ](BETA_FAQ.md)
 
-Report issues via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (include OS, `job_id`, short steps). In-app Help → Report a bug is **local-only** on desktop until the F13 collector ships.
+Report issues via the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (include OS, `job_id`, short steps). Packaged desktop routes Help → Report a bug to the henna support collector when SMTP is configured on Vercel (F13).

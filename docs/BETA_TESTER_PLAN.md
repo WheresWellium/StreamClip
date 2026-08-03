@@ -225,7 +225,7 @@ ffmpeg, PyInstaller sidecar, static UI, first-run model download).
 
 **Primary for desktop beta:** structured GitHub issues via the **beta-bug** template
 (`.github/ISSUE_TEMPLATE/beta-bug.yml`). In-app **Report a bug** (`POST /api/support/bug-reports`)
-is local-only on desktop until MASTER §4.22 (F13 collector) ships — do not treat it as operator delivery.
+reaches the operator via the henna collector (MASTER §4.22 / F13 closed 2026-08-03); GitHub template remains a backup.
 Optional: beta Discord channel. In-app reports still persist in the local
 `bug_reports` table; operator email requires `SMTP_HOST` + `BUG_REPORT_TO` on the
 api/worker stack (see `.env.example`). Prometheus stays local unless tester enables

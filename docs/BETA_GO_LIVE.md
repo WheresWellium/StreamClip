@@ -24,14 +24,14 @@ The product is the installer, so this is the gate that blocks a desktop release.
 | Gate | Target | Verify | Status |
 |------|--------|--------|--------|
 | Automated pre-ship battery | all green | `.\scripts\verify_desktop_release.ps1` (chains coverage F10, upgrade F5, clean-boot F1/F12, signing readiness F9) | 🟢 passing |
-| Clean-desktop-VM install → first clip | no white screen; clip in <45m | [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md) sign-off | ☐ operator (clean VM) |
+| Clean-desktop-VM install → first clip | no white screen; clip in <45m | [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md) + [`evidence/clean-desktop-vm-beta20.md`](evidence/clean-desktop-vm-beta20.md) | ☐ operator (clean VM); build-host preflight PASS 2026-08-03 |
 | Install → first-clip median | < 45 min | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
 | Crash-free sessions (7d) | > 98% | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
-| Signed build (or accepted unsigned) | Authenticode Valid | `publish_desktop_release.ps1 -RequireSigned` | ☐ EV cert (O11) |
+| Signed build (or accepted unsigned) | Authenticode Valid | `publish_desktop_release.ps1 -RequireSigned` | ☐ EV cert (O11) — rechecked 2026-08-03 blocked; unsigned beta.20 accepted for cohort |
 
 Desktop exit = automated battery ✅ + the four operator/cohort rows above (MASTER §8.16d). Do not mark green without the evidence pack.
 
-> ⚠️ **Invite blocker — F13:** desktop in-app bug reports / feedback are **not delivered** to the operator (env-only channels unset; reports stay in the tester's local SQLite). Fix = MASTER §4.22 (hosted collector on Vercel). Until then the invite **must** point testers at the GitHub issue template instead of "Help → Report a bug".
+> ✅ **F13 closed 2026-08-03:** packaged desktop posts to henna `api/support-ingest` (Vercel `SMTP_*` + `BUG_REPORT_TO`). GitHub beta-bug template remains a backup channel.
 
 ---
 

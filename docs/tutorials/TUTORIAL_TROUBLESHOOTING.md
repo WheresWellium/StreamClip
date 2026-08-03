@@ -34,7 +34,8 @@ Full beta limits: [Known issues](../BETA_KNOWN_ISSUES.md)
 | localhost:3000 won’t load (Docker) | Wait 60s; `docker compose ps`; `docker compose up -d` |
 | YouTube OAuth redirect error | Desktop URI must use `http://127.0.0.1:8765/.../youtube_shorts/callback` |
 | Publish fails | Clip must be **Approved**; reconnect YouTube; check Distribution queue error |
-| TikTok “inbox only” | Not a bug — finish in the TikTok app |
+| TikTok “inbox only” (publish) | Not a bug — finish in the TikTok app |
+| TikTok URL job fails (IP block) | TikTok blocked the download from this network. **Upload the file**, use YouTube/Twitch/Kick/direct HTTPS, or retry from another network/VPN. |
 
 ---
 

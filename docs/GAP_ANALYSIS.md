@@ -16,8 +16,8 @@ Re-centered the gap lens on the **product = the installer** (not Docker). Full a
 | D6 | BETA_KNOWN_ISSUES stale at beta.6 | P2 | doc | **Fixed** — beta.7; white-screen row added |
 | D7 | First-run model failure copy (disk/network/AV) still generic (F6) | P1 | code | **Fixed** — `classify_failure`/`failure_hint`/`retry_prefetch`; `/api/health/models` +`failed`/`hint` + `POST …/retry`; `ModelWarmupBanner` failed state + Retry; 17 tests |
 | D8 | Supervise UX (F4) | — | — | **Fixed + proven** — `failure-reason.ts` extracted (6 node tests); sidecar boot failures propagate non-zero (`test_run_server_propagates_boot_failure_nonzero`) |
-| D9 | EV signing / SmartScreen (F9) | P1 | ops | **Tooling done** — `publish_desktop_release.ps1 -RequireSigned` + `verify_desktop_release.ps1 -RequireSigning` + [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md); **blocked on operator EV cert purchase (O11)** |
-| D11 | **Desktop feedback black hole (F13)** — in-app bug reports / beta feedback never reach the operator (env-only `OPS_WEBHOOK_URL` / `SMTP_HOST` unset on desktop; row stays in the tester's local SQLite; UI claims "we'll review it") | **P0** | code+infra | **OPEN** — MASTER §4.22; direction chosen = hosted collector on existing Vercel project; only working channel today is the manual GitHub issue template |
+| D9 | EV signing / SmartScreen (F9) | P1 | ops | **Tooling done** — `publish_desktop_release.ps1 -RequireSigned` + `verify_desktop_release.ps1 -RequireSigning` + [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md); **blocked on operator EV cert purchase (O11)** — rechecked 2026-08-03 (`CSC_THUMBPRINT` unset; beta.20 unsigned Latest) |
+| D11 | ~~**Desktop feedback black hole (F13)**~~ | **P0** | code+infra | **CLOSED 2026-08-03** — henna `api/support-ingest` + Vercel SMTP + packaged `OPS_WEBHOOK_URL` (MASTER §4.22) |
 | D10 | Beta program still validated Docker, not the installer | P0 | doc | **Fixed** — [DESKTOP_COHORT_EXIT.md](DESKTOP_COHORT_EXIT.md) + MASTER §8.16d merge Phase0/Phase2; invite email rewritten for installer; Docker retained as Pro-only |
 
 **Net:** all desktop P0s and code P1s closed. Residue is **operator-only**: EV cert purchase (D9/O11), clean-VM install→first-clip sign-off, cohort numbers (DESKTOP_COHORT_EXIT). Pipeline untouched — performance-first + minimize-work held. Turnkey gate: `.\scripts\verify_desktop_release.ps1` (green).
@@ -50,7 +50,7 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | O8 | Weak default AUTH secret (length not warned) | P1 | code | **Fixed** — non-dev settings reject missing/placeholder/short secrets; dev startup logs redacted `SECURITY_WARNING`; `tests/test_auth_secret_strength.py` |
 | O9 | No seat-release UX (max 3 activations) | P1 | code | **Fixed** — Settings → License seat list/release + confirm; migration `0012_license_activation_seats` applied (head); same-machine activate upserts one seat row |
 | O10 | Revoke ≠ jti blocklist for entitlement JWT | P1 | code | **Fixed** — `revoke_entitlement_hash` + verify check (`core/licensing.py`); admin revoke writes Redis/in-process set; `tests/test_licensing_blocklist.py` |
-| O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D — ☐ buy/install cert (MASTER §4.10); **beta.6 remains unsigned** |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D — ☐ buy/install cert (MASTER §4.10); **beta.20 remains unsigned** (2026-08-03) |
 | O12 | Loader / desktop publish | P1 | ops | **Closed 2026-07-28** — `v1.0.0-beta.6` published; UI journey e2e green (`test:e2e:ui-journey`) |
 | O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
 | O14 | macOS DMG + notarization | P2 | ops | arm64 DMG on beta.6 ✅; **universal** pipeline ✅ (`arch: universal` + dual sidecars) — ☐ host rebuild/upload `qClip-mac-universal.dmg`; ☐ notarization |

@@ -1,36 +1,29 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (beta.20 shipped + hardened P0 Pass)
+**Last updated:** 2026-08-03 (open items close-out)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | idle / next open items | — | — |
+| `master` | open-items close-out | — | F13 closed; EV + clean-VM operator |
 
-## Pass rule (packaged evidence only)
+## Closed this pass
 
-Render: job `done` + dims + `captions_done` + ASS Fontname (preferred or fallback) + OS font chain + crop diverge (P0-all).
+| Item | Evidence |
+|------|----------|
+| TikTok IP docs | `BETA_KNOWN_ISSUES` + troubleshooting |
+| Build-host preflight beta.20 | `verify_desktop_release.ps1` PASS |
+| F13 henna SMTP | Vercel env synced; `GET/POST` email `delivered`; packaged `ops_notification=queued` |
+| Render P0 (prior) | beta.20 hardened Pass |
 
-## Shipped
+## Still operator-gated
 
-- `5ffc498` render claims / support-ingest / clip UX
-- `5174abb` caption font fallback + beta.20 bump
-- Release **v1.0.0-beta.20** published (unsigned, 521 MB)
-
-## Render matrix (beta.20 packaged) — P0 Pass
-
-| Cell | Result |
-|------|--------|
-| P0-gaming | Pass Impact, crop 291x517 |
-| P0-irl | Pass Impact, crop 405x720 |
-| P0-landscape | Pass Arial fallback (Helvetica Neue missing), scale_only |
-| P0-all diverge | Pass gaming != irl |
-
-## Still open
-
-Henna SMTP secrets for F13; TikTok IP; EV signing; clean-VM install→first-clip.
+| Item | State |
+|------|-------|
+| Clean-VM install→first-clip | Preflight PASS; manual sign-off ☐ — `docs/evidence/clean-desktop-vm-beta20.md` |
+| EV signing | Explicitly blocked — no `CSC_THUMBPRINT`; `-RequireSigned` fail-closed |
 
 ## Download
 

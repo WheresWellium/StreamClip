@@ -6,7 +6,7 @@
 
 **Do not** invent on-call names, tester outcomes, or crash-free numbers. Replace every `OPERATOR FILL` / `<…>` token before treating exit as closed.
 
-> ⚠️ **BLOCKER BEFORE INVITES — F13 feedback black hole (MASTER §4.22).** In-app **Help → Report a bug** and beta feedback currently **do not reach the operator** on the desktop build: both delivery channels are env-only and unset, so reports stay in the tester's local SQLite and the UI still says "saved — we'll review it". Until §4.22 ships, the **only** working channel is the manual GitHub issue template — say so explicitly in the invite, or you will collect nothing. See [DESKTOP_FAILURE_TAXONOMY.md](DESKTOP_FAILURE_TAXONOMY.md) F13.
+> ✅ **F13 closed 2026-08-03** (MASTER §4.22): Help → Report a bug / beta feedback reach the operator via henna support-ingest email. GitHub beta-bug template remains a backup. See [DESKTOP_FAILURE_TAXONOMY.md](DESKTOP_FAILURE_TAXONOMY.md) F13.
 
 ---
 

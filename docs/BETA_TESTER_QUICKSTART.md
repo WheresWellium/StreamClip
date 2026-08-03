@@ -55,6 +55,6 @@ GPU Docker hosts are much faster. For beta feedback, prefer a short public clip.
 | Something broke | [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
 | Quick answers | [FAQ](BETA_FAQ.md) |
 | Known beta limits | [Known issues](BETA_KNOWN_ISSUES.md) |
-| Tell us how it went | **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** (in-app Help is local-only until F13 collector ships) |
+| Tell us how it went | In-app **Help → Report a bug** / **Beta feedback**, or the **[GitHub beta bug template](https://github.com/WheresWellium/StreamClip/issues/new?template=beta-bug.yml)** |
 
 In-app **Help** covers the same topics without leaving qClip.

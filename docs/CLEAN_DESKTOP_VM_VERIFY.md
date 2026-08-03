@@ -67,7 +67,7 @@ From the VM, collect:
 ```
 Clean-desktop-VM verify (product gate)
 VM: Windows 11 __________  Snapshot: __________
-Installer: qClip-Setup-win-x64.exe  build/tag: __________  Commit: __________
+Installer: qClip-Setup-win-x64.exe  build/tag: v1.0.0-beta.20  Commit: 5174abb / 324f1d1
 verify_desktop_clean.ps1: PASS / FAIL
 Install + first launch (no white screen): PASS / FAIL
 License activate: PASS / FAIL
@@ -77,3 +77,18 @@ Restart persistence: PASS / FAIL
 Upgrade-from-previous: PASS / FAIL / N/A
 Tester: __________  Date (UTC): __________
 ```
+
+## Build-host preflight (beta.20) — not a VM substitute
+
+Recorded 2026-08-03 on the build host (agent):
+
+```
+verify_desktop_release.ps1 (unsigned): PASS
+  - seam coverage F10: PASS (91.71%)
+  - upgrade simulation F5: PASS
+  - verify_desktop_clean.ps1 F1/F12: PASS
+  - signing preflight: unsigned path OK (EV cert not present)
+```
+
+Manual steps 1–7 above remain **operator-only** on a clean Win11 snapshot. Do not invent Pass for those rows.
+See also [`docs/evidence/clean-desktop-vm-beta20.md`](evidence/clean-desktop-vm-beta20.md).

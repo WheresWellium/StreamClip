@@ -2,7 +2,7 @@
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
-Current Windows installer: **`1.0.0-beta.22`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned).
+Current Windows installer: **`1.0.0-beta.22`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned).
 
 Download the app, then follow the steps below. You do not need Docker or a terminal.
 

@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-> **Current Windows build:** `1.0.0-beta.22` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~393 MB, unsigned)  
+> **Current Windows build:** `1.0.0-beta.22` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned)  
 > **Mac (Apple Silicon interim):** [qClip-mac-arm64.dmg on v1.0.0-beta.6](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.6/qClip-mac-arm64.dmg) · not on Latest yet
 
 Pick your platform. When install is done, continue to **[Create your first clip →](BETA_TESTER_QUICKSTART.md)**.

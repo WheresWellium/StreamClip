@@ -166,9 +166,30 @@ def heuristic_virality_score(
 
     final = round(_clamp(score), 1)
     emotion = _infer_emotion(lower) if words else Emotion.NEUTRAL
+    factors: list[str] = []
+    if not words:
+        factors.append("no speech")
+    else:
+        if hooks:
+            factors.append(f"hooks×{hooks}")
+        if punct >= 0.35:
+            factors.append("punctuation")
+        if laughter:
+            factors.append(f"laughter×{laughter}")
+        if dur >= 0.85:
+            factors.append("duration fit")
+        elif dur <= 0.4:
+            factors.append("duration off")
+        if audio_score is not None and float(audio_score) >= 0.55:
+            factors.append("audio+")
+        if chat_score is not None and float(chat_score) >= 0.55:
+            factors.append("chat+")
+    reason = HEURISTIC_REASON
+    if factors:
+        reason = f"{HEURISTIC_REASON}: {', '.join(factors[:4])}"
     return ViralityResult(
         score=final,
         emotion=emotion,
-        reason=HEURISTIC_REASON,
+        reason=reason,
         meme_keywords=_meme_keywords(lower),
     )

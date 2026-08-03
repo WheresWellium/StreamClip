@@ -274,24 +274,89 @@ export function LiveProgress({
       }
     }
     if (state.status === "error") {
+      const last =
+        "lastEvent" in state ? (state.lastEvent ?? null) : null;
+      const extra =
+        last?.extra && typeof last.extra === "object"
+          ? (last.extra as Record<string, unknown>)
+          : null;
+      const doneN = Number(extra?.done ?? 0);
+      const errN = Number(extra?.errors ?? 0);
       const msg = "message" in state ? state.message : undefined;
-      if (msg) toast("Job failed", userFacingErrorMessage(msg, null, "Job failed."));
+      if (doneN > 0 && errN > 0) {
+        toast(
+          "Completed with errors",
+          msg ||
+            `${doneN} clips ready, ${errN} failed. Open failed clips to retry.`,
+        );
+      } else if (msg) {
+        toast("Job failed", userFacingErrorMessage(msg, null, "Job failed."));
+      }
+      try {
+        router.refresh();
+      } catch {
+        /* ignore */
+      }
     }
   }, [state, router, toast]);
 
   if (state.status === "error") {
+    const last =
+      "lastEvent" in state ? (state.lastEvent ?? null) : null;
+    const extra =
+      last?.extra && typeof last.extra === "object"
+        ? (last.extra as Record<string, unknown>)
+        : null;
+    const doneN = Number(extra?.done ?? 0);
+    const errN = Number(extra?.errors ?? 0);
+    const partial = doneN > 0 && errN > 0;
+    const detail =
+      "message" in state
+        ? userFacingErrorMessage(
+            state.message,
+            null,
+            partial
+              ? `${doneN} clips ready, ${errN} failed.`
+              : "Job failed.",
+          )
+        : "Job failed.";
     return (
-      <div className="glossy-surface border-destructive/30 p-4 space-y-2">
+      <div
+        className={
+          partial
+            ? "glossy-surface border-amber-500/30 p-4 space-y-2"
+            : "glossy-surface border-destructive/30 p-4 space-y-2"
+        }
+      >
         <div className="flex items-center gap-2">
-          <XCircle className="h-4 w-4 text-destructive shrink-0" />
-          <span className="text-sm font-medium text-destructive">
-            Job failed
+          <XCircle
+            className={
+              partial
+                ? "h-4 w-4 text-amber-400 shrink-0"
+                : "h-4 w-4 text-destructive shrink-0"
+            }
+          />
+          <span
+            className={
+              partial
+                ? "text-sm font-medium text-amber-200"
+                : "text-sm font-medium text-destructive"
+            }
+          >
+            {partial ? "Completed with errors" : "Job failed"}
           </span>
         </div>
-        <p className="text-xs text-destructive/80">
-          {"message" in state
-            ? userFacingErrorMessage(state.message, null, "Job failed.")
-            : "Job failed."}
+        <p
+          className={
+            partial
+              ? "text-xs text-amber-200/80"
+              : "text-xs text-destructive/80"
+          }
+        >
+          {detail}
+          {partial
+            ? " Open a failed clip → Edit / Regenerate to retry."
+            : ""}
         </p>
       </div>
     );

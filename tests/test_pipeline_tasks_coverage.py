@@ -406,10 +406,30 @@ def test_finalise_job(mock_db_cm):
         ur.increment_minutes_processed = AsyncMock(return_value=None)
         ur.get = AsyncMock(return_value=None)
         UR.return_value = ur
-        with patch.object(pt, "publish_progress"):
+        with patch.object(pt, "publish_progress") as pub:
             with patch.object(pt.cfg.webhooks, "enabled", True):
                 with patch.object(pt, "deliver_job_webhook", return_value=True):
                     pt.finalise_job.run([{"status": "error"}], "job1")
+            assert pub.call_args.kwargs.get("status") == "error"
+            assert "failed" in (pub.call_args.kwargs.get("message") or "").lower()
+
+        with patch.object(pt, "JobRepository") as JR, patch.object(pt, "UserRepository") as UR:
+            jobs = MagicMock()
+            jobs.get = AsyncMock(return_value=job)
+            jobs.update_status = AsyncMock()
+            JR.return_value = jobs
+            ur = MagicMock()
+            ur.increment_minutes_processed = AsyncMock(return_value=None)
+            ur.get = AsyncMock(return_value=None)
+            UR.return_value = ur
+            with patch.object(pt, "publish_progress") as pub:
+                with patch.object(pt.cfg.webhooks, "enabled", False):
+                    pt.finalise_job.run(
+                        [{"status": "done"}, {"status": "error"}], "job1",
+                    )
+                assert pub.call_args.kwargs.get("status") == "error"
+                msg = pub.call_args.kwargs.get("message") or ""
+                assert "ready" in msg.lower() and "failed" in msg.lower()
 
 
 def test_cleanup_expired_jobs(tmp_path, monkeypatch, mock_db_cm):

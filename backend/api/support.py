@@ -84,7 +84,11 @@ def _queue_support_notifications(report_id: str, *, event: str) -> tuple[str, st
 
 
 async def _commit_with_sqlite_retry(db: AsyncSession, *, attempts: int = 4) -> None:
-    """Retry SQLite locked commits so rapid support posts don't 500."""
+    """Retry SQLite locked commits so rapid support posts don't 500.
+
+    Do not rollback between lock retries — that would drop the staged insert
+    and let a later commit succeed without persisting the report.
+    """
     last: Exception | None = None
     for attempt in range(attempts):
         try:
@@ -94,14 +98,15 @@ async def _commit_with_sqlite_retry(db: AsyncSession, *, attempts: int = 4) -> N
             last = exc
             msg = str(exc).lower()
             if "locked" not in msg and "busy" not in msg:
+                await db.rollback()
                 raise StreamClipError(
                     str(exc),
                     user_message="Could not save your report. Please try again.",
                     code="support_db_error",
                     http_status=503,
                 ) from exc
-            await db.rollback()
             await asyncio.sleep(0.05 * (2 ** attempt))
+    await db.rollback()
     raise StreamClipError(
         str(last) if last else "database locked",
         user_message="The app is busy saving another report. Please try again in a moment.",
@@ -168,7 +173,7 @@ async def init_support_attachment(
         expires_in=cfg.storage.presigned_expiry_secs,
         content_type=body.content_type,
     )
-    await db.commit()
+    await _commit_with_sqlite_retry(db)
     return SupportAttachmentInitResponse(
         attachment_id=row.id,
         upload_url=url,

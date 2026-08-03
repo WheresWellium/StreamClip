@@ -138,7 +138,12 @@ export function ClipCard({
   }
 
   const isProcessing = clip.status === "processing";
-  const canEdit = jobDone && (clip.status === "done" || clip.status === "processing");
+  const canEdit =
+    jobDone &&
+    (clip.status === "done" ||
+      clip.status === "processing" ||
+      clip.status === "error");
+  const viralitySource = resolveViralitySource(clip);
 
   async function onApprovalChange(value: ApprovalValue) {
     setApprovalLocal(value);
@@ -255,6 +260,12 @@ export function ClipCard({
           </LegendBadge>
         </div>
 
+        {viralitySource === "heuristic" && (
+          <div className="absolute bottom-2 left-2">
+            <ViralitySourceBadge source="heuristic" />
+          </div>
+        )}
+
         <div className="absolute bottom-2 right-2">
           <LegendLabel
             tip={CLIP_SCORE_LEGEND.duration}
@@ -339,7 +350,7 @@ export function ClipCard({
                 tip="Signal breakdown for this clip. Virality is scored after creation."
                 className="pt-0"
               />
-              <ViralitySourceBadge source={resolveViralitySource(clip)} />
+              <ViralitySourceBadge source={viralitySource} />
             </div>
             <ScoreBreakdown clip={clip} />
             {clip.overlays && clip.overlays.length > 0 && (
@@ -377,6 +388,21 @@ export function ClipCard({
           </div>
         </CollapsibleSection>
 
+        {clip.status === "error" && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 space-y-1">
+            <p className="text-[11px] font-medium text-destructive">
+              Clip render failed
+            </p>
+            <p className="text-[10px] text-destructive/90">
+              {userFacingErrorMessage(
+                clip.error_message,
+                null,
+                "Use Edit clip → Save & re-render, or Regenerate below.",
+              )}
+            </p>
+          </div>
+        )}
+
         {canEdit && (
           <CollapsibleSection title="Edit clip" summary="Boundaries, captions, re-render">
             <div className="space-y-3">
@@ -390,29 +416,12 @@ export function ClipCard({
                 aspectRatioCatalog={aspectRatioCatalog}
                 disabled={isProcessing}
               />
-              {clip.status === "done" && (
-                <>
-                  <ClipFeedbackButtons clipId={clip.id} />
-                  <RegenerateClipButton jobId={jobId} clipId={clip.id} />
-                </>
+              {clip.status === "done" && <ClipFeedbackButtons clipId={clip.id} />}
+              {(clip.status === "done" || clip.status === "error") && (
+                <RegenerateClipButton jobId={jobId} clipId={clip.id} />
               )}
             </div>
           </CollapsibleSection>
-        )}
-
-        {clip.status === "error" && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 space-y-1">
-            <p className="text-[11px] font-medium text-destructive">
-              Clip render failed
-            </p>
-            <p className="text-[10px] text-destructive/90">
-              {userFacingErrorMessage(
-                clip.error_message,
-                null,
-                "Re-open Edit clip and Save again, or Regenerate this clip.",
-              )}
-            </p>
-          </div>
         )}
       </div>
 
@@ -493,7 +502,7 @@ function ScoreBreakdown({ clip }: { clip: ClipOut }) {
     scores.push({
       label: "Chat",
       value: clip.chat_score ?? 0,
-      tip: "Twitch chat spike intensity in this window.",
+      tip: CLIP_SCORE_LEGEND.chat,
     });
   }
 

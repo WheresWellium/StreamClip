@@ -423,7 +423,7 @@ def score_clips_virality_parallel(
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(_score_one, enumerate(clips)))
-    heuristic_n = sum(1 for r in results if r.reason == HEURISTIC_REASON)
+    heuristic_n = sum(1 for r in results if r.reason.startswith(HEURISTIC_REASON))
     if heuristic_n:
         log.info("virality_heuristic_fallback", count=heuristic_n, total=len(results))
     return results

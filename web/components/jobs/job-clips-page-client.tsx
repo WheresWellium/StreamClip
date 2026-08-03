@@ -164,7 +164,7 @@ export function JobClipsPageClient() {
           <SpliceClipsToolbar
             jobId={job.id}
             clips={job.clips}
-            jobDone={job.status === "done"}
+            jobDone={job.status === "done" || job.status === "error"}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {job.clips.map((clip) => (
@@ -172,7 +172,7 @@ export function JobClipsPageClient() {
                 key={clip.id}
                 clip={clip}
                 jobId={job.id}
-                jobDone={job.status === "done"}
+                jobDone={job.status === "done" || job.status === "error"}
                 sourceDurationSecs={job.source_duration_secs}
                 captionStyleOptions={captionStyleOptions}
                 reframePresetOptions={reframePresetOptions}

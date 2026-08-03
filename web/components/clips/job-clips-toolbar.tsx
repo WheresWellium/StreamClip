@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, Loader2, RefreshCw, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useTransition } from "react";
 
@@ -142,6 +143,7 @@ export function RegenerateClipButton({
   clipId,
   disabled,
 }: RegenerateClipButtonProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -149,9 +151,12 @@ export function RegenerateClipButton({
     setMessage(null);
     startTransition(async () => {
       const result = await regenerateClipAction(jobId, clipId);
-      setMessage(
-        result.ok ? "Re-render queued — refresh shortly." : result.message ?? "Failed",
-      );
+      if (result.ok) {
+        setMessage("Re-render queued…");
+        router.refresh();
+      } else {
+        setMessage(result.message ?? "Failed");
+      }
     });
   }
 

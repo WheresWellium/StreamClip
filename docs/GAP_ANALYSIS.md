@@ -1,6 +1,27 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-07-31 (revision 11 — **desktop-primary** re-center audit)
+**Last run:** 2026-08-03 (revision 12 — post–beta.21 polish verification)
+
+### Revision 12 — beta.21 polish verification (2026-08-03)
+
+Re-ran skill against **product = installer** after beta.21 feedback polish + master polish branch. Latest release: **v1.0.0-beta.21**. Technical seams (writable fail-fast, F13 henna support-ingest, heuristic virality, caption/pan overrides, SQLite WAL, ASS/font fallback, Electron startup-error) evidence-backed **ok**. README correctly demotes Docker (no product doc-drift).
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| U73 | Partial clip failure marked job `error` but SSE always published `status=done` + “Job complete” toast | **P1** | code | **Fixed this revision** — `finalise_job` publishes `status=terminal` + honest message; `LiveProgress` amber “Completed with errors” + refresh |
+| U74 | `jobDone={job.status==="done"}` blocked Edit/Regenerate on partial-fail jobs (ERROR clips unreachable) | **P1** | code | **Fixed this revision** — clips page treats `done\|error` as editable terminal |
+| U75 | Regenerate toast said “refresh shortly” with no auto-refresh | P2 | code | **Fixed this revision** — `router.refresh()` after queue |
+| U76 | Dirty banner claimed “last render” for pan/zoom-only while CSS already previewed nudge | P2 | code | **Fixed this revision** — nudge-specific copy |
+| D12 | `BETA_KNOWN_ISSUES` still said beta.20 while Latest is beta.21 | P2 | doc | **Fixed this revision** |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | **Still open** — tooling ready; `CSC_THUMBPRINT` unset; beta.21 unsigned |
+| O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** — preflight ≠ VM Pass ([CLEAN_DESKTOP_VM_VERIFY.md](CLEAN_DESKTOP_VM_VERIFY.md)) |
+| O13 | Legacy `N8N_OPS_WEBHOOK_URL` env alias still read | P2 | code | Defer — no n8n runtime; henna path is canonical |
+| U27 | Playwright full live-stack journey | P2 | test | Defer — mock UI journey green; live `E2E_RUN=1` optional |
+| U77 | Clip card preview hardcoded 9:16 vs job aspect | P2 | code | Defer — non-blocking honesty |
+
+**Net:** no new product P0 in code. Two recovery/honesty P1s found and fixed this run. Residue remains **operator-only** (EV, clean-VM, cohort numbers) + intentional deferrals. Polish branch `cursor/beta21-master-polish` holds prior UX harden; this revision’s U73–U76 fixes are on the working tree (commit when ready). Publish **beta.22** after merge if users need the recovery fix in the installer.
+
+---
 
 ### Revision 11 — desktop-first mastery audit (2026-07-31)
 

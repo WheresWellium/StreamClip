@@ -82,8 +82,9 @@ def test_load_yolo_invokes_ultralytics():
     fake.YOLO = MagicMock(return_value=object())
     with patch.dict(sys.modules, {"ultralytics": fake}):
         detail = mp._load_yolo(cfg)
-    fake.YOLO.assert_called_once_with("yolo11n.pt")
-    assert detail == "yolo11n"
+    called = str(fake.YOLO.call_args[0][0]).replace("\\", "/")
+    assert called.endswith("yolo/yolo11n.pt")
+    assert "yolo11n" in detail
 
 
 def test_load_embedder_invokes_sentence_transformers():

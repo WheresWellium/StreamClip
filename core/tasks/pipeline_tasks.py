@@ -706,6 +706,16 @@ def run_virality_scores(self: ProgressTask, job_id: str) -> str:
     except StreamClipError as exc:
         _mark_error(job_id, exc.code, exc.user_message)
         raise
+    except Exception as exc:
+        # Virality is post-hoc ranking only — never gate clip creation/render.
+        log.warning("virality_stage_nonfatal", job_id=job_id, error=str(exc))
+        self.report(
+            job_id,
+            stage="virality_scored",
+            progress=0.50,
+            message="Virality skipped (continuing)",
+        )
+        return job_id
 
     self.report(job_id, stage="virality_scored", progress=0.50,
                 message="Virality scores ready")

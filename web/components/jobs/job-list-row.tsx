@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-
 import { EditableJobTitle } from "@/components/jobs/editable-job-title";
 import { Progress } from "@/components/ui/form";
 import { LegendBadge } from "@/components/ui/legend-badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { JobListItem } from "@/lib/api/types";
 import { legendForStatus } from "@/lib/help/legends";
+import { jobOverviewPath } from "@/lib/jobs/job-route-id";
 import {
   formatDuration,
   statusColors,
@@ -15,8 +14,8 @@ import {
 
 export function JobListRow({ job }: { job: JobListItem }) {
   return (
-    <Link
-      href={`/jobs/${job.id}`}
+    <a
+      href={jobOverviewPath(job.id)}
       className="group flex items-center gap-4 px-4 py-2.5 hover:bg-frame/5 transition-colors border-b border-frame/10 last:border-0"
     >
       <div className="flex-1 min-w-0">
@@ -56,6 +55,6 @@ export function JobListRow({ job }: { job: JobListItem }) {
       <span className="text-muted-foreground group-hover:text-foreground transition-colors text-[11px] font-mono">
         {job.id.slice(0, 8)}
       </span>
-    </Link>
+    </a>
   );
 }

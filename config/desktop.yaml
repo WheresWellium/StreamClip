@@ -52,12 +52,13 @@ ffmpeg:
 #   set STREAMCLIP_LLM__PROVIDER=openai        (or anthropic)
 #   set STREAMCLIP_LLM__MODEL=gpt-4o-mini
 #   set STREAMCLIP_LLM__API_KEY=sk-...
-# Without a key, virality LLM scoring degrades to 0 and the audio/visual
-# ensemble still ranks clips. Local Ollama also works if installed.
+# If Ollama isn't running, virality probes once and skips (scores 0) — audio /
+# transcript ensemble still ranks clips. Local Ollama works if installed.
 llm:
   provider: ollama
   base_url: http://localhost:11434
-  timeout_secs: 30
+  timeout_secs: 5
+  max_retries: 1
 
 rate_limit:
   enabled: false

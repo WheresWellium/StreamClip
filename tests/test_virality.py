@@ -119,13 +119,41 @@ def test_score_clips_virality_parallel_preserves_order():
     mock_resp.message.content = json.dumps(payload)
     mock_client.chat.return_value = mock_resp
 
-    with patch("core.virality._build_client", return_value=mock_client):
-        results = score_clips_virality_parallel(
-            [("clip a", 0.0, 10.0), ("clip b", 10.0, 20.0)],
-            cfg,
-            max_workers=2,
-        )
+    with patch("core.virality._ollama_reachable", return_value=True):
+        with patch("core.virality._build_client", return_value=mock_client):
+            results = score_clips_virality_parallel(
+                [("clip a", 0.0, 10.0), ("clip b", 10.0, 20.0)],
+                cfg,
+                max_workers=2,
+            )
 
     assert len(results) == 2
     assert mock_client.chat.call_count == 2
     assert all(r.score == 60.0 for r in results)
+
+
+def test_score_clips_virality_parallel_missing_client_degrades():
+    cfg = Settings()
+    with patch("core.virality._ollama_reachable", return_value=True):
+        with patch("core.virality._build_client", side_effect=ImportError("no ollama")):
+            results = score_clips_virality_parallel(
+                [("clip a", 0.0, 10.0), ("clip b", 10.0, 20.0)],
+                cfg,
+                max_workers=2,
+            )
+    assert len(results) == 2
+    assert all(r.score == 0.0 for r in results)
+    assert all(r.reason == "Virality scoring unavailable" for r in results)
+
+
+def test_score_clips_virality_parallel_skips_when_ollama_down():
+    cfg = Settings()
+    with patch("core.virality._ollama_reachable", return_value=False):
+        with patch("core.virality._build_client") as build:
+            results = score_clips_virality_parallel(
+                [("clip a", 0.0, 10.0)],
+                cfg,
+                max_workers=1,
+            )
+    build.assert_not_called()
+    assert results[0].score == 0.0

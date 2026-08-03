@@ -337,6 +337,33 @@ def test_inprocess_chord_runs_callback(monkeypatch):
         worker.shutdown()
 
 
+def test_inprocess_chord_callback_with_bound_args(monkeypatch):
+    """finalise_job.s(job_id) must not duplicate job_id via Signature.clone prepend."""
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg.queue, "inprocess_beat", False)
+    worker = InProcessWorker(cfg)
+    seen: list[tuple[object, ...]] = []
+
+    @celery_app.task(name="tests.inprocess.chord_header_bound")
+    def chord_header_bound(n: int) -> int:
+        return n
+
+    @celery_app.task(name="tests.inprocess.chord_body_bound")
+    def chord_body_bound(results: list[int], job_id: str) -> str:
+        seen.append((list(results), job_id))
+        return job_id
+
+    try:
+        workflow = chord(
+            group(chord_header_bound.s(1), chord_header_bound.s(2)),
+            chord_body_bound.s("JOBX"),
+        )
+        assert worker.execute_work(workflow) == "JOBX"
+        assert seen == [([1, 2], "JOBX")]
+    finally:
+        worker.shutdown()
+
+
 def test_inprocess_submit_canvas_async():
     cfg = get_settings(reload=True)
     worker = InProcessWorker(cfg)

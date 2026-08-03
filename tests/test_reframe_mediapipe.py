@@ -16,6 +16,18 @@ def test_mediapipe_import_error_sets_none():
         with patch("builtins.__import__", side_effect=fake_import):
             tr = _SubjectTracker(PRESETS["fps_game"])
     assert tr._mp_face is None
+    ultra.YOLO.assert_called_once()
+
+
+def test_mediapipe_missing_solutions_keeps_yolo():
+    ultra = MagicMock()
+    ultra.YOLO.return_value = MagicMock(name="yolo")
+    fake_mp = MagicMock()
+    del fake_mp.solutions
+    with patch.dict("sys.modules", {"ultralytics": ultra, "mediapipe": fake_mp}):
+        tr = _SubjectTracker(PRESETS["fps_game"])
+    assert tr._mp_face is None
+    assert tr._yolo is not None
 
 def test_mp_cx_with_detection():
     tr = _SubjectTracker.__new__(_SubjectTracker)

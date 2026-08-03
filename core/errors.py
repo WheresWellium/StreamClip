@@ -135,7 +135,10 @@ class TranscriptionError(StreamClipError):
 
 class NoAudioStreamError(TranscriptionError):
     code = "no_audio_stream"
-    user_message = "The source video has no audio track."
+    user_message = (
+        "This video has no audio track, so we can't find spoken highlights. "
+        "Try a different URL or upload a file that includes sound."
+    )
     is_retryable = False
     http_status = 400
 

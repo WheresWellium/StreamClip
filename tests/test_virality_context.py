@@ -116,13 +116,14 @@ def test_parallel_scoring_accepts_aligned_contexts():
         ClipScoringContext(content_profile="podcast"),
     ]
     client = _mock_llm_client()
-    with patch("core.virality._build_client", return_value=client):
-        results = score_clips_virality_parallel(
-            [("a", 0.0, 10.0), ("b", 10.0, 20.0)],
-            cfg,
-            contexts=contexts,
-            max_workers=1,
-        )
+    with patch("core.virality._ollama_reachable", return_value=True):
+        with patch("core.virality._build_client", return_value=client):
+            results = score_clips_virality_parallel(
+                [("a", 0.0, 10.0), ("b", 10.0, 20.0)],
+                cfg,
+                contexts=contexts,
+                max_workers=1,
+            )
     assert len(results) == 2
     prompts = [c.kwargs["messages"][0]["content"] for c in client.chat.call_args_list]
     assert any("gaming content strategist" in p for p in prompts)

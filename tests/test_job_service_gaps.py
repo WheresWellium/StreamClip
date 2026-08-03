@@ -40,6 +40,32 @@ async def test_create_job_with_upload_key_and_device():
 
 
 @pytest.mark.asyncio
+async def test_create_job_stamps_device_when_signed_in():
+    svc, _, cfg, _ = _svc()
+    device_repo = MagicMock()
+    device_repo.upsert = AsyncMock(return_value=SimpleNamespace(id="devnorm"))
+    svc.devices = device_repo
+    user = SimpleNamespace(
+        id="u1",
+        tier=UserTier.FREE,
+        jobs_used_this_month=0,
+        minutes_processed_this_month=0.0,
+    )
+    svc.users.get = AsyncMock(return_value=user)
+    svc.users.increment_jobs_used = AsyncMock()
+    svc.jobs.create = AsyncMock(return_value=SimpleNamespace(id="j1"))
+    scope = RequestScope(user_id="u1", device_id="my-device-id")
+    await svc.create_job(
+        CreateJobRequest(source_url="https://example.com/v.mp4"),
+        scope,
+    )
+    device_repo.upsert.assert_awaited_once()
+    kwargs = svc.jobs.create.await_args.kwargs
+    assert kwargs["owner_id"] == "u1"
+    assert kwargs["device_id"] == "devnorm"
+
+
+@pytest.mark.asyncio
 async def test_create_job_quota_exceeded():
     svc, _, cfg, _ = _svc()
     user = SimpleNamespace(

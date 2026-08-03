@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Film } from "lucide-react";
 
 import { EditableJobTitle } from "@/components/jobs/editable-job-title";
@@ -9,20 +8,20 @@ import { Progress } from "@/components/ui/form";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { JobListItem } from "@/lib/api/types";
 import { legendForStatus } from "@/lib/help/legends";
+import { navigateToJob } from "@/lib/jobs/job-route-id";
 import {
   formatDuration,
   statusColors,
 } from "@/lib/utils/format";
 
 export function JobCard({ job }: { job: JobListItem }) {
-  const router = useRouter();
   const showProgress =
     job.status !== "done" &&
     job.status !== "error" &&
     job.status !== "cancelled";
 
   function openJob() {
-    router.push(`/jobs/${job.id}`);
+    navigateToJob(job.id);
   }
 
   return (

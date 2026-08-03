@@ -61,7 +61,8 @@ def test_score_parallel_and_ensemble(monkeypatch):
     monkeypatch.setattr(cfg.llm, "parallel_workers", 2)
     # _build_client imports the provider SDK (ollama) — stub it so this test
     # runs on hosts without the worker-only dependencies installed.
-    with patch.object(v, "_build_client", return_value=MagicMock()), \
+    with patch.object(v, "_ollama_reachable", return_value=True), \
+         patch.object(v, "_build_client", return_value=MagicMock()), \
          patch.object(v, "score_clip_virality", return_value=v.ViralityResult(1, Emotion.NEUTRAL, "", [])):
         out = v.score_clips_virality_parallel([("a", 0, 1), ("b", 1, 2)], cfg)
     assert len(out) == 2

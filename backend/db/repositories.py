@@ -93,7 +93,17 @@ class JobRepository:
         if job is None:
             return None
         if owner_id is not None:
-            return job if job.owner_id == owner_id else None
+            if job.owner_id == owner_id:
+                return job
+            # Signed-in desktop users can still open device-scoped jobs created
+            # on this machine before claim / if create briefly lacked a token.
+            if (
+                job.owner_id is None
+                and device_id
+                and job.device_id == device_id
+            ):
+                return job
+            return None
         if job.owner_id is not None:
             return None
         if device_scoped:

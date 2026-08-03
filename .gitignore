@@ -46,3 +46,4 @@ tmp/
 
 # Bundled binaries (Windows build artefact)
 bin/ffmpeg/
+bin/yt-dlp/

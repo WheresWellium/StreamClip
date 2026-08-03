@@ -103,7 +103,9 @@ class JobService:
 
         owner_id = scope.user_id
         device_id: str | None = None
-        if owner_id is None and scope.device_id:
+        # Always stamp device_id when present so signed-in creates stay tied to
+        # this install (claim / anonymous→auth continuity on desktop).
+        if scope.device_id:
             device = await self.devices.upsert(scope.device_id)
             device_id = device.id  # normalized — keeps the jobs.device_id FK valid
 

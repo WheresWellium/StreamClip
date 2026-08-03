@@ -295,7 +295,17 @@ def score_clip_virality(
                 meme_keywords=list(data.get("meme_keywords", [])),
             )
         except (json.JSONDecodeError, Exception) as exc:
+            msg = str(exc).lower()
+            # Connection/refused errors will not heal mid-job — skip backoff.
+            non_retryable = (
+                "failed to connect" in msg
+                or "connection refused" in msg
+                or "connecterror" in msg
+                or "name or service not known" in msg
+            )
             log.warning("virality_score_retry", attempt=attempt + 1, error=str(exc))
+            if non_retryable:
+                break
             time.sleep(1.5 ** attempt)
 
     return ViralityResult(
@@ -304,6 +314,31 @@ def score_clip_virality(
         reason="Virality scoring unavailable",
         meme_keywords=[],
     )
+
+
+def _unavailable_results(n: int) -> list[ViralityResult]:
+    return [
+        ViralityResult(
+            score=0.0,
+            emotion=Emotion.NEUTRAL,
+            reason="Virality scoring unavailable",
+            meme_keywords=[],
+        )
+        for _ in range(n)
+    ]
+
+
+def _ollama_reachable(base_url: str, *, timeout_secs: float = 0.75) -> bool:
+    """Cheap probe so desktop jobs don't burn retries when Ollama isn't installed."""
+    import urllib.error
+    import urllib.request
+
+    url = f"{base_url.rstrip('/')}/api/tags"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout_secs) as resp:
+            return 200 <= getattr(resp, "status", 200) < 300
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
 
 
 def score_clips_virality_parallel(
@@ -323,7 +358,16 @@ def score_clips_virality_parallel(
     if contexts is not None and len(contexts) != len(clips):
         raise ValueError("contexts must align 1:1 with clips")
     workers = min(max_workers or cfg.llm.parallel_workers, len(clips))
-    client = _build_client(cfg.llm)
+    if cfg.llm.provider == "ollama" and not _ollama_reachable(cfg.llm.base_url):
+        log.info("virality_ollama_unreachable", base_url=cfg.llm.base_url)
+        return _unavailable_results(len(clips))
+    try:
+        client = _build_client(cfg.llm)
+    except Exception as exc:
+        # Missing client package (e.g. ollama not bundled) or bad provider config
+        # must not kill the pipeline — discovery clips already exist.
+        log.warning("virality_client_unavailable", error=str(exc), provider=cfg.llm.provider)
+        return _unavailable_results(len(clips))
 
     def _score_one(idx_item: tuple[int, tuple[str, float, float]]) -> ViralityResult:
         idx, (text, start, end) = idx_item

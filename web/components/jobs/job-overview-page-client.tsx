@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 
 import { CancelJobButton } from "@/components/jobs/cancel-job-button";
 import { EditableJobTitle } from "@/components/jobs/editable-job-title";
@@ -15,11 +14,13 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { Button } from "@/components/ui/button";
 import { legendForStatus } from "@/lib/help/legends";
 import { userFacingErrorMessage } from "@/lib/help/user-errors";
+import { jobClipsPath } from "@/lib/jobs/job-route-id";
 import {
   isJobNotFound,
   loadJobPageContext,
   type JobPageContext,
 } from "@/lib/jobs/load-job-page-client";
+import { useResolvedJobId } from "@/lib/jobs/use-resolved-job-id";
 import {
   formatDuration,
   statusColors,
@@ -27,14 +28,21 @@ import {
 import { Film, ArrowRight } from "lucide-react";
 
 export function JobOverviewPageClient() {
-  const params = useParams<{ id: string }>();
-  const jobId = params.id;
+  const { jobId, ready } = useResolvedJobId();
   const [ctx, setCtx] = useState<JobPageContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    if (!ready) return;
+    if (!jobId) {
+      setMissing(true);
+      setCtx(null);
+      return;
+    }
     let cancelled = false;
+    setMissing(false);
+    setError(null);
     void loadJobPageContext(jobId)
       .then((data) => {
         if (!cancelled) setCtx(data);
@@ -56,7 +64,7 @@ export function JobOverviewPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, ready]);
 
   if (missing) {
     return (
@@ -81,7 +89,7 @@ export function JobOverviewPageClient() {
     );
   }
 
-  if (!ctx) {
+  if (!ready || !ctx) {
     return (
       <div className="mx-auto max-w-3xl py-12 text-center text-sm text-muted-foreground">
         Loading job…
@@ -178,10 +186,11 @@ export function JobOverviewPageClient() {
             </p>
           </div>
           <Button asChild size="lg" className="shrink-0">
-            <Link href={`/jobs/${job.id}/clips`}>
+            {/* Plain <a>: static export cannot soft-nav to ungenerated job ids */}
+            <a href={jobClipsPath(job.id)}>
               Review clips
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </a>
           </Button>
         </div>
       ) : job.status === "done" ? (

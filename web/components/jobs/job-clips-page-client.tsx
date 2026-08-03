@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 
 import { ClipCard } from "@/components/clips/clip-card";
 import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
@@ -11,23 +10,32 @@ import { LiveClipFeed } from "@/components/jobs/live-clip-feed";
 import { LegendBadge } from "@/components/ui/legend-badge";
 import type { ClipOut } from "@/lib/api/types";
 import { legendForStatus } from "@/lib/help/legends";
+import { jobOverviewPath } from "@/lib/jobs/job-route-id";
 import {
   isJobNotFound,
   loadJobPageContext,
   type JobPageContext,
 } from "@/lib/jobs/load-job-page-client";
 import { getEffectiveJobTitle } from "@/lib/jobs/title";
+import { useResolvedJobId } from "@/lib/jobs/use-resolved-job-id";
 import { statusColors } from "@/lib/utils/format";
 
 export function JobClipsPageClient() {
-  const params = useParams<{ id: string }>();
-  const jobId = params.id;
+  const { jobId, ready } = useResolvedJobId();
   const [ctx, setCtx] = useState<JobPageContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    if (!ready) return;
+    if (!jobId) {
+      setMissing(true);
+      setCtx(null);
+      return;
+    }
     let cancelled = false;
+    setMissing(false);
+    setError(null);
     void loadJobPageContext(jobId)
       .then((data) => {
         if (!cancelled) setCtx(data);
@@ -43,7 +51,7 @@ export function JobClipsPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, ready]);
 
   if (missing) {
     return (
@@ -71,7 +79,7 @@ export function JobClipsPageClient() {
     );
   }
 
-  if (!ctx) {
+  if (!ready || !ctx) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">Loading clips…</div>
     );
@@ -103,12 +111,12 @@ export function JobClipsPageClient() {
         <span className="text-muted-foreground/50" aria-hidden>
           /
         </span>
-        <Link
-          href={`/jobs/${job.id}`}
+        <a
+          href={jobOverviewPath(job.id)}
           className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[200px]"
         >
           {jobTitle}
-        </Link>
+        </a>
         <span className="text-muted-foreground/50" aria-hidden>
           /
         </span>
@@ -177,9 +185,9 @@ export function JobClipsPageClient() {
       ) : (
         <div className="rounded-lg border border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
           No clips yet.{" "}
-          <Link href={`/jobs/${job.id}`} className="text-sky-400 hover:underline">
+          <a href={jobOverviewPath(job.id)} className="text-sky-400 hover:underline">
             Return to job status
-          </Link>{" "}
+          </a>{" "}
           to watch pipeline progress.
         </div>
       )}

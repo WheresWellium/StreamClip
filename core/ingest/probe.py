@@ -6,6 +6,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from core.errors import IngestError
 from core.ffmpeg_bins import ffprobe_bin
 from core.models import VideoMeta
 
@@ -18,8 +19,35 @@ def probe_video(path: Path, *, url: str | None = None) -> VideoMeta:
         "-show_format", "-show_streams",
         str(path),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    data = json.loads(result.stdout)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    except FileNotFoundError as exc:
+        raise IngestError(
+            f"ffprobe not found: {cmd[0]}",
+            user_message=(
+                "Media tools are missing from this install. "
+                "Reinstall qClip or report a bug."
+            ),
+            context={"ffprobe": cmd[0], "path": str(path)},
+        ) from exc
+    if result.returncode != 0:
+        raise IngestError(
+            f"ffprobe failed for {path} (code={result.returncode})",
+            user_message="Couldn't read this video file. Try a different URL or upload.",
+            context={
+                "path": str(path),
+                "ffprobe": cmd[0],
+                "stderr": (result.stderr or "")[-400:],
+            },
+        )
+    try:
+        data = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        raise IngestError(
+            f"ffprobe returned invalid JSON for {path}",
+            user_message="Couldn't read this video file. Try a different URL or upload.",
+            context={"path": str(path)},
+        ) from exc
 
     fmt = data.get("format", {})
     streams = data.get("streams", [])

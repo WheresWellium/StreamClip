@@ -39,6 +39,15 @@ def test_probe_video_bad_fps(tmp_path):
         meta = probe_video(p)
     assert meta.fps == 30.0
 
+
+def test_probe_video_missing_ffprobe_is_ingest_error(tmp_path):
+    p = tmp_path / "v.mp4"
+    p.write_bytes(b"x")
+    with patch("core.ingest.probe.subprocess.run", side_effect=FileNotFoundError("ffprobe")):
+        with pytest.raises(IngestError) as exc:
+            probe_video(p)
+    assert "missing" in exc.value.user_message.lower() or "reinstall" in exc.value.user_message.lower()
+
 def test_file_hash_and_resolve_local(tmp_path):
     src = tmp_path / "src.mp4"
     src.write_bytes(b"hello world")

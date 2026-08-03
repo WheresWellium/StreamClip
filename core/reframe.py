@@ -142,14 +142,26 @@ class _SubjectTracker:
 
     def __init__(self, preset: _Preset) -> None:
         from ultralytics import YOLO
-        self._yolo = YOLO("yolo11n.pt")   # auto-downloaded on first run
+
+        from core.config import get_settings
+        from core.model_prefetch import yolo_weights_path
+
+        # Same path as boot-time prefetch so we reuse the cached weights file.
+        self._yolo = YOLO(yolo_weights_path(get_settings()))
         self._preset = preset
+        self._mp_face = None
         try:
             import mediapipe as mp
-            self._mp_face = mp.solutions.face_detection.FaceDetection(
+
+            solutions = getattr(mp, "solutions", None)
+            if solutions is None:
+                raise AttributeError("mediapipe.solutions missing from bundle")
+            self._mp_face = solutions.face_detection.FaceDetection(
                 model_selection=1, min_detection_confidence=0.5
             )
-        except ImportError:
+        except Exception as exc:
+            # Incomplete MediaPipe packaging must not kill YOLO tracking.
+            log.warning("mediapipe_face_unavailable", error=str(exc))
             self._mp_face = None
 
     def _yolo_cx(self, frame: np.ndarray) -> float | None:

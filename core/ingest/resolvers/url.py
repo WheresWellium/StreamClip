@@ -13,12 +13,14 @@ from urllib.parse import urlparse
 import structlog
 
 from core.config import IngestConfig, Settings
-from core.errors import IngestError
+from core.errors import IngestError, NoAudioStreamError
+from core.ffmpeg_bins import ffmpeg_bin
 from core.ingest.probe import probe_video
 from core.ingest.types import ProcessingTier
 from core.ingest.url_normalize import normalize_source_url
 from core.models import VideoMeta
 from core.subtitle_import import find_subtitle_file
+from core.ytdlp_bin import ytdlp_argv
 
 log = structlog.get_logger(__name__)
 
@@ -57,20 +59,55 @@ def _is_hls_platform(url: str) -> bool:
 
 
 def _format_selector(max_height: int, *, hls: bool) -> str:
+    # Prefer formats that include audio. Video-only downloads look successful but
+    # crash faster-whisper/PyAV with IndexError ("tuple index out of range").
+    # Twitch clips report acodec=unknown on progressive MP4s, so ``acodec!=none``
+    # filters reject every available format — fall through to height-bounded best
+    # and let probe_video / NoAudioStreamError catch true silent files.
     if hls:
-        # Twitch/Kick serve HLS — strict mp4/avc filters often fail format merge.
         return (
-            f"bestvideo[height<={max_height}]+bestaudio/"
             f"best[height<={max_height}]/"
-            f"best"
+            f"bestvideo[height<={max_height}]+bestaudio/"
+            f"best/"
+            f"bestvideo+bestaudio"
         )
     return (
         f"bestvideo[height<={max_height}][ext=mp4][vcodec^=avc]"
         f"+bestaudio[ext=m4a]/"
-        f"bestvideo[height<={max_height}][ext=mp4]"
-        f"+bestaudio/"
-        f"best[height<={max_height}][ext=mp4]/"
-        f"best[ext=mp4]"
+        f"bestvideo[height<={max_height}][ext=mp4]+bestaudio/"
+        f"bestvideo[height<={max_height}]+bestaudio/"
+        f"best[height<={max_height}][ext=mp4][acodec!=none]/"
+        f"best[height<={max_height}]/"
+        f"best[ext=mp4][acodec!=none]/"
+        f"best[acodec!=none]/"
+        f"best"
+    )
+
+
+def _reject_or_invalidate_silent_media(
+    meta: VideoMeta,
+    *,
+    cached_path: Path,
+    meta_path: Path,
+    url: str,
+    allow_redownload: bool,
+) -> bool:
+    """Return True when a silent cache entry was purged and download should retry."""
+    if meta.has_audio:
+        return False
+    log.warning(
+        "ingest_no_audio_stream",
+        url=url,
+        path=str(cached_path),
+        allow_redownload=allow_redownload,
+    )
+    cached_path.unlink(missing_ok=True)
+    meta_path.unlink(missing_ok=True)
+    if allow_redownload:
+        return True
+    raise NoAudioStreamError(
+        f"Downloaded media has no audio stream: {url}",
+        context={"path": str(cached_path)},
     )
 
 
@@ -104,7 +141,11 @@ def _build_ytdlp_cmd(
     concurrent_fragments: int,
     subs_only: bool = False,
 ) -> list[str]:
-    cmd = ["yt-dlp", "--no-playlist"]
+    cmd = [*ytdlp_argv(), "--no-playlist"]
+    # Without this, yt-dlp cannot merge bestvideo+bestaudio and leaves a
+    # video-only file — Whisper then crashes (or we reject as no_audio_stream).
+    ffmpeg_path = ffmpeg_bin(cfg)
+    cmd.extend(["--ffmpeg-location", ffmpeg_path])
     cmd.extend(_referer_for_url(url))
     cmd.extend(_extractor_args(url, cfg))
     if subs_only:
@@ -158,13 +199,23 @@ def _run_ytdlp(
     cmd: list[str],
     on_progress: Callable[[float], None] | None,
 ) -> tuple[int, list[str]]:
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except FileNotFoundError as exc:
+        raise IngestError(
+            f"yt-dlp executable not found (cmd={cmd[:2]!r})",
+            user_message=(
+                "Video download tool is missing from this install. "
+                "Reinstall qClip or report a bug."
+            ),
+            context={"cmd0": cmd[0] if cmd else None},
+        ) from exc
     lines: list[str] = []
     for line in process.stdout or []:
         stripped = line.strip()
@@ -224,14 +275,23 @@ def download_url(
 
     if cached_path.exists():
         log.info("ingest_cache_hit", url=url, path=str(cached_path))
-        if on_progress:
-            on_progress(1.0)
         meta = probe_video(cached_path, url=url)
         if meta_path.exists():
             with open(meta_path, encoding="utf-8") as fh:
                 saved = json.load(fh)
             meta = VideoMeta(**{**vars(meta), "title": saved.get("title", meta.title)})
-        return meta, True
+        if _reject_or_invalidate_silent_media(
+            meta,
+            cached_path=cached_path,
+            meta_path=meta_path,
+            url=url,
+            allow_redownload=True,
+        ):
+            log.info("ingest_cache_invalidated_no_audio", url=url)
+        else:
+            if on_progress:
+                on_progress(1.0)
+            return meta, True
 
     max_h = _max_height(tier, ingest_cfg)
     tmp_path = cfg.cache_dir / f"{url_hash}.tmp.mp4"
@@ -297,6 +357,13 @@ def download_url(
 
     tmp_path.rename(cached_path)
     meta = probe_video(cached_path, url=url)
+    _reject_or_invalidate_silent_media(
+        meta,
+        cached_path=cached_path,
+        meta_path=meta_path,
+        url=url,
+        allow_redownload=False,
+    )
 
     with open(meta_path, "w", encoding="utf-8") as fh:
         json.dump({"title": meta.title, "duration": meta.duration}, fh, ensure_ascii=False)
@@ -306,6 +373,7 @@ def download_url(
         title=meta.title,
         duration_secs=meta.duration,
         resolution=f"{meta.width}x{meta.height}",
+        has_audio=meta.has_audio,
     )
     if on_progress:
         on_progress(1.0)

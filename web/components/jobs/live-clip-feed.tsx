@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckCircle2, Circle, Loader2, Radio } from "lucide-react";
-import Link from "next/link";
 
 import {
   Card,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { useJobClipFeed } from "@/lib/api/use-job-clip-feed";
 import type { ClipFeedItem } from "@/lib/api/types";
+import { jobClipsPath } from "@/lib/jobs/job-route-id";
 import { cn } from "@/lib/utils/format";
 
 type Props = {
@@ -106,9 +106,9 @@ export function LiveClipFeed({
         )}
         {showReviewLink && clips.some((c) => c.feedStatus === "done") ? (
           <p className="text-xs text-muted-foreground mt-4">
-            <Link href={`/jobs/${jobId}/clips`} className="text-sky-400 hover:underline">
+            <a href={jobClipsPath(jobId)} className="text-sky-400 hover:underline">
               Open clips workspace →
-            </Link>
+            </a>
           </p>
         ) : null}
       </CardContent>

@@ -56,6 +56,18 @@ if (-not ((Test-Path $ffmpegExe) -and (Test-Path $ffprobeExe))) {
     exit 1
 }
 
+$ytdlpExe = Join-Path $root "bin\yt-dlp\yt-dlp.exe"
+if (-not (Test-Path $ytdlpExe)) {
+    Write-Host ""
+    Write-Host "=== yt-dlp binary missing - downloading ===" -ForegroundColor Cyan
+    & "$PSScriptRoot\download_ytdlp_windows.ps1"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+if (-not (Test-Path $ytdlpExe)) {
+    Write-Host "ERROR: bin\yt-dlp\yt-dlp.exe required before sidecar build (URL ingest)." -ForegroundColor Red
+    exit 1
+}
+
 if (-not $SkipUi) {
     Write-Host ""
     Write-Host "=== Static UI ===" -ForegroundColor Cyan

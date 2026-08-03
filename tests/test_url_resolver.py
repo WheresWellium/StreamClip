@@ -9,9 +9,10 @@ from unittest.mock import patch
 import pytest
 
 from core.config import get_settings
-from core.errors import IngestError
+from core.errors import IngestError, NoAudioStreamError
 from core.ingest.resolvers.url import (
     _build_ytdlp_cmd,
+    _format_selector,
     _is_hls_platform,
     _is_transient_ytdlp_output,
     _max_height,
@@ -38,6 +39,19 @@ def test_is_hls_platform():
     assert not _is_hls_platform("https://example.com/v.mp4")
 
 
+def test_format_selector_always_requires_audio():
+    yt = _format_selector(1080, hls=False)
+    tw = _format_selector(1080, hls=True)
+    assert "acodec!=none" in yt
+    assert "acodec!=none" in tw
+    assert "+bestaudio" in yt
+    assert "+bestaudio" in tw
+    # Never fall back to bare best / best[ext=mp4] without an audio constraint.
+    assert "/best/" not in f"/{yt}/"
+    assert not yt.endswith("/best")
+    assert not tw.endswith("/best")
+
+
 def test_build_ytdlp_cmd_video_has_concurrent_fragments():
     cfg = get_settings()
     cmd = _build_ytdlp_cmd(
@@ -47,6 +61,9 @@ def test_build_ytdlp_cmd_video_has_concurrent_fragments():
     assert "--concurrent-fragments" in cmd
     assert "4" in cmd
     assert "--write-auto-subs" not in cmd
+    assert "--ffmpeg-location" in cmd
+    ff_idx = cmd.index("--ffmpeg-location") + 1
+    assert cmd[ff_idx]  # resolved path or binary name
 
 
 def test_build_ytdlp_cmd_twitch_uses_hls_format_and_referer():
@@ -57,6 +74,8 @@ def test_build_ytdlp_cmd_twitch_uses_hls_format_and_referer():
     )
     fmt_idx = cmd.index("--format") + 1
     assert "ext=mp4" not in cmd[fmt_idx]
+    # Twitch clips report acodec=unknown — selector must not require acodec!=none only.
+    assert "best[height<=1080]" in cmd[fmt_idx]
     assert "--referer" in cmd
     assert "twitch.tv" in cmd[cmd.index("--referer") + 1]
 
@@ -111,6 +130,95 @@ def test_download_cache_hit(tmp_path, monkeypatch):
         out, was_cache_hit = download_url(url, cfg, tier=ProcessingTier.SHORT)
     assert out.title == "T"
     assert was_cache_hit is True
+
+
+def test_download_rejects_fresh_video_without_audio(tmp_path, monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg, "cache_dir", tmp_path)
+    cfg.ingest.ytdlp_max_retries = 1
+    url = "https://example.com/silent"
+    h = _url_hash(url)
+    tmp = tmp_path / f"{h}.tmp.mp4"
+
+    class Proc:
+        returncode = 0
+        stdout = iter(["[download] 100.0%"])
+
+        def wait(self):
+            tmp.write_bytes(b"data")
+
+    silent = VideoMeta(
+        path=tmp_path / f"{h}.mp4",
+        duration=2.0,
+        width=640,
+        height=360,
+        fps=30.0,
+        video_codec="h264",
+        audio_codec="none",
+        size_bytes=1,
+        has_audio=False,
+        title="silent",
+        url=url,
+    )
+    with patch("core.ingest.resolvers.url.subprocess.Popen", return_value=Proc()):
+        with patch("core.ingest.resolvers.url.probe_video", return_value=silent):
+            with pytest.raises(NoAudioStreamError):
+                download_url(url, cfg, tier=ProcessingTier.SHORT)
+    assert not (tmp_path / f"{h}.mp4").exists()
+
+
+def test_download_invalidates_silent_cache_and_redownloads(tmp_path, monkeypatch):
+    cfg = get_settings(reload=True)
+    monkeypatch.setattr(cfg, "cache_dir", tmp_path)
+    cfg.ingest.ytdlp_max_retries = 1
+    url = "https://example.com/cached-silent"
+    h = _url_hash(url)
+    cached = tmp_path / f"{h}.mp4"
+    cached.write_bytes(b"old-silent")
+    (tmp_path / f"{h}.json").write_text(json.dumps({"title": "old"}))
+    tmp = tmp_path / f"{h}.tmp.mp4"
+
+    silent = VideoMeta(
+        path=cached,
+        duration=1.0,
+        width=1,
+        height=1,
+        fps=30.0,
+        video_codec="h264",
+        audio_codec="none",
+        size_bytes=1,
+        has_audio=False,
+        title="old",
+        url=url,
+    )
+    good = VideoMeta(
+        path=tmp_path / f"{h}.mp4",
+        duration=2.0,
+        width=640,
+        height=360,
+        fps=30.0,
+        video_codec="h264",
+        audio_codec="aac",
+        size_bytes=1,
+        has_audio=True,
+        title="fixed",
+        url=url,
+    )
+    probes = iter([silent, good])
+
+    class Proc:
+        returncode = 0
+        stdout = iter(["[download] 100.0%"])
+
+        def wait(self):
+            tmp.write_bytes(b"with-audio")
+
+    with patch("core.ingest.resolvers.url.probe_video", side_effect=lambda *_a, **_k: next(probes)):
+        with patch("core.ingest.resolvers.url.subprocess.Popen", return_value=Proc()):
+            out, was_cache_hit = download_url(url, cfg, tier=ProcessingTier.SHORT)
+    assert was_cache_hit is False
+    assert out.has_audio is True
+    assert out.title == "fixed"
 
 
 def test_download_ytdlp_success(tmp_path, monkeypatch):

@@ -5,7 +5,14 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 from core.config import get_settings
-from core.highlights import _AudioAnalyser, _OpticalFlowAnalyser, _snap_boundaries, find_highlights
+from core.highlights import (
+    EnsembleScorer,
+    _AudioAnalyser,
+    _NullAudioAnalyser,
+    _OpticalFlowAnalyser,
+    _snap_boundaries,
+    find_highlights,
+)
 from core.models import Transcript, ClipCandidate, Emotion, SignalScores, TranscriptSegment, Word
 
 def test_audio_analyser_window_means(tmp_path):
@@ -17,11 +24,25 @@ def test_audio_analyser_window_means(tmp_path):
     lib.onset.onset_strength.return_value = np.array([0.1, 0.9])
     lib.times_like.side_effect = [np.array([0.0, 0.5]), np.array([0.0, 0.5])]
     with patch.dict("sys.modules", {"librosa": lib}):
-        a = _AudioAnalyser(video)
+        with patch(
+            "core.highlights._load_mono_audio",
+            return_value=(np.array([0.0, 1.0, 0.5]), 22050),
+        ):
+            a = _AudioAnalyser(video)
     assert a.energy(0.0, 1.0) >= 0
     assert a.novelty(0.0, 1.0) >= 0
     t, c = a.energy_curve()
     assert len(t) == len(c)
+
+def test_ensemble_scorer_degrades_without_librosa(tmp_path):
+    cfg = get_settings(reload=True)
+    video = tmp_path / "v.mp4"
+    video.write_bytes(b"0")
+    with patch("core.highlights._AudioAnalyser", side_effect=ImportError("no librosa")):
+        scorer = EnsembleScorer(video, cfg, skip_optical_flow=True)
+    assert isinstance(scorer._audio, _NullAudioAnalyser)
+    assert scorer._audio.energy(0.0, 1.0) == 0.0
+
 
 def test_optical_flow_analyser(tmp_path):
     video = tmp_path / "v.mp4"

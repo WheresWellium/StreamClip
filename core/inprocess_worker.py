@@ -278,15 +278,18 @@ class InProcessWorker:
 
     @staticmethod
     def _chain_link(sig: Any, prev_result: Any) -> Any:
-        args = tuple(sig.args or ())
-        if prev_result is not None:
-            args = (prev_result,) + args
-        return sig.clone(args=args)
+        # Celery Signature.clone(args=...) PREPENDS onto existing args — pass
+        # only the new head value, never the already-bound args again.
+        if prev_result is None:
+            return sig
+        return sig.clone(args=(prev_result,))
 
     @staticmethod
     def _chord_callback(sig: Any, group_results: list[Any]) -> Any:
-        args = tuple(sig.args or ())
-        return sig.clone(args=(group_results,) + args)
+        # Same clone() prepend semantics as _chain_link. Passing
+        # (group_results,) + existing_args duplicated job_id and crashed
+        # finalise_job with "takes 3 positional arguments but 4 were given".
+        return sig.clone(args=(group_results,))
 
     def _submit_signature(self, sig: Any) -> Future[Any]:
         task_name = sig.name or sig.task

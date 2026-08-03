@@ -1,10 +1,12 @@
 """
-First-run ML model prefetch for the desktop profile (MASTER_TODO §4.8).
+First-run ML model file prefetch for the desktop profile (MASTER_TODO §4.8).
 
-Downloads happen lazily on first job otherwise, which makes the first clip
-feel broken (multi-minute silent stall inside transcribe/reframe). The
-sidecar starts a background prefetch at boot so models are warm by the time
-the user submits a job; ``/api/health/models`` exposes progress for the UI.
+This downloads / cache-warms model *files* into the HuggingFace / app cache so
+the first job does not stall for minutes on a cold network. It does **not**
+keep models resident in GPU/CPU memory for the pipeline — Whisper/YOLO still
+load in-process when a job needs them (from the same cache).
+
+``/api/health/models`` exposes per-model download state for the UI banner.
 
 Import direction: backend and desktop_sidecar both import this module;
 it only imports core config. ML libraries load inside the worker thread.
@@ -107,22 +109,31 @@ def has_failures() -> bool:
 def _load_whisper(cfg: Settings) -> str:
     from faster_whisper import WhisperModel
 
-    # CPU-safe instantiation triggers the HuggingFace download; the pipeline
-    # loads its own device-appropriate instance later from the same cache.
+    # CPU-safe instantiation triggers the HuggingFace download into the shared
+    # cache; the pipeline loads its own device-appropriate instance later.
     WhisperModel(cfg.whisper.model_size, device="cpu", compute_type="int8")
     return f"faster-whisper {cfg.whisper.model_size}"
+
+
+def yolo_weights_path(cfg: Settings) -> str:
+    """Writable YOLO weights path shared by prefetch and reframe (not CWD)."""
+    weights_dir = cfg.cache_dir / "yolo"
+    weights_dir.mkdir(parents=True, exist_ok=True)
+    return str(weights_dir / "yolo11n.pt")
 
 
 def _load_yolo(cfg: Settings) -> str:
     from ultralytics import YOLO
 
-    YOLO("yolo11n.pt")
-    return "yolo11n"
+    path = yolo_weights_path(cfg)
+    YOLO(path)
+    return f"yolo11n ({path})"
 
 
 def _load_embedder(cfg: Settings) -> str:
     from sentence_transformers import SentenceTransformer
 
+    # Used by overlay semantic matching — not virality/highlight ranking.
     SentenceTransformer("all-MiniLM-L6-v2")
     return "all-MiniLM-L6-v2"
 

@@ -541,20 +541,24 @@ def generate_captions(
     ass_path.write_text(ass_content, encoding="utf-8")
 
     # ── Burn into video via FFmpeg ────────────────────────────────────────
-    # ASS filter: escaping backslashes and colons for Windows path compat
-    ass_path_escaped = str(ass_path).replace("\\", "/").replace(":", "\\:")
-    ass_filter = f"ass={ass_path_escaped}"
+    # Newer libavfilter parses ``ass=C\:/path`` as option ``original_size``
+    # (colon splits options). Use a same-directory relative filename and run
+    # ffmpeg with cwd=parent so Windows drive letters never enter the filter.
+    work_dir = ass_path.parent
+    ass_filter = f"ass={ass_path.name}"
+    out_name = output_path.name if output_path.parent.resolve() == work_dir.resolve() else str(output_path)
+    in_name = clip_path.name if clip_path.parent.resolve() == work_dir.resolve() else str(clip_path)
 
     cmd = [
-        ffmpeg_bin(), "-y", "-i", str(clip_path),
+        ffmpeg_bin(), "-y", "-i", in_name,
         "-vf", ass_filter,
         *video_encode_args(cfg.export, crf=16),
         "-c:a", "copy",
         *output_fps_args(cfg.export),
-        str(output_path),
+        out_name,
     ]
-    log.debug("burning_captions", cmd=" ".join(cmd))
-    subprocess.run(cmd, check=True, capture_output=True)
+    log.debug("burning_captions", cmd=" ".join(cmd), cwd=str(work_dir))
+    subprocess.run(cmd, check=True, capture_output=True, cwd=str(work_dir))
     ass_path.unlink(missing_ok=True)  # clean up temp ASS file
 
     log.info("captions_done", output=str(output_path), num_groups=len(groups))

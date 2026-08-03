@@ -12,11 +12,20 @@ const MAX_POLL_FAILURES = 30;
 const MODEL_LABELS: Record<string, string> = {
   whisper: "Speech recognition",
   yolo: "Subject tracking",
-  embedder: "Highlight scoring",
+  embedder: "Overlay matching",
 };
 
 type BannerPhase = "hidden" | "loading" | "complete" | "failed";
 
+function countReady(models: Record<string, { state: string }>): number {
+  return Object.values(models).filter((s) => s.state === "ready").length;
+}
+
+function countSkipped(models: Record<string, { state: string }>): number {
+  return Object.values(models).filter((s) => s.state === "skipped").length;
+}
+
+/** Terminal success for progress numerators (ready or intentionally skipped). */
 function countFinished(models: Record<string, { state: string }>): number {
   return Object.values(models).filter(
     (s) => s.state === "ready" || s.state === "skipped",
@@ -179,11 +188,25 @@ export function ModelWarmupBanner() {
   const entries = Object.entries(status.models);
   const total = entries.length;
   const finished = countFinished(status.models);
+  const readyCount = countReady(status.models);
+  const skippedCount = countSkipped(status.models);
   const isComplete = phase === "complete" && status.ready;
   const isFailed = phase === "failed";
   const failHint =
     status.hint ||
     "Model download failed. Click Retry; if it keeps failing, open a GitHub beta bug report.";
+  const progressLabel = (() => {
+    if (isComplete) {
+      if (skippedCount > 0 && readyCount === 0) {
+        return `Model files unavailable (${skippedCount} skipped)`;
+      }
+      if (skippedCount > 0) {
+        return `Model files cached (${readyCount} ready, ${skippedCount} skipped)`;
+      }
+      return `Model files cached (${readyCount}/${total})`;
+    }
+    return `Downloading model files (${finished}/${total})…`;
+  })();
 
   if (isFailed) {
     return (
@@ -194,7 +217,7 @@ export function ModelWarmupBanner() {
       >
         <div className="container flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="font-medium">
-            AI models didn&apos;t finish downloading ({finished}/{total})
+            Model download didn&apos;t finish ({finished}/{total})
           </span>
           <span className="text-red-100/80">{failHint}</span>
           <button
@@ -228,11 +251,7 @@ export function ModelWarmupBanner() {
       aria-live="polite"
     >
       <div className="container flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span className="font-medium">
-          {isComplete
-            ? `AI models ready (${finished}/${total})`
-            : `Preparing AI models (${finished}/${total})…`}
-        </span>
+        <span className="font-medium">{progressLabel}</span>
         {devToolsEnabled
           ? entries.map(([name, s]) => (
               <span
@@ -252,7 +271,8 @@ export function ModelWarmupBanner() {
           : null}
         {!isComplete ? (
           <span className="text-sky-200/60">
-            You can browse while this finishes — first job waits for models.
+            Caching files for speech, tracking, and overlays — first job still
+            loads them into memory when it runs.
           </span>
         ) : null}
       </div>

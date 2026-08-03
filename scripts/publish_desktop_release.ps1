@@ -192,9 +192,11 @@ def bump_index(path: Path) -> str:
     tick = f"`{version}`"
     if f"Current Windows installer: **{tick}**" in text:
         return "already current"
+    # Match version tick then optional parenthetical date — avoid eating
+    # surrounding punctuation/encoding when the date blob is already messy.
     text2, n = re.subn(
-        r"(Current Windows installer:\s*\*\*`)[^`]+(`\*\*)(\s*\()[^)]+(\))",
-        rf"\g<1>{version}\2\3{today}\4",
+        r"(Current Windows installer:\s*\*\*`)[^`]+(`\*\*)(?:\s*\([^)]*\))?",
+        rf"\g<1>{version}\2 ({today})",
         text,
         count=1,
     )

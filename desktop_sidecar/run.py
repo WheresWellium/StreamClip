@@ -94,6 +94,7 @@ def configure_data_dirs(data_dir: Path) -> None:
 
 def configure_desktop_env(root: Path | None = None) -> Path:
     """Set env defaults for embedded desktop mode."""
+    from core.ffmpeg_bins import ensure_tool_bins_on_path
     from core.gpu_profile import apply_gpu_env_defaults
 
     apply_gpu_env_defaults()
@@ -109,6 +110,8 @@ def configure_desktop_env(root: Path | None = None) -> Path:
 
         ensure_install_secrets(data_dir)
         configure_data_dirs(data_dir)
+    # After config is set so ffmpeg.bin_dir / frozen _MEIPASS resolution works.
+    ensure_tool_bins_on_path()
     return base
 
 

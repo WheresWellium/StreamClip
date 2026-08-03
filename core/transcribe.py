@@ -9,6 +9,8 @@ Gaming terminology is hot-word boosted to reduce transcription errors
 from __future__ import annotations
 
 import hashlib
+import json
+import subprocess
 import time
 from pathlib import Path
 
@@ -17,6 +19,8 @@ from faster_whisper import WhisperModel
 
 from core.caption_timing import repair_word_timing
 from core.config import Settings, WhisperConfig
+from core.errors import NoAudioStreamError, TranscriptionError
+from core.ffmpeg_bins import ffprobe_bin
 from core.models import Transcript, TranscriptSegment, Word
 from core.storage import Storage, job_key, make_storage
 from core.transcript_io import load_transcript, save_transcript
@@ -112,6 +116,43 @@ def load_job_transcript(
 _model_cache: dict[str, WhisperModel] = {}
 
 
+def _media_has_audio_stream(video_path: Path) -> bool:
+    """ffprobe check — faster-whisper/PyAV crashes on video-only files."""
+    cmd = [
+        ffprobe_bin(),
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index",
+        "-of",
+        "json",
+        str(video_path),
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        # ffprobe missing — let Whisper try; IndexError is still mapped below.
+        return True
+    if result.returncode != 0:
+        return False
+    try:
+        data = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return False
+    streams = data.get("streams") or []
+    return len(streams) > 0
+
+
+def _ensure_audio_stream(video_path: Path) -> None:
+    if not _media_has_audio_stream(video_path):
+        raise NoAudioStreamError(
+            f"No audio stream in {video_path}",
+            context={"path": str(video_path)},
+        )
+
+
 def _get_model(cfg: WhisperConfig) -> WhisperModel:
     from core.config import get_settings
     from core.gpu_profile import effective_whisper_device
@@ -179,24 +220,38 @@ def transcribe(
             return transcript
 
     # ── Transcribe ─────────────────────────────────────────────────────────
+    _ensure_audio_stream(video_path)
     model = _get_model(wcfg)
     log.info("transcribing", video=str(video_path), model=wcfg.model_size)
     t0 = time.perf_counter()
 
-    segments_iter, info = model.transcribe(
-        str(video_path),
-        language=wcfg.language,
-        word_timestamps=wcfg.word_timestamps,
-        beam_size=wcfg.beam_size,
-        vad_filter=wcfg.vad_filter,
-        # Gaming hot-word boosting (reduces hallucination on domain vocab)
-        hotwords=", ".join(GAMING_HOTWORDS),
-        # Suppress common hallucinations in silent / music sections
-        suppress_tokens=[-1],
-        condition_on_previous_text=True,
-    )
-
-    segments = _parse_segments(segments_iter, wcfg)
+    try:
+        segments_iter, info = model.transcribe(
+            str(video_path),
+            language=wcfg.language,
+            word_timestamps=wcfg.word_timestamps,
+            beam_size=wcfg.beam_size,
+            vad_filter=wcfg.vad_filter,
+            # Gaming hot-word boosting (reduces hallucination on domain vocab)
+            hotwords=", ".join(GAMING_HOTWORDS),
+            # Suppress common hallucinations in silent / music sections
+            suppress_tokens=[-1],
+            condition_on_previous_text=True,
+        )
+        segments = _parse_segments(segments_iter, wcfg)
+    except IndexError as exc:
+        # PyAV raises this when the container has no decodable audio stream.
+        raise NoAudioStreamError(
+            f"Audio decode failed for {video_path}",
+            context={"path": str(video_path), "cause": str(exc)},
+        ) from exc
+    except Exception as exc:
+        if isinstance(exc, (NoAudioStreamError, TranscriptionError)):
+            raise
+        raise TranscriptionError(
+            f"Transcription failed for {video_path}: {exc}",
+            context={"path": str(video_path), "exc_type": type(exc).__name__},
+        ) from exc
 
     elapsed = time.perf_counter() - t0
     log.info(
@@ -259,20 +314,27 @@ def transcribe_clip(video_path: Path, cfg: Settings) -> Transcript:
     default so short gaming reactions are not stripped.
     """
     wcfg = cfg.whisper
+    _ensure_audio_stream(video_path)
     model = _get_model(wcfg)
     log.info("transcribing_clip", video=str(video_path))
 
-    segments_iter, info = model.transcribe(
-        str(video_path),
-        language=wcfg.language,
-        word_timestamps=True,
-        beam_size=wcfg.beam_size,
-        vad_filter=wcfg.clip_vad_filter,
-        hotwords=", ".join(GAMING_HOTWORDS),
-        suppress_tokens=[-1],
-        condition_on_previous_text=False,
-    )
-    segments = _parse_segments(segments_iter, wcfg)
+    try:
+        segments_iter, info = model.transcribe(
+            str(video_path),
+            language=wcfg.language,
+            word_timestamps=True,
+            beam_size=wcfg.beam_size,
+            vad_filter=wcfg.clip_vad_filter,
+            hotwords=", ".join(GAMING_HOTWORDS),
+            suppress_tokens=[-1],
+            condition_on_previous_text=False,
+        )
+        segments = _parse_segments(segments_iter, wcfg)
+    except IndexError as exc:
+        raise NoAudioStreamError(
+            f"Audio decode failed for clip {video_path}",
+            context={"path": str(video_path), "cause": str(exc)},
+        ) from exc
     return Transcript(
         segments=segments,
         language=info.language,

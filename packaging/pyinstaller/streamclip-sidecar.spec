@@ -41,6 +41,11 @@ if (static_ui / "index.html").exists():
 ffmpeg_dir = ROOT / "bin" / "ffmpeg"
 if any(ffmpeg_dir.glob("ffmpeg*")):
     datas.append((str(ffmpeg_dir), "bin/ffmpeg"))
+# Bundled yt-dlp CLI if present (core/ytdlp_bin.py resolves it). The Python
+# package is also collected below so ``python -m yt_dlp`` works when frozen.
+ytdlp_dir = ROOT / "bin" / "yt-dlp"
+if any(ytdlp_dir.glob("yt-dlp*")):
+    datas.append((str(ytdlp_dir), "bin/yt-dlp"))
 
 binaries = []
 hiddenimports = [
@@ -99,6 +104,13 @@ ML_HIDDEN = [
     "sentence_transformers",
     "transformers",
     "scipy._cyutility",
+    "yt_dlp",
+    "ollama",  # lightweight HTTP client; desktop.yaml defaults to ollama provider
+    # soundfile is a single-module package (soundfile.py) + native _soundfile*;
+    # collect_all often reports "not a package" and skips the DLL.
+    "soundfile",
+    "_soundfile",
+    "_soundfile_data",
 ]
 
 # Critical packages: without these the core transcribe → clip path cannot run,
@@ -106,25 +118,53 @@ ML_HIDDEN = [
 # with a print(), so a misconfigured env produced a "successful" build that
 # crashed on the first job. Optional packages (optical flow, scene detection,
 # embeddings) degrade gracefully at runtime, so a failure there only warns.
-ML_CRITICAL = {"torch", "ctranslate2", "faster_whisper"}
+#
+# librosa/soundfile are critical for highlight audio energy. PyInstaller may
+# "succeed" with empty collect_all when the package is missing from the build
+# env (warning: "not a package") — so we also verify importability + that
+# collect_all returned at least one hiddenimport/data entry.
+# collect_all empty-check applies to real packages. soundfile is handled via
+# explicit datas below (single-module wheel + _soundfile_data DLL).
+ML_CRITICAL = {"torch", "ctranslate2", "faster_whisper", "librosa", "ultralytics", "mediapipe"}
+# Must be importable even when collect_all is empty / special-cased.
+ML_MUST_IMPORT = ML_CRITICAL | {"soundfile", "ollama"}
 
 if not LITE:
+    import importlib
+    import importlib.util
+    from pathlib import Path as _Path
+
     degraded: list[str] = []
+    collected: dict[str, int] = {}
+    for pkg in sorted(ML_MUST_IMPORT):
+        if importlib.util.find_spec(pkg) is None:
+            raise SystemExit(
+                f"[spec] FATAL: {pkg!r} is not installed in the packaging Python. "
+                f"Run: pip install -r requirements-desktop.txt -r requirements-packaging.txt"
+            )
     for pkg in ML_COLLECT_ALL:
         try:
             d, b, h = collect_all(pkg)
             datas += d
             binaries += b
             hiddenimports += h
+            collected[pkg] = len(d) + len(b) + len(h)
         except Exception as exc:
             if pkg in ML_CRITICAL:
                 raise SystemExit(
                     f"[spec] FATAL: collect_all({pkg!r}) failed — this package is "
-                    f"required for transcription and the bundle would crash on the "
-                    f"first job. Fix the packaging env and rebuild. Cause: {exc}"
+                    f"required for transcription/tracking and the bundle would "
+                    f"crash or degrade the first job. Fix the packaging env and rebuild. "
+                    f"Cause: {exc}"
                 )
             print(f"[spec] WARN: optional collect_all({pkg!r}) failed (feature degrades): {exc}")
             degraded.append(pkg)
+            continue
+        if pkg in ML_CRITICAL and collected.get(pkg, 0) == 0:
+            raise SystemExit(
+                f"[spec] FATAL: collect_all({pkg!r}) returned nothing — package is "
+                f"missing or broken in the packaging env. Install requirements-desktop.txt."
+            )
     for pkg in ML_COLLECT_DATA:
         try:
             datas += collect_data_files(pkg)
@@ -133,12 +173,47 @@ if not LITE:
             print(f"[spec] WARN: collect_data_files({pkg!r}) failed: {exc}")
             degraded.append(pkg)
     hiddenimports += ML_HIDDEN
+    # Explicit submodule collect for packages that are easy to miss (single-file
+    # wheels or tiny HTTP clients only imported inside virality/highlight paths).
+    for pkg in ("ollama", "ultralytics", "mediapipe"):
+        try:
+            hiddenimports += collect_submodules(pkg, filter=lambda n: ".tests" not in n)
+            try:
+                from PyInstaller.utils.hooks import collect_dynamic_libs
+                binaries += collect_dynamic_libs(pkg)
+            except Exception as exc:
+                print(f"[spec] WARN: collect_dynamic_libs({pkg!r}): {exc}")
+            try:
+                datas += collect_data_files(pkg)
+            except Exception as exc:
+                print(f"[spec] WARN: collect_data_files({pkg!r}): {exc}")
+        except Exception as exc:
+            print(f"[spec] WARN: extra collect for {pkg!r} failed: {exc}")
+    # soundfile: single-module + native libsndfile DLL under _soundfile_data/
+    try:
+        import soundfile as _sf
+
+        sf_py = _Path(_sf.__file__).resolve()
+        sf_dir = sf_py.parent
+        datas.append((str(sf_py), "."))
+        sf_helper = sf_dir / "_soundfile.py"
+        if sf_helper.is_file():
+            datas.append((str(sf_helper), "."))
+        sf_data = sf_dir / "_soundfile_data"
+        if sf_data.is_dir():
+            datas.append((str(sf_data), "_soundfile_data"))
+        print(f"[spec] bundled soundfile from {sf_py}")
+    except Exception as exc:
+        raise SystemExit(
+            f"[spec] FATAL: could not bundle soundfile (+ _soundfile_data): {exc}"
+        ) from exc
     if degraded:
         print(f"[spec] NOTE: optional ML packages not fully bundled: {sorted(set(degraded))}")
 
 excludes = [
     "tkinter",
-    "matplotlib",
+    # matplotlib MUST ship — ultralytics imports it at YOLO load time.
+    # Excluding it silently forced center-crop fallback on every desktop render.
     "IPython",
     "jupyter",
     "notebook",

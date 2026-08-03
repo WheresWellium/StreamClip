@@ -12,6 +12,8 @@ Each signal is normalised to [0, 1] before the weighted ensemble is computed.
 
 from __future__ import annotations
 
+import subprocess
+import tempfile
 from pathlib import Path
 
 import cv2
@@ -23,6 +25,7 @@ from core.caption_timing import snap_time_to_words
 from core.clip_metadata import derive_clip_metadata
 from core.chat_spikes import ChatSpikeAnalyser
 from core.content_profiles import ProfileWeights, get_profile
+from core.ffmpeg_bins import ffmpeg_bin
 from core.peak_detection import (
     dedupe_windows,
     find_peak_indices,
@@ -40,7 +43,54 @@ from core.models import (
 
 log = structlog.get_logger(__name__)
 
+
+def _load_mono_audio(video_path: Path, *, sr: int = 22050) -> tuple[np.ndarray, int]:
+    """Decode audio for highlight analysis.
+
+    Prefer bundled ffmpeg → WAV, then librosa/soundfile. Direct librosa.load on
+    MP4 depends on audioread finding ``ffmpeg`` on PATH, which fails in packaged
+    installs even when ``ffmpeg_bin()`` resolves correctly.
+    """
+    import librosa
+
+    with tempfile.TemporaryDirectory(prefix="qclip-audio-") as tmp:
+        wav = Path(tmp) / "audio.wav"
+        cmd = [
+            ffmpeg_bin(), "-y", "-i", str(video_path),
+            "-vn", "-ac", "1", "-ar", str(sr),
+            "-f", "wav", str(wav),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if result.returncode == 0 and wav.is_file() and wav.stat().st_size > 44:
+            return librosa.load(str(wav), sr=sr, mono=True)
+        log.warning(
+            "audio_ffmpeg_decode_failed",
+            code=result.returncode,
+            stderr=(result.stderr or "")[-300:],
+        )
+    return librosa.load(str(video_path), sr=sr, mono=True)
+
+
 # ─── Signal 2 + 3: Audio Analyser ─────────────────────────────────────────────
+
+class _NullAudioAnalyser:
+    """Stand-in when librosa is unavailable (packaging gap or optional degrade)."""
+
+    def __init__(self, duration: float = 0.0) -> None:
+        self.duration = max(0.0, float(duration))
+
+    def energy(self, start: float, end: float) -> float:
+        return 0.0
+
+    def novelty(self, start: float, end: float) -> float:
+        return 0.0
+
+    def energy_curve(self) -> tuple[np.ndarray, np.ndarray]:
+        return np.array([0.0], dtype=np.float64), np.array([0.0], dtype=np.float64)
+
+    def onset_curve(self) -> tuple[np.ndarray, np.ndarray]:
+        return np.array([0.0], dtype=np.float64), np.array([0.0], dtype=np.float64)
+
 
 class _AudioAnalyser:
     """
@@ -52,7 +102,7 @@ class _AudioAnalyser:
         import librosa
         self._librosa = librosa
         log.info("loading_audio", path=str(video_path))
-        self.y, self.sr = librosa.load(str(video_path), sr=22050, mono=True)
+        self.y, self.sr = _load_mono_audio(video_path, sr=22050)
         self.duration = len(self.y) / self.sr
 
         # RMS energy — overall loudness
@@ -266,7 +316,17 @@ class EnsembleScorer:
         self._profile = profile
         self._skip_flow = skip_optical_flow
         self._chat = chat_analyser
-        self._audio = _AudioAnalyser(video_path)
+        self._audio: _AudioAnalyser | _NullAudioAnalyser
+        try:
+            self._audio = _AudioAnalyser(video_path)
+        except ImportError as exc:
+            # Packaged builds must ship librosa; if they don't, keep transcript-
+            # based discovery alive instead of crashing the whole job.
+            log.error("audio_analyser_unavailable", error=str(exc))
+            self._audio = _NullAudioAnalyser()
+        except Exception as exc:
+            log.warning("audio_analyser_failed", error=str(exc))
+            self._audio = _NullAudioAnalyser()
         self._flow: _NullFlowAnalyser | _OpticalFlowAnalyser
         if skip_optical_flow:
             self._flow = _NullFlowAnalyser()

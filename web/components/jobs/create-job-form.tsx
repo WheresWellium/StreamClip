@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/actions/jobs";
 import { assetsApi, type OverlayAsset } from "@/lib/api/client";
 import { getClientAccessToken } from "@/lib/auth/client-session";
-import { useRouter } from "next/navigation";
+import { navigateToJob } from "@/lib/jobs/job-route-id";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -107,7 +107,6 @@ export function CreateJobForm({
   defaultSourceUrl,
   onJobCreated,
 }: Props) {
-  const router = useRouter();
   const [state, formAction] = React.useActionState(createJobAction, INITIAL_STATE);
   const [mode, setMode] = React.useState<"url" | "upload">("url");
   const [uploadKey, setUploadKey] = React.useState<string | null>(null);
@@ -157,12 +156,14 @@ export function CreateJobForm({
       } catch {
         // Navigation still proceeds — caller failures must not trap the user.
       }
-      if (!cancelled) router.push(`/jobs/${state.jobId}`);
+      // Full document navigation: static export only prebuilds jobs/_/ so
+      // Next soft-nav to a real id shows "Job not found" instantly.
+      if (!cancelled) navigateToJob(state.jobId!);
     })();
     return () => {
       cancelled = true;
     };
-  }, [state.status, state.jobId, router, onJobCreated]);
+  }, [state.status, state.jobId, onJobCreated]);
 
   const selectedProfile = meta.content_profiles.find((p) => p.id === contentProfile);
 

@@ -9,6 +9,7 @@ import { useToastSafe } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
+import { parseJobIdFromPathname } from "@/lib/jobs/job-route-id";
 import { cn } from "@/lib/utils/format";
 
 const CATEGORIES: { id: string; label: string }[] = [
@@ -35,9 +36,7 @@ type BugReportDialogProps = {
 
 /** Pull a job id out of /jobs/[id]... paths to pre-fill the report. */
 function jobIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/jobs\/([^/]+)/);
-  if (!match || match[1] === "new") return null;
-  return match[1];
+  return parseJobIdFromPathname(pathname);
 }
 
 export function BugReportDialog({

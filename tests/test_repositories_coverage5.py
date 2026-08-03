@@ -64,6 +64,21 @@ async def test_job_get_missing_and_device_mismatch(db):
 
 
 @pytest.mark.asyncio
+async def test_job_get_for_scope_signed_in_reads_device_job(db):
+    """Authenticated GET may open a device-scoped job from the same install."""
+    jobs = JobRepository(db)
+    devices = DeviceRepository(db)
+    user = await _user(db, "device-job")
+    dev = normalize_device_id("signed-in-device-0001")
+    await devices.get_or_create(dev)
+    job = await _job(db, owner_id=None, device_id=dev)
+
+    assert await jobs.get_for_scope(job.id, owner_id=user.id, device_id=dev) is not None
+    assert await jobs.get_for_scope(job.id, owner_id=user.id, device_id="other-device-0001") is None
+    assert await jobs.get_for_scope(job.id, owner_id="other-user", device_id=dev) is None
+
+
+@pytest.mark.asyncio
 async def test_clip_boundaries_hook_overrides_and_approval(db):
     job = await _job(db)
     clips = ClipRepository(db)

@@ -27,7 +27,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 
 - Windows + Mac Apple Silicon on **1.0.0-beta.22** Latest
 - Henna prod promoted (`streamclip-henna.vercel.app` → Latest Mac + beta.22)
-- F13: in-app reports → GitHub Issues; board [qClip project #4](https://github.com/users/WheresWellium/projects/4) (needs PAT `project` scope for auto-add)
+- F13: in-app Help → henna → GitHub Issues + [Project #4](https://github.com/users/WheresWellium/projects/4) (verified #15/#16)
 - Partial-fail honesty, heuristic virality, job-aspect cards
 
 ## Still operator-gated

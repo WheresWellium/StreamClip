@@ -96,7 +96,7 @@ import json, os
 keys = ["SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_FROM","SMTP_STARTTLS","BUG_REPORT_TO"]
 out = {k: os.environ.get(k, "") for k in keys}
 out["SMTP_PASSWORD_set"] = bool(os.environ.get("SMTP_PASSWORD"))
-out["OPS_WEBHOOK_URL_set"] = bool(os.environ.get("OPS_WEBHOOK_URL") or os.environ.get("N8N_OPS_WEBHOOK_URL"))
+out["OPS_WEBHOOK_URL_set"] = bool(os.environ.get("OPS_WEBHOOK_URL"))
 print(json.dumps(out))
 '@
 

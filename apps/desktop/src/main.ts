@@ -28,7 +28,6 @@ const DEFAULT_SUPPORT_COLLECTOR_URL =
 function resolveSupportCollectorUrl(): string | undefined {
   const fromEnv =
     process.env.OPS_WEBHOOK_URL?.trim() ||
-    process.env.N8N_OPS_WEBHOOK_URL?.trim() ||
     process.env.STREAMCLIP_SUPPORT_COLLECTOR_URL?.trim();
   if (fromEnv) return fromEnv;
   // Packaged builds forward to the hosted collector so Help → Report a bug /

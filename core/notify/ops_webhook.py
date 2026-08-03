@@ -5,13 +5,10 @@ Configure via environment (never commit the URL):
 
   OPS_WEBHOOK_URL — HTTPS endpoint that accepts JSON POSTs
                     (Discord/Slack incoming webhook, Zapier Catch Hook,
-                     custom agent inbox, etc.)
+                     henna support-ingest, custom agent inbox, etc.)
 
-Legacy alias (deprecated, still read for one release):
-  N8N_OPS_WEBHOOK_URL
-
-This module does **not** depend on n8n. Route destinations (email, Slack,
-agent MCP, etc.) live in whatever receives the webhook.
+This module does **not** depend on n8n. The legacy ``N8N_OPS_WEBHOOK_URL``
+alias was removed — set ``OPS_WEBHOOK_URL`` only.
 
 ``deliver_ops_event`` prefers the webhook and falls back to SMTP email, so an
 operator can run alerting with SMTP alone and no third-party connector.
@@ -31,11 +28,7 @@ log = structlog.get_logger(__name__)
 
 
 def ops_webhook_url() -> str:
-    primary = os.environ.get("OPS_WEBHOOK_URL", "").strip()
-    if primary:
-        return primary
-    # One-release compat for installs that still set the old env name.
-    return os.environ.get("N8N_OPS_WEBHOOK_URL", "").strip()
+    return os.environ.get("OPS_WEBHOOK_URL", "").strip()
 
 
 def ops_webhook_status() -> str:

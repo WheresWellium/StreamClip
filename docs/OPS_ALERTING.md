@@ -122,11 +122,10 @@ Optional Sentry (API + workers):
 STREAMCLIP_OBSERVABILITY__SENTRY_DSN=https://...@o....ingest.sentry.io/...
 ```
 
-### Legacy env alias (do not set new installs)
+### Env name
 
-`core/notify/ops_webhook.py` still reads **`N8N_OPS_WEBHOOK_URL`** if
-`OPS_WEBHOOK_URL` is empty (one-release compat). Prefer `OPS_WEBHOOK_URL` only.
-Do not reintroduce n8n workflows. Cleanup of the alias is tracked as GAP **O13**.
+Use **`OPS_WEBHOOK_URL` only**. The legacy `N8N_OPS_WEBHOOK_URL` alias was
+removed (GAP O13 closed). Do not reintroduce n8n workflows.
 
 ## Receiver options (pick one)
 

@@ -13,6 +13,7 @@ import { PublishStatusBadge } from "@/components/clips/publish-status-badge";
 import { ClipEditor } from "@/components/clips/clip-editor";
 import { ClipFeedbackButtons } from "@/components/clips/clip-feedback";
 import { RegenerateClipButton } from "@/components/clips/job-clips-toolbar";
+import { aspectRatioCss } from "@/components/jobs/aspect-ratio-select";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/form";
@@ -144,6 +145,7 @@ export function ClipCard({
       clip.status === "processing" ||
       clip.status === "error");
   const viralitySource = resolveViralitySource(clip);
+  const previewAspectCss = aspectRatioCss(jobAspectRatio || "9:16");
 
   async function onApprovalChange(value: ApprovalValue) {
     setApprovalLocal(value);
@@ -173,7 +175,7 @@ export function ClipCard({
       )}
     >
       {/* Vertical 9:16 video preview */}
-      <div className="relative bg-black" style={{ aspectRatio: "9/16" }}>
+      <div className="relative bg-black" style={{ aspectRatio: previewAspectCss }}>
         {playing && downloadUrl ? (
           <video
             src={downloadUrl}
@@ -537,7 +539,7 @@ function ScoreBreakdown({ clip }: { clip: ClipOut }) {
 export function ClipCardSkeleton() {
   return (
     <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
-      <div className="skeleton" style={{ aspectRatio: "9/16" }} />
+      <div className="skeleton" style={{ aspectRatio: "9/16" }} aria-hidden />
       <div className="p-3 space-y-2">
         <div className="h-4 w-2/3 skeleton rounded" />
         <div className="h-3 w-full skeleton rounded" />

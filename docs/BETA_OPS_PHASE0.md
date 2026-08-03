@@ -161,7 +161,7 @@ Fast path (full checklist: [OPS_ALERTING.md](OPS_ALERTING.md)):
    an adapter that maps fields to `content` / `text`.
 4. Put the secret URL in **local** `.env` / `.env.production` as `OPS_WEBHOOK_URL`
    (operator action — do not invent URLs in docs/commits). Prefer
-   `OPS_WEBHOOK_URL`; legacy `N8N_OPS_WEBHOOK_URL` still read if primary empty (GAP O13).
+   `OPS_WEBHOOK_URL` only (legacy `N8N_*` alias removed).
 5. If using Resend for email, verify the sender domain and set:
 
    ```bash

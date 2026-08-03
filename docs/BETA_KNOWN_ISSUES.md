@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.21**
+**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.22**
 
 ---
 
@@ -16,8 +16,11 @@
 | SCPRO key won't activate on empty desktop DB | Fixed — cohort keys seeded at boot |
 | YouTube publish / OAuth broken on desktop | Fixed — per-install secrets |
 | White screen / blank window on launch | Fixed — writable-path fail-fast; if the engine truly can't write, you now get a clear error page with a log link, not a blank window (beta.7+) |
+| Partial job fail toasted as “Job complete”; Edit blocked | Fixed in beta.22 — honest “Completed with errors” + Edit/Regenerate on failed clips |
+| Support reports never left the device (F13) | Fixed — packaged Help → Report routes to henna + SMTP when configured |
+| Virality blank when Ollama down | Fixed — local heuristic score + source badge |
 
-Still on beta.5–beta.8? Upgrade to beta.9 (fixes engine Retry on the startup-error page).
+Still on beta.5–beta.8? Upgrade to Latest (fixes engine Retry on the startup-error page).
 
 ---
 
@@ -31,11 +34,20 @@ Still on beta.5–beta.8? Upgrade to beta.9 (fixes engine Retry on the startup-e
 | macOS Gatekeeper | Unsigned `.dmg` — right-click → **Open** / Privacy & Security → **Open Anyway** |
 | macOS notarization | Not notarized yet — Gatekeeper warning is expected |
 | macOS universal DMG | Prefer `qClip-mac-universal.dmg`; rebuild on Mac if only `arm64` is on the release |
-| SmartScreen | Unsigned — **More info → Run anyway** |
+| SmartScreen | Unsigned until EV cert — **More info → Run anyway** |
 | First-run models | ~1.5 GB download once |
 | CPU desktop speed | Slow vs GPU — prefer short sources for feedback |
 | GPU / Docker acceleration | Windows `.exe` uses GPU when the PC has one; Mac Docker is CPU-only. Stuck or unexpected speed → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
 | Scheduled publish | Fires only while the desktop app is open |
+
+---
+
+## Operator ship gates (not end-user bugs)
+
+| Gate | Status |
+|------|--------|
+| Clean-VM install → first clip | Manual checklist — [CLEAN_DESKTOP_VM_VERIFY.md](CLEAN_DESKTOP_VM_VERIFY.md) |
+| EV Authenticode / SmartScreen | Blocked on cert purchase — [DESKTOP_SIGNING.md](DESKTOP_SIGNING.md) |
 
 ---
 

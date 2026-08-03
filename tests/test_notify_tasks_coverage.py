@@ -372,12 +372,12 @@ def test_send_job_failed_ops_alert_posts_payload():
     assert payload["error_count"] == 1
 
 
-def test_ops_webhook_reads_legacy_n8n_env(monkeypatch):
+def test_ops_webhook_ignores_legacy_n8n_env(monkeypatch):
     monkeypatch.delenv("OPS_WEBHOOK_URL", raising=False)
     monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://legacy.test/hook")
     from core.notify import ops_webhook
 
-    assert ops_webhook.ops_webhook_url() == "https://legacy.test/hook"
+    assert ops_webhook.ops_webhook_url() == ""
 
 
 def test_ops_webhook_status_queued_when_configured(monkeypatch):
@@ -428,9 +428,11 @@ def test_post_ops_webhook_network_error(monkeypatch):
     assert ok is False
 
 
-def test_ops_webhook_url_prefers_primary_over_legacy(monkeypatch):
+def test_ops_webhook_url_uses_primary_only(monkeypatch):
     monkeypatch.setenv("OPS_WEBHOOK_URL", "https://primary.test/hook")
     monkeypatch.setenv("N8N_OPS_WEBHOOK_URL", "https://legacy.test/hook")
+    from core.notify import ops_webhook
+
     assert ops_webhook.ops_webhook_url() == "https://primary.test/hook"
 
 

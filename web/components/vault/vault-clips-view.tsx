@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { removeVaultClipAction, renameVaultClipAction } from "@/lib/api/actions/vault";
@@ -17,8 +16,12 @@ import {
   type ViewMode,
 } from "@/lib/view-mode";
 
-export function VaultClipsView({ clips }: { clips: VaultClip[] }) {
-  const router = useRouter();
+type Props = {
+  clips: VaultClip[];
+  onClipsChange: (clips: VaultClip[]) => void;
+};
+
+export function VaultClipsView({ clips, onClipsChange }: Props) {
   const { push: toast } = useToastSafe();
   const [mode, setMode] = React.useState<ViewMode>("card");
   const [hydrated, setHydrated] = React.useState(false);
@@ -41,7 +44,7 @@ export function VaultClipsView({ clips }: { clips: VaultClip[] }) {
     const result = await removeVaultClipAction(id);
     if (result.status === "ok") {
       toast("Removed", "Clip removed from Vault.");
-      router.refresh();
+      onClipsChange(clips.filter((c) => c.id !== id));
     } else {
       toast("Remove failed", result.message ?? "Could not remove");
     }
@@ -57,37 +60,53 @@ export function VaultClipsView({ clips }: { clips: VaultClip[] }) {
     const result = await renameVaultClipAction(id, renameValue);
     setRenamePending(false);
     if (result.status === "ok") {
+      const trimmed = renameValue.trim();
+      onClipsChange(
+        clips.map((c) => (c.id === id ? { ...c, title: trimmed } : c)),
+      );
       setRenamingId(null);
-      router.refresh();
+      toast("Renamed", "Vault clip title updated.");
     } else {
       toast("Rename failed", result.message ?? "Could not rename");
     }
   }
 
+  const toggle = hydrated ? (
+    <ViewModeToggle mode={mode} onChange={handleModeChange} />
+  ) : (
+    <div className="h-8 w-28 skeleton rounded-sm" />
+  );
+
   if (mode === "card") {
     return (
       <div className="space-y-4">
-        <div className="flex justify-end">
-          {hydrated ? (
-            <ViewModeToggle mode={mode} onChange={handleModeChange} />
-          ) : (
-            <div className="h-8 w-28 skeleton rounded-sm" />
-          )}
-        </div>
-        <VaultClipGrid clips={clips} />
+        <div className="flex justify-end">{toggle}</div>
+        <VaultClipGrid
+          clips={clips}
+          renamingId={renamingId}
+          renameValue={renameValue}
+          renamePending={renamePending}
+          onRenameValueChange={setRenameValue}
+          onStartRename={startRename}
+          onCancelRename={() => setRenamingId(null)}
+          onSaveRename={(id) => void saveRename(id)}
+          onRemove={(id) => void remove(id)}
+          onShare={setDestinationsClip}
+        />
+        {destinationsClip && (
+          <VaultDestinationsDrawer
+            clip={destinationsClip}
+            open={Boolean(destinationsClip)}
+            onClose={() => setDestinationsClip(null)}
+          />
+        )}
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex justify-end mb-3">
-        {hydrated ? (
-          <ViewModeToggle mode={mode} onChange={handleModeChange} />
-        ) : (
-          <div className="h-8 w-28 skeleton rounded-sm" />
-        )}
-      </div>
+      <div className="flex justify-end mb-3">{toggle}</div>
       <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
         {clips.map((clip) => (
           <VaultClipListRow

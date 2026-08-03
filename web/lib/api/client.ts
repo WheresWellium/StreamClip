@@ -828,7 +828,13 @@ export const supportApi = {
     authToken?: string,
     deviceId?: string,
   ) =>
-    request<{ id: string; status: string; topic: string; ops_notification: string }>(
+    request<{
+      id: string;
+      status: string;
+      topic: string;
+      ops_notification: string;
+      email_notification: string;
+    }>(
       "/api/support/beta-feedback",
       {
         method: "POST",

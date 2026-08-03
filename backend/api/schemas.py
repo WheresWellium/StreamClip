@@ -562,6 +562,7 @@ class BetaFeedbackOut(BaseModel):
     topic: str
     created_at: datetime
     ops_notification: str = "skipped_unconfigured"
+    email_notification: str = "skipped_unconfigured"
 
 
 class BugReportAdminOut(BaseModel):

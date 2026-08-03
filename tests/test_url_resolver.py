@@ -108,6 +108,12 @@ def test_transient_ytdlp_error_detection():
     assert "temporary" in _user_message_from_ytdlp(lines, "https://www.twitch.tv/videos/1")
 
 
+def test_user_message_ip_blocked():
+    lines = ["ERROR: [TikTok] 123: Your IP address is blocked from accessing this post"]
+    msg = _user_message_from_ytdlp(lines, "https://www.tiktok.com/@x/video/123")
+    assert "IP block" in msg
+
+
 def test_download_cache_hit(tmp_path, monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg, "cache_dir", tmp_path)

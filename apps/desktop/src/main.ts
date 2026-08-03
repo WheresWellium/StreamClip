@@ -21,6 +21,22 @@ const DEFAULT_SIDECAR_PORT = Number(process.env.STREAMCLIP_SIDECAR_PORT ?? "8765
 const PORT_IS_EXPLICIT =
   process.env.STREAMCLIP_SIDECAR_PORT != null || process.env.STREAMCLIP_WEB_URL != null;
 
+/** Hosted F13 collector on henna (secrets stay on Vercel; no SMTP in the exe). */
+const DEFAULT_SUPPORT_COLLECTOR_URL =
+  "https://streamclip-henna.vercel.app/api/support-ingest";
+
+function resolveSupportCollectorUrl(): string | undefined {
+  const fromEnv =
+    process.env.OPS_WEBHOOK_URL?.trim() ||
+    process.env.N8N_OPS_WEBHOOK_URL?.trim() ||
+    process.env.STREAMCLIP_SUPPORT_COLLECTOR_URL?.trim();
+  if (fromEnv) return fromEnv;
+  // Packaged builds forward to the hosted collector so Help → Report a bug /
+  // Beta feedback leave the tester machine (local SQLite alone is not enough).
+  if (app.isPackaged) return DEFAULT_SUPPORT_COLLECTOR_URL;
+  return undefined;
+}
+
 // Resolved at startup: normally the default port, but relocated to a free port
 // if 8765 is already held by an unrelated process (so we don't dead-end on the
 // error page). Mutable because the chosen port is not known until app-ready.
@@ -152,12 +168,14 @@ function startSidecar(): void {
     sidecarLog = null;
   }
 
+  const supportCollector = resolveSupportCollectorUrl();
   sidecarProc = spawn(cmd, args, {
     cwd,
     env: {
       ...process.env,
       STREAMCLIP_SIDECAR_HOST: SIDECAR_HOST,
       STREAMCLIP_SIDECAR_PORT: String(SIDECAR_PORT),
+      ...(supportCollector ? { OPS_WEBHOOK_URL: supportCollector } : {}),
     },
     stdio: sidecarLog ? ["ignore", "pipe", "pipe"] : "ignore",
     shell: false,

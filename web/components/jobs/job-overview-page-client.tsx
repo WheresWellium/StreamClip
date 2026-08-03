@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import { CancelJobButton } from "@/components/jobs/cancel-job-button";
 import { EditableJobTitle } from "@/components/jobs/editable-job-title";
-import { TitleSuggestionsPanel } from "@/components/jobs/title-suggestions-panel";
 import { LiveClipFeed } from "@/components/jobs/live-clip-feed";
 import { LiveProgress } from "@/components/jobs/live-progress";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -137,10 +136,6 @@ export function JobOverviewPageClient() {
           {clipCount > 0 ? <> · {clipCount} clips</> : null}
         </p>
       </div>
-
-      {(job.status === "done" || job.status === "error") && (
-        <TitleSuggestionsPanel jobId={job.id} />
-      )}
 
       <LiveProgress
         jobId={job.id}

@@ -8,8 +8,12 @@ Gaming-specific enhancements:
   • HUD protection zones (health bars, minimap, kill feed)
   • Per-genre presets (fps_game, moba, battle_royale, irl, podcast)
   • Split-screen mode: gameplay top / facecam bottom (if cam feed supplied)
-  • Letterbox fallback with blurred background (no ugly black bars)
+  • Tracking-failure fallback: FFmpeg centre-crop + scale (not letterbox/blur)
   • Frame-accurate scene-change-aware reframing via PySceneDetect
+
+Note: ``boxblur`` appears only in ``create_split_screen`` when no webcam is
+supplied. The default ``process_clip`` path never passes ``webcam_path``, so
+that blur branch is unused in the shipping pipeline.
 """
 
 from __future__ import annotations

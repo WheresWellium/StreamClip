@@ -78,9 +78,16 @@ def send_bug_report_email(report_id: str) -> dict[str, str]:
         f"Environment:\n{env}\n"
         f"{attachment_lines}"
     )
+    env_kind = ""
+    if isinstance(report.environment, dict):
+        env_kind = str(report.environment.get("kind") or "")
+    if env_kind == "beta_feedback":
+        subject = f"[qClip] Beta feedback: {categories}"
+    else:
+        subject = f"[qClip] Bug report ({report.severity}): {categories}"
     sent = send_email(
         to=recipient,
-        subject=f"[qClip] Bug report ({report.severity}): {categories}",
+        subject=subject,
         body=body,
     )
     return {"status": "sent" if sent else "skipped", "report_id": report_id}

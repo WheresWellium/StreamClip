@@ -537,8 +537,14 @@ def generate_captions(
             )
 
     ass_content = builder.render(video_w, video_h)
+    # Persist ASS next to the captioned output for audit / smoke Fontname asserts.
+    persist_ass = output_path.with_suffix(".ass")
+    persist_ass.write_text(ass_content, encoding="utf-8")
+    # Burn filter needs a same-directory relative path (Windows drive letters break
+    # libavfilter option parsing). Use a temp beside the vertical clip when needed.
     ass_path = clip_path.with_suffix(".ass")
-    ass_path.write_text(ass_content, encoding="utf-8")
+    if ass_path.resolve() != persist_ass.resolve():
+        ass_path.write_text(ass_content, encoding="utf-8")
 
     # ── Burn into video via FFmpeg ────────────────────────────────────────
     # Newer libavfilter parses ``ass=C\:/path`` as option ``original_size``
@@ -559,7 +565,14 @@ def generate_captions(
     ]
     log.debug("burning_captions", cmd=" ".join(cmd), cwd=str(work_dir))
     subprocess.run(cmd, check=True, capture_output=True, cwd=str(work_dir))
-    ass_path.unlink(missing_ok=True)  # clean up temp ASS file
+    if ass_path.resolve() != persist_ass.resolve():
+        ass_path.unlink(missing_ok=True)
 
-    log.info("captions_done", output=str(output_path), num_groups=len(groups))
+    log.info(
+        "captions_done",
+        output=str(output_path),
+        ass=str(persist_ass),
+        fontname=style_def.fontname,
+        num_groups=len(groups),
+    )
     return output_path

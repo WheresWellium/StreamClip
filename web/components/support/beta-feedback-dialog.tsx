@@ -105,8 +105,9 @@ function areaFromPath(pathname: string): BetaFeedbackArea | null {
 function supportDeliveryToast(
   toast: (title: string, description?: string) => void,
   opsNotification?: string,
+  emailNotification?: string,
 ) {
-  if (opsNotification === "queued") {
+  if (opsNotification === "queued" || emailNotification === "queued") {
     toast("Feedback sent", "Thanks — the team will follow up.");
     return;
   }
@@ -182,7 +183,7 @@ export function BetaFeedbackDialog({
     }
     closeDialog();
     reset();
-    supportDeliveryToast(toast, result.opsNotification);
+    supportDeliveryToast(toast, result.opsNotification, result.emailNotification);
   }
 
   return (

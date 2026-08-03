@@ -132,6 +132,24 @@ function formsEqual(a: EditorForm, b: EditorForm): boolean {
   );
 }
 
+/** True when save must re-run process_clip (trim/style/captions). Title/hook alone do not. */
+function needsRerender(before: EditorForm, after: EditorForm): boolean {
+  return (
+    Math.abs(before.start - after.start) >= 0.05 ||
+    Math.abs(before.end - after.end) >= 0.05 ||
+    before.captionStyle !== after.captionStyle ||
+    before.reframePreset !== after.reframePreset ||
+    before.aspectRatio !== after.aspectRatio ||
+    before.overlayEnabled !== after.overlayEnabled ||
+    !editsEqual(before.transcriptEdits, after.transcriptEdits) ||
+    before.wordsPerGroup !== after.wordsPerGroup
+  );
+}
+
+const PANEL_WIDTH_MIN = 360;
+const PANEL_WIDTH_MAX = 720;
+const PANEL_WIDTH_DEFAULT = 420;
+
 function validateForm(
   form: EditorForm,
   sourceDurationSecs?: number | null,
@@ -166,12 +184,17 @@ export function ClipEditor({
   const { push: toast } = useToastSafe();
   const clipExt = clip as ClipWithOverrides;
 
+  const isSplice = clipExt.kind === "splice";
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [rerendering, setRerendering] = React.useState(
     () => clip.status === "processing",
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [panelWidth, setPanelWidth] = React.useState(PANEL_WIDTH_DEFAULT);
+  const resizeDragRef = React.useRef<{ startX: number; startW: number } | null>(
+    null,
+  );
   const [previewDownloadUrl, setPreviewDownloadUrl] = React.useState(clip.download_url ?? null);
   const [previewThumbnailUrl, setPreviewThumbnailUrl] = React.useState(clip.thumbnail_url ?? null);
   const previewRetriedRef = React.useRef(false);
@@ -204,8 +227,36 @@ export function ClipEditor({
 
   const isProcessing = clip.status === "processing" || rerendering;
   const isDirty = !formsEqual(form, savedRef.current);
-  const validationError = validateForm(form, sourceDurationSecs);
+  const willRerender = !isSplice && needsRerender(savedRef.current, form);
+  const validationError = isSplice
+    ? form.title.trim()
+      ? null
+      : "Title is required."
+    : validateForm(form, sourceDurationSecs);
   const canSave = isDirty && !validationError && !pending && !isProcessing;
+
+  React.useEffect(() => {
+    function onMove(ev: PointerEvent) {
+      const drag = resizeDragRef.current;
+      if (!drag) return;
+      const next = Math.min(
+        PANEL_WIDTH_MAX,
+        Math.max(PANEL_WIDTH_MIN, drag.startW + (drag.startX - ev.clientX)),
+      );
+      setPanelWidth(next);
+    }
+    function onUp() {
+      resizeDragRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (clip.status === "processing") {
@@ -265,11 +316,16 @@ export function ClipEditor({
   }
 
   async function handleSave() {
-    const err = validateForm(form, sourceDurationSecs);
+    const err = isSplice
+      ? form.title.trim()
+        ? null
+        : "Title is required."
+      : validateForm(form, sourceDurationSecs);
     if (err) {
       setError(err);
       return;
     }
+    const rerender = willRerender;
     setPending(true);
     setError(null);
     const result = await updateClipAction(jobId, clip.id, {
@@ -283,7 +339,7 @@ export function ClipEditor({
       overlay_enabled: form.overlayEnabled,
       transcript_edits: form.transcriptEdits,
       caption_words_per_group: form.wordsPerGroup,
-      rerender: true,
+      rerender,
     });
     setPending(false);
     if (!result.ok) {
@@ -292,13 +348,15 @@ export function ClipEditor({
       return;
     }
     savedRef.current = { ...form };
-    setRerendering(true);
     setOpen(false);
-    toast("Re-render queued", "Processing your clip edits…");
+    if (rerender) {
+      setRerendering(true);
+      toast("Re-render queued", "Processing your clip edits…");
+    } else {
+      toast("Saved", "Title updated — no re-render needed.");
+    }
     router.refresh();
   }
-
-  if (clipExt.kind === "splice") return null;
 
   const trimMax =
     sourceDurationSecs && sourceDurationSecs > 0
@@ -355,14 +413,35 @@ export function ClipEditor({
             aria-label="Close editor"
             onClick={handleDiscard}
           />
-          <div className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-border/60 bg-card shadow-2xl animate-in slide-in-from-right duration-200">
+          <div
+            className="relative z-10 flex h-full flex-col border-l border-border/60 bg-card shadow-2xl animate-in slide-in-from-right duration-200"
+            style={{ width: `min(100vw, ${panelWidth}px)` }}
+          >
+            <button
+              type="button"
+              aria-label="Resize editor panel"
+              title="Drag to resize"
+              className="absolute left-0 top-0 z-20 h-full w-1.5 -translate-x-1/2 cursor-ew-resize bg-transparent hover:bg-sky-500/40"
+              onPointerDown={(ev) => {
+                ev.preventDefault();
+                resizeDragRef.current = {
+                  startX: ev.clientX,
+                  startW: panelWidth,
+                };
+                document.body.style.cursor = "ew-resize";
+                document.body.style.userSelect = "none";
+              }}
+            />
             <header className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-muted/80 to-sky-500/5 px-4 py-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">
                   Edit clip #{clip.rank + 1}
+                  {isSplice ? " (merged)" : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Trim, restyle, and re-render
+                  {isSplice
+                    ? "Rename merged clip (video edits unavailable)"
+                    : "Trim, restyle, and re-render"}
                 </p>
               </div>
               <Button
@@ -438,8 +517,8 @@ export function ClipEditor({
                 </div>
               </section>
 
-              {/* Trim timeline */}
-              <section className="space-y-3">
+              {/* Trim timeline (not for merged/splice clips) */}
+              {!isSplice && <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>Trim boundaries</Label>
                   <span className="text-xs font-mono text-muted-foreground">
@@ -514,7 +593,7 @@ export function ClipEditor({
                     />
                   </div>
                 </div>
-              </section>
+              </section>}
 
               {/* Title & hook */}
               <section className="space-y-3">
@@ -544,6 +623,8 @@ export function ClipEditor({
                 </div>
               </section>
 
+              {!isSplice && (
+                <>
               {/* Transcript & captions */}
               <section className="space-y-2">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wide">
@@ -619,6 +700,8 @@ export function ClipEditor({
                   Meme overlays
                 </label>
               </section>
+                </>
+              )}
 
               {(error || validationError) && (
                 <p className="text-xs text-destructive" role="alert">
@@ -656,7 +739,7 @@ export function ClipEditor({
                 ) : (
                   <Save className="h-3.5 w-3.5" />
                 )}
-                Save & re-render
+                {willRerender ? "Save & re-render" : "Save"}
               </Button>
             </footer>
 

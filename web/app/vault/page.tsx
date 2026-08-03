@@ -115,7 +115,7 @@ export default function VaultPage() {
           </Link>
         </div>
       ) : (
-        <VaultClipsView clips={clips} />
+        <VaultClipsView clips={clips} onClipsChange={setClips} />
       )}
     </main>
   );

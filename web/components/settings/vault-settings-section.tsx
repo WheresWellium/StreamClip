@@ -88,7 +88,7 @@ export function VaultSettingsSection() {
               No saved clips yet. Save a clip from a completed job to fill your vault.
             </p>
           ) : (
-            <VaultClipsView clips={clips} />
+            <VaultClipsView clips={clips} onClipsChange={setClips} />
           )}
         </CardContent>
       </Card>

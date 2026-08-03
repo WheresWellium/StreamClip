@@ -202,8 +202,11 @@ After checklist step 9:
 
 - Never commit `OPS_WEBHOOK_URL` or inbox addresses to public docs
 - Payloads exclude video URLs and clip content by design
-- Desktop builds: bake `OPS_WEBHOOK_URL` at operator build time if you want
-  creator installs to forward support forms without local SMTP
+- Desktop builds: packaged Electron sets `OPS_WEBHOOK_URL` to the hosted
+  collector `https://streamclip-henna.vercel.app/api/support-ingest` (F13).
+  That endpoint emails via Vercel `SMTP_*` + `BUG_REPORT_TO` — configure those
+  in the henna Vercel project. Override with env `OPS_WEBHOOK_URL` /
+  `STREAMCLIP_SUPPORT_COLLECTOR_URL` when launching the app.
 
 ## Sentry (autonomous triage)
 

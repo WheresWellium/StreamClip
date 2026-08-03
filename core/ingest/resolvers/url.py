@@ -187,6 +187,11 @@ def _user_message_from_ytdlp(lines: list[str], url: str) -> str:
         )
     if "private" in blob or "login" in blob or "authentication" in blob:
         return "This video is private or requires login."
+    if "ip address is blocked" in blob or "your ip address is blocked" in blob:
+        return (
+            "This site blocked the download from your network (IP block). "
+            "Try a different source URL, upload the file, or retry from another network."
+        )
     if _is_hls_platform(url) and _is_transient_ytdlp_output(lines):
         return (
             "Twitch returned a temporary error while fetching the video. "

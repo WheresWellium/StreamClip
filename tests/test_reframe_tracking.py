@@ -101,7 +101,8 @@ def test_reframe_split_and_no_fallback_raise(tmp_path):
         with pytest.raises(RuntimeError):
             rf.reframe(inp, out, cfg, _cand(Emotion.NEUTRAL))
 
-def test_reframe_letterbox_fallback_and_auto(tmp_path):
+def test_reframe_center_crop_fallback_and_auto(tmp_path):
+    """Tracking failure uses centre-crop+scale, not letterbox/boxblur."""
     cfg = get_settings(reload=True)
     cfg.reframe.fallback_center_crop = True
     cfg.reframe.preset = "auto"
@@ -112,3 +113,9 @@ def test_reframe_letterbox_fallback_and_auto(tmp_path):
         with patch.object(rf.subprocess, "run") as run:
             rf.reframe(inp, out, cfg, _cand(Emotion.HYPE))
             run.assert_called_once()
+            cmd = run.call_args.args[0]
+            vf = " ".join(str(x) for x in cmd)
+            assert "crop=" in vf
+            assert "scale=" in vf
+            assert "boxblur" not in vf
+            assert "pad=" not in vf

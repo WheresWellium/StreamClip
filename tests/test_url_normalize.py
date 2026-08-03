@@ -45,3 +45,13 @@ def test_empty_raises():
 def test_unknown_host_without_scheme_raises():
     with pytest.raises(ValueError, match="http"):
         normalize_source_url("example.com/video.mp4")
+
+
+def test_explicit_http_direct_media_preserved():
+    url = normalize_source_url("http://127.0.0.1:9824/smoke_video.mp4")
+    assert url == "http://127.0.0.1:9824/smoke_video.mp4"
+
+
+def test_explicit_https_unchanged():
+    url = normalize_source_url("https://cdn.example.com/v.mp4")
+    assert url == "https://cdn.example.com/v.mp4"

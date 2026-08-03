@@ -61,7 +61,12 @@ export type BetaFeedbackInput = {
 
 export async function submitBetaFeedbackAction(
   input: BetaFeedbackInput,
-): Promise<{ ok: boolean; message?: string; opsNotification?: string }> {
+): Promise<{
+  ok: boolean;
+  message?: string;
+  opsNotification?: string;
+  emailNotification?: string;
+}> {
   if (!input.area) {
     return { ok: false, message: "Pick the part of qClip this is about." };
   }
@@ -81,7 +86,11 @@ export async function submitBetaFeedbackAction(
       token,
       deviceId,
     );
-    return { ok: true, opsNotification: result.ops_notification };
+    return {
+      ok: true,
+      opsNotification: result.ops_notification,
+      emailNotification: result.email_notification,
+    };
   } catch (err) {
     if (err instanceof ApiClientError) return { ok: false, message: err.message };
     return { ok: false, message: "Could not send feedback." };

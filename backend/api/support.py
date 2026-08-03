@@ -67,8 +67,11 @@ _FEEDBACK_AREA_CATEGORY: dict[str, str] = {
 
 
 def _queue_support_notifications(report_id: str, *, event: str) -> tuple[str, str]:
+    # Email both bug reports and beta feedback when SMTP is configured (Docker /
+    # operator hosts). Desktop installs typically rely on OPS_WEBHOOK_URL → hosted
+    # collector instead (see api/support-ingest.py).
     email_status = bug_report_email_status()
-    if email_status == "queued" and event == "bug_report":
+    if email_status == "queued" and event in ("bug_report", "beta_feedback"):
         dispatch_task(send_bug_report_email, args=(report_id,), queue="default")
 
     ops_status = ops_webhook_status()
@@ -234,11 +237,14 @@ async def submit_beta_feedback(
     )
     await db.commit()
 
-    _, ops_status = _queue_support_notifications(report.id, event="beta_feedback")
+    email_status, ops_status = _queue_support_notifications(
+        report.id, event="beta_feedback",
+    )
     return BetaFeedbackOut(
         id=report.id,
         status=report.status,
         topic=body.topic,
         created_at=report.created_at,
         ops_notification=ops_status,
+        email_notification=email_status,
     )

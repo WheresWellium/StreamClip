@@ -43,7 +43,11 @@ def normalize_source_url(raw: str) -> str:
     if not host:
         raise ValueError("source_url must include a host")
 
-    scheme = "https" if parsed.scheme in ("http", "https") else parsed.scheme
+    # Preserve explicit http:// (direct media / local fixtures). Only schemeless
+    # pastes above are upgraded to https.
+    scheme = parsed.scheme.lower() if parsed.scheme else "https"
+    if scheme not in ("http", "https"):
+        raise ValueError("source_url must start with http:// or https://")
     if host == "m.twitch.tv":
         host = "www.twitch.tv"
 

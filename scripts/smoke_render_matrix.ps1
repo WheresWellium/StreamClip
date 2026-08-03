@@ -65,15 +65,16 @@ $ExpectedDims = @{
   "2:3"  = @(1080, 1620)
 }
 
-# Must match core/captions.py _STYLES fontname values.
+# Preferred fonts from core/captions.py _STYLES, plus Windows-safe fallbacks
+# from _FONT_FALLBACK_CHAINS (first installed wins at burn time).
 $ExpectedCaptionFonts = @{
-  "gaming_impact"       = "Impact"
-  "tiktok_pop"          = "Arial Rounded MT Bold"
-  "minimal_white"       = "Helvetica Neue"
-  "podcast_clean"       = "SF Pro Display"
-  "shorts_bold"         = "Impact"
-  "karaoke_highlight"   = "Arial Black"
-  "accessibility_clean" = "Arial"
+  "gaming_impact"       = @("Impact")
+  "tiktok_pop"          = @("Arial Rounded MT Bold", "Arial Black", "Arial", "Impact")
+  "minimal_white"       = @("Helvetica Neue", "Arial", "Calibri", "Segoe UI")
+  "podcast_clean"       = @("SF Pro Display", "Segoe UI", "Arial", "Calibri")
+  "shorts_bold"         = @("Impact")
+  "karaoke_highlight"   = @("Arial Black", "Arial")
+  "accessibility_clean" = @("Arial")
 }
 
 $P0Cells = @{
@@ -248,15 +249,19 @@ function Invoke-RenderCell {
 
   try {
     if ($Caption -ne "none") {
-      $wantFont = $ExpectedCaptionFonts[$Caption]
-      if (-not $wantFont) { throw "No expected font mapping for caption style $Caption" }
+      $fontCandidates = @($ExpectedCaptionFonts[$Caption])
+      if ($fontCandidates.Count -eq 0) { throw "No expected font mapping for caption style $Caption" }
       if (-not $SkipFontInstallCheck) {
-        if (-not (Test-FontInstalled $wantFont)) {
-          Write-Log "FAIL OS missing caption font '$wantFont' for style=$Caption"
-          Append-ResultRow $cellId "Fail" "font_missing:$wantFont" $script:RunLog
+        $installed = $null
+        foreach ($cand in $fontCandidates) {
+          if (Test-FontInstalled $cand) { $installed = $cand; break }
+        }
+        if (-not $installed) {
+          Write-Log "FAIL OS missing all caption fonts for style=$Caption candidates=$($fontCandidates -join ',')"
+          Append-ResultRow $cellId "Fail" "font_missing:$($fontCandidates[0])" $script:RunLog
           return 2
         }
-        Write-Log "INFO OS has font '$wantFont'"
+        Write-Log "INFO OS has font '$installed' (style=$Caption)"
       }
     }
 
@@ -434,32 +439,36 @@ function Invoke-RenderCell {
       }
       Write-Log "INFO captioned artifact: $($captionHits[0].FullName)"
 
-      $wantFont = $ExpectedCaptionFonts[$Caption]
+      $fontCandidates = @($ExpectedCaptionFonts[$Caption])
       $assHits = @(
         Get-ChildItem -LiteralPath $dataDir -Recurse -Filter "*_captioned.ass" -ErrorAction SilentlyContinue
       )
-      $fontOk = $false
+      $matchedFont = $null
       if ($assHits.Count -gt 0) {
         $assText = Get-Content -LiteralPath $assHits[0].FullName -Raw
-        if ($assText -match [regex]::Escape(",$wantFont,")) {
-          Write-Log "INFO ASS Fontname=$wantFont ($($assHits[0].Name))"
-          $fontOk = $true
-        } else {
-          Write-Log "FAIL ASS missing Fontname=$wantFont in $($assHits[0].FullName)"
+        foreach ($cand in $fontCandidates) {
+          if ($assText -match [regex]::Escape(",$cand,")) { $matchedFont = $cand; break }
+        }
+        if (-not $matchedFont) {
+          Write-Log "FAIL ASS Fontname not in candidates ($($fontCandidates -join ',')) file=$($assHits[0].FullName)"
           Append-ResultRow $cellId "Fail" "ass_fontname_mismatch" $script:RunLog
           return 2
         }
-      } elseif ($sidecarLog -match ("fontname[=:]['\""]?" + [regex]::Escape($wantFont))) {
-        Write-Log "INFO captions_done fontname=$wantFont from log (ASS not persisted; rebuild sidecar recommended)"
-        $fontOk = $true
+        Write-Log "INFO ASS Fontname=$matchedFont ($($assHits[0].Name))"
       } else {
-        Write-Log "FAIL no *_captioned.ass and no fontname=$wantFont in log (rebuild sidecar with ASS persist)"
-        Append-ResultRow $cellId "Fail" "ass_not_persisted:$wantFont" $script:RunLog
-        return 2
-      }
-      if (-not $fontOk) {
-        Append-ResultRow $cellId "Fail" "font_assert" $script:RunLog
-        return 2
+        foreach ($cand in $fontCandidates) {
+          if ($sidecarLog -match ("fontname[=:][`"']?" + [regex]::Escape($cand))) {
+            $matchedFont = $cand
+            break
+          }
+        }
+        if ($matchedFont) {
+          Write-Log "INFO captions_done fontname=$matchedFont from log (ASS not persisted; rebuild sidecar recommended)"
+        } else {
+          Write-Log "FAIL no *_captioned.ass and no fontname= in candidates ($($fontCandidates -join ','))"
+          Append-ResultRow $cellId "Fail" "ass_not_persisted:$($fontCandidates[0])" $script:RunLog
+          return 2
+        }
       }
     } else {
       Write-Log "INFO caption style=none - skip caption asserts"

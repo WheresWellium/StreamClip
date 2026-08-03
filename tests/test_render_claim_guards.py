@@ -29,6 +29,23 @@ def test_caption_styles_declare_expected_fontnames():
         assert cap._STYLES[style_id].fontname == fontname, style_id
 
 
+def test_resolve_caption_fontname_falls_back_when_missing(monkeypatch):
+    monkeypatch.setattr(cap, "_installed_font_families", lambda: frozenset({"Arial", "Segoe UI"}))
+    assert cap.resolve_caption_fontname("Helvetica Neue") == "Arial"
+    assert cap.resolve_caption_fontname("SF Pro Display") == "Segoe UI"
+    assert cap.resolve_caption_fontname("Impact") == "Arial"  # missing → chain ends Arial
+
+
+def test_resolve_caption_fontname_keeps_installed(monkeypatch):
+    monkeypatch.setattr(
+        cap,
+        "_installed_font_families",
+        lambda: frozenset({"Helvetica Neue", "Impact", "Arial"}),
+    )
+    assert cap.resolve_caption_fontname("Helvetica Neue") == "Helvetica Neue"
+    assert cap.resolve_caption_fontname("Impact") == "Impact"
+
+
 def test_p0_reframe_presets_diverge_on_hud_and_pan():
     fps = PRESETS["fps_game"]
     irl = PRESETS["irl"]

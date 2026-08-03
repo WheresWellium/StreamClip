@@ -16,7 +16,9 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 
 import structlog
@@ -71,6 +73,92 @@ class _ASSStyle:
     shadow: float
     alignment: int         # numpad alignment (2=bottom-centre, 8=top-centre)
     margin_v: int          # vertical margin in pixels
+
+
+# Preferred catalog fonts that are often missing on clean Windows installs.
+# Order matters: first installed candidate wins.
+_FONT_FALLBACK_CHAINS: dict[str, tuple[str, ...]] = {
+    "Helvetica Neue": ("Arial", "Calibri", "Segoe UI"),
+    "SF Pro Display": ("Segoe UI", "Arial", "Calibri"),
+    "Arial Rounded MT Bold": ("Arial Black", "Arial", "Impact"),
+}
+
+
+@lru_cache(maxsize=1)
+def _installed_font_families() -> frozenset[str]:
+    """Best-effort installed family names (Windows registry; empty elsewhere)."""
+    if sys.platform != "win32":
+        return frozenset()
+    import winreg
+
+    names: set[str] = set()
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        try:
+            key = winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts")
+        except OSError:
+            continue
+        try:
+            i = 0
+            while True:
+                try:
+                    value_name, _, _ = winreg.EnumValue(key, i)
+                except OSError:
+                    break
+                # Values look like "Arial (TrueType)" or "Impact Bold (TrueType)".
+                family = value_name.split(" (", 1)[0].strip()
+                if family:
+                    names.add(family)
+                    # Also index without trailing Bold/Italic weight suffixes.
+                    base = re.sub(
+                        r"\s+(Bold|Italic|Regular|Light|Black|Medium)$",
+                        "",
+                        family,
+                        flags=re.IGNORECASE,
+                    ).strip()
+                    if base:
+                        names.add(base)
+                i += 1
+        finally:
+            winreg.CloseKey(key)
+    return frozenset(names)
+
+
+def _font_family_installed(fontname: str) -> bool:
+    installed = _installed_font_families()
+    if not installed:
+        # Non-Windows / probe failed: do not force alias (preserve catalog fonts).
+        return True
+    if fontname in installed:
+        return True
+    base = re.sub(
+        r"\s+(Bold|Italic|Regular|Light|Black|Medium)$",
+        "",
+        fontname,
+        flags=re.IGNORECASE,
+    ).strip()
+    return bool(base) and base in installed
+
+
+def resolve_caption_fontname(preferred: str) -> str:
+    """Pick an installed font for ASS burn; fall back on Windows-safe families."""
+    if _font_family_installed(preferred):
+        return preferred
+    for candidate in _FONT_FALLBACK_CHAINS.get(preferred, ("Arial", "Segoe UI")):
+        if _font_family_installed(candidate):
+            return candidate
+    return "Arial"
+
+
+def _style_with_resolved_font(style: _ASSStyle) -> _ASSStyle:
+    resolved = resolve_caption_fontname(style.fontname)
+    if resolved == style.fontname:
+        return style
+    log.warning(
+        "caption_font_fallback",
+        requested=style.fontname,
+        using=resolved,
+    )
+    return replace(style, fontname=resolved)
 
 
 _STYLES: dict[str, _ASSStyle] = {
@@ -370,7 +458,9 @@ def build_ass_for_clip_window(
     groups = finalize_display_groups(
         group_words_for_display(all_words, ccfg.words_per_group, ccfg.max_chars_per_line),
     )
-    style_def = _STYLES.get(caption_style, _STYLES["gaming_impact"])
+    style_def = _style_with_resolved_font(
+        _STYLES.get(caption_style, _STYLES["gaming_impact"]),
+    )
     builder = _ASSBuilder(style_def)
     hold = ccfg.word_hold_secs
     use_karaoke = ccfg.word_level_sync or caption_style == "karaoke_highlight"
@@ -496,7 +586,9 @@ def generate_captions(
         ),
     )
 
-    style_def = _STYLES.get(ccfg.style, _STYLES["gaming_impact"])
+    style_def = _style_with_resolved_font(
+        _STYLES.get(ccfg.style, _STYLES["gaming_impact"]),
+    )
     builder = _ASSBuilder(style_def)
     hold = ccfg.word_hold_secs
     use_karaoke = ccfg.word_level_sync or ccfg.style == "karaoke_highlight"

@@ -36,5 +36,5 @@ Clean-VM manual sign-off ☐ · EV cert ☐
 
 ## Download
 
-Target → **1.0.0-beta.21** (publish in flight)  
+Latest → **1.0.0-beta.21**  
 https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe

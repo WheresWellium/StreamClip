@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.20**
+**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.21**
 
 ---
 

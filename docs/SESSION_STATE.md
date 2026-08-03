@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (beta.21 master polish pass)
+**Last updated:** 2026-08-03 (gap analysis rev 12)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | beta.21 polish | — | error recovery, toast, editor honesty |
+| `cursor/beta21-master-polish` | gap rev12 + polish | — | U73–U76 partial-fail recovery |
 
 ## Pipeline capability (desktop)
 
@@ -30,6 +30,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 - Re-render toast keys off clip.status (not stale job done)
 - Editor: dirty hint, CSS pan/zoom preview, color reset, Escape confirm
 - Heuristic face badge + factor reason; OAuth Copy URI; error prefill
+- Gap rev12: partial-fail SSE honesty + job `error` still editable
 
 ## Still operator-gated
 

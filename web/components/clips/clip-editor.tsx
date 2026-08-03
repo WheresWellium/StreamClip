@@ -125,15 +125,23 @@ function dirtyPreviewHint(
     ) {
       parts.push("captions");
     }
-    if (
-      before.reframePreset !== after.reframePreset ||
+    const panZoomDirty =
       Math.abs(before.reframePanX - after.reframePanX) >= 0.001 ||
-      Math.abs(before.reframeZoom - after.reframeZoom) >= 0.001
-    ) {
+      Math.abs(before.reframeZoom - after.reframeZoom) >= 0.001;
+    if (before.reframePreset !== after.reframePreset || panZoomDirty) {
       parts.push("reframe");
     }
     if (before.aspectRatio !== after.aspectRatio) parts.push("aspect");
     if (before.overlayEnabled !== after.overlayEnabled) parts.push("overlays");
+    // Pan/zoom already CSS-preview; don't claim the video is stale for that alone.
+    if (
+      parts.length === 1 &&
+      parts[0] === "reframe" &&
+      before.reframePreset === after.reframePreset &&
+      panZoomDirty
+    ) {
+      return "Preview shows pan/zoom nudge — save to burn into the clip";
+    }
   }
   if (before.title !== after.title || before.hook !== after.hook) {
     parts.push("title");

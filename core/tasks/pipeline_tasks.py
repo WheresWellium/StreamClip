@@ -1065,13 +1065,23 @@ def finalise_job(self: ProgressTask, results: list[dict[str, Any]], job_id: str)
             }
 
     summary = _safe_async(_do())
-    terminal = "done" if summary.get("errors", 0) == 0 else "error"
+    done_n = int(summary.get("done", 0) or 0)
+    err_n = int(summary.get("errors", 0) or 0)
+    terminal = "done" if err_n == 0 else "error"
     data_opt_in = summary.pop("data_opt_in", False)
     JOBS_COMPLETED.labels(status=terminal).inc()
+    if err_n == 0:
+        final_message = f"Done — {done_n} clips ready"
+    elif done_n == 0:
+        final_message = f"Job failed — {err_n} clips failed"
+    else:
+        final_message = (
+            f"Completed with errors — {done_n} ready, {err_n} failed"
+        )
     publish_progress(
         job_id, stage="completed", progress=1.0,
-        message=f"Done — {summary['done']} clips ready",
-        status="done", extra=summary,
+        message=final_message,
+        status=terminal, extra=summary,
     )
     if cfg.webhooks.enabled or summary.get("user_webhook_url"):
         ok = deliver_job_webhook(

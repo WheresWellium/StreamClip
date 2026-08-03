@@ -21,7 +21,7 @@ ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
 | Build script | ✅ `scripts/build_desktop_installer_macos.sh` |
 | Verify script | ✅ `scripts/verify_desktop_installer_macos.sh` |
 | Notarize script (skips if no Apple secrets) | ✅ `scripts/notarize_macos_artifact.sh` |
-| CI arm64 on Latest | ✅ `STREAMCLIP_MAC_SINGLE_ARCH=arm64` via `desktop-release.yml` → `qClip-mac-arm64.dmg` on **v1.0.0-beta.22** |
+| CI arm64 on Latest | ✅ `STREAMCLIP_MAC_SINGLE_ARCH=arm64` via `desktop-release.yml` → `qClip-mac-arm64.dmg` on **v1.0.0-beta.23** |
 | Universal on Latest | ☐ Local Mac with Rosetta + x86 Python → `qClip-mac-universal.dmg` |
 | Notarized / Gatekeeper-clean | ❌ Needs Apple Developer Program |
 
@@ -30,13 +30,13 @@ Beta testers: use the [Apple Silicon DMG on Latest](BETA_DOWNLOAD.md#macos). On 
 ```bash
 ./scripts/build_desktop_installer_macos.sh
 # needs Rosetta + /usr/local x86_64 Python for the Intel sidecar half
-gh release upload v1.0.0-beta.22 apps/desktop/release/qClip-mac-universal.dmg --clobber
+gh release upload v1.0.0-beta.23 apps/desktop/release/qClip-mac-universal.dmg --clobber
 ```
 
 CI (Apple Silicon only, no Rosetta):
 
 ```bash
-gh workflow run desktop-release.yml -f version=1.0.0-beta.22 -f skip_windows=true
+gh workflow run desktop-release.yml -f version=1.0.0-beta.23 -f skip_windows=true
 ```
 
 ---

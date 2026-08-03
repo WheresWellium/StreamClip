@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (pre-redeploy polish)
+**Last updated:** 2026-08-03 (cutting beta.23)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | pre-redeploy polish | — | henna F13 honesty; installer rebuild optional |
+| `master` | beta.23 cut | — | Win publish + Mac GHA |
 
 ## Pipeline capability (desktop)
 
@@ -23,16 +23,11 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 | Edit + re-render | Trim, captions, colors, reframe preset/pan/zoom, overlays, aspect |
 | Support (F13) | Packaged → henna → GitHub Issues + [Project #4](https://github.com/users/WheresWellium/projects/4) |
 
-## Pre-redeploy checklist
+## Shipped this cut (beta.23)
 
-| Check | Status |
-|-------|--------|
-| Latest = v1.0.0-beta.22 Win + Mac arm64 | GO |
-| Henna download links beta.22 | GO |
-| support-ingest → Issues + Project #4 | GO (#15/#16) |
-| Henna home F13 copy (not local-only) | polish this cut |
-| In-app toast / health-checklist copy | needs **installer rebuild** (beta.23) to reach testers |
-| Clean-VM / EV / notarization | still operator-gated |
+- F13 honesty (henna + in-app checklist) + GitHub Project board
+- Mac arm64 parity retained on Latest
+- Toast / health-checklist copy polish in installer
 
 ## Still operator-gated
 

@@ -170,6 +170,14 @@ async def test_regenerate_clip_errors():
     out = await svc.regenerate_clip("j1", "c2", scope=RequestScope(user_id="u1", device_id=None))
     assert out == "c2"
 
+    clip_err = SimpleNamespace(id="c3", status=ClipStatus.ERROR)
+    job3 = SimpleNamespace(id="j1", clips=[clip_err])
+    svc.get_job = AsyncMock(return_value=job3)
+    out_err = await svc.regenerate_clip(
+        "j1", "c3", scope=RequestScope(user_id="u1", device_id=None),
+    )
+    assert out_err == "c3"
+
 
 @pytest.mark.asyncio
 async def test_update_clip_validation():
@@ -379,6 +387,21 @@ async def test_update_clip_overrides_and_rerender():
     assert overrides["overlay_enabled"] is False
     svc.clips.reset_for_regenerate.assert_awaited_once_with("c1")
     db.flush.assert_awaited()
+
+    clip_err = SimpleNamespace(
+        id="c2", start_secs=0.0, end_secs=10.0, status=ClipStatus.ERROR,
+        render_overrides={}, hook="h",
+    )
+    job_err = SimpleNamespace(id="j1", clips=[clip_err], config_snapshot={})
+    svc.get_job = AsyncMock(return_value=job_err)
+    svc.clips.reset_for_regenerate.reset_mock()
+    svc.clips.get = AsyncMock(return_value=clip_err)
+    await svc.update_clip(
+        "j1", "c2",
+        UpdateClipRequest(title="Retry", rerender=True),
+        scope=RequestScope(user_id="u1", device_id=None),
+    )
+    svc.clips.reset_for_regenerate.assert_awaited_once_with("c2")
 
 
 @pytest.mark.asyncio

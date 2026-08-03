@@ -35,7 +35,8 @@ const DESKTOP_REDIRECT_URIS: Record<string, string> = {
 
 const GOOGLE_CREDENTIALS_URL =
   "https://console.cloud.google.com/apis/credentials";
-const TIKTOK_DEVELOPERS_URL = "https://developers.tiktok.com/";
+const TIKTOK_LOGIN_KIT_URL =
+  "https://developers.tiktok.com/doc/login-kit-web/";
 
 const initial: DistributionActionState = { status: "idle" };
 
@@ -44,8 +45,63 @@ type Props = {
   hasPro: boolean;
 };
 
-function PlatformSetupHints({ platform }: { platform: string }) {
+function CopyUriButton({ uri, label }: { uri: string; label: string }) {
+  const { push: toast } = useToastSafe();
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-7 shrink-0 px-2 text-[11px]"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(uri);
+          toast("Copied", `${label} copied to clipboard.`);
+        } catch {
+          toast("Copy failed", "Select the URI and copy it manually.");
+        }
+      }}
+    >
+      Copy
+    </Button>
+  );
+}
+
+function RedirectUriRow({
+  label,
+  uri,
+  hint,
+}: {
+  label: string;
+  uri: string;
+  hint: string;
+}) {
+  return (
+    <div className="space-y-1 rounded-md border border-border/50 bg-muted/20 px-2.5 py-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-[11px] font-medium text-foreground/90">{label}</p>
+          <code className="block break-all text-[11px] text-foreground/90">
+            {uri}
+          </code>
+        </div>
+        <CopyUriButton uri={uri} label={label} />
+      </div>
+      <p className="text-[10px] text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+function PlatformSetupHints({
+  platform,
+  currentRedirectUri,
+}: {
+  platform: string;
+  currentRedirectUri: string;
+}) {
   const desktopUri = DESKTOP_REDIRECT_URIS[platform];
+  const sameAsDesktop =
+    Boolean(desktopUri) && desktopUri === currentRedirectUri;
 
   if (platform === "youtube_shorts") {
     return (
@@ -65,17 +121,26 @@ function PlatformSetupHints({ platform }: { platform: string }) {
           . Paste the client ID and secret below.
         </p>
         {desktopUri && (
-          <p>
-            Desktop redirect URI (copy into Authorized redirect URIs):{" "}
-            <code className="break-all text-[11px] text-foreground/90">
-              {desktopUri}
-            </code>
-          </p>
+          <RedirectUriRow
+            label="Desktop redirect URI"
+            uri={desktopUri}
+            hint="Paste this into Google Authorized redirect URIs for the packaged app."
+          />
+        )}
+        {!sameAsDesktop && currentRedirectUri && (
+          <RedirectUriRow
+            label="This install's redirect URI"
+            uri={currentRedirectUri}
+            hint="Use this when configuring a non-desktop or overridden callback."
+          />
         )}
         <p>
           Need a walkthrough?{" "}
-          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
-            Help → How to use
+          <Link
+            href={helpHref("/tutorials/TUTORIAL_PUBLISH_YOUTUBE/")}
+            className="text-sky-400 hover:underline"
+          >
+            Publish to YouTube tutorial
           </Link>
           .
         </p>
@@ -87,30 +152,39 @@ function PlatformSetupHints({ platform }: { platform: string }) {
     return (
       <div className="space-y-2 text-xs text-muted-foreground">
         <p>
-          Register an app at{" "}
+          Register an app and configure Login Kit at{" "}
           <a
-            href={TIKTOK_DEVELOPERS_URL}
+            href={TIKTOK_LOGIN_KIT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sky-400 hover:underline"
           >
-            TikTok for Developers
+            TikTok for Developers → Login Kit
           </a>
           , then paste the client key and secret below. In this beta, publish
           lands in inbox/drafts only (not public post).
         </p>
         {desktopUri && (
-          <p>
-            Desktop redirect URI (copy into Redirect URI):{" "}
-            <code className="break-all text-[11px] text-foreground/90">
-              {desktopUri}
-            </code>
-          </p>
+          <RedirectUriRow
+            label="Desktop redirect URI"
+            uri={desktopUri}
+            hint="Paste this into TikTok Redirect URI for the packaged app."
+          />
+        )}
+        {!sameAsDesktop && currentRedirectUri && (
+          <RedirectUriRow
+            label="This install's redirect URI"
+            uri={currentRedirectUri}
+            hint="Use this when configuring a non-desktop or overridden callback."
+          />
         )}
         <p>
           Need a walkthrough?{" "}
-          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
-            Help → How to use
+          <Link
+            href={helpHref("/tutorials/TUTORIAL_PUBLISH_YOUTUBE/")}
+            className="text-sky-400 hover:underline"
+          >
+            Publish setup help
           </Link>
           .
         </p>
@@ -151,10 +225,10 @@ function PlatformOAuthForm({ app, hasPro }: { app: OAuthAppConfig; hasPro: boole
           </span>
         )}
       </div>
-      <PlatformSetupHints platform={app.platform} />
-      <p className="text-xs text-muted-foreground">
-        Current redirect URI: <code className="text-[11px]">{app.redirect_uri}</code>
-      </p>
+      <PlatformSetupHints
+        platform={app.platform}
+        currentRedirectUri={app.redirect_uri}
+      />
       <Input
         name="client_id"
         placeholder="OAuth client ID"
@@ -215,8 +289,11 @@ export function OAuthSetupWizard({ apps, hasPro }: Props) {
         <CardDescription>
           Add your YouTube and TikTok developer credentials before connecting
           accounts on the Distribution page. See{" "}
-          <Link href={helpHref("/#use")} className="text-sky-400 hover:underline">
-            Help
+          <Link
+            href={helpHref("/tutorials/TUTORIAL_PUBLISH_YOUTUBE/")}
+            className="text-sky-400 hover:underline"
+          >
+            the publish tutorial
           </Link>{" "}
           for the short path.
         </CardDescription>

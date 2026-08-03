@@ -51,10 +51,15 @@ export default function Error({
       <BugReportDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
+        defaultCategories={["ui"]}
+        defaultSeverity="high"
         defaultMessage={
-          error?.digest
-            ? `Job page crashed after pipeline (digest ${error.digest}).`
-            : "Job page crashed after pipeline completed."
+          [
+            error?.message?.trim() || "Job page crashed after pipeline completed.",
+            error?.digest ? `digest ${error.digest}` : null,
+          ]
+            .filter(Boolean)
+            .join(" — ")
         }
       />
     </div>

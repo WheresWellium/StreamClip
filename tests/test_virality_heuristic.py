@@ -26,8 +26,8 @@ def test_heuristic_score_is_deterministic():
     a = heuristic_virality_score(**kwargs)
     b = heuristic_virality_score(**kwargs)
     assert a == b
-    assert a.reason == HEURISTIC_REASON
-    assert a.reason.startswith("Heuristic")
+    assert a.reason.startswith(HEURISTIC_REASON)
+    assert "hooks" in a.reason
 
 
 def test_heuristic_score_bounds_0_100():
@@ -117,7 +117,7 @@ def test_parallel_uses_heuristic_when_ollama_down():
             )
     build.assert_not_called()
     assert len(results) == 1
-    assert results[0].reason == HEURISTIC_REASON
+    assert results[0].reason.startswith(HEURISTIC_REASON)
     assert results[0].score > 0.0
     assert derive_virality_source(results[0].reason, results[0].score) == "heuristic"
 
@@ -132,7 +132,7 @@ def test_parallel_uses_heuristic_when_client_missing():
                 max_workers=2,
             )
     assert len(results) == 2
-    assert all(r.reason == HEURISTIC_REASON for r in results)
+    assert all(r.reason.startswith(HEURISTIC_REASON) for r in results)
     assert all(0.0 <= r.score <= 100.0 for r in results)
 
 
@@ -152,5 +152,5 @@ def test_parallel_falls_back_when_per_clip_llm_fails():
                     cfg,
                     max_workers=1,
                 )
-    assert results[0].reason == HEURISTIC_REASON
+    assert results[0].reason.startswith(HEURISTIC_REASON)
     assert results[0].score > 0.0

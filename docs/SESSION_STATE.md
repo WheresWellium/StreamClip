@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (beta.20 feedback polish → beta.21)
+**Last updated:** 2026-08-03 (beta.21 master polish pass)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | feedback polish ship | — | Waves 1–4 landed |
+| `master` | beta.21 polish | — | error recovery, toast, editor honesty |
 
 ## Pipeline capability (desktop)
 
@@ -23,16 +23,17 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 | Edit + re-render | Trim, captions, colors, reframe preset/pan/zoom, overlays, aspect |
 | Support (F13) | Packaged → henna `support-ingest` + SMTP (not n8n) |
 
-## Feedback polish (this pass)
+## Feedback polish (landed)
 
-- SQLite WAL (on-disk) + busy_timeout; support commit retry; henna dedupe
-- Job error boundary: Refresh + Report; clip render error banner
-- Caption color + reframe pan/zoom in `render_overrides`
-- OAuth wizard: Google/TikTok console links + desktop redirect URIs
+- SQLite WAL + busy_timeout; support commit retry (no rollback-on-lock)
+- ERROR clips: Edit / Regenerate + Save re-queue
+- Re-render toast keys off clip.status (not stale job done)
+- Editor: dirty hint, CSS pan/zoom preview, color reset, Escape confirm
+- Heuristic face badge + factor reason; OAuth Copy URI; error prefill
 
 ## Still operator-gated
 
-Clean-VM manual sign-off ☐ · EV cert ☐
+Clean-VM manual sign-off ☐ · EV cert ☐ · publish beta.22 when ready
 
 ## Download
 

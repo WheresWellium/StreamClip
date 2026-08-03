@@ -401,7 +401,7 @@ class JobService:
             exc.code = "clip_not_found"
             exc.http_status = 404
             raise exc
-        if clip.status != ClipStatus.DONE:
+        if clip.status not in (ClipStatus.DONE, ClipStatus.ERROR):
             exc = StreamClipError(
                 "Clip is not finished rendering",
                 user_message="Wait until this clip finishes before re-rendering.",
@@ -477,7 +477,7 @@ class JobService:
             hook=hook,
             render_overrides=overrides,
         )
-        if body.rerender and clip.status == ClipStatus.DONE:
+        if body.rerender and clip.status in (ClipStatus.DONE, ClipStatus.ERROR):
             await self.clips.reset_for_regenerate(clip_id)
         await self.db.flush()
         updated = await self.clips.get(clip_id)

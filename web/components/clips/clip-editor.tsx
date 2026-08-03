@@ -49,6 +49,26 @@ const DEFAULT_CAPTION_OUTLINE = "#000000";
 const DEFAULT_REFRAME_PAN_X = 0.5;
 const DEFAULT_REFRAME_ZOOM = 1.0;
 
+/** ASS PrimaryColour is &HAABBGGRR — mirror core/captions.py defaults for honest samples. */
+const STYLE_COLOR_DEFAULTS: Record<string, { primary: string; outline: string }> = {
+  gaming_impact: { primary: "#FFFFFF", outline: "#000000" },
+  tiktok_pop: { primary: "#00FFFF", outline: "#000000" },
+  minimal_white: { primary: "#FFFFFF", outline: "#000000" },
+  podcast_clean: { primary: "#FFFFFF", outline: "#333333" },
+  shorts_bold: { primary: "#FFFF00", outline: "#000000" },
+  karaoke_highlight: { primary: "#FFFFFF", outline: "#000000" },
+  accessibility_clean: { primary: "#FFFFFF", outline: "#000000" },
+};
+
+function styleColorDefaults(styleId: string): { primary: string; outline: string } {
+  return (
+    STYLE_COLOR_DEFAULTS[styleId] ?? {
+      primary: DEFAULT_CAPTION_PRIMARY,
+      outline: DEFAULT_CAPTION_OUTLINE,
+    }
+  );
+}
+
 function readHexColor(value: unknown, fallback: string): string {
   if (typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value)) {
     return value.toUpperCase();
@@ -83,6 +103,45 @@ function editsEqual(a: TranscriptEdits, b: TranscriptEdits): boolean {
   return aKeys.every((k) => a[k] === b[k]);
 }
 
+function dirtyPreviewHint(
+  before: EditorForm,
+  after: EditorForm,
+  isSplice: boolean,
+): string {
+  const parts: string[] = [];
+  if (!isSplice) {
+    if (
+      Math.abs(before.start - after.start) >= 0.05 ||
+      Math.abs(before.end - after.end) >= 0.05
+    ) {
+      parts.push("trim");
+    }
+    if (
+      before.captionPrimaryColor !== after.captionPrimaryColor ||
+      before.captionOutlineColor !== after.captionOutlineColor ||
+      before.captionStyle !== after.captionStyle ||
+      before.wordsPerGroup !== after.wordsPerGroup ||
+      !editsEqual(before.transcriptEdits, after.transcriptEdits)
+    ) {
+      parts.push("captions");
+    }
+    if (
+      before.reframePreset !== after.reframePreset ||
+      Math.abs(before.reframePanX - after.reframePanX) >= 0.001 ||
+      Math.abs(before.reframeZoom - after.reframeZoom) >= 0.001
+    ) {
+      parts.push("reframe");
+    }
+    if (before.aspectRatio !== after.aspectRatio) parts.push("aspect");
+    if (before.overlayEnabled !== after.overlayEnabled) parts.push("overlays");
+  }
+  if (before.title !== after.title || before.hook !== after.hook) {
+    parts.push("title");
+  }
+  const label = parts.length ? parts.slice(0, 3).join(" / ") : "edits";
+  return `Showing last render — save to apply ${label}`;
+}
+
 type Props = {
   clip: ClipOut;
   jobId: string;
@@ -109,16 +168,18 @@ function formFromClip(
   const overrides = readOverrides(clip);
   const captionIds = captionStyleOptions.map((o) => o.id);
   const presetIds = reframePresetOptions.map((o) => o.id);
+  const captionStyle =
+    typeof overrides.caption_style === "string" &&
+    captionIds.includes(overrides.caption_style)
+      ? overrides.caption_style
+      : captionIds[0] ?? "gaming_impact";
+  const styleColors = styleColorDefaults(captionStyle);
   return {
     title: clip.title || `Clip ${clip.rank + 1}`,
     hook: clip.hook || "",
     start: clip.start_secs,
     end: clip.end_secs,
-    captionStyle:
-      typeof overrides.caption_style === "string" &&
-      captionIds.includes(overrides.caption_style)
-        ? overrides.caption_style
-        : captionIds[0] ?? "gaming_impact",
+    captionStyle,
     reframePreset:
       typeof overrides.reframe_preset === "string" &&
       presetIds.includes(overrides.reframe_preset)
@@ -141,11 +202,11 @@ function formFromClip(
         : DEFAULT_WORDS_PER_GROUP,
     captionPrimaryColor: readHexColor(
       overrides.caption_primary_color,
-      DEFAULT_CAPTION_PRIMARY,
+      styleColors.primary,
     ),
     captionOutlineColor: readHexColor(
       overrides.caption_outline_color,
-      DEFAULT_CAPTION_OUTLINE,
+      styleColors.outline,
     ),
     reframePanX: readBoundedNumber(
       overrides.reframe_pan_x,
@@ -248,6 +309,7 @@ export function ClipEditor({
   const resizeDragRef = React.useRef<{ startX: number; startW: number } | null>(
     null,
   );
+  const prevClipStatusRef = React.useRef(clip.status);
   const [previewDownloadUrl, setPreviewDownloadUrl] = React.useState(clip.download_url ?? null);
   const [previewThumbnailUrl, setPreviewThumbnailUrl] = React.useState(clip.thumbnail_url ?? null);
   const previewRetriedRef = React.useRef(false);
@@ -311,31 +373,39 @@ export function ClipEditor({
     };
   }, []);
 
+  // Toast + clear only on clip.status transitions — job SSE stays "done"
+  // after finalise, so it must not fake a successful re-render.
   React.useEffect(() => {
+    const prev = prevClipStatusRef.current;
+    prevClipStatusRef.current = clip.status;
     if (clip.status === "processing") {
       setRerendering(true);
-    } else if (clip.status === "done") {
-      setRerendering(false);
+      return;
     }
-  }, [clip.status]);
-
-  React.useEffect(() => {
-    if (!rerendering) return;
-    if (jobProgress.status === "done") {
+    if (prev === "processing" && clip.status === "done") {
       setRerendering(false);
       toast("Clip re-rendered", "Your edits are now live.");
-      router.refresh();
+      return;
     }
-    if (jobProgress.status === "error") {
+    if (prev === "processing" && clip.status === "error") {
       setRerendering(false);
       toast(
         "Re-render failed",
-        jobProgress.message ||
-          "Open Edit clip and try Save again, or Regenerate this clip.",
+        "Open Edit clip and try Save again, or Regenerate this clip.",
       );
-      router.refresh();
+      return;
     }
-  }, [jobProgress, rerendering, router, toast]);
+    if (clip.status === "done" || clip.status === "error") {
+      setRerendering(false);
+    }
+  }, [clip.status, toast]);
+
+  // Soft-refresh while a clip re-render is in flight so status/media update.
+  React.useEffect(() => {
+    if (!rerendering) return;
+    const id = window.setInterval(() => router.refresh(), 2500);
+    return () => window.clearInterval(id);
+  }, [rerendering, router]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -367,11 +437,28 @@ export function ClipEditor({
     setError(null);
   }
 
-  function handleDiscard() {
+  function handleDiscard(opts?: { confirmIfDirty?: boolean }) {
+    if (opts?.confirmIfDirty && isDirty) {
+      const ok = window.confirm("Discard unsaved edits?");
+      if (!ok) return;
+    }
     setForm(savedRef.current);
     setError(null);
     setOpen(false);
   }
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      handleDiscard({ confirmIfDirty: true });
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // handleDiscard closes over latest isDirty/form via this effect's deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional open/dirty gate
+  }, [open, isDirty]);
 
   async function handleSave() {
     const err = isSplice
@@ -485,7 +572,7 @@ export function ClipEditor({
             type="button"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             aria-label="Close editor"
-            onClick={handleDiscard}
+            onClick={() => handleDiscard({ confirmIfDirty: true })}
           />
           <div
             className="relative z-10 flex h-full flex-col border-l border-border/60 bg-card shadow-2xl animate-in slide-in-from-right duration-200"
@@ -523,7 +610,7 @@ export function ClipEditor({
                 variant="ghost"
                 size="icon"
                 className="shrink-0"
-                onClick={handleDiscard}
+                onClick={() => handleDiscard({ confirmIfDirty: true })}
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
@@ -566,6 +653,11 @@ export function ClipEditor({
                       controls
                       playsInline
                       className="absolute inset-0 w-full h-full object-contain"
+                      style={{
+                        transform: `scale(${form.reframeZoom}) translateX(${(0.5 - form.reframePanX) * 14}%)`,
+                        transformOrigin: "center center",
+                        transition: "transform 80ms linear",
+                      }}
                       onError={onPreviewMediaError}
                     />
                   ) : previewThumbnailUrl ? (
@@ -574,6 +666,11 @@ export function ClipEditor({
                       src={previewThumbnailUrl}
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover opacity-80"
+                      style={{
+                        transform: `scale(${form.reframeZoom}) translateX(${(0.5 - form.reframePanX) * 14}%)`,
+                        transformOrigin: "center center",
+                        transition: "transform 80ms linear",
+                      }}
                       onError={onPreviewMediaError}
                     />
                   ) : (
@@ -584,8 +681,10 @@ export function ClipEditor({
                   <SafeZoneOverlay visible={showSafeZones} />
                   {isDirty && (
                     <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-amber-950 text-[10px] px-2 py-1 text-center">
-                      Showing last render — save to apply trim (
-                      {formatDuration(form.end - form.start)})
+                      {dirtyPreviewHint(savedRef.current, form, isSplice)}
+                      {!isSplice
+                        ? ` (${formatDuration(form.end - form.start)})`
+                        : ""}
                     </div>
                   )}
                 </div>
@@ -724,7 +823,26 @@ export function ClipEditor({
                   title="Caption style"
                   options={captionStyleOptions}
                   value={form.captionStyle}
-                  onChange={(id) => patch("captionStyle", id)}
+                  onChange={(id) => {
+                    setForm((prev) => {
+                      const oldDefaults = styleColorDefaults(prev.captionStyle);
+                      const atStyleDefault =
+                        prev.captionPrimaryColor === oldDefaults.primary &&
+                        prev.captionOutlineColor === oldDefaults.outline;
+                      const nextDefaults = styleColorDefaults(id);
+                      return {
+                        ...prev,
+                        captionStyle: id,
+                        ...(atStyleDefault
+                          ? {
+                              captionPrimaryColor: nextDefaults.primary,
+                              captionOutlineColor: nextDefaults.outline,
+                            }
+                          : {}),
+                      };
+                    });
+                    setError(null);
+                  }}
                   columns={1}
                 />
                 <CreatorOptionCards
@@ -765,9 +883,26 @@ export function ClipEditor({
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Caption colors
-                  </Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Caption colors
+                    </Label>
+                    <button
+                      type="button"
+                      className="text-[10px] text-sky-400 hover:underline"
+                      onClick={() => {
+                        const defaults = styleColorDefaults(form.captionStyle);
+                        setForm((prev) => ({
+                          ...prev,
+                          captionPrimaryColor: defaults.primary,
+                          captionOutlineColor: defaults.outline,
+                        }));
+                        setError(null);
+                      }}
+                    >
+                      Reset to style
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor={`cap-primary-${clip.id}`} className="text-xs">
@@ -918,7 +1053,7 @@ export function ClipEditor({
                 variant="outline"
                 className="flex-1"
                 disabled={pending}
-                onClick={handleDiscard}
+                onClick={() => handleDiscard()}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Discard

@@ -34,6 +34,10 @@ type BugReportDialogProps = {
   onOpenChange?: (open: boolean) => void;
   /** Prefill the message textarea when the dialog opens. */
   defaultMessage?: string;
+  /** Prefill category chips when the dialog opens. */
+  defaultCategories?: string[];
+  /** Prefill severity when the dialog opens. */
+  defaultSeverity?: Severity;
 };
 
 /** Pull a job id out of /jobs/[id]... paths to pre-fill the report. */
@@ -45,6 +49,8 @@ export function BugReportDialog({
   open: controlledOpen,
   onOpenChange,
   defaultMessage = "",
+  defaultCategories,
+  defaultSeverity = "medium",
 }: BugReportDialogProps = {}) {
   const pathname = usePathname();
   const { push: toast } = useToastSafe();
@@ -56,17 +62,20 @@ export function BugReportDialog({
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState(defaultMessage);
-  const [categories, setCategories] = React.useState<string[]>([]);
-  const [severity, setSeverity] = React.useState<Severity>("medium");
+  const [categories, setCategories] = React.useState<string[]>(
+    () => defaultCategories ?? [],
+  );
+  const [severity, setSeverity] = React.useState<Severity>(defaultSeverity);
   const [includeJob, setIncludeJob] = React.useState(true);
 
   const currentJobId = jobIdFromPath(pathname);
 
   React.useEffect(() => {
-    if (open && defaultMessage) {
-      setMessage(defaultMessage);
-    }
-  }, [open, defaultMessage]);
+    if (!open) return;
+    if (defaultMessage) setMessage(defaultMessage);
+    if (defaultCategories?.length) setCategories(defaultCategories);
+    setSeverity(defaultSeverity);
+  }, [open, defaultMessage, defaultCategories, defaultSeverity]);
 
   function toggleCategory(id: string) {
     setCategories((prev) =>

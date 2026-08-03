@@ -7,8 +7,8 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `cursor/stale-folder-audit-31fb` | Stale folder review post beta.23/24 | stale-folder-audit | `docs/STALE_FOLDER_AUDIT.md`, version drift docs, sidecar `assets/` datas |
 | `master` | — | — | beta.24 Latest; ping friend to upgrade |
+| `cursor/stale-folder-audit-31fb` | Stale audit PR [#17](https://github.com/WheresWellium/StreamClip/pull/17) | — | merged when reviewed |
 
 ## Pipeline capability (desktop)
 

@@ -1,6 +1,6 @@
 # Desktop upgrade matrix (F5)
 
-**Revision:** 1 (2026-07-31)
+**Revision:** 2 (2026-08-03)
 **Purpose:** prove that installing a new build **over an existing one** preserves the user's data (jobs, clips, license) and applies SQLite migrations cleanly. This guards taxonomy class **F5** (SQLite migrate / boot fail after update) — the failure a returning tester hits, distinct from the fresh-install path in [CLEAN_DESKTOP_VM_VERIFY.md](CLEAN_DESKTOP_VM_VERIFY.md).
 
 ## Why upgrades are a distinct risk
@@ -14,13 +14,14 @@ A fresh install runs `alembic upgrade head` against an empty SQLite DB. An **upg
 
 ## Support window
 
-Test the upgrade from **each still-in-the-wild beta** to the shipping build. As of 2026-07-31: **beta.5, beta.6 → beta.7**.
+Test the upgrade from **each still-in-the-wild beta** to the shipping build. As of 2026-08-03: **beta.5–beta.23 → beta.24** (alembic head still `0014` since beta.7).
 
 | From | To | Migrations applied | License | Data (jobs/clips) | Result |
 |------|----|--------------------|---------|-------------------|--------|
-| beta.5 | beta.7 | 0012 → 0014 (timestamp defaults) | persists, no re-entry | preserved | ☐ verify |
-| beta.6 | beta.7 | 0014 (if not already) | persists | preserved | ☐ verify |
-| fresh | beta.7 | 0001 → 0014 (all) | activate once | n/a | covered by clean-VM gate |
+| beta.5 | beta.24 | 0012 → 0014 (timestamp defaults) | persists, no re-entry | preserved | ☐ verify |
+| beta.6 | beta.24 | 0014 (if not already) | persists | preserved | ☐ verify |
+| beta.7–beta.23 | beta.24 | none (already on 0014) | persists | preserved | ☐ verify |
+| fresh | beta.24 | 0001 → 0014 (all) | activate once | n/a | covered by clean-VM gate |
 
 *(Fill the result column per release. If any cell fails, file an F5 row in [DESKTOP_FAILURE_TAXONOMY.md](DESKTOP_FAILURE_TAXONOMY.md) with the migration id and the alembic error.)*
 

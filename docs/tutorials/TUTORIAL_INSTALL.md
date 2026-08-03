@@ -8,7 +8,7 @@
 **Windows creators:** prefer the one-click installer — [Install → Windows](../BETA_DOWNLOAD.md#one-click-installers).
 
 !!! tip "Windows one-click installer"
-    Download [qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (v1.0.0-beta.6), run it, open from Start menu, paste your key in **Settings → License**. No Docker.
+    Download [qClip-Setup-win-x64.exe](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (v1.0.0-beta.24), run it, open from Start menu, paste your key in **Settings → License**. No Docker.
 
 ---
 

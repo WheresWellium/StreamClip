@@ -19,7 +19,7 @@ Related:
 | Item | State |
 |------|--------|
 | NSIS installer + electron-builder | ✅ Ready |
-| Unsigned beta publish path | ✅ Ready (`1.0.0-beta.22` Latest target, 2026-08-03) |
+| Unsigned beta publish path | ✅ Ready (`1.0.0-beta.24` Latest target, 2026-08-03) |
 | Signing scripts / CI preflight | ✅ Ready (`verify_desktop_signing_ready.ps1 -RequireSigning` fails closed without cert) |
 | EV certificate purchased + installed | ❌ **Blocked** (operator purchase) — rechecked 2026-08-03: `CSC_THUMBPRINT` unset |
 | First signed GitHub Release | ❌ Blocked on cert — do not run `-RequireSigned` until Path C/D credentials exist |

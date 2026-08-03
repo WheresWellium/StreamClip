@@ -16,9 +16,9 @@ Details: [Install qClip](BETA_DOWNLOAD.md#one-click-installers)
 
 ## How do I install on Mac?
 
-**Call to action:** [Download qClip-mac-arm64.dmg (v1.0.0-beta.6)](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.6/qClip-mac-arm64.dmg) → Applications → right-click **Open** (unsigned) → **Settings → License**. Windows beta.8 is on Latest; Mac is not yet.
+**Call to action:** [Download qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.22`) → Applications → right-click **Open** (unsigned) → **Settings → License**. Same code train as Windows Latest.
 
-Apple Silicon today; universal (Intel + Silicon) DMG coming next. Details: [Install → macOS](BETA_DOWNLOAD.md#macos). Docker remains an [operator fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
+Apple Silicon on Latest; universal (Intel + Silicon) via local Mac rebuild. Details: [Install → macOS](BETA_DOWNLOAD.md#macos). Docker remains an [operator fallback](BETA_DOWNLOAD.md#macos-docker-no-public-dmg-yet).
 
 ---
 

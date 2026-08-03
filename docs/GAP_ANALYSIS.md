@@ -1,17 +1,22 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-08-03 (revision 13 — distribute-ready beta.22)
+**Last run:** 2026-08-03 (revision 14 — Mac arm64 on beta.22 Latest)
 
-### Revision 13 — distribute-ready cut (2026-08-03)
-
-Closed remaining shippable honesty debt and cut **v1.0.0-beta.22** (unsigned) so Latest includes polish + partial-fail recovery.
+### Revision 14 — Mac parity (2026-08-03)
 
 | ID | Gap | Sev | Fix | Status |
 |----|-----|-----|-----|--------|
-| O13 | Legacy `N8N_OPS_WEBHOOK_URL` env alias | P2 | code | **Closed** — `OPS_WEBHOOK_URL` only; Electron + ops_webhook + docs |
-| U77 | Clip card preview hardcoded 9:16 | P2 | code | **Closed** — uses `jobAspectRatio` via `aspectRatioCss` |
+| O14 | Mac DMG stuck on beta.6 while Windows on beta.22 | P1 | ops/ci | **Closed** — GHA `STREAMCLIP_MAC_SINGLE_ARCH=arm64` uploads `qClip-mac-arm64.dmg` to **v1.0.0-beta.22**; henna/docs on Latest |
+| O14b | Universal Mac DMG + notarization | P2 | ops | **Still open** — local Mac Rosetta path; Apple Developer ID |
+
+### Revision 13 — distribute-ready cut (2026-08-03)
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| O13 | Legacy `N8N_OPS_WEBHOOK_URL` env alias | P2 | code | **Closed** |
+| U77 | Clip card preview hardcoded 9:16 | P2 | code | **Closed** |
 | O11 | Windows EV signing / SmartScreen | P1 | ops | **Still open** — beta.22 unsigned until cert |
-| O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** — [CLEAN_DESKTOP_VM_VERIFY.md](CLEAN_DESKTOP_VM_VERIFY.md) |
+| O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** |
 | U27 | Playwright full live-stack journey | P2 | test | Defer |
 
 ### Revision 12 — beta.21 polish verification (2026-08-03)
@@ -79,7 +84,7 @@ The **clip pipeline, distribution plane, and Phase 2–4 features are wired end-
 | O11 | Windows EV signing / SmartScreen | P1 | ops | Tooling ✅ [`DESKTOP_SIGNING.md`](DESKTOP_SIGNING.md) Paths A–D — ☐ buy/install cert (MASTER §4.10); **beta.20 remains unsigned** (2026-08-03) |
 | O12 | Loader / desktop publish | P1 | ops | **Closed 2026-07-28** — `v1.0.0-beta.6` published; UI journey e2e green (`test:e2e:ui-journey`) |
 | O13 | Deprecated job publish route; N8N env alias | P2 | code | Defer |
-| O14 | macOS DMG + notarization | P2 | ops | arm64 DMG on beta.6 ✅; **universal** pipeline ✅ (`arch: universal` + dual sidecars) — ☐ host rebuild/upload `qClip-mac-universal.dmg`; ☐ notarization |
+| O14 | macOS DMG + notarization | P2 | ops | arm64 on **beta.22** Latest ✅ (rev 14); ☐ universal upload; ☐ notarization |
 | O15 | GAP / 110% Phase 1 coverage stretch | P2 | test | Defer — not Phase 0 blocker |
 
 ### New gaps from revision 10 audit (2026-07-28)

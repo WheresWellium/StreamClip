@@ -66,9 +66,13 @@ $latestWin = "https://github.com/WheresWellium/StreamClip/releases/latest/downlo
 if (-not $index.Contains($latestWin)) {
     Add-Fail "docs/index.md must link Windows download to releases/latest/download/qClip-Setup-win-x64.exe"
 }
-# Mac must not point at Latest DMG while beta.8 has no Mac asset (404 trap)
-if ($index -match "releases/latest/download/qClip-mac-arm64\.dmg") {
-    Add-Fail "docs/index.md must not use releases/latest for Mac DMG until Latest ships a DMG (use a pinned release that has the asset)"
+# Mac Apple Silicon shares Latest with Windows (qClip-mac-arm64.dmg on same tag)
+$latestMac = "https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg"
+if (-not $index.Contains($latestMac)) {
+    Add-Fail "docs/index.md must link Mac download to releases/latest/download/qClip-mac-arm64.dmg"
+}
+if ($betaDl -notmatch "releases/latest/download/qClip-mac-arm64\.dmg") {
+    Add-Fail "docs/BETA_DOWNLOAD.md must link Mac CTA to releases/latest/download/qClip-mac-arm64.dmg"
 }
 
 # 4) Ban stale private-repo / invite-kit-only messaging on the customer page

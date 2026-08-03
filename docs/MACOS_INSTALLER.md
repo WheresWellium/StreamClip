@@ -3,8 +3,9 @@
 **End users:** you do **not** need this page. Download the published DMG —
 [Install → macOS](BETA_DOWNLOAD.md#macos).
 
-**Builders:** this is the path to rebuild an unsigned arm64 `.dmg`. Notarization
-(Gatekeeper-clean) still needs an Apple Developer ID.
+**Builders:** this is the path to rebuild an unsigned `.dmg` (arm64 via CI escape
+hatch, or universal locally). Notarization (Gatekeeper-clean) still needs an
+Apple Developer ID.
 
 Companion detail: `packaging/installer/MACOS.md` (repo root) ·
 ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
@@ -15,20 +16,27 @@ ADR: [`ADR-001-desktop-packaging.md`](ADR-001-desktop-packaging.md).
 
 | Item | State |
 |------|--------|
-| electron-builder `mac` target `dmg` + `arch: ["arm64"]` | ✅ Committed (`apps/desktop/package.json`) |
+| electron-builder `mac` target `dmg` + `arch: ["universal"]` | ✅ Committed (`apps/desktop/package.json`) |
 | Entitlements + hardenedRuntime | ✅ `apps/desktop/assets/entitlements.mac.plist` |
 | Build script | ✅ `scripts/build_desktop_installer_macos.sh` |
 | Verify script | ✅ `scripts/verify_desktop_installer_macos.sh` |
 | Notarize script (skips if no Apple secrets) | ✅ `scripts/notarize_macos_artifact.sh` |
-| Live `.dmg` on GitHub Releases | ✅ arm64 uploaded 2026-07-30; **universal** = rebuild with updated script → `qClip-mac-universal.dmg` |
+| CI arm64 on Latest | ✅ `STREAMCLIP_MAC_SINGLE_ARCH=arm64` via `desktop-release.yml` → `qClip-mac-arm64.dmg` on **v1.0.0-beta.22** |
+| Universal on Latest | ☐ Local Mac with Rosetta + x86 Python → `qClip-mac-universal.dmg` |
 | Notarized / Gatekeeper-clean | ❌ Needs Apple Developer Program |
 
-Beta testers: use the [universal DMG](BETA_DOWNLOAD.md#macos) once published. On the Mac builder:
+Beta testers: use the [Apple Silicon DMG on Latest](BETA_DOWNLOAD.md#macos). On a Mac builder for universal:
 
 ```bash
 ./scripts/build_desktop_installer_macos.sh
 # needs Rosetta + /usr/local x86_64 Python for the Intel sidecar half
-gh release upload v1.0.0-beta.6 apps/desktop/release/qClip-mac-universal.dmg --clobber
+gh release upload v1.0.0-beta.22 apps/desktop/release/qClip-mac-universal.dmg --clobber
+```
+
+CI (Apple Silicon only, no Rosetta):
+
+```bash
+gh workflow run desktop-release.yml -f version=1.0.0-beta.22 -f skip_windows=true
 ```
 
 ---

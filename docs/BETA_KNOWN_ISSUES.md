@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-03 · Current Windows build: **v1.0.0-beta.22**
+**Updated:** 2026-08-03 · Current build: **v1.0.0-beta.22** (Windows + Mac Apple Silicon)
 
 ---
 
@@ -31,9 +31,9 @@ Still on beta.5–beta.8? Upgrade to Latest (fixes engine Retry on the startup-e
 | TikTok publish | Inbox / drafts only — finish in the TikTok app |
 | TikTok URL download | Some networks get an **IP block** from TikTok (yt-dlp). qClip fails fast with a clear error. Workaround: **upload the file**, use a non-TikTok URL, or retry from another network/VPN. Not a desktop bug. |
 | Instagram | Not supported |
-| macOS Gatekeeper | Unsigned `.dmg` — right-click → **Open** / Privacy & Security → **Open Anyway** |
+| macOS Gatekeeper | Unsigned `.dmg` on Latest — right-click → **Open** / Privacy & Security → **Open Anyway** |
 | macOS notarization | Not notarized yet — Gatekeeper warning is expected |
-| macOS universal DMG | Prefer `qClip-mac-universal.dmg`; rebuild on Mac if only `arm64` is on the release |
+| macOS Intel | Latest ships Apple Silicon (`qClip-mac-arm64.dmg`); Intel needs a local universal rebuild |
 | SmartScreen | Unsigned until EV cert — **More info → Run anyway** |
 | First-run models | ~1.5 GB download once |
 | CPU desktop speed | Slow vs GPU — prefer short sources for feedback |

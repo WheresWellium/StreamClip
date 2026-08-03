@@ -13,7 +13,7 @@ Download the app, then follow the steps below. You do not need Docker or a termi
 | | |
 |-|-|
 | **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.22`) |
-| **Mac** (Apple Silicon) | Interim build: [qClip-mac-arm64.dmg on v1.0.0-beta.6](https://github.com/WheresWellium/StreamClip/releases/download/v1.0.0-beta.6/qClip-mac-arm64.dmg) — a newer Mac build is not on Latest yet |
+| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.22`, unsigned) |
 
 Have your license key ready (`SCPRO-…` from your invite email).
 

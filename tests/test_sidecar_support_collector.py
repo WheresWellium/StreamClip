@@ -6,7 +6,9 @@ import os
 
 import pytest
 
-from desktop_sidecar.run import (
+pytestmark = pytest.mark.desktop
+
+from desktop_sidecar.run import (  # noqa: E402
     DEFAULT_SUPPORT_COLLECTOR_URL,
     ensure_support_collector_url,
 )

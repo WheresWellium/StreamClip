@@ -207,7 +207,7 @@ After checklist step 9:
   optionally added to a user Project board. Testers never touch a template.
 - Henna Vercel secrets (server-side only):
   - `SUPPORT_GITHUB_TOKEN` — PAT with `repo` (Issues); add `project` to auto-board
-  - `SUPPORT_GITHUB_PROJECT_NUMBER` — e.g. `1` for [qClip Beta](https://github.com/users/WheresWellium/projects)
+  - `SUPPORT_GITHUB_PROJECT_NUMBER` — defaults to `4` ([qClip](https://github.com/users/WheresWellium/projects/4)); set `0` to disable project add
   - Optional: `SUPPORT_GITHUB_PROJECT_ID`, `SUPPORT_ALSO_EMAIL=true` + existing `SMTP_*`
 - One-time setup: `.\scripts\setup_support_github.ps1 -Token <pat>`
 - Repo safety net: [`.github/workflows/add-beta-issues-to-project.yml`](../.github/workflows/add-beta-issues-to-project.yml)

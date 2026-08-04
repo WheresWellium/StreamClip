@@ -1,6 +1,16 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-08-04 (revision 16 — matrix + e2e honesty)
+**Last run:** 2026-08-04 (revision 17 — support → GitHub Project harden)
+
+### Revision 17 — bug/feedback → GitHub Project #4 (2026-08-04)
+
+Path already existed (Help → `/api/support/*` → `OPS_WEBHOOK_URL` → henna → Issues + Project). Live smoke filed [#18](https://github.com/WheresWellium/StreamClip/issues/18) onto [Project #4](https://github.com/users/WheresWellium/projects/4). Soft misses that made it look unwired:
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| T85 | Unpackaged Electron / sidecar-only boots omitted collector URL → “Saved on this device only” | **P1** | code | **Fixed** — default henna URL in Electron + `desktop_sidecar.ensure_support_collector_url` |
+| T86 | Project #4 required env; docs said “e.g. 1” | P2 | code+doc | **Fixed** — default `SUPPORT_GITHUB_PROJECT_NUMBER=4`; health exposes `project_configured` |
+| O4d | Clean-VM install→first-clip | P0 | ops | **Still open** |
 
 ### Revision 16 — matrix timing + full e2e gaps (2026-08-04)
 

@@ -16,6 +16,8 @@ from typing import Any
 
 
 DEFAULT_REPO = "WheresWellium/StreamClip"
+# qClip beta board: https://github.com/users/WheresWellium/projects/4
+DEFAULT_PROJECT_NUMBER = 4
 
 
 def github_token() -> str:
@@ -30,12 +32,18 @@ def github_repo() -> str:
 
 
 def github_project_number() -> int | None:
+    """Project v2 number for auto-add. Defaults to #4 (qClip board).
+
+    Set SUPPORT_GITHUB_PROJECT_NUMBER=0 to disable project linking.
+    """
     raw = os.environ.get("SUPPORT_GITHUB_PROJECT_NUMBER", "").strip()
-    if not raw:
-        return None
+    if raw == "":
+        return DEFAULT_PROJECT_NUMBER
     try:
         n = int(raw)
     except ValueError:
+        return None
+    if n == 0:
         return None
     return n if n > 0 else None
 
@@ -197,15 +205,15 @@ def add_issue_to_project(*, issue_node_id: str) -> dict[str, Any]:
     """
     Add an issue to the configured user Project (Projects v2).
 
-    Needs SUPPORT_GITHUB_TOKEN with ``project`` / ``read:project`` scopes and
-    SUPPORT_GITHUB_PROJECT_NUMBER (e.g. 1).
+    Needs SUPPORT_GITHUB_TOKEN with ``project`` / ``read:project`` scopes.
+    Defaults to Project #4 unless SUPPORT_GITHUB_PROJECT_NUMBER=0.
     """
     token = github_token()
     number = github_project_number()
     if not token:
         return {"ok": False, "error": "github_token_unconfigured"}
     if number is None:
-        return {"ok": False, "error": "project_unconfigured"}
+        return {"ok": False, "error": "project_disabled"}
     if not issue_node_id:
         return {"ok": False, "error": "missing_issue_node_id"}
 

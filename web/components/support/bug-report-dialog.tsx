@@ -117,7 +117,10 @@ export function BugReportDialog({
       result.emailNotification === "queued" ||
       result.opsNotification === "queued"
     ) {
-      toast("Bug report sent", "Filed for tracking — thanks.");
+      toast(
+        "Bug report sent",
+        "Filed to our GitHub tracker (Project qClip) — thanks.",
+      );
     } else {
       toast(
         "Saved on this device only",

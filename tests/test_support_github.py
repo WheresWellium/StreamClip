@@ -64,8 +64,10 @@ def test_build_issue_body_includes_job_and_message():
 
 def test_github_project_number_parsing(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("SUPPORT_GITHUB_PROJECT_NUMBER", raising=False)
-    assert sg.github_project_number() is None
+    assert sg.github_project_number() == sg.DEFAULT_PROJECT_NUMBER
     monkeypatch.setenv("SUPPORT_GITHUB_PROJECT_NUMBER", "3")
     assert sg.github_project_number() == 3
+    monkeypatch.setenv("SUPPORT_GITHUB_PROJECT_NUMBER", "0")
+    assert sg.github_project_number() is None
     monkeypatch.setenv("SUPPORT_GITHUB_PROJECT_NUMBER", "nope")
     assert sg.github_project_number() is None

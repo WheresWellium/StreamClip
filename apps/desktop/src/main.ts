@@ -26,14 +26,20 @@ const DEFAULT_SUPPORT_COLLECTOR_URL =
   "https://streamclip-henna.vercel.app/api/support-ingest";
 
 function resolveSupportCollectorUrl(): string | undefined {
+  const disabled = (process.env.STREAMCLIP_DISABLE_SUPPORT_COLLECTOR || "")
+    .trim()
+    .toLowerCase();
+  if (disabled === "1" || disabled === "true" || disabled === "yes") {
+    return undefined;
+  }
   const fromEnv =
     process.env.OPS_WEBHOOK_URL?.trim() ||
     process.env.STREAMCLIP_SUPPORT_COLLECTOR_URL?.trim();
   if (fromEnv) return fromEnv;
-  // Packaged builds forward to the hosted collector so Help → Report a bug /
-  // Beta feedback leave the tester machine (local SQLite alone is not enough).
-  if (app.isPackaged) return DEFAULT_SUPPORT_COLLECTOR_URL;
-  return undefined;
+  // Always forward Help → Report / Beta feedback to henna → GitHub Issues +
+  // Project #4 (packaged and unpackaged). Opt out with
+  // STREAMCLIP_DISABLE_SUPPORT_COLLECTOR=1 for offline local runs.
+  return DEFAULT_SUPPORT_COLLECTOR_URL;
 }
 
 // Resolved at startup: normally the default port, but relocated to a free port

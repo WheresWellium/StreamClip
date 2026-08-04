@@ -18,6 +18,10 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
 APP_DATA_DIR_NAME = "StreamClip"
+# Hosted F13 collector — Help → Report / Beta feedback → GitHub Project #4.
+DEFAULT_SUPPORT_COLLECTOR_URL = (
+    "https://streamclip-henna.vercel.app/api/support-ingest"
+)
 
 
 def app_root() -> Path:
@@ -92,6 +96,26 @@ def configure_data_dirs(data_dir: Path) -> None:
     log.info("sidecar_data_dir", path=str(data_dir))
 
 
+def ensure_support_collector_url() -> None:
+    """Default OPS_WEBHOOK_URL so in-app bug/feedback leave the device.
+
+    Electron also injects this; setdefault covers sidecar-only boots
+    (frozen exe, STREAMCLIP_DESKTOP_DATA_DIR, or inprocess queue).
+    Opt out: STREAMCLIP_DISABLE_SUPPORT_COLLECTOR=1.
+    """
+    disabled = os.environ.get("STREAMCLIP_DISABLE_SUPPORT_COLLECTOR", "").lower()
+    if disabled in ("1", "true", "yes"):
+        return
+    desktopish = (
+        getattr(sys, "frozen", False)
+        or bool(os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR"))
+        or os.environ.get("STREAMCLIP_QUEUE__BACKEND", "").lower() == "inprocess"
+    )
+    if not desktopish:
+        return
+    os.environ.setdefault("OPS_WEBHOOK_URL", DEFAULT_SUPPORT_COLLECTOR_URL)
+
+
 def configure_desktop_env(root: Path | None = None) -> Path:
     """Set env defaults for embedded desktop mode."""
     from core.ffmpeg_bins import ensure_tool_bins_on_path
@@ -110,6 +134,7 @@ def configure_desktop_env(root: Path | None = None) -> Path:
 
         ensure_install_secrets(data_dir)
         configure_data_dirs(data_dir)
+    ensure_support_collector_url()
     # After config is set so ffmpeg.bin_dir / frozen _MEIPASS resolution works.
     ensure_tool_bins_on_path()
     return base

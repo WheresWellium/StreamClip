@@ -27,7 +27,11 @@ _API_DIR = Path(__file__).resolve().parent
 if str(_API_DIR) not in sys.path:
     sys.path.insert(0, str(_API_DIR))
 
-from support_github import file_support_to_github, github_token  # noqa: E402
+from support_github import (  # noqa: E402
+    file_support_to_github,
+    github_project_number,
+    github_token,
+)
 
 # Short in-memory debounce so rapid identical posts don't spam GitHub/SMTP.
 _DEBOUNCE_LOCK = threading.Lock()
@@ -151,6 +155,8 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 — Vercel Python conventio
                 "ok": True,
                 "service": "qclip-support-ingest",
                 "github_configured": bool(github_token()),
+                "project_configured": github_project_number() is not None,
+                "project_number": github_project_number(),
                 "smtp_configured": bool(
                     os.environ.get("SMTP_HOST", "").strip()
                     and os.environ.get("BUG_REPORT_TO", "").strip()

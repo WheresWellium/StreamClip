@@ -1,7 +1,7 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (no-easy-misses: T87–T90)
+**Last updated:** 2026-08-04 (beta.25 cut)
 
 ## Active chats
 
@@ -25,7 +25,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 
 ## Shipped
 
-- **1.0.0-beta.24** Latest — Win Setup + Mac arm64 DMG
+- **1.0.0-beta.25** Latest — Win Setup + Mac arm64 DMG (support harden)
 - U78 create→live overview + U79 clip-count submit
 - Matrix harness: `scripts/matrix_create_pipeline_timing.py` (+ SDK launcher)
 

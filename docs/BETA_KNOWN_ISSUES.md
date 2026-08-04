@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-03 · Current build: **v1.0.0-beta.24** (Windows + Mac Apple Silicon)
+**Updated:** 2026-08-04 · Current build: **v1.0.0-beta.25** (Windows + Mac Apple Silicon)
 
 ---
 
@@ -22,7 +22,7 @@
 | Support reports never left the device (F13) | Fixed — packaged Help → Report → GitHub Issues on [Project #4](https://github.com/users/WheresWellium/projects/4) |
 | Virality blank when Ollama down | Fixed — local heuristic score + source badge |
 
-Still on beta.5–beta.23? Upgrade to Latest (create→live overview + clip-count fix in beta.24).
+Still on beta.5–beta.24? Upgrade to Latest (support→Project #4 defaults + honest toasts in beta.25; create→live overview in beta.24).
 
 ---
 

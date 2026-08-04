@@ -2,7 +2,7 @@
 
 **Clip any length. Frame any ratio. Rank what wins.**
 
-Current Windows installer: **`1.0.0-beta.24`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned).
+Current Windows installer: **`1.0.0-beta.25`** (2026-08-03) — [Download Setup](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned).
 
 Download the app, then follow the steps below. You do not need Docker or a terminal.
 
@@ -12,8 +12,8 @@ Download the app, then follow the steps below. You do not need Docker or a termi
 
 | | |
 |-|-|
-| **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.24`) |
-| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.24`, unsigned) |
+| **Windows (recommended)** | [**Download for Windows**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (`1.0.0-beta.25`) |
+| **Mac** (Apple Silicon) | [**Download for Mac**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.25`, unsigned) |
 
 Have your license key ready (`SCPRO-…` from your invite email).
 

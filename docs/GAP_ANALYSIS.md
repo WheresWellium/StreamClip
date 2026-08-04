@@ -49,7 +49,7 @@ Friend report on **v1.0.0-beta.23**: file upload + gaming + 16:9 + 1 clip → **
 | U78 | Create job lands on home instead of live overview | **P1** | code | **Closed in beta.24** — `afterCreateJobSuccess` + trailing-slash paths; `static_ui` jobs-miss ≠ home; build guards; matrix tests |
 | U79 | Clip count ignored when **More options** collapsed | **P1** | code | **Closed in beta.24** — always-submit hidden `target_clips` |
 | D14 | Henna how-to said **Submit**; UI says **Generate clips** | P2 | doc | **Fixed** — `docs/index.md` step 3 |
-| O11 | Windows EV signing / SmartScreen | P1 | ops | **Still open** — beta.24 unsigned |
+| O11 | Windows EV signing / SmartScreen | P1 | ops | **Still open** — beta.25 unsigned |
 | O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** |
 | O14b | Universal Mac DMG + notarization | P2 | ops | **Still open** |
 
@@ -120,7 +120,7 @@ Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audi
 
 ## Executive summary
 
-**Product = desktop installer** (Latest **v1.0.0-beta.24** Win + Mac arm64). Pipeline, F13, U78/U79, matrix **pipeline_green**, and Playwright mock+API smoke are in good shape (rev 16 honesty pass). Remaining blockers are **operator-only**: clean-VM (O4d), EV (O11), Mac notarization (O14b), cohort numbers. Live browser upload→clips e2e still deferred (U27).
+**Product = desktop installer** (Latest **v1.0.0-beta.25** Win + Mac arm64). Pipeline, F13, U78/U79, matrix **pipeline_green**, and Playwright mock+API smoke are in good shape (rev 16 honesty pass). Remaining blockers are **operator-only**: clean-VM (O4d), EV (O11), Mac notarization (O14b), cohort numbers. Live browser upload→clips e2e still deferred (U27).
 
 ### Open register (2026-07-28)
 

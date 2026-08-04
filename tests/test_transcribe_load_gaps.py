@@ -82,7 +82,7 @@ def test_transcribe_short_subtitle_falls_through(tmp_path, monkeypatch):
     model.transcribe.return_value = (iter([]), info)
     with patch.object(tr, "_get_model", return_value=model), patch.object(
         tr, "_parse_segments", return_value=[seg]
-    ):
+    ), patch.object(tr, "_ensure_audio_stream"):
         out = tr.transcribe(vid, cfg, subtitle_path=srt)
     assert out.segments[0].text == "whisper"
     model.transcribe.assert_called_once()
@@ -106,7 +106,7 @@ def test_transcribe_force_ignores_subtitle_seed(tmp_path, monkeypatch):
     model.transcribe.return_value = (iter([]), info)
     with patch.object(tr, "_get_model", return_value=model), patch.object(
         tr, "_parse_segments", return_value=[seg]
-    ):
+    ), patch.object(tr, "_ensure_audio_stream"):
         out = tr.transcribe(vid, cfg, force=True, subtitle_path=srt)
     assert out.segments[0].text == "forced"
     model.transcribe.assert_called_once()

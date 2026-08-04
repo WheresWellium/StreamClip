@@ -75,7 +75,15 @@ async def test_job_get_for_scope_signed_in_reads_device_job(db):
 
     assert await jobs.get_for_scope(job.id, owner_id=user.id, device_id=dev) is not None
     assert await jobs.get_for_scope(job.id, owner_id=user.id, device_id="other-device-0001") is None
-    assert await jobs.get_for_scope(job.id, owner_id="other-user", device_id=dev) is None
+    # Device cookie is the ACL for unowned desktop jobs — any signed-in session
+    # on the same install may open them (pre-claim / create without token).
+    assert await jobs.get_for_scope(job.id, owner_id="other-user", device_id=dev) is not None
+    assert (
+        await jobs.get_for_scope(
+            job.id, owner_id="other-user", device_id="other-device-0001"
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio

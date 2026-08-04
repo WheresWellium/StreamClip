@@ -12,11 +12,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: docs
   cancel-in-progress: true
 
 jobs:
@@ -32,17 +30,6 @@ jobs:
       - name: Install MkDocs
         run: pip install -r docs/requirements.txt
       - name: Build site
+        # Customer-facing docs ship on Vercel (henna). This job only gates
+        # MkDocs --strict so doc breaks fail CI without requiring GitHub Pages.
         run: mkdocs build --strict
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

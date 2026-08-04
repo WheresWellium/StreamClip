@@ -62,7 +62,7 @@ def test_transcribe_force_bypasses_cache(tmp_path, monkeypatch):
     model.transcribe.return_value = (iter([]), info)
     with patch.object(tr, "_get_model", return_value=model), patch.object(
         tr, "_parse_segments", return_value=[seg]
-    ):
+    ), patch.object(tr, "_ensure_audio_stream"):
         out = tr.transcribe(vid, cfg, force=True)
     assert out.duration == 3.0
     assert out.segments[0].text == "forced"
@@ -80,7 +80,7 @@ def test_transcribe_and_clip_mock_model_kwargs(tmp_path, monkeypatch):
     model.transcribe.return_value = (iter([]), info)
     with patch.object(tr, "_get_model", return_value=model), patch.object(
         tr, "_parse_segments", return_value=[seg]
-    ):
+    ), patch.object(tr, "_ensure_audio_stream"):
         out = tr.transcribe(vid, cfg, force=True)
         clip_out = tr.transcribe_clip(vid, cfg)
 

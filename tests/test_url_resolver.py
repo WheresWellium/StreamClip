@@ -42,14 +42,17 @@ def test_is_hls_platform():
 def test_format_selector_always_requires_audio():
     yt = _format_selector(1080, hls=False)
     tw = _format_selector(1080, hls=True)
+    # Progressive (YouTube etc.): prefer formats that declare an audio codec.
     assert "acodec!=none" in yt
-    assert "acodec!=none" in tw
     assert "+bestaudio" in yt
+    # HLS (Twitch/Kick): acodec is often "unknown" on progressive MP4s — do not
+    # filter with acodec!=none (rejects every format). Still require +bestaudio
+    # merge paths; silent files are caught later by probe / NoAudioStreamError.
+    assert "acodec!=none" not in tw
     assert "+bestaudio" in tw
-    # Never fall back to bare best / best[ext=mp4] without an audio constraint.
-    assert "/best/" not in f"/{yt}/"
-    assert not yt.endswith("/best")
-    assert not tw.endswith("/best")
+    # Progressive still prefers acodec!=none paths before the bare-best fallback.
+    assert yt.count("acodec!=none") >= 2
+    assert yt.endswith("/best") or yt.endswith("best")
 
 
 def test_build_ytdlp_cmd_video_has_concurrent_fragments():

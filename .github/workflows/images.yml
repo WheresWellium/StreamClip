@@ -20,7 +20,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}
 
 jobs:
   backend:
@@ -42,6 +41,8 @@ jobs:
       - id: version
         shell: bash
         run: |
+          owner="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
           if [[ -n "${{ github.event.inputs.version }}" ]]; then
             echo "tag=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -56,8 +57,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/api:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/api:latest
+            ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/api:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -65,9 +66,9 @@ jobs:
         shell: bash
         run: |
           docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.OWNER }}/worker:${{ steps.version.outputs.tag }} \
-            --tag ${{ env.REGISTRY }}/${{ env.OWNER }}/worker:latest \
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/api:${{ steps.version.outputs.tag }}
+            --tag ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/worker:${{ steps.version.outputs.tag }} \
+            --tag ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/worker:latest \
+            ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/api:${{ steps.version.outputs.tag }}
 
   web:
     runs-on: ubuntu-latest
@@ -88,6 +89,8 @@ jobs:
       - id: version
         shell: bash
         run: |
+          owner="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
           if [[ -n "${{ github.event.inputs.version }}" ]]; then
             echo "tag=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -102,7 +105,7 @@ jobs:
           context: ./web
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/web:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/web:latest
+            ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/web:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.version.outputs.owner }}/web:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

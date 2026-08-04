@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (create matrix pipeline timing GREEN)
+**Last updated:** 2026-08-03 (matrix GREEN + verify_desktop_release GREEN)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: clean-VM / EV | — | beta.24 shipped; 180-cell matrix green |
+| `master` | next: clean-VM (O4d) / EV (O11) | — | beta.24; matrix 180/180; pre-ship gate green |
 
 ## Pipeline capability (desktop)
 

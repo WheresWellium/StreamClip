@@ -2,8 +2,8 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-> **Current Windows build:** `1.0.0-beta.25` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned)  
-> **Mac (Apple Silicon):** [**qClip-mac-arm64.dmg**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.25`, unsigned)
+> **Current Windows build:** `1.0.0-beta.26` · [**Download Setup**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-Setup-win-x64.exe) (~521 MB, unsigned)  
+> **Mac (Apple Silicon):** [**qClip-mac-arm64.dmg**](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.26`, unsigned)
 
 Pick your platform. When install is done, continue to **[Create your first clip →](BETA_TESTER_QUICKSTART.md)**.
 
@@ -41,7 +41,7 @@ No Docker. No terminal. No zip file.
 
 ## macOS {#macos}
 
-**Call to action (Apple Silicon):** [Download qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.25`, same code as Windows Latest).
+**Call to action (Apple Silicon):** [Download qClip-mac-arm64.dmg](https://github.com/WheresWellium/StreamClip/releases/latest/download/qClip-mac-arm64.dmg) (`1.0.0-beta.26`, same code as Windows Latest).
 
 A **universal** (Apple Silicon + Intel) DMG is optional for Intel Macs — rebuild locally with `./scripts/build_desktop_installer_macos.sh` (needs Rosetta + x86 Python), then upload `qClip-mac-universal.dmg`.
 

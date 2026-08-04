@@ -7,7 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | beta.26 published (Win); Mac arm64 pending rebuild | — | missing tests + local e2e gates closed |
+| `master` | beta.26 cut in progress | — | Win local publish + Mac via desktop-release.yml |
 
 ## Pipeline capability (desktop)
 
@@ -25,7 +25,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 
 ## Shipped
 
-- **1.0.0-beta.26** Latest — Win Setup (screenrec M1–M7 closeout); Mac arm64 still beta.25 binary until Mac rebuild
+- **1.0.0-beta.26** Latest — Win Setup + Mac arm64 (screenrec M1–M7 closeout)
 - U78 create→live overview + U79 clip-count submit
 - Matrix harness: `scripts/matrix_create_pipeline_timing.py` (+ SDK launcher)
 

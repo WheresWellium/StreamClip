@@ -31,10 +31,12 @@ Then paste the file's relative path into the matching **Evidence** cell of
 | File | What |
 |------|------|
 | [`matrix-pipeline-timing-beta24.md`](matrix-pipeline-timing-beta24.md) | 180-cell create-option full pipeline wall-clock (green) |
+| [`e2e-full-beta24.md`](e2e-full-beta24.md) | Playwright ui-journey (23) + live happy-path (12) green |
 | [`clean-desktop-vm-beta24.md`](clean-desktop-vm-beta24.md) | Pre-ship automated PASS + O4d OPERATOR FILL |
 | [`clean-desktop-vm-beta20.md`](clean-desktop-vm-beta20.md) | Prior beta.20 clean-VM stub |
 
 Prep installer pack: `.\scripts\prepare_clean_desktop_vm.ps1`  
+Full e2e: `.\scripts\run_e2e_full.ps1` / SDK: `python scripts/sdk_run_e2e.py` (needs `CURSOR_API_KEY`)  
 SDK re-check after matrix: `python scripts/sdk_run_desktop_preship.py` (needs `CURSOR_API_KEY`)
 
 ## Rules

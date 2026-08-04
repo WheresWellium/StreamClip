@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+/** Live API base — Docker compose :8000 or desktop sidecar :8765. */
+const API = (process.env.E2E_API_BASE ?? "http://localhost:8000").replace(
+  /\/$/,
+  "",
+);
+
 test.describe("qClip happy path", () => {
   test.skip(
     !process.env.E2E_RUN,
@@ -43,7 +49,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("API health returns ok", async ({ request }) => {
-    const res = await request.get("http://localhost:8000/api/health");
+    const res = await request.get(`${API}/api/health`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     expect(body.status).toMatch(/ok|degraded/);
@@ -51,7 +57,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("API meta exposes presets", async ({ request }) => {
-    const res = await request.get("http://localhost:8000/api/meta");
+    const res = await request.get(`${API}/api/meta`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     const captionIds = body.caption_styles.map((s: { id: string } | string) =>
@@ -65,7 +71,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("batch endpoint exists", async ({ request }) => {
-    const res = await request.post("http://localhost:8000/api/jobs/batch", {
+    const res = await request.post(`${API}/api/jobs/batch`, {
       data: { jobs: [] },
     });
     // Empty jobs list is a client error (400 validation or 422 schema).
@@ -74,7 +80,7 @@ test.describe("qClip happy path", () => {
 
   test("batch publish validates missing job or clips", async ({ request }) => {
     const res = await request.post(
-      "http://localhost:8000/api/jobs/nonexistent-job/clips/batch-publish",
+      `${API}/api/jobs/nonexistent-job/clips/batch-publish`,
       {
         headers: { "X-Device-Id": "e2e-device-0001" },
         data: { platform: "youtube_shorts", clip_ids: [] },
@@ -84,7 +90,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("create job API accepts URL and returns 202", async ({ request }) => {
-    const res = await request.post("http://localhost:8000/api/jobs", {
+    const res = await request.post(`${API}/api/jobs`, {
       headers: { "X-Device-Id": "e2e-device-0001" },
       data: {
         source_url: "https://example.com/sample-vod.mp4",
@@ -97,7 +103,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("list jobs returns array after create", async ({ request }) => {
-    const list = await request.get("http://localhost:8000/api/jobs", {
+    const list = await request.get(`${API}/api/jobs`, {
       headers: { "X-Device-Id": "e2e-device-0001" },
     });
     expect(list.ok()).toBeTruthy();
@@ -106,14 +112,14 @@ test.describe("qClip happy path", () => {
   });
 
   test("distribution publish validates without auth", async ({ request }) => {
-    const res = await request.post("http://localhost:8000/api/distribution/publish", {
+    const res = await request.post(`${API}/api/distribution/publish`, {
       data: { clip_id: "clip-1", platform: "youtube_shorts", title: "E2E" },
     });
     expect([401, 403]).toContain(res.status());
   });
 
   test("distribution schedule validates without auth", async ({ request }) => {
-    const res = await request.post("http://localhost:8000/api/distribution/schedule", {
+    const res = await request.post(`${API}/api/distribution/schedule`, {
       data: {
         clip_id: "clip-1",
         platform: "youtube_shorts",
@@ -125,7 +131,7 @@ test.describe("qClip happy path", () => {
   });
 
   test("distribution platforms is public catalog", async ({ request }) => {
-    const res = await request.get("http://localhost:8000/api/distribution/platforms");
+    const res = await request.get(`${API}/api/distribution/platforms`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     expect(Array.isArray(body)).toBeTruthy();

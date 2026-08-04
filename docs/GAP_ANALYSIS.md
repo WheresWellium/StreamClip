@@ -15,7 +15,7 @@ Friend report on **v1.0.0-beta.23**: file upload + gaming + 16:9 + 1 clip → **
 | O4d | Clean-VM install→first-clip operator sign-off | P0 | ops | **Still open** |
 | O14b | Universal Mac DMG + notarization | P2 | ops | **Still open** |
 
-**Net:** U78 + U79 ship in **beta.24**. Create-option **full pipeline timing matrix green** (2026-08-03): 180/180 cells done via `scripts/matrix_create_pipeline_timing.py` against live API (evidence: [`docs/evidence/matrix-pipeline-timing-beta24.md`](evidence/matrix-pipeline-timing-beta24.md); wall_s mean 15.8s / max 60.4s on short fixture). `verify_desktop_release.ps1` automated pre-ship **PASS**. Residue remains operator: EV (O11), clean-VM (O4d — pack via `scripts/prepare_clean_desktop_vm.ps1`), notarization (O14b), cohort numbers.
+**Net:** U78 + U79 ship in **beta.24**. Create-option **full pipeline timing matrix green** (2026-08-03): 180/180 cells (evidence: [`matrix-pipeline-timing-beta24.md`](evidence/matrix-pipeline-timing-beta24.md)). Full Playwright e2e **green** (2026-08-04): ui-journey 23 + live happy-path 12 vs sidecar (`scripts/run_e2e_full.ps1`, evidence: [`e2e-full-beta24.md`](evidence/e2e-full-beta24.md)). `verify_desktop_release.ps1` automated pre-ship **PASS**. Residue remains operator: EV (O11), clean-VM (O4d — pack via `scripts/prepare_clean_desktop_vm.ps1`), notarization (O14b), cohort numbers.
 
 **Desktop seams re-verified ok:** sidecar `verify_writable` fail-fast; `_writable_slots`; F13 henna support-ingest; virality heuristic fallback; `task_dispatch` on create; “Completed with errors”; `verify_desktop_release.ps1`.
 

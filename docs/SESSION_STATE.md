@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (matrix GREEN + verify_desktop_release GREEN)
+**Last updated:** 2026-08-03 (matrix evidence committed; O4d prep next)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: clean-VM (O4d) / EV (O11) | — | beta.24; matrix 180/180; pre-ship gate green |
+| `master` | next: O4d clean-VM operator | — | evidence stubs ready; EV/notarization still ops |
 
 ## Pipeline capability (desktop)
 
@@ -19,7 +19,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 |-------|---------|
 | Discovery scores | Audio / novelty / motion / chat (real) |
 | Virality | LLM when Ollama up; else **heuristic** 0–100 (`virality_source`) |
-| Create matrix | **180/180 green** — `tmp/matrix-pipeline-timing/summary.json` |
+| Create matrix | **180/180 green** — `docs/evidence/matrix-pipeline-timing-beta24.md` |
 | Support (F13) | Packaged → henna → GitHub Issues + Project #4 |
 
 ## Shipped

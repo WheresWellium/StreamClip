@@ -26,6 +26,17 @@ Each file contains:
 Then paste the file's relative path into the matching **Evidence** cell of
 `BETA_COHORT_EXIT.md` §2/§3.
 
+## Desktop ship evidence (adjacent)
+
+| File | What |
+|------|------|
+| [`matrix-pipeline-timing-beta24.md`](matrix-pipeline-timing-beta24.md) | 180-cell create-option full pipeline wall-clock (green) |
+| [`clean-desktop-vm-beta24.md`](clean-desktop-vm-beta24.md) | Pre-ship automated PASS + O4d OPERATOR FILL |
+| [`clean-desktop-vm-beta20.md`](clean-desktop-vm-beta20.md) | Prior beta.20 clean-VM stub |
+
+Prep installer pack: `.\scripts\prepare_clean_desktop_vm.ps1`  
+SDK re-check after matrix: `python scripts/sdk_run_desktop_preship.py` (needs `CURSOR_API_KEY`)
+
 ## Rules
 
 - Never edit the automated section after capture — re-run instead.

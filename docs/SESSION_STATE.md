@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-03 (full e2e GREEN; O4d still operator)
+**Last updated:** 2026-08-04 (gap rev 16: matrix/e2e honesty)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: O4d clean-VM operator | — | matrix + e2e green; EV/notarization still ops |
+| `master` | next: O4d clean-VM operator | — | T70/T71 closed; EV/notarization still ops |
 
 ## Pipeline capability (desktop)
 
@@ -19,8 +19,8 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 |-------|---------|
 | Discovery scores | Audio / novelty / motion / chat (real) |
 | Virality | LLM when Ollama up; else **heuristic** 0–100 (`virality_source`) |
-| Create matrix | **180/180 green** — `docs/evidence/matrix-pipeline-timing-beta24.md` |
-| Playwright e2e | **35/35 green** — ui-journey 23 + happy-path 12 (`docs/evidence/e2e-full-beta24.md`) |
+| Create matrix | **pipeline_green 180/180** (135 short of target_clips on smoke fixture) |
+| Playwright e2e | **35/35 green** + CI/verify_stack wired; live upload→clips UI deferred |
 | Support (F13) | Packaged → henna → GitHub Issues + Project #4 |
 
 ## Shipped

@@ -128,8 +128,13 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: Playwright ui-journey (mock API)
+        working-directory: web
+        run: npm run test:e2e:ui-journey
+
       - name: Playwright happy-path (E2E_RUN=1)
         working-directory: web
         env:
           E2E_RUN: "1"
+          E2E_API_BASE: "http://localhost:8000"
         run: npx playwright test e2e/happy-path.spec.ts

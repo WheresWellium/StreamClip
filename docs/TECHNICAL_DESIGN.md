@@ -383,7 +383,7 @@ See **`docs/MASTER_TODO.md`** (open items) and **`docs/GAP_ANALYSIS.md`** (gap r
 
 | Item | Notes |
 |------|-------|
-| Playwright full e2e | Smoke gated on `E2E_RUN=1`; publish-flow extension — MASTER §3.3 |
+| Playwright e2e | ui-journey (mock) + `E2E_RUN=1` happy-path (`E2E_API_BASE`); live upload→clips UI deferred — GAP U27 |
 | TikTok publish | Inbox upload implemented; direct-post requires `video.publish` scope audit — MASTER §2.1 |
 | Publish analytics | No view/retention feedback loop — MASTER §2.16 |
 | Speaker diarization | Not implemented — MASTER §2.18 |

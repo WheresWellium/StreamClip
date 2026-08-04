@@ -18,7 +18,7 @@
 | wall_s mean | 15.78 |
 | wall_s max | 60.35 |
 
-Notes: short smoke fixture; later cells benefit from warm models/cache. `clip_count` may be 1 even when `target_clips` > 1 — cell green means job status `done`, not N rendered files. Raw JSONL is gitignored under `tmp/matrix-pipeline-timing/`.
+Notes: short smoke fixture; later cells benefit from warm models/cache. **Green = create→done with `clip_count >= 1`**, not `clip_count >= target_clips`. Re-summarize (2026-08-04): `pipeline_green=true`, `clips_short_of_target=135/180` (75%) — expected on this fixture. Use `--require-target-clips` only with a longer source. Raw JSONL is gitignored under `tmp/matrix-pipeline-timing/`.
 
 ## By content profile
 

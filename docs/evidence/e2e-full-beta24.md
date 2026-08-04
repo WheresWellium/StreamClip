@@ -14,6 +14,8 @@
 
 Covers create → live job URL (U78), failure/onboarding paths, API create/list/distribution smoke against the live sidecar.
 
+**Not covered (still deferred):** live browser file-upload → full GPU pipeline → playable clip in UI. That remains intentional deferral (GAP U27 / T74) — mock journey + API smoke are the ship-adjacent e2e bar.
+
 ## Re-run
 
 ```powershell

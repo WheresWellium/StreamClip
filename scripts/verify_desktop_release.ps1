@@ -80,6 +80,10 @@ Write-Host ""
 Write-Host "  3. Record cohort results in docs\DESKTOP_COHORT_EXIT.md:" -ForegroundColor Yellow
 Write-Host "       - T0-1..T0-4, install->first-clip median (<45m), crash-free (>98%)" -ForegroundColor Yellow
 Write-Host ""
+Write-Host "Optional host rechecks (not a substitute for clean-VM):" -ForegroundColor DarkGray
+Write-Host "  .\scripts\run_e2e_full.ps1 -ApiBase http://127.0.0.1:8765" -ForegroundColor DarkGray
+Write-Host "  python scripts\matrix_create_pipeline_timing.py --summarize-only" -ForegroundColor DarkGray
+Write-Host ""
 Write-Host "  Ship gate = automated (above) + the clean-VM sign-off. The VM run and" -ForegroundColor Yellow
 Write-Host "  cohort numbers are human evidence and are intentionally NOT automated." -ForegroundColor Yellow
 Write-Host ""

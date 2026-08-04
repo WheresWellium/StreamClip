@@ -75,9 +75,18 @@ pytest
 ```bash
 # End-to-end smoke (requires running stack + test video in workspace/)
 docker compose exec api python /app/workspace/smoke_test.py
+```
 
-# Playwright (requires web + api running)
-cd web && npx playwright test
+```powershell
+# Full Playwright e2e: mock UI journey (23) + live happy-path (12)
+# Docker API:
+.\scripts\verify_stack.ps1 -RunE2E
+# Desktop sidecar (no Docker):
+.\scripts\run_e2e_full.ps1 -ApiBase http://127.0.0.1:8765
+
+# Create-option pipeline wall-clock matrix (180 cells; resumable)
+python scripts/matrix_create_pipeline_timing.py --api-base http://127.0.0.1:8765
+python scripts/matrix_create_pipeline_timing.py --summarize-only
 ```
 
 ## Commits

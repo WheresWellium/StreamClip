@@ -71,20 +71,17 @@ if (-not $SkipTests) {
 
 if ($RunE2E) {
     Write-Host ""
-    Write-Host "Running Playwright smoke (E2E_RUN=1)..." -ForegroundColor Cyan
-    Push-Location (Join-Path $root "web")
-    $env:E2E_RUN = "1"
-    npx playwright test e2e/happy-path.spec.ts
-    $e2eOk = $LASTEXITCODE -eq 0
-    Remove-Item Env:\E2E_RUN -ErrorAction SilentlyContinue
-    Pop-Location
-    if (-not $e2eOk) { exit $LASTEXITCODE }
+    Write-Host "Running full Playwright e2e (ui-journey + live happy-path)..." -ForegroundColor Cyan
+    # Docker compose API on :8000; runner starts Next if needed and sets E2E_API_BASE.
+    & "$PSScriptRoot\run_e2e_full.ps1" -ApiBase "http://localhost:8000"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 Write-Host ""
 Write-Host "Stack verification passed." -ForegroundColor Green
 if (-not $RunE2E) {
-    Write-Host "Optional: .\scripts\verify_stack.ps1 -RunE2E" -ForegroundColor Cyan
+    Write-Host "Optional full e2e: .\scripts\verify_stack.ps1 -RunE2E" -ForegroundColor Cyan
+    Write-Host "  (or desktop sidecar: .\scripts\run_e2e_full.ps1 -ApiBase http://127.0.0.1:8765)" -ForegroundColor DarkGray
 }
 if (-not $WithCoverage) {
     Write-Host "Pre-invite coverage gate: .\scripts\verify_stack.ps1 -WithCoverage  (or .\scripts\verify_coverage.ps1)" -ForegroundColor Cyan

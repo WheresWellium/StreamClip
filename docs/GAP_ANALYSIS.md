@@ -1,6 +1,22 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-08-03 (revision 15 — create→live nav + beta.23 truth)
+**Last run:** 2026-08-04 (revision 16 — matrix + e2e honesty)
+
+### Revision 16 — matrix timing + full e2e gaps (2026-08-04)
+
+Post-run audit of the 180-cell create-option pipeline timing matrix and Playwright full e2e. Claims of “matrix green” / “full e2e green” were directionally right but underspecified.
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| T70 | Matrix “green” read as N clips per cell; 75% (135/180) had `clip_count < target_clips` on short fixture | **P1** | code+doc | **Fixed** — summarize reports `pipeline_green` vs `target_clips_green` / `clips_short_of_target`; `--require-target-clips`; done requires `clip_count>=1`; evidence + tests |
+| T71 | `verify_stack -RunE2E` / CI only ran happy-path; ui-journey + `E2E_API_BASE` unwired | **P1** | test | **Fixed** — `-RunE2E` → `run_e2e_full.ps1`; CI runs ui-journey then happy-path with `E2E_API_BASE` |
+| T72 | CONTRIBUTING / release gate silent on new runners | P2 | doc | **Fixed** — CONTRIBUTING e2e+matrix commands; `verify_desktop_release` optional recheck lines |
+| T74 / U27 | “Full Playwright upload→clips” still deferred; prior wording conflated with smoke | P2 | doc | **Clarified** — mock journey + live API smoke = ship bar; live browser upload→GPU→playable clip remains deferred |
+| O4d | Clean-VM install→first-clip | P0 | ops | **Still open** |
+| O11 | EV / SmartScreen | P1 | ops | **Still open** |
+| O14b | Mac notarization / universal DMG | P2 | ops | **Still open** |
+
+**Net:** matrix remains **pipeline_green** (180/180 create→done ≥1 clip); not target-clips green on smoke fixture. Full e2e host path is now the documented/CI bar. Residue still operator: O4d / O11 / O14b.
 
 ### Revision 15 — create → live job navigation (2026-08-03)
 
@@ -82,7 +98,7 @@ Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audi
 
 ## Executive summary
 
-**Product = desktop installer** (Latest **v1.0.0-beta.24** Win + Mac arm64). Pipeline, F13 support egress, heuristic virality, create→live nav (U78), and clip-count submit (U79) are in good shape. Remaining blockers are **operator-only**: clean-VM install→first-clip (O4d), EV signing (O11), Mac notarization (O14b), cohort exit numbers. Coverage gate remains green (~96%); Phase 1 **110%** stretch still deferred.
+**Product = desktop installer** (Latest **v1.0.0-beta.24** Win + Mac arm64). Pipeline, F13, U78/U79, matrix **pipeline_green**, and Playwright mock+API smoke are in good shape (rev 16 honesty pass). Remaining blockers are **operator-only**: clean-VM (O4d), EV (O11), Mac notarization (O14b), cohort numbers. Live browser upload→clips e2e still deferred (U27).
 
 ### Open register (2026-07-28)
 
@@ -152,7 +168,7 @@ Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audi
 | U24 | SSE disconnect not surfaced | **Fixed** | P2 | code | `LiveProgress` amber banner for `reconnecting` / `polling` |
 | U25 | `CreateJobRequest` fields not in form | **Fixed** | P2 | code | MASTER §2.15 — asset pack + profanity mode in create form |
 | U26 | Save template omits profanity | **Fixed** | P2 | code | Template save/apply includes `profanity_filter` in `create-job-form.tsx` |
-| U27 | Playwright full journey | Partial | P2 | defer | MASTER §3.3 — blocks 110% gate |
+| U27 | Live browser upload → GPU pipeline → playable clip e2e | Partial | P2 | defer | Mock journey + API smoke green (rev 16 / T74); full upload→clips UI still deferred |
 | U28 | Phase 3 UX (bug report, privacy, checklist) | **Fixed** | — | — | Wired in layout + settings hub |
 | U78 | Create → home (not live overview) | **Fixed** | P1 | code | beta.24 — trailing slash + sync nav + jobs-miss ≠ home |
 | U79 | Clip count drop when More options collapsed | **Fixed** | P1 | code | beta.24 — hidden `target_clips` always submitted |
@@ -182,12 +198,18 @@ Strategic gap audit (desktop tester path + exit gates): **`tmp/gap-analysis-audi
 |-----------|--------|----------------------|
 | Line coverage | `fail_under = 95` (Phase 0) / 100 (Phase 1+) | **96%** — gate GREEN (reconfirm 2026-07-27; was 95.01% 2026-07-07) |
 | Hot-path branches | ≥85% on pipeline_tasks, sse, distribution, job_service | Not measured (`branch = True` commented in `.coveragerc`) |
-| Playwright smoke | `E2E_RUN=1` happy path | Scaffold exists; optional in Phase 0 |
+| Playwright e2e | ui-journey + `E2E_RUN=1` happy-path | **Green** host+CI (rev 16); live upload→clips UI still deferred (U27) |
 | Web build | `npx next build` | **Green** |
 
 See `docs/BETA_GO_LIVE.md`, `docs/BETA_TESTER_PLAN.md` §1.
 
-## Resolved since last run (rev 15)
+## Resolved since last run (rev 16)
+
+- T70 — Matrix green honesty (`pipeline_green` vs target-clips; 135 short on smoke fixture documented)
+- T71 — Full e2e wired into `verify_stack -RunE2E` + CI ui-journey
+- T72 — CONTRIBUTING + release-gate optional recheck pointers
+
+## Resolved since rev 15
 
 - U78 — Create→home: fixed in tree (ship beta.24); known-issues still warn beta.23 testers
 - U79 — Collapsed More options dropped `target_clips` from FormData (always hidden field now)
@@ -208,7 +230,7 @@ Tracked in **MASTER §2c** and §3:
 - Speaker diarization (§2.18)
 - Instagram Reels adapter (§2.22)
 - TikTok direct publish (§2.1 remaining)
-- Full Playwright upload → clips e2e (§3.3)
+- Live browser upload → full GPU pipeline → playable clip e2e (U27 / T74; mock+API smoke shipped)
 - yt-dlp subtitle reuse (§2.19)
 - Hot-path branch coverage + ratchet to 100% line (§3.5–§3.7)
 
@@ -220,6 +242,13 @@ Tracked in **MASTER §2c** and §3:
 
 # Fast stack + tests (no cov)
 .\scripts\verify_stack.ps1
+
+# Full Playwright e2e (ui-journey + happy-path)
+.\scripts\verify_stack.ps1 -RunE2E
+.\scripts\run_e2e_full.ps1 -ApiBase http://127.0.0.1:8765
+
+# Create-option pipeline timing matrix (pipeline_green ≠ target_clips_green)
+python scripts/matrix_create_pipeline_timing.py --summarize-only
 
 # Pre-invite gate
 .\scripts\verify_stack.ps1 -WithCoverage

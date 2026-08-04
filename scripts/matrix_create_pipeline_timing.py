@@ -10,7 +10,9 @@ Usage:
   python scripts/matrix_create_pipeline_timing.py --api-base http://127.0.0.1:8765 --limit 3
   python scripts/matrix_create_pipeline_timing.py --resume tmp/matrix-pipeline-timing/results.jsonl
 
-Green = every scheduled cell status=done with wall_s recorded.
+Green (default) = every cell status=done with clip_count>=1 (create→done).
+That is pipeline_green, not target_clips_green — short fixtures often yield
+1 clip when target_clips is 5/10/20. Use --require-target-clips to enforce N.
 """
 
 from __future__ import annotations
@@ -190,10 +192,18 @@ def run_cell(
                 row["clip_count"] = len(j.get("clips") or [])
                 return row
             if status in {"done", "completed"}:
-                row["status"] = "done"
+                clips = j.get("clips") or []
                 row["wall_s"] = round(time.perf_counter() - t0, 2)
-                row["clip_count"] = len(j.get("clips") or [])
+                row["clip_count"] = len(clips)
                 row["final_stage"] = stage
+                # Pipeline terminal without any clip is not a green cell.
+                if len(clips) < 1:
+                    row["status"] = "done_no_clips"
+                    row["error_message"] = "job done but clip_count=0"
+                    return row
+                row["status"] = "done"
+                target = int(cell["target_clips"])
+                row["clips_short_of_target"] = len(clips) < target
                 return row
 
         row["status"] = "timeout"
@@ -207,7 +217,19 @@ def run_cell(
         return row
 
 
-def summarize(results_path: Path, expected_keys: list[str]) -> dict[str, Any]:
+def summarize(
+    results_path: Path,
+    expected_keys: list[str],
+    *,
+    require_target_clips: bool = False,
+) -> dict[str, Any]:
+    """Summarize matrix results.
+
+    Green (default) = every cell status=done with clip_count >= 1 (create→done
+    pipeline completed). That is NOT the same as clip_count >= target_clips —
+    short fixtures often yield 1 clip for target 5/10/20. Pass
+    require_target_clips=True to fail green when any cell is short of target.
+    """
     by_key: dict[str, dict[str, Any]] = {}
     if results_path.is_file():
         for line in results_path.read_text(encoding="utf-8").splitlines():
@@ -220,25 +242,53 @@ def summarize(results_path: Path, expected_keys: list[str]) -> dict[str, Any]:
             k = row.get("cell_key")
             if k:
                 by_key[str(k)] = row
-    done = [by_key[k] for k in expected_keys if by_key.get(k, {}).get("status") == "done"]
-    failed = [
-        by_key[k]
-        for k in expected_keys
-        if by_key.get(k) and by_key[k].get("status") != "done"
-    ]
+    done = []
+    failed = []
+    for k in expected_keys:
+        row = by_key.get(k)
+        if not row:
+            continue
+        status = row.get("status")
+        clips = int(row.get("clip_count") or 0)
+        if status == "done" and clips >= 1:
+            done.append(row)
+        else:
+            failed.append(row)
     missing = [k for k in expected_keys if k not in by_key]
     walls = [float(r["wall_s"]) for r in done if isinstance(r.get("wall_s"), (int, float))]
+
+    short: list[str] = []
+    for r in done:
+        clips = int(r.get("clip_count") or 0)
+        target = int(r.get("target_clips") or 0)
+        if target > 0 and clips < target:
+            short.append(str(r.get("cell_key")))
+
+    pipeline_green = len(done) == len(expected_keys) and not missing
+    target_green = pipeline_green and not short
+    green = target_green if require_target_clips else pipeline_green
+
     summary = {
         "expected": len(expected_keys),
         "done": len(done),
         "failed": len(failed),
         "missing": len(missing),
-        "green": len(done) == len(expected_keys) and not missing,
+        "green": green,
+        "pipeline_green": pipeline_green,
+        "target_clips_green": target_green,
+        "require_target_clips": require_target_clips,
+        "clips_short_of_target": len(short),
+        "clips_short_keys": short[:20],
         "wall_s_min": min(walls) if walls else None,
         "wall_s_max": max(walls) if walls else None,
         "wall_s_mean": round(sum(walls) / len(walls), 2) if walls else None,
         "failed_keys": [r.get("cell_key") for r in failed[:20]],
         "missing_keys": missing[:20],
+        "green_means": (
+            "clip_count>=target_clips for every cell"
+            if require_target_clips
+            else "status=done and clip_count>=1 (create→done); not N clips"
+        ),
     }
     return summary
 
@@ -257,6 +307,11 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0, help="Max new cells this invocation")
     parser.add_argument("--device-id", default="")
     parser.add_argument("--summarize-only", action="store_true")
+    parser.add_argument(
+        "--require-target-clips",
+        action="store_true",
+        help="Fail green unless every done cell has clip_count >= target_clips",
+    )
     args = parser.parse_args()
 
     api_base = args.api_base.rstrip("/")
@@ -287,7 +342,11 @@ def main() -> int:
     print(f"matrix cells={len(cells)} api={api_base} fixture={args.fixture}", flush=True)
 
     if args.summarize_only:
-        summary = summarize(results_path, expected_keys)
+        summary = summarize(
+            results_path,
+            expected_keys,
+            require_target_clips=args.require_target_clips,
+        )
         summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(summary, indent=2))
         return 0 if summary["green"] else 2
@@ -317,7 +376,11 @@ def main() -> int:
             flush=True,
         )
 
-    summary = summarize(results_path, expected_keys)
+    summary = summarize(
+        results_path,
+        expected_keys,
+        require_target_clips=args.require_target_clips,
+    )
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2), flush=True)
     return 0 if summary["green"] else 2

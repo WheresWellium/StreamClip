@@ -26,30 +26,89 @@ test.describe("Re-render pending clip card", () => {
     await page.route("**/api/assets**", (route) => json(route, []));
   });
 
-  test("processing clip keeps Download and shows Re-rendering overlay", async ({
+  for (const status of ["processing", "pending"] as const) {
+    test(`${status} clip keeps Download and shows Re-rendering overlay`, async ({
+      page,
+    }) => {
+      const job = jobFixture({
+        id: JOB_ID,
+        status: "done",
+        clips: [
+          clipFixture({
+            id: `clip-rerender-${status}`,
+            status,
+            download_url: "https://example.invalid/keep.mp4",
+            thumbnail_url: "https://example.invalid/keep.jpg",
+          }),
+        ],
+      });
+
+      await page.route(JOB_URL, (route) => json(route, job));
+      await page.route(`${JOB_URL}/progress`, (route) =>
+        fulfillSse(route, sseBody([])),
+      );
+
+      await gotoApp(page, `/jobs/${JOB_ID}/clips`);
+
+      await expect(page.getByText("Re-rendering")).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Download$/i })).toBeVisible();
+      await expect(page.getByText("No preview")).toHaveCount(0);
+    });
+  }
+
+  test("after re-render completes, overlay clears and new download URL is used", async ({
     page,
   }) => {
-    const job = jobFixture({
-      id: JOB_ID,
-      status: "done",
-      clips: [
-        clipFixture({
-          id: "clip-rerender",
-          status: "processing",
-          download_url: "https://example.invalid/keep.mp4",
-          thumbnail_url: "https://example.invalid/keep.jpg",
+    let phase: "inflight" | "done" = "inflight";
+    await page.route(JOB_URL, (route) => {
+      if (phase === "inflight") {
+        return json(
+          route,
+          jobFixture({
+            id: JOB_ID,
+            status: "done",
+            clips: [
+              clipFixture({
+                id: "clip-swap",
+                status: "processing",
+                download_url: "https://example.invalid/keep.mp4",
+                thumbnail_url: "https://example.invalid/keep.jpg",
+              }),
+            ],
+          }),
+        );
+      }
+      return json(
+        route,
+        jobFixture({
+          id: JOB_ID,
+          status: "done",
+          clips: [
+            clipFixture({
+              id: "clip-swap",
+              status: "done",
+              download_url: "https://example.invalid/new.mp4",
+              thumbnail_url: "https://example.invalid/new.jpg",
+            }),
+          ],
         }),
-      ],
+      );
     });
-
-    await page.route(JOB_URL, (route) => json(route, job));
     await page.route(`${JOB_URL}/progress`, (route) =>
       fulfillSse(route, sseBody([])),
     );
 
     await gotoApp(page, `/jobs/${JOB_ID}/clips`);
-
     await expect(page.getByText("Re-rendering")).toBeVisible();
+
+    phase = "done";
+    await page.reload();
+    await page
+      .getByTestId("app-loading-screen")
+      .waitFor({ state: "hidden", timeout: 30_000 })
+      .catch(() => undefined);
+
+    await expect(page.getByText("Re-rendering")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Download$/i })).toBeVisible();
     await expect(page.getByText("No preview")).toHaveCount(0);
   });

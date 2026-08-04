@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { formatGlobalErrorDetail } from "@/lib/errors/global-error-detail";
+
 export default function GlobalError({
   error,
   reset,
@@ -17,9 +19,7 @@ export default function GlobalError({
     });
   }, [error]);
 
-  const detail = [error.message, error.digest ? `ref ${error.digest}` : null]
-    .filter(Boolean)
-    .join(" · ");
+  const detail = formatGlobalErrorDetail(error);
 
   return (
     <html lang="en">

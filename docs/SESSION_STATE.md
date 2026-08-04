@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (screenrec fix modules finalized)
+**Last updated:** 2026-08-04 (beta.26 cut — screenrec closeout)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: build installer (beta.26) | — | M1–M7 screenrec fixes ready; UI rebuild then cut |
+| `master` | beta.26 published (Win); Mac arm64 pending rebuild | — | missing tests + local e2e gates closed |
 
 ## Pipeline capability (desktop)
 
@@ -25,7 +25,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 
 ## Shipped
 
-- **1.0.0-beta.25** Latest — Win Setup + Mac arm64 DMG (support harden)
+- **1.0.0-beta.26** Latest — Win Setup (screenrec M1–M7 closeout); Mac arm64 still beta.25 binary until Mac rebuild
 - U78 create→live overview + U79 clip-count submit
 - Matrix harness: `scripts/matrix_create_pipeline_timing.py` (+ SDK launcher)
 

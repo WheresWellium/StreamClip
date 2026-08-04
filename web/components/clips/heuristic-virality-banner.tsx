@@ -2,23 +2,16 @@
 
 import Link from "next/link";
 
+import { shouldShowHeuristicViralityBanner } from "@/components/clips/heuristic-virality";
 import type { ClipOut } from "@/lib/api/types";
 import { helpHref } from "@/lib/docs";
 import { CLIP_SCORE_LEGEND } from "@/lib/help/legends";
-
-function isHeuristic(clip: ClipOut): boolean {
-  if (clip.virality_source === "heuristic") return true;
-  const reason = (clip.llm_reason || "").trim();
-  return reason.startsWith("Heuristic");
-}
 
 /**
  * Shown when most clips on a job used local heuristic scoring (Ollama down).
  */
 export function HeuristicViralityBanner({ clips }: { clips: ClipOut[] }) {
-  if (clips.length === 0) return null;
-  const heuristicCount = clips.filter(isHeuristic).length;
-  if (heuristicCount < Math.ceil(clips.length / 2)) return null;
+  if (!shouldShowHeuristicViralityBanner(clips)) return null;
 
   return (
     <div

@@ -2,7 +2,7 @@
 
 > **Creators:** use the public page — [Download & how to use](index.md) (henna home). This file is **not published**.
 
-**Updated:** 2026-08-04 · Current build: **v1.0.0-beta.25** (Windows + Mac Apple Silicon)
+**Updated:** 2026-08-04 · Current build: **v1.0.0-beta.26** (Windows); Mac Apple Silicon still **v1.0.0-beta.25** until Mac rebuild
 
 ---
 

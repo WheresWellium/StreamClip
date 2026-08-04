@@ -102,6 +102,58 @@ def test_process_clip_successful_transcribe_clip(tmp_path, monkeypatch, mock_db_
                                                 out = pt.process_clip.run("job1", "clip1")
                                                 assert out["status"] == "done"
 
+
+def test_process_clip_refine_fail_passes_none_clip_transcript(tmp_path, monkeypatch, mock_db_cm):
+    """Refine Whisper failure must not invent a clip transcript for burn-in."""
+    monkeypatch.setattr(pt.cfg, "workspace_dir", tmp_path)
+    monkeypatch.setattr(pt.cfg.caption, "refine_clip_transcript", True)
+    job = SimpleNamespace(
+        id="job1", source_url="u", source_storage_key="k",
+        config_snapshot={"caption_style": "gaming_impact", "reframe_preset": "fps_game"},
+        source_duration_secs=60.0, owner_id="u1",
+    )
+    clip = _make_clip(render_overrides={})
+    transcript = Transcript(segments=[], language="en", duration=10.0, source_path=Path("x"))
+    final = tmp_path / "jobs" / "job1" / "clip_00_final.mp4"
+    final.parent.mkdir(parents=True, exist_ok=True)
+    for name in ("clip_00_raw.mp4", "clip_00_vertical.mp4", "clip_00_captioned.mp4"):
+        (final.parent / name).write_bytes(b"v")
+
+    with patch.object(pt, "ClipRepository") as CR, patch.object(pt, "JobRepository") as JR, \
+         patch.object(pt, "AssetRepository") as AR:
+        clips = MagicMock()
+        clips.get = AsyncMock(return_value=clip)
+        clips.mark_status = AsyncMock()
+        clips.update_storage_keys = AsyncMock()
+        clips.add_overlay = AsyncMock()
+        CR.return_value = clips
+        JR.return_value = MagicMock(get=AsyncMock(return_value=job))
+        AR.return_value = MagicMock(list_for_user=AsyncMock(return_value=[]))
+        with patch.object(pt, "_ensure_job_source", return_value=tmp_path / "src.mp4"):
+            with patch.object(pt, "make_storage", return_value=MagicMock()):
+                with patch.object(pt, "extract_segment"):
+                    with patch.object(pt, "reframe"):
+                        with patch.object(pt, "load_job_transcript", return_value=transcript):
+                            with patch.object(
+                                pt, "transcribe_clip", side_effect=RuntimeError("whisper down")
+                            ):
+                                with patch.object(pt, "generate_captions") as gen_caps:
+                                    with patch.object(
+                                        pt, "apply_overlays", return_value=(final, [])
+                                    ):
+                                        with patch.object(
+                                            pt, "validate_output_duration", return_value=True
+                                        ):
+                                            with patch.object(pt, "subprocess") as sp:
+                                                sp.run.return_value = MagicMock(returncode=0)
+                                                final.write_bytes(b"x" * 50)
+                                                out = pt.process_clip.run(
+                                                    "job1", "clip1", force=True
+                                                )
+    assert out["status"] == "done"
+    assert gen_caps.call_count == 1
+    assert gen_caps.call_args.kwargs.get("clip_transcript") is None
+
 def test_cleanup_storage_delete_raises(tmp_path, monkeypatch, mock_db_cm):
     from backend.db.models import JobStatus
     monkeypatch.setattr(pt.cfg, "workspace_dir", tmp_path)

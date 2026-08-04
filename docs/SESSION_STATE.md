@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (beta.25 cut)
+**Last updated:** 2026-08-04 (beta.25 green-lit)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: O4d clean-VM operator | — | T80–T83 closed; EV/notarization still ops |
+| `master` | next: O4d clean-VM operator | — | CI green (test/Docs/images); EV/notarization still ops |
 
 ## Pipeline capability (desktop)
 

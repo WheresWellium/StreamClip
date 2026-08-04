@@ -30,7 +30,7 @@ Then paste the file's relative path into the matching **Evidence** cell of
 
 | File | What |
 |------|------|
-| [`matrix-pipeline-timing-beta24.md`](matrix-pipeline-timing-beta24.md) | 180-cell create-option full pipeline wall-clock (green) |
+| [`matrix-pipeline-timing-beta24.md`](matrix-pipeline-timing-beta24.md) | 180-cell create→done wall-clock (**pipeline_green**; not target-clips) |
 | [`e2e-full-beta24.md`](e2e-full-beta24.md) | Playwright ui-journey (23) + live happy-path (12) green |
 | [`clean-desktop-vm-beta24.md`](clean-desktop-vm-beta24.md) | Pre-ship automated PASS + O4d OPERATOR FILL |
 | [`clean-desktop-vm-beta20.md`](clean-desktop-vm-beta20.md) | Prior beta.20 clean-VM stub |

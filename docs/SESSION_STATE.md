@@ -1,7 +1,7 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (support→Project #4 hardened)
+**Last updated:** 2026-08-04 (no-easy-misses: T87–T90)
 
 ## Active chats
 
@@ -21,7 +21,7 @@ create → ingest → transcribe → highlights → virality → fan-out → pro
 | Virality | LLM when Ollama up; else **heuristic** 0–100 (`virality_source`) |
 | Create matrix | **pipeline_green 180/180** (135 short of target_clips on smoke fixture) |
 | Playwright e2e | **35/35 green** + CI/verify_stack wired; live upload→clips UI deferred |
-| Support (F13) | Help forms → henna → Issues + Project #4 (defaults hardened T85/T86) |
+| Support (F13) | Help → henna → Project #4; health `ops_webhook_configured`; henna `project_configured` |
 
 ## Shipped
 

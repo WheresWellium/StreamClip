@@ -109,8 +109,8 @@ function supportDeliveryToast(
 ) {
   if (opsNotification === "queued" || emailNotification === "queued") {
     toast(
-      "Feedback sent",
-      "Filed to our GitHub tracker (Project qClip) — thanks.",
+      "Feedback queued",
+      "Handed to our GitHub tracker (Project qClip). Keep the app online a moment.",
     );
     return;
   }

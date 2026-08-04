@@ -106,6 +106,10 @@ def ensure_support_collector_url() -> None:
     disabled = os.environ.get("STREAMCLIP_DISABLE_SUPPORT_COLLECTOR", "").lower()
     if disabled in ("1", "true", "yes"):
         return
+    # Alias used by Electron docs — map before setdefault so sidecar-only boots match.
+    alias = os.environ.get("STREAMCLIP_SUPPORT_COLLECTOR_URL", "").strip()
+    if alias and not os.environ.get("OPS_WEBHOOK_URL", "").strip():
+        os.environ["OPS_WEBHOOK_URL"] = alias
     desktopish = (
         getattr(sys, "frozen", False)
         or bool(os.environ.get("STREAMCLIP_DESKTOP_DATA_DIR"))

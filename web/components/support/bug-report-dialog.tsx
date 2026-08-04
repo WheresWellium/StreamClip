@@ -118,8 +118,8 @@ export function BugReportDialog({
       result.opsNotification === "queued"
     ) {
       toast(
-        "Bug report sent",
-        "Filed to our GitHub tracker (Project qClip) — thanks.",
+        "Bug report queued",
+        "Handed to our GitHub tracker (Project qClip). Keep the app online a moment.",
       );
     } else {
       toast(

@@ -1433,6 +1433,12 @@ export interface components {
             storage: boolean;
             /** Ollama */
             ollama?: boolean | null;
+            /**
+             * Ops Webhook Configured
+             * @default false
+             * @description True when OPS_WEBHOOK_URL is set (Help → henna → GitHub).
+             */
+            ops_webhook_configured?: boolean;
         };
         /** JobListItem */
         JobListItem: {

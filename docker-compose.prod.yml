@@ -47,7 +47,7 @@ x-streamclip-smtp-env: &streamclip-smtp-env
   SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-  OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+  OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-https://streamclip-henna.vercel.app/api/support-ingest}
   STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
 
 x-streamclip-worker-volumes: &streamclip-worker-volumes

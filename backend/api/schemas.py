@@ -453,6 +453,9 @@ class HealthResponse(BaseModel):
     database: bool
     storage: bool
     ollama: bool | None = None
+    # F13: true when OPS_WEBHOOK_URL is set (Help → henna → GitHub). Not a
+    # readiness gate — exposed so "green health" never hides a black hole.
+    ops_webhook_configured: bool = False
 
 
 class StackHealthResponse(BaseModel):

@@ -1,6 +1,17 @@
 # StreamClip Gap Analysis
 
-**Last run:** 2026-08-04 (revision 17 — support → GitHub Project harden)
+**Last run:** 2026-08-04 (revision 18 — no more easy misses)
+
+### Revision 18 — no more easy misses (2026-08-04)
+
+Close soft failures that still looked unwired after T85/T86:
+
+| ID | Gap | Sev | Fix | Status |
+|----|-----|-----|-----|--------|
+| T87 | Toast said “sent” on mere queue; health hid ops webhook | **P1** | code | **Fixed** — queued copy; `/api/health.ops_webhook_configured` |
+| T88 | Docker compose left `OPS_WEBHOOK_URL` empty; sidecar ignored collector alias | **P1** | code | **Fixed** — compose/prod default henna; alias → `OPS_WEBHOOK_URL` |
+| T89 | Docs still said F13 = email; matrix index said bare “green” | P2 | doc | **Fixed** — GitHub Project #4 + `pipeline_green` wording |
+| T90 | Henna `api/` + `static/ui` lagged HEAD toast/project health fields | **P1** | ops | **Fixed** — redeploy henna + rebuild desktop UI |
 
 ### Revision 17 — bug/feedback → GitHub Project #4 (2026-08-04)
 

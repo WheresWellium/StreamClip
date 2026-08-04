@@ -40,3 +40,13 @@ def test_ensure_support_collector_can_disable(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("STREAMCLIP_DISABLE_SUPPORT_COLLECTOR", "1")
     ensure_support_collector_url()
     assert "OPS_WEBHOOK_URL" not in os.environ
+
+
+def test_ensure_support_collector_honors_alias(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("STREAMCLIP_QUEUE__BACKEND", "inprocess")
+    monkeypatch.setenv(
+        "STREAMCLIP_SUPPORT_COLLECTOR_URL",
+        "https://example.test/collector",
+    )
+    ensure_support_collector_url()
+    assert os.environ["OPS_WEBHOOK_URL"] == "https://example.test/collector"

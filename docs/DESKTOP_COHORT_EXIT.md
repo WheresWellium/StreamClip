@@ -6,7 +6,7 @@
 
 **Do not** invent on-call names, tester outcomes, or crash-free numbers. Replace every `OPERATOR FILL` / `<…>` token before treating exit as closed.
 
-> ✅ **F13 closed 2026-08-03** (MASTER §4.22): Help → Report a bug / beta feedback reach the operator via henna support-ingest email. GitHub beta-bug template remains a backup. See [DESKTOP_FAILURE_TAXONOMY.md](DESKTOP_FAILURE_TAXONOMY.md) F13.
+> ✅ **F13 closed 2026-08-03** (MASTER §4.22): Help → Report a bug / beta feedback → henna → **GitHub Issues + [Project #4](https://github.com/users/WheresWellium/projects/4)** (SMTP optional). GitHub beta-bug template remains a backup. See [DESKTOP_FAILURE_TAXONOMY.md](DESKTOP_FAILURE_TAXONOMY.md) F13.
 
 ---
 

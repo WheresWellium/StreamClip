@@ -178,7 +178,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-https://streamclip-henna.vercel.app/api/support-ingest}
       STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
       STREAMCLIP_COMMERCE__LEMON_SQUEEZY_WEBHOOK_SECRET: ${LEMON_SQUEEZY_WEBHOOK_SECRET:-}
       STREAMCLIP_COMMERCE__LEMON_SQUEEZY_API_KEY: ${LEMON_SQUEEZY_API_KEY:-}
@@ -240,7 +240,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-streamclip@localhost}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       BUG_REPORT_TO: ${BUG_REPORT_TO:-}
-      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-https://streamclip-henna.vercel.app/api/support-ingest}
       STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
     depends_on:
       api:
@@ -324,7 +324,7 @@ services:
       STREAMCLIP_STORAGE__BUCKET: streamclip
       STREAMCLIP_STORAGE__ACCESS_KEY: streamclip
       STREAMCLIP_STORAGE__SECRET_KEY: streamclip_secret
-      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-}
+      OPS_WEBHOOK_URL: ${OPS_WEBHOOK_URL:-https://streamclip-henna.vercel.app/api/support-ingest}
       STREAMCLIP_OBSERVABILITY__SENTRY_DSN: ${STREAMCLIP_OBSERVABILITY__SENTRY_DSN:-}
     depends_on:
       redis:

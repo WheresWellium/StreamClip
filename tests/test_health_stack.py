@@ -128,3 +128,13 @@ async def test_health_all_ok_returns_ok_status(client, monkeypatch):
     assert body["redis"] is True
     assert body["storage"] is True
     assert body["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_health_exposes_ops_webhook_configured(client, monkeypatch):
+    monkeypatch.delenv("OPS_WEBHOOK_URL", raising=False)
+    resp = await client.get("/api/health")
+    assert resp.json()["ops_webhook_configured"] is False
+    monkeypatch.setenv("OPS_WEBHOOK_URL", "https://streamclip-henna.vercel.app/api/support-ingest")
+    resp2 = await client.get("/api/health")
+    assert resp2.json()["ops_webhook_configured"] is True

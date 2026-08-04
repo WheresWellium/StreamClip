@@ -22,6 +22,7 @@ from core.config import get_settings
 from core.model_prefetch import has_failures as model_prefetch_has_failures
 from core.model_prefetch import retry_prefetch as model_prefetch_retry
 from core.model_prefetch import snapshot as model_prefetch_snapshot
+from core.notify.ops_webhook import ops_webhook_url
 from core.storage import make_storage
 
 log = structlog.get_logger(__name__)
@@ -98,6 +99,7 @@ async def health(
         database=db_ok,
         storage=storage_ok,
         ollama=ollama_ok,
+        ops_webhook_configured=bool(ops_webhook_url()),
     )
 
 

@@ -61,4 +61,6 @@ def test_caption_window_dense_enough():
     words = [_word("a", 0.0, 0.2), _word("b", 0.2, 0.4)]
     assert caption_window_dense_enough(words, 1.0)
     assert not caption_window_dense_enough(words, 30.0)
-    assert not caption_window_dense_enough([_word("solo", 0.0, 0.2)], 1.0)
+    # One word on a short clip is OK; one word on a long window is sparse.
+    assert caption_window_dense_enough([_word("solo", 0.0, 0.2)], 1.0)
+    assert not caption_window_dense_enough([_word("solo", 0.0, 0.2)], 30.0)

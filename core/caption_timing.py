@@ -42,10 +42,14 @@ def caption_window_dense_enough(
     words: list[Word],
     clip_duration_secs: float,
     *,
-    min_words: int = 2,
+    min_words: int = 1,
     min_words_per_sec: float = 0.12,
 ) -> bool:
-    """False when the window is empty or too sparse to burn trustworthy captions."""
+    """False when the window is empty or too sparse to burn trustworthy captions.
+
+    Short reaction clips may have a single word; long windows with one token
+    are treated as mismatched / sparse and skip burn-in.
+    """
     if len(words) < min_words:
         return False
     dur = max(0.01, float(clip_duration_secs))

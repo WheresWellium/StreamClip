@@ -32,7 +32,8 @@ Then paste the file's relative path into the matching **Evidence** cell of
 |------|------|
 | [`matrix-pipeline-timing-beta24.md`](matrix-pipeline-timing-beta24.md) | 180-cell create→done wall-clock (**pipeline_green**; not target-clips) |
 | [`e2e-full-beta24.md`](e2e-full-beta24.md) | Playwright ui-journey (23) + live happy-path (12) green |
-| [`clean-desktop-vm-beta24.md`](clean-desktop-vm-beta24.md) | Pre-ship automated PASS + O4d OPERATOR FILL |
+| [`clean-desktop-vm-beta25.md`](clean-desktop-vm-beta25.md) | beta.25 O4d OPERATOR FILL |
+| [`clean-desktop-vm-beta24.md`](clean-desktop-vm-beta24.md) | Prior beta.24 clean-VM stub |
 | [`clean-desktop-vm-beta20.md`](clean-desktop-vm-beta20.md) | Prior beta.20 clean-VM stub |
 
 Prep installer pack: `.\scripts\prepare_clean_desktop_vm.ps1`  

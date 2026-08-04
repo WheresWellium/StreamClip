@@ -38,6 +38,20 @@ def repair_word_timing(word: Word, *, min_duration: float = 0.12) -> Word:
     return Word(text=text, start=start, end=end, probability=word.probability)
 
 
+def caption_window_dense_enough(
+    words: list[Word],
+    clip_duration_secs: float,
+    *,
+    min_words: int = 2,
+    min_words_per_sec: float = 0.12,
+) -> bool:
+    """False when the window is empty or too sparse to burn trustworthy captions."""
+    if len(words) < min_words:
+        return False
+    dur = max(0.01, float(clip_duration_secs))
+    return (len(words) / dur) >= min_words_per_sec
+
+
 def collect_words_for_window(
     transcript: Transcript,
     window_start: float,

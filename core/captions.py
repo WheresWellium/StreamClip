@@ -25,6 +25,7 @@ import structlog
 
 from core.caption_timing import (
     build_karaoke_text,
+    caption_window_dense_enough,
     collect_words_for_window,
     finalize_display_groups,
     group_words_for_display,
@@ -605,8 +606,23 @@ def generate_captions(
             all_words, ccfg.profanity_mode, wordlist_path=ccfg.profanity_wordlist,
         )
 
+    clip_duration = (
+        float(clip_transcript.duration)
+        if clip_transcript is not None
+        else max(0.01, float(clip_end) - float(clip_start))
+    )
     if not all_words:
-        log.warning("no_words_in_clip_window", clip=str(clip_path))
+        log.warning("caption_window_empty", clip=str(clip_path), duration=clip_duration)
+        shutil.copy2(clip_path, output_path)
+        return output_path
+
+    if not caption_window_dense_enough(all_words, clip_duration):
+        log.warning(
+            "caption_window_sparse",
+            clip=str(clip_path),
+            words=len(all_words),
+            duration=clip_duration,
+        )
         shutil.copy2(clip_path, output_path)
         return output_path
 

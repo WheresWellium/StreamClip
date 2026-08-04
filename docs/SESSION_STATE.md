@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (beta.25 green-lit)
+**Last updated:** 2026-08-04 (screenrec fix modules finalized)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: O4d clean-VM operator | — | CI green (test/Docs/images); EV/notarization still ops |
+| `master` | next: build installer (beta.26) | — | M1–M7 screenrec fixes ready; UI rebuild then cut |
 
 ## Pipeline capability (desktop)
 

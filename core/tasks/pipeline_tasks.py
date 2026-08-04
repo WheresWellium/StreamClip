@@ -814,6 +814,14 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
             _apply_clip_overrides(local_cfg, job, clip)
 
             await clips_repo.mark_status(clip_id, ClipStatus.PROCESSING)
+            # Commit before heavy ffmpeg so other readers (UI poll/SSE) see
+            # PROCESSING instead of a long silent transaction on pending/done.
+            await db.commit()
+            # expire_on_commit defaults True — reload before further attribute use.
+            clip = await clips_repo.get(clip_id, with_overlays=False)
+            job = await jobs_repo.get(job_id)
+            if clip is None or job is None:
+                raise StreamClipError(f"Clip/Job not found: {clip_id}/{job_id}")
 
             slug = f"clip_{clip.rank:02d}"
             self.report(
@@ -872,7 +880,11 @@ def process_clip(self: ProgressTask, job_id: str, clip_id: str, force: bool = Fa
                 try:
                     clip_transcript = transcribe_clip(raw_path, local_cfg)
                 except Exception as exc:
-                    log.warning("clip_transcribe_fallback", error=str(exc))
+                    log.warning(
+                        "caption_refine_fallback",
+                        error=str(exc),
+                        clip_id=clip_id,
+                    )
             generate_captions(
                 vertical_path, captioned_path, transcript,
                 clip.start_secs, clip.end_secs, local_cfg, emotion=clip.emotion,

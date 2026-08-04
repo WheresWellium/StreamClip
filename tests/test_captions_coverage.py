@@ -23,6 +23,27 @@ def test_generate_captions_no_words(tmp_path):
     assert result == out
     assert out.read_bytes() == clip.read_bytes()
 
+
+def test_generate_captions_sparse_window_copies_not_burns(tmp_path):
+    """Too few words for a long window must skip ASS burn-in (no wrong captions)."""
+    cfg = get_settings(reload=True)
+    clip = tmp_path / "c.mp4"
+    out = tmp_path / "o.mp4"
+    clip.write_bytes(b"sparse-source")
+    w = Word(text="hi", start=0.0, end=0.2, probability=0.99)
+    seg = TranscriptSegment(id=0, text="hi", start=0.0, end=30.0, words=(w,))
+    tr = Transcript(segments=[seg], language="en", duration=30.0, source_path=clip)
+    probe = MagicMock(
+        stdout='{"streams":[{"codec_type":"video","width":1080,"height":1920}]}',
+        returncode=0,
+    )
+    with patch.object(cap.subprocess, "run", return_value=probe) as run:
+        result = cap.generate_captions(clip, out, tr, 0.0, 30.0, cfg)
+    assert result == out
+    assert out.read_bytes() == b"sparse-source"
+    # Only ffprobe — no ffmpeg burn-in pass.
+    assert run.call_count == 1
+
 def test_generate_captions_burn(tmp_path):
     cfg = get_settings(reload=True)
     clip = tmp_path / "c.mp4"

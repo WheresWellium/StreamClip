@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from core.caption_timing import (
     build_karaoke_text,
+    caption_window_dense_enough,
     collect_words_for_window,
     repair_word_timing,
     snap_time_to_words,
@@ -54,3 +55,10 @@ def test_snap_time_to_words():
     start, end = snap_time_to_words(10.1, 10.8, t)
     assert start == 10.0
     assert end == 11.0
+
+
+def test_caption_window_dense_enough():
+    words = [_word("a", 0.0, 0.2), _word("b", 0.2, 0.4)]
+    assert caption_window_dense_enough(words, 1.0)
+    assert not caption_window_dense_enough(words, 30.0)
+    assert not caption_window_dense_enough([_word("solo", 0.0, 0.2)], 1.0)

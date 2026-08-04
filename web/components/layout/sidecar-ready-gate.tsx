@@ -41,9 +41,10 @@ export function SidecarReadyGate({ children }: { children: React.ReactNode }) {
         if (!cancelled) markReady(false);
         return;
       } catch {
+        // Health timeouts/network errors must never throw into the tree —
+        // soft-open after max attempts so global-error is not the boot UX.
         if (cancelled) return;
         if (tries >= MAX_ATTEMPTS) {
-          // Soft-open the app rather than trapping on the loader forever.
           markReady(true);
           return;
         }

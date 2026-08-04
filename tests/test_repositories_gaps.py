@@ -508,10 +508,15 @@ async def test_clip_repo_clear_overlays_and_reset(db):
     from backend.db.models import ClipOverlay as _CO
     res = await db.execute(_select(_CO).where(_CO.clip_id == clip.id))
     assert list(res.scalars().all()) == []
-    # reset_for_regenerate resets status
+    # reset_for_regenerate marks processing but keeps last-good media keys
+    clip.final_storage_key = "clips/keep.mp4"
+    clip.thumbnail_storage_key = "clips/keep.jpg"
+    await db.flush()
     await clips.reset_for_regenerate(clip.id)
     reset = await clips.get(clip.id)
-    assert reset.status == ClipStatus.PENDING
+    assert reset.status == ClipStatus.PROCESSING
+    assert reset.final_storage_key == "clips/keep.mp4"
+    assert reset.thumbnail_storage_key == "clips/keep.jpg"
 
 
 @pytest.mark.asyncio

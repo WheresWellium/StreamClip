@@ -22,7 +22,7 @@ import structlog
 
 from core.config import Settings, HighlightConfig
 from core.caption_timing import snap_time_to_words
-from core.clip_metadata import derive_clip_metadata
+from core.clip_metadata import derive_clip_metadata, words_text_in_range
 from core.chat_spikes import ChatSpikeAnalyser
 from core.content_profiles import ProfileWeights, get_profile
 from core.ffmpeg_bins import ffmpeg_bin
@@ -429,7 +429,9 @@ def _guaranteed_clips(
         if end - start < 1.0:
             break
 
-        text = transcript.text_in_range(start, end)
+        text = words_text_in_range(transcript, start, end) or transcript.text_in_range(
+            start, end
+        )
         title, hook = derive_clip_metadata(text)
         scores = SignalScores()
         scores.set_ensemble(0.0)
@@ -470,7 +472,9 @@ def _score_window(
     """Score an arbitrary time window (peak-based or hybrid discovery)."""
     from core.models import TranscriptSegment
 
-    text = transcript.text_in_range(start, end)
+    text = words_text_in_range(transcript, start, end) or transcript.text_in_range(
+        start, end
+    )
     pseudo = TranscriptSegment(
         id=segment_id,
         start=start,
@@ -649,7 +653,9 @@ def find_highlights(
             source_duration=transcript.duration,
         )
         # Rebuild with snapped times; title/hook come from the actual clip transcript
-        clip_text = transcript.text_in_range(s, e)
+        clip_text = words_text_in_range(transcript, s, e) or transcript.text_in_range(
+            s, e
+        )
         title, hook = derive_clip_metadata(clip_text)
         snapped.append(
             ClipCandidate(

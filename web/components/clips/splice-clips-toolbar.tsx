@@ -6,6 +6,10 @@ import * as React from "react";
 import { spliceClipsAction } from "@/lib/api/actions/jobs";
 import { Button } from "@/components/ui/button";
 import type { ClipOut } from "@/lib/api/types";
+import {
+  pruneSelectedIds,
+  setSelectedFromChecked,
+} from "@/components/clips/splice-selection";
 
 type Props = {
   jobId: string;
@@ -14,33 +18,40 @@ type Props = {
 };
 
 export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
-  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [selected, setSelected] = React.useState<string[]>([]);
   const [transition, setTransition] = React.useState<"cut" | "crossfade">("cut");
   const [message, setMessage] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
-  const eligible = clips.filter(
-    (c) => c.status === "done" && !("kind" in c && c.kind === "splice"),
+  const eligible = React.useMemo(
+    () =>
+      clips.filter(
+        (c) => c.status === "done" && !("kind" in c && c.kind === "splice"),
+      ),
+    [clips],
+  );
+  const eligibleIds = React.useMemo(
+    () => new Set(eligible.map((c) => c.id)),
+    [eligible],
   );
 
-  if (!jobDone || eligible.length < 2) return null;
+  React.useEffect(() => {
+    setSelected((prev) => pruneSelectedIds(prev, eligibleIds));
+  }, [eligibleIds]);
 
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
+  const canMergeUi = jobDone && eligible.length >= 2;
 
   async function handleMerge() {
-    if (selected.size < 2) return;
+    if (selected.length < 2) return;
     setPending(true);
-    const result = await spliceClipsAction(jobId, Array.from(selected), transition);
+    const result = await spliceClipsAction(jobId, selected, transition);
     setPending(false);
     setMessage(result.ok ? result.message ?? "Queued" : result.message ?? "Failed");
-    if (result.ok) setSelected(new Set());
+    if (result.ok) setSelected([]);
+  }
+
+  if (!canMergeUi) {
+    return null;
   }
 
   return (
@@ -63,10 +74,10 @@ export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
           <Button
             type="button"
             size="sm"
-            disabled={selected.size < 2 || pending}
+            disabled={selected.length < 2 || pending}
             onClick={handleMerge}
           >
-            Merge selected ({selected.size})
+            Merge selected ({selected.length})
           </Button>
         </div>
       </div>
@@ -78,8 +89,12 @@ export function SpliceClipsToolbar({ jobId, clips, jobDone }: Props) {
           >
             <input
               type="checkbox"
-              checked={selected.has(c.id)}
-              onChange={() => toggle(c.id)}
+              checked={selected.includes(c.id)}
+              onChange={(e) =>
+                setSelected((prev) =>
+                  setSelectedFromChecked(prev, c.id, e.target.checked),
+                )
+              }
             />
             #{c.rank + 1}
           </label>

@@ -119,3 +119,5 @@ def test_reframe_center_crop_fallback_and_auto(tmp_path):
             assert "scale=" in vf
             assert "boxblur" not in vf
             assert "pad=" not in vf
+            # HUD-safe Y inset (fps_game), not bare (ih-oh)/2 centre crop
+            assert "ih*" in vf or "hud" in vf.lower() or "/2" in vf

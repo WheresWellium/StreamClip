@@ -362,16 +362,17 @@ class ClipRepository:
         await self.db.flush()
 
     async def reset_for_regenerate(self, clip_id: str) -> None:
-        """Mark clip pending and clear final artifact pointers for a forced re-render."""
+        """Mark clip processing for a forced re-render without wiping last-good media.
+
+        Keep ``final_storage_key`` / ``thumbnail_storage_key`` until
+        ``process_clip`` swaps in new artifacts so the UI can still show
+        Download / preview (with a re-rendering overlay) under a DONE job.
+        """
         clip = await self.get(clip_id, with_overlays=False)
         if clip is None:
             return
-        clip.status = ClipStatus.PENDING
+        clip.status = ClipStatus.PROCESSING
         clip.error_message = None
-        clip.final_storage_key = None
-        clip.thumbnail_storage_key = None
-        clip.render_time_secs = 0.0
-        clip.file_size_bytes = 0
         await self.clear_overlays(clip_id)
         await self.db.flush()
 

@@ -38,6 +38,7 @@ Still on beta.5–beta.24? Upgrade to Latest (support→Project #4 defaults + ho
 | macOS Intel | Latest ships Apple Silicon (`qClip-mac-arm64.dmg`); Intel needs a local universal rebuild |
 | SmartScreen | Unsigned until EV cert — **More info → Run anyway** |
 | First-run models | ~1.5 GB download once |
+| Virality HEURISTIC badge | Expected when Ollama is not running — install/start Ollama for LLM ranks; clips still score locally |
 | CPU desktop speed | Slow vs GPU — prefer short sources for feedback |
 | GPU / Docker acceleration | Windows `.exe` uses GPU when the PC has one; Mac Docker is CPU-only. Stuck or unexpected speed → [Troubleshooting](tutorials/TUTORIAL_TROUBLESHOOTING.md) |
 | Scheduled publish | Fires only while the desktop app is open |

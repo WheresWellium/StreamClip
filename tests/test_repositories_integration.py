@@ -155,8 +155,8 @@ async def test_clip_repository(db):
     await db.flush()
     await clips.reset_for_regenerate(clip.id)
     await db.refresh(clip)
-    assert clip.status == ClipStatus.PENDING
-    assert clip.final_storage_key is None
+    assert clip.status == ClipStatus.PROCESSING
+    assert clip.final_storage_key == "k"
 
 
 @pytest.mark.asyncio

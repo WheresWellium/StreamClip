@@ -138,11 +138,13 @@ export function ClipCard({
     }
   }
 
-  const isProcessing = clip.status === "processing";
+  const isProcessing =
+    clip.status === "processing" || clip.status === "pending";
   const canEdit =
     jobDone &&
     (clip.status === "done" ||
       clip.status === "processing" ||
+      clip.status === "pending" ||
       clip.status === "error");
   const viralitySource = resolveViralitySource(clip);
   const previewAspectCss = aspectRatioCss(jobAspectRatio || "9:16");

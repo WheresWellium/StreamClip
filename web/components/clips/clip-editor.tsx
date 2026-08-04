@@ -310,7 +310,7 @@ export function ClipEditor({
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [rerendering, setRerendering] = React.useState(
-    () => clip.status === "processing",
+    () => clip.status === "processing" || clip.status === "pending",
   );
   const [error, setError] = React.useState<string | null>(null);
   const [panelWidth, setPanelWidth] = React.useState(PANEL_WIDTH_DEFAULT);
@@ -348,7 +348,10 @@ export function ClipEditor({
 
   const jobProgress = useJobProgress(jobId, { enabled: rerendering });
 
-  const isProcessing = clip.status === "processing" || rerendering;
+  const isProcessing =
+    clip.status === "processing" ||
+    clip.status === "pending" ||
+    rerendering;
   const isDirty = !formsEqual(form, savedRef.current);
   const willRerender = !isSplice && needsRerender(savedRef.current, form);
   const validationError = isSplice
@@ -386,16 +389,19 @@ export function ClipEditor({
   React.useEffect(() => {
     const prev = prevClipStatusRef.current;
     prevClipStatusRef.current = clip.status;
-    if (clip.status === "processing") {
+    const inflight =
+      clip.status === "processing" || clip.status === "pending";
+    if (inflight) {
       setRerendering(true);
       return;
     }
-    if (prev === "processing" && clip.status === "done") {
+    const wasInflight = prev === "processing" || prev === "pending";
+    if (wasInflight && clip.status === "done") {
       setRerendering(false);
       toast("Clip re-rendered", "Your edits are now live.");
       return;
     }
-    if (prev === "processing" && clip.status === "error") {
+    if (wasInflight && clip.status === "error") {
       setRerendering(false);
       toast(
         "Re-render failed",
@@ -409,11 +415,22 @@ export function ClipEditor({
   }, [clip.status, toast]);
 
   // Soft-refresh while a clip re-render is in flight so status/media update.
+  // Cap local spinner if the worker never finishes (stuck pending/processing).
   React.useEffect(() => {
     if (!rerendering) return;
     const id = window.setInterval(() => router.refresh(), 2500);
-    return () => window.clearInterval(id);
-  }, [rerendering, router]);
+    const timeout = window.setTimeout(() => {
+      setRerendering(false);
+      toast(
+        "Re-render still running",
+        "Refresh the page in a minute, or try Save & re-render again.",
+      );
+    }, 10 * 60_000);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(timeout);
+    };
+  }, [rerendering, router, toast]);
 
   React.useEffect(() => {
     if (!open) return;

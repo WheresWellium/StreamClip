@@ -36,7 +36,7 @@ const CHECK_LABELS: Record<string, { label: string; hint: string }> = {
   },
   ollama: {
     label: "AI scoring (optional)",
-    hint: "Optional — virality scoring falls back without it.",
+    hint: "Optional — install and start Ollama (llama3.2) for LLM virality; otherwise clips use the local HEURISTIC score.",
   },
   cuda: {
     label: "GPU acceleration (optional)",

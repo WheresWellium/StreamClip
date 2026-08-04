@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ClipCard } from "@/components/clips/clip-card";
+import { HeuristicViralityBanner } from "@/components/clips/heuristic-virality-banner";
 import { JobClipsToolbar } from "@/components/clips/job-clips-toolbar";
 import { SpliceClipsToolbar } from "@/components/clips/splice-clips-toolbar";
 import { LiveClipFeed } from "@/components/jobs/live-clip-feed";
@@ -150,6 +151,8 @@ export function JobClipsPageClient() {
         jobStatus={job.status}
         initialClipCount={job.clips.length}
       />
+
+      <HeuristicViralityBanner clips={job.clips} />
 
       {job.clips.length > 0 ? (
         <>

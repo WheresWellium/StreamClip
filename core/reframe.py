@@ -53,6 +53,30 @@ def apply_reframe_zoom(crop_w: int, crop_h: int, zoom: float = 1.0) -> tuple[int
     return max(1, int(crop_w / z)), max(1, int(crop_h / z))
 
 
+def effective_hud_fractions(
+    preset: "_Preset",
+    rcfg: ReframeConfig,
+) -> tuple[float, float]:
+    """HUD band fractions (top, bottom) for crop math.
+
+    Config reserves raise the floor when the preset already protects HUD
+    (gaming). Talking-head presets with zero HUD stay zero so podcasts are
+    not inset by default gaming reserves.
+    """
+    top = float(preset.hud_top)
+    bot = float(preset.hud_bottom)
+    if top > 0.0 or bot > 0.0:
+        top = max(top, float(rcfg.hud_top_reserve))
+        bot = max(bot, float(rcfg.hud_bottom_reserve))
+    # Keep a usable band for the target crop.
+    total = top + bot
+    if total >= 0.85:
+        scale = 0.84 / total
+        top *= scale
+        bot *= scale
+    return top, bot
+
+
 # ─── Preset definitions ────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -291,8 +315,9 @@ def _reframe_with_tracking(
     # Works for both narrow (9:16) and wide (16:9, 1:1) targets.
     pan_x = max(0.0, min(1.0, float(cfg.pan_x)))
     zoom = max(1.0, min(1.4, float(cfg.zoom)))
-    hud_top_px = int(src_h * preset.hud_top)
-    hud_bot_px = int(src_h * preset.hud_bottom)
+    hud_top_f, hud_bot_f = effective_hud_fractions(preset, cfg)
+    hud_top_px = int(src_h * hud_top_f)
+    hud_bot_px = int(src_h * hud_bot_f)
     usable_h = src_h - hud_top_px - hud_bot_px
     crop_w = min(src_w, int(usable_h * target_ar))
     crop_h = min(usable_h, int(crop_w / target_ar))
@@ -436,12 +461,10 @@ def reframe(
     rcfg = cfg.reframe
     preset_name = rcfg.preset
 
-    # Auto-detect preset from emotion if configured as "auto"
-    if preset_name == "auto" and candidate:
-        if candidate.emotion in (Emotion.HYPE, Emotion.CLUTCH):
-            preset_name = "fps_game"
-        else:
-            preset_name = "irl"
+    # Auto → HUD-aware gaming crop. Talking-head jobs should set preset=irl/podcast
+    # explicitly; mapping auto→irl left kill-feed/HUD in 9:16 gaming clips.
+    if preset_name == "auto":
+        preset_name = "fps_game"
 
     preset = PRESETS.get(preset_name, PRESETS["fps_game"])
 
@@ -460,14 +483,19 @@ def reframe(
         if not rcfg.fallback_center_crop:
             raise
 
-        # Fallback: FFmpeg crop (largest target-AR rect, pan/zoom nudges)
+        # Fallback: FFmpeg crop inside the same HUD-safe band as tracking.
         tw, th = rcfg.target_width, rcfg.target_height
         pan_x = max(0.0, min(1.0, float(rcfg.pan_x)))
         zoom = max(1.0, min(1.4, float(rcfg.zoom)))
-        # w/h shrink by zoom; x = (iw-w)*pan_x so 0.5 stays centred
+        hud_top, hud_bot = effective_hud_fractions(preset, rcfg)
+        usable = max(0.05, 1.0 - hud_top - hud_bot)
+        # Height from usable band; width from target AR; Y inset by hud_top.
         crop_expr = (
-            f"crop='min(iw,ih*{tw}/{th})/{zoom}':'min(ih,iw*{th}/{tw})/{zoom}'"
-            f":'(iw-ow)*{pan_x}':'(ih-oh)/2',"
+            f"crop="
+            f"'min(iw,ih*{usable}*{tw}/{th})/{zoom}':"
+            f"'min(ih*{usable},iw*{th}/{tw})/{zoom}':"
+            f"'(iw-ow)*{pan_x}':"
+            f"'ih*{hud_top}+(ih*{usable}-oh)/2',"
             f"scale={tw}:{th},setsar=1"
         )
         cmd = [
@@ -479,9 +507,12 @@ def reframe(
             str(output_path),
         ]
         subprocess.run(cmd, check=True, capture_output=True)
-        log.info("fallback_centre_crop_done", output=str(output_path))
+        log.info(
+            "fallback_centre_crop_done",
+            output=str(output_path),
+            hud_top=hud_top,
+            hud_bottom=hud_bot,
+        )
         return output_path
 
 
-# Circular import fix
-from core.models import Emotion  # noqa: E402

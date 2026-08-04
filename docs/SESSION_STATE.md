@@ -16,11 +16,15 @@
 - Tester VOD `2836776596`: yt-dlp+Client-ID downloaded 20s video (`tmp/proof-vod-video-20s.mp4`); packaged `desktop.yaml` has **no** `twitch_client_id`
 - Overlay: degrade if `sentence_transformers` missing (dev host)
 
+## Pre-cut (verify-this 2026-08-04)
+
+Artifacts: `tmp/verify-this/twitch-upload-honesty/verdict.md` — source proof + packaged twitch-clip + `verify_desktop_release` **green**; packaged yaml still **no** Client-ID until rebuild.
+
 ## Next
 
-1. Commit + rebuild UI/sidecar + publish **1.0.0-beta.27**
-2. Clean-VM install→first-clip on beta.27 (not operator warm machine)
-3. Wire Sentry desktop + require smoke_source_matrix before Latest
+1. Merge `cursor/twitch-upload-honesty` → master
+2. Rebuild UI/sidecar + publish **1.0.0-beta.27**
+3. Clean-VM install→first-clip on beta.27
 
 ## Pipeline capability (desktop)
 

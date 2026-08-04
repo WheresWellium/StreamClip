@@ -21,9 +21,26 @@ type Props = {
   showReviewLink?: boolean;
 };
 
-function ClipFeedStatusIcon({ status }: { status: ClipFeedItem["feedStatus"] }) {
+function displayFeedStatus(
+  status: ClipFeedItem["feedStatus"],
+  jobStatus: string,
+): ClipFeedItem["feedStatus"] | "failed" {
+  if (status === "error") return "failed";
+  // Job ended in error while this clip never left processing — do not spin forever.
+  if (jobStatus === "error" && status !== "done") return "failed";
+  return status;
+}
+
+function ClipFeedStatusIcon({
+  status,
+}: {
+  status: ClipFeedItem["feedStatus"] | "failed";
+}) {
   if (status === "done") {
     return <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />;
+  }
+  if (status === "failed") {
+    return <Circle className="h-4 w-4 text-destructive shrink-0" />;
   }
   if (status === "processing") {
     return <Loader2 className="h-4 w-4 text-sky-400 animate-spin shrink-0" />;
@@ -76,12 +93,14 @@ export function LiveClipFeed({
           </p>
         ) : (
           <ul className="space-y-2">
-            {clips.map((clip) => (
+            {clips.map((clip) => {
+              const shown = displayFeedStatus(clip.feedStatus, jobStatus);
+              return (
               <li
                 key={clip.clip_id}
                 className="flex items-center gap-3 rounded-md border border-border/50 px-3 py-2 text-sm"
               >
-                <ClipFeedStatusIcon status={clip.feedStatus} />
+                <ClipFeedStatusIcon status={shown} />
                 <span className="font-mono text-xs text-muted-foreground w-6 shrink-0">
                   #{clip.rank + 1}
                 </span>
@@ -91,17 +110,20 @@ export function LiveClipFeed({
                 <span
                   className={cn(
                     "text-[10px] uppercase tracking-wide font-mono shrink-0",
-                    clip.feedStatus === "done"
+                    shown === "done"
                       ? "text-emerald-400"
-                      : clip.feedStatus === "processing"
-                        ? "text-sky-400"
-                        : "text-muted-foreground",
+                      : shown === "failed"
+                        ? "text-destructive"
+                        : shown === "processing"
+                          ? "text-sky-400"
+                          : "text-muted-foreground",
                   )}
                 >
-                  {clip.feedStatus}
+                  {shown}
                 </span>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
         {showReviewLink && clips.some((c) => c.feedStatus === "done") ? (

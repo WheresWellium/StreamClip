@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse, urlunparse
 
 # Hosts we accept without an explicit scheme (user paste from browser bar).
@@ -20,6 +21,34 @@ _SCHEMELESS_HOST_PREFIXES = (
     "vm.tiktok.com/",
 )
 
+_TWITCH_VOD_PATH = re.compile(r"^/videos/\d+/?$", re.IGNORECASE)
+_TWITCH_CHANNEL_CLIP = re.compile(r"^/[^/]+/clip/[^/]+/?$", re.IGNORECASE)
+_TWITCH_LIVE_MSG = (
+    "That looks like a Twitch channel or listing page, not a downloadable VOD. "
+    "Open the video -> Share -> copy the twitch.tv/videos/... link, or upload the file."
+)
+
+
+def _reject_unsupported_twitch(host: str, path: str) -> None:
+    """Reject channel home / video listings; allow VOD ids and clips only."""
+    if host == "clips.twitch.tv":
+        slug = path.strip("/")
+        if not slug or "/" in slug:
+            raise ValueError(
+                "That Twitch clip link looks incomplete. Paste a full clips.twitch.tv/… URL."
+            )
+        return
+
+    if host not in ("twitch.tv", "www.twitch.tv"):
+        return
+
+    normalized = path.rstrip("/") or "/"
+    if _TWITCH_VOD_PATH.match(normalized) or _TWITCH_CHANNEL_CLIP.match(normalized):
+        return
+
+    # /videos without id, /videos?filter=highlights, bare /{channel}, /{channel}/videos, …
+    raise ValueError(_TWITCH_LIVE_MSG)
+
 
 def normalize_source_url(raw: str) -> str:
     """
@@ -27,6 +56,8 @@ def normalize_source_url(raw: str) -> str:
 
     Handles missing schemes, mobile Twitch hosts, and strips tracking query
     params on Twitch VOD URLs (they do not affect download identity).
+    Rejects Twitch channel/live home and highlight listing pages — qClip needs
+    a concrete ``/videos/{id}`` or clip URL (or a file upload).
     """
     url = raw.strip()
     if not url:
@@ -56,6 +87,8 @@ def normalize_source_url(raw: str) -> str:
     # VOD identity is path-only; query params are UI filters (e.g. ?filter=archives).
     if host in ("twitch.tv", "www.twitch.tv") and "/videos/" in path.lower():
         query = ""
+
+    _reject_unsupported_twitch(host, path)
 
     netloc = host
     if parsed.port and parsed.port not in (80, 443):

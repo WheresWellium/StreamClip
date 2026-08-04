@@ -387,7 +387,15 @@ def apply_overlays(
         shutil.copy2(clip_path, output_path)
         return output_path, []
 
-    matcher = _get_matcher(asset_records)
+    try:
+        matcher = _get_matcher(asset_records)
+    except ModuleNotFoundError as exc:
+        # Dev / incomplete host envs may lack sentence_transformers; packaged
+        # sidecar bundles it. Never fail the whole clip for optional memes.
+        log.warning("overlay_matcher_unavailable", error=str(exc))
+        import shutil
+        shutil.copy2(clip_path, output_path)
+        return output_path, []
 
     # ── Build query from LLM hook + keywords ──────────────────────────────
     keyword_str = " ".join(candidate.meme_keywords)

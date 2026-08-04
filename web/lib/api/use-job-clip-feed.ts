@@ -14,14 +14,20 @@ function feedStatusFromEvent(event: ClipFeedExtra["event"]): ClipFeedItem["feedS
   return "discovered";
 }
 
+const STATUS_RANK: Record<ClipFeedItem["feedStatus"], number> = {
+  discovered: 0,
+  processing: 1,
+  done: 2,
+  error: 3,
+};
+
 function mergeClipFeedItem(
   prev: ClipFeedItem | undefined,
   extra: ClipFeedExtra,
 ): ClipFeedItem {
   const nextStatus = feedStatusFromEvent(extra.event);
-  const statusRank = { discovered: 0, processing: 1, done: 2 };
   const feedStatus =
-    prev && statusRank[prev.feedStatus] > statusRank[nextStatus]
+    prev && STATUS_RANK[prev.feedStatus] > STATUS_RANK[nextStatus]
       ? prev.feedStatus
       : nextStatus;
 
@@ -50,7 +56,12 @@ function clipsFromJob(job: Awaited<ReturnType<typeof jobsApi.get>>): ClipFeedIte
     clip_id: clip.id,
     rank: clip.rank,
     title: clip.title ?? null,
-    feedStatus: clip.status === "done" ? "done" : "processing",
+    feedStatus:
+      clip.status === "done"
+        ? "done"
+        : clip.status === "error"
+          ? "error"
+          : "processing",
   }));
 }
 
@@ -65,12 +76,11 @@ function mergeMaps(
       merged.set(item.clip_id, item);
       continue;
     }
-    const statusRank = { discovered: 0, processing: 1, done: 2 };
     merged.set(item.clip_id, {
       ...prev,
       title: prev.title || item.title,
       feedStatus:
-        statusRank[item.feedStatus] > statusRank[prev.feedStatus]
+        STATUS_RANK[item.feedStatus] > STATUS_RANK[prev.feedStatus]
           ? item.feedStatus
           : prev.feedStatus,
     });

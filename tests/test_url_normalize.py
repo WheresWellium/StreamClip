@@ -55,3 +55,18 @@ def test_explicit_http_direct_media_preserved():
 def test_explicit_https_unchanged():
     url = normalize_source_url("https://cdn.example.com/v.mp4")
     assert url == "https://cdn.example.com/v.mp4"
+
+
+def test_twitch_channel_home_rejected():
+    with pytest.raises(ValueError, match="channel or listing"):
+        normalize_source_url("https://www.twitch.tv/aresthebot")
+
+
+def test_twitch_highlights_listing_rejected():
+    with pytest.raises(ValueError, match="channel or listing"):
+        normalize_source_url("https://www.twitch.tv/aresthebot/videos?filter=highlights")
+
+
+def test_twitch_videos_index_rejected():
+    with pytest.raises(ValueError, match="channel or listing"):
+        normalize_source_url("https://www.twitch.tv/videos")

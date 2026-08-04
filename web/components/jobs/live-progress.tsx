@@ -238,7 +238,7 @@ export function LiveProgress({
       : state.status === "reconnecting"
         ? "Reconnecting to progress stream…"
         : state.status === "polling"
-          ? "Live stream unavailable — refreshing via API"
+          ? "Progress stream reconnecting — checking job status…"
           : null;
 
   const rawMessage = liveEvent?.message ?? initialStage;
@@ -263,42 +263,50 @@ export function LiveProgress({
   const liveTotalElapsed = useLiveSeconds(totalElapsedBase, isRunning);
   const liveEta = useLiveSeconds(etaBase, isRunning && etaBase != null, "down");
 
+  const toastedTerminalRef = React.useRef<"done" | "error" | null>(null);
+  const progressStatus = state.status;
+  const progressMessage =
+    "message" in state ? state.message : undefined;
+  const progressExtra =
+    "lastEvent" in state &&
+    state.lastEvent?.extra &&
+    typeof state.lastEvent.extra === "object"
+      ? (state.lastEvent.extra as Record<string, unknown>)
+      : null;
+
   React.useEffect(() => {
-    if (state.status === "done") {
-      toast("Job complete", "Your clips are ready to download.");
-      // Soft refresh — never throw into the job error boundary from here.
-      try {
-        router.refresh();
-      } catch {
-        /* ignore */
-      }
+    if (progressStatus !== "done" && progressStatus !== "error") {
+      toastedTerminalRef.current = null;
+      return;
     }
-    if (state.status === "error") {
-      const last =
-        "lastEvent" in state ? (state.lastEvent ?? null) : null;
-      const extra =
-        last?.extra && typeof last.extra === "object"
-          ? (last.extra as Record<string, unknown>)
-          : null;
-      const doneN = Number(extra?.done ?? 0);
-      const errN = Number(extra?.errors ?? 0);
-      const msg = "message" in state ? state.message : undefined;
+    if (toastedTerminalRef.current === progressStatus) return;
+    toastedTerminalRef.current = progressStatus;
+
+    if (progressStatus === "done") {
+      toast("Job complete", "Your clips are ready to download.");
+    } else {
+      const doneN = Number(progressExtra?.done ?? 0);
+      const errN = Number(progressExtra?.errors ?? 0);
       if (doneN > 0 && errN > 0) {
         toast(
           "Completed with errors",
-          msg ||
+          progressMessage ||
             `${doneN} clips ready, ${errN} failed. Open failed clips to retry.`,
         );
-      } else if (msg) {
-        toast("Job failed", userFacingErrorMessage(msg, null, "Job failed."));
-      }
-      try {
-        router.refresh();
-      } catch {
-        /* ignore */
+      } else if (progressMessage) {
+        toast(
+          "Job failed",
+          userFacingErrorMessage(progressMessage, null, "Job failed."),
+        );
       }
     }
-  }, [state, router, toast]);
+    // Soft refresh — never throw into the job error boundary from here.
+    try {
+      router.refresh();
+    } catch {
+      /* ignore */
+    }
+  }, [progressStatus, progressMessage, progressExtra, router, toast]);
 
   if (state.status === "error") {
     const last =

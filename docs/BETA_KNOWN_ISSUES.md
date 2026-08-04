@@ -32,6 +32,7 @@ Still on beta.5–beta.24? Upgrade to Latest (support→Project #4 defaults + ho
 |------|----------------|
 | TikTok publish | Inbox / drafts only — finish in the TikTok app |
 | TikTok URL download | Some networks get an **IP block** from TikTok (yt-dlp). qClip fails fast with a clear error. Workaround: **upload the file**, use a non-TikTok URL, or retry from another network/VPN. Not a desktop bug. |
+| Twitch channel / unpublished highlight | Paste a **VOD** link (`twitch.tv/videos/…`) or **upload** the file. Channel pages and unpublished Creator Dashboard highlights are not downloadable. Yellow “progress stream reconnecting” is SSE fallback, not Twitch. |
 | Instagram | Not supported |
 | macOS Gatekeeper | Unsigned `.dmg` on Latest — right-click → **Open** / Privacy & Security → **Open Anyway** |
 | macOS notarization | Not notarized yet — Gatekeeper warning is expected |

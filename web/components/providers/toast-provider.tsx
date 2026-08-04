@@ -36,10 +36,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setOpen(true);
   }, []);
 
+  // Stable identity — a fresh `{ push }` each render retriggers effects that
+  // depend on useToastSafe() and can cause React #185 (max update depth).
+  const value = React.useMemo(() => ({ push }), [push]);
+
   const current = messages[messages.length - 1];
 
   return (
-    <ToastContext.Provider value={{ push }}>
+    <ToastContext.Provider value={value}>
       <Toast.Provider swipeDirection="right">
         {children}
         <Toast.Root

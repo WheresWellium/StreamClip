@@ -31,6 +31,13 @@ def expose_error_context() -> bool:
     return get_settings().environment == "development"
 
 
+_TWITCH_LIVE_UNAVAILABLE_MSG = (
+    "This Twitch link isn't a downloadable VOD (channel page, ended live, or "
+    "unpublished highlight). Open the video → Share → copy the videos/… link, "
+    "or upload the file."
+)
+
+
 def sanitize_user_message(
     message: str | None,
     *,
@@ -40,6 +47,9 @@ def sanitize_user_message(
     if not message or not str(message).strip():
         return fallback
     text = str(message).strip()
+    lower = text.lower()
+    if "live stream unavailable" in lower or "permanent link" in lower:
+        return _TWITCH_LIVE_UNAVAILABLE_MSG
     if len(text) > 280 or _INTERNAL_DETAIL_RE.search(text):
         return fallback
     return text
@@ -48,8 +58,9 @@ def sanitize_user_message(
 def clip_failure_message(exc: BaseException) -> str:
     """User-safe clip error text for DB + SSE (never raw ``str(exc)``)."""
     if isinstance(exc, StreamClipError):
-        return exc.user_message
-    return "Video processing failed."
+        return sanitize_user_message(exc.user_message, fallback=exc.user_message)
+    # Legacy / unexpected: never persist raw yt-dlp Twitch jargon on clips.
+    return sanitize_user_message(str(exc), fallback="Video processing failed.")
 
 
 def publish_failure_message(exc: BaseException) -> str:

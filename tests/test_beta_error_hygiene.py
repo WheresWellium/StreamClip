@@ -33,6 +33,14 @@ def test_clip_failure_message_never_leaks_raw_exception():
     assert clip_failure_message(err) == err.user_message
 
 
+def test_clip_failure_message_rewrites_twitch_live_jargon():
+    msg = clip_failure_message(
+        RuntimeError("202: live stream unavailable, use a permanent link instead.")
+    )
+    assert "downloadable VOD" in msg
+    assert "202:" not in msg
+
+
 @pytest.mark.asyncio
 async def test_global_500_handler_hides_traceback_in_production(monkeypatch):
     # Production rejects weak AUTH secrets (GAP O8) — use a strong test key.

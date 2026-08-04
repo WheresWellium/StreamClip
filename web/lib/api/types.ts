@@ -82,7 +82,7 @@ export type ClipFeedItem = {
   clip_id: string;
   rank: number;
   title: string | null;
-  feedStatus: "discovered" | "processing" | "done";
+  feedStatus: "discovered" | "processing" | "done" | "error";
 };
 
 export type ProgressEvent = {

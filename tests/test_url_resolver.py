@@ -117,6 +117,16 @@ def test_user_message_ip_blocked():
     assert "IP block" in msg
 
 
+def test_user_message_live_stream_unavailable():
+    lines = [
+        "ERROR: [twitch:stream] aresthebot: 202: live stream unavailable, "
+        "use a permanent link instead."
+    ]
+    msg = _user_message_from_ytdlp(lines, "https://www.twitch.tv/videos/1")
+    assert "downloadable VOD" in msg
+    assert "permanent link" not in msg.lower() or "videos/" in msg
+
+
 def test_download_cache_hit(tmp_path, monkeypatch):
     cfg = get_settings(reload=True)
     monkeypatch.setattr(cfg, "cache_dir", tmp_path)

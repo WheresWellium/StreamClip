@@ -15,6 +15,25 @@ const CODE_MESSAGES: Record<string, string> = {
   internal_error: "Something went wrong. Try again or report a bug.",
 };
 
+const TWITCH_LIVE_UNAVAILABLE_MSG =
+  "This Twitch link isn't a downloadable VOD (channel page, ended live, or unpublished highlight). Open the video → Share → copy the videos/… link, or upload the file.";
+
+/** Rewrite known Twitch/yt-dlp jargon that slipped into older clip.error_message rows. */
+export function rewriteLegacyTwitchError(text: string): string {
+  const lower = text.toLowerCase();
+  // Progress-stream banner copy must never appear as a clip/job failure reason.
+  if (lower.includes("refreshing via api")) {
+    return "Progress updates were interrupted. Refresh the page or retry the job.";
+  }
+  if (
+    lower.includes("live stream unavailable") ||
+    lower.includes("permanent link instead")
+  ) {
+    return TWITCH_LIVE_UNAVAILABLE_MSG;
+  }
+  return text;
+}
+
 export function userFacingErrorMessage(
   message: string | null | undefined,
   code?: string | null,
@@ -26,7 +45,7 @@ export function userFacingErrorMessage(
   if (!message || !message.trim()) {
     return fallback;
   }
-  const text = message.trim();
+  const text = rewriteLegacyTwitchError(message.trim());
   if (isLikelyInternalErrorMessage(text)) {
     return fallback;
   }

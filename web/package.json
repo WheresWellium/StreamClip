@@ -18,6 +18,8 @@
     "test:sidecar-soft-open": "npx --yes tsx --test lib/layout/sidecar-soft-open.test.ts",
     "test:heuristic-virality": "npx --yes tsx --test components/clips/heuristic-virality.test.ts",
     "test:global-error-detail": "npx --yes tsx --test lib/errors/global-error-detail.test.ts",
+    "test:user-errors": "npx --yes tsx --test lib/help/user-errors.test.ts",
+    "test:toast-stable": "npx --yes tsx --test components/providers/toast-context-stable.test.ts",
     "test:create-nav-matrix": "npx --yes tsx --test lib/jobs/create-job-nav-matrix.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui-journey": "playwright test e2e/journey-create-review.spec.ts e2e/failure-paths.spec.ts e2e/onboarding-first-run.spec.ts e2e/merge-selection.spec.ts e2e/rerender-pending.spec.ts e2e/heuristic-banner.spec.ts",

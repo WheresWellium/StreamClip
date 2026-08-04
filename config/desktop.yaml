@@ -41,6 +41,11 @@ highlight:
 ingest:
   medium_skip_optical_flow: true
 
+# Public Twitch web Client-ID (same class of ID Twitch embeds in twitch.tv).
+# Required for reliable VOD GraphQL / chat fetch on desktop; override via
+# STREAMCLIP_TWITCH_CLIENT_ID if you register your own Twitch app.
+twitch_client_id: kimne78kx3ncx6brgo4mv6wki5h1ko
+
 # GPU (§4.11): sidecar calls core/gpu_profile.py at boot — upgrades to CUDA/NVENC
 # when detected, falls back to cpu/libx264 when not. Override via STREAMCLIP_WHISPER__DEVICE
 # and STREAMCLIP_EXPORT__CODEC.

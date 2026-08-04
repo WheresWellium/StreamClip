@@ -36,7 +36,9 @@ def download_from_storage(
                     on_progress(min(done / total, 1.0))
 
             store.download(storage_key, local_dest, on_progress=_bytes_progress)
-        except StorageError as exc:
+        except (StorageError, FileNotFoundError, OSError) as exc:
+            # LocalStorage.size/download raise FileNotFoundError when the PUT
+            # never landed; map to the same friendly upload-again copy.
             raise IngestError(
                 f"Failed to download upload {storage_key}",
                 user_message="Uploaded file not found in storage. Try uploading again.",

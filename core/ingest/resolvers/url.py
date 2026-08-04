@@ -180,6 +180,12 @@ def _user_message_from_ytdlp(lines: list[str], url: str) -> str:
         for phrase in ("video unavailable", "vod has expired", "has been deleted", "not found")
     ):
         return "This video is no longer available. Check that the URL is correct and public."
+    if "live stream unavailable" in blob or "permanent link" in blob:
+        return (
+            "This Twitch link isn't a downloadable VOD (channel page, ended live, or "
+            "unpublished highlight). Open the video → Share → copy the videos/… link, "
+            "or upload the file."
+        )
     if "subscriber" in blob or "sub-only" in blob or "subscription" in blob:
         return (
             "This Twitch VOD requires a subscription. Use a public VOD or configure "

@@ -287,6 +287,11 @@ export function CreateJobForm({
                   required={mode === "url"}
                   autoFocus
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use a VOD link (<span className="font-mono">/videos/…</span>), not
+                  the channel page or an unpublished dashboard highlight. Or switch
+                  to Upload.
+                </p>
               </div>
             ) : (
               <div className="space-y-1.5">

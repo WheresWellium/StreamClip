@@ -7,12 +7,11 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | idle after beta.27 | — | Win published; Mac GHA in flight |
+| `master` | idle after beta.27 | — | Win + Mac on Latest |
 
 ## Shipped
 
-- **1.0.0-beta.27** — Twitch/upload honesty + React #185 + desktop `twitch_client_id`
-- Win Setup on Latest; Mac arm64 via `desktop-release.yml` dispatch/tag
+- **1.0.0-beta.27** Latest — Win Setup + Mac arm64 (Twitch/upload honesty + React #185 + Client-ID)
 
 ## Still operator-gated
 

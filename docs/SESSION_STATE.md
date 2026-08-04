@@ -1,30 +1,22 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (cutting 1.0.0-beta.27)
+**Last updated:** 2026-08-04 (1.0.0-beta.27 cut)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | publish beta.27 | — | Twitch/upload honesty merged; Win build + Mac dispatch |
+| `master` | idle after beta.27 | — | Win published; Mac GHA in flight |
 
-## Shipped (in flight)
+## Shipped
 
-- Merge: Twitch/upload honesty + React #185 + desktop Client-ID
-- Version bump: `apps/desktop/package.json` → **1.0.0-beta.27**
+- **1.0.0-beta.27** — Twitch/upload honesty + React #185 + desktop `twitch_client_id`
+- Win Setup on Latest; Mac arm64 via `desktop-release.yml` dispatch/tag
 
-## Next after publish
+## Still operator-gated
 
-1. Confirm Latest assets Win + Mac on GitHub Releases
-2. Clean-VM install→first-clip on beta.27
-3. Point testers at new build (Twitch VOD + upload)
-
-## Pipeline capability (desktop)
-
-```
-create → ingest → transcribe → highlights → virality → fan-out → process_clip×N → finalise
-```
+Clean-VM install→first-clip on beta.27 ☐ · EV / notarization ☐
 
 ## Download
 

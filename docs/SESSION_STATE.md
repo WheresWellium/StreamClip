@@ -7,7 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | beta.26 cut in progress | — | Win local publish + Mac via desktop-release.yml |
+| `master` | idle after beta.26 | — | Win+Mac on Latest; screenrec closeout shipped |
 
 ## Pipeline capability (desktop)
 

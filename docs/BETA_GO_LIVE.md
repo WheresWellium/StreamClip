@@ -24,7 +24,7 @@ The product is the installer, so this is the gate that blocks a desktop release.
 | Gate | Target | Verify | Status |
 |------|--------|--------|--------|
 | Automated pre-ship battery | all green | `.\scripts\verify_desktop_release.ps1` (chains coverage F10, upgrade F5, clean-boot F1/F12, signing readiness F9) | 🟢 passing |
-| Clean-desktop-VM install → first clip | no white screen; clip in <45m | [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md) + [`evidence/clean-desktop-vm-beta20.md`](evidence/clean-desktop-vm-beta20.md) | ☐ operator (clean VM); build-host preflight PASS 2026-08-03 |
+| Clean-desktop-VM install → first clip | no white screen; clip in <45m | [`CLEAN_DESKTOP_VM_VERIFY.md`](CLEAN_DESKTOP_VM_VERIFY.md) + [`evidence/clean-install-proxy-beta27.md`](evidence/clean-install-proxy-beta27.md) | ☐ true clean VM UI; **proxy** wipe+install beta.27 PASS 2026-08-04 (upload + Twitch clip done; tester VOD download started) |
 | Install → first-clip median | < 45 min | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
 | Crash-free sessions (7d) | > 98% | [`DESKTOP_COHORT_EXIT.md`](DESKTOP_COHORT_EXIT.md) §2.2 | ☐ cohort evidence |
 | Signed build (or accepted unsigned) | Authenticode Valid | `publish_desktop_release.ps1 -RequireSigned` | ☐ EV cert (O11) — rechecked 2026-08-03 blocked; unsigned beta.20 accepted for cohort |

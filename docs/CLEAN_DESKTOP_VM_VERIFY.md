@@ -78,15 +78,22 @@ Upgrade-from-previous: PASS / FAIL / N/A
 Tester: __________  Date (UTC): __________
 ```
 
-## Build-host preflight (beta.20) — not a VM substitute
+## Build-host preflight — not a VM substitute
 
-Recorded 2026-08-03 on the build host (agent):
+**beta.27 clean-install proxy** (2026-08-04): wiped `%LOCALAPPDATA%\StreamClip`, silent-installed Latest Setup, ran PATH-scrubbed smokes against the **installed** sidecar. See [`evidence/clean-install-proxy-beta27.md`](evidence/clean-install-proxy-beta27.md).
+
+```
+wipe + silent install v1.0.0-beta.27: PASS (packaged twitch_client_id present)
+upload-video → done + clip: PASS
+twitch-clip → done + clip: PASS
+tester VOD /videos/2836776596 download started: PASS (full 13h→clips deferred)
+```
+
+**beta.20 automated battery** (2026-08-03, still valid pattern):
 
 ```
 verify_desktop_release.ps1 (unsigned): PASS
-  - seam coverage F10: PASS (91.71%)
-  - upgrade simulation F5: PASS
-  - verify_desktop_clean.ps1 F1/F12: PASS
+  - seam coverage F10 / upgrade F5 / clean-boot F1/F12: PASS
   - signing preflight: unsigned path OK (EV cert not present)
 ```
 

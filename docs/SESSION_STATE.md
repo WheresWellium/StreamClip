@@ -1,13 +1,13 @@
 ﻿# Session state (compaction anchor)
 
 **Purpose:** Single source of truth when conversation is summarized. Keep ≤60 lines.
-**Last updated:** 2026-08-04 (1.0.0-beta.27 cut)
+**Last updated:** 2026-08-04 (beta.27 docs synced on master)
 
 ## Active chats
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | idle after beta.27 | — | Win + Mac on Latest |
+| `master` | idle | — | Twitch/upload honesty shipped; docs + evidence current |
 
 ## Shipped
 

@@ -21,8 +21,9 @@
 | Partial job fail toasted as “Job complete”; Edit blocked | Fixed in beta.22 — honest “Completed with errors” + Edit/Regenerate on failed clips |
 | Support reports never left the device (F13) | Fixed — packaged Help → Report → GitHub Issues on [Project #4](https://github.com/users/WheresWellium/projects/4) |
 | Virality blank when Ollama down | Fixed — local heuristic score + source badge |
+| Twitch/upload fails with “live stream unavailable” / React crash loop | Fixed in **beta.27** — SSE polling copy renamed; toast context stabilized (React #185); channel/listing URLs rejected early; desktop Twitch Client-ID; yt-dlp jargon rewritten. Upgrade to Latest. |
 
-Still on beta.5–beta.24? Upgrade to Latest (support→Project #4 defaults + honest toasts in beta.25; create→live overview in beta.24).
+Still on beta.5–beta.26? Upgrade to Latest (**beta.27** for Twitch/upload honesty).
 
 ---
 

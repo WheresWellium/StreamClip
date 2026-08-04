@@ -7,7 +7,7 @@
 
 | Branch | Task | Lock id | Paths / notes |
 |--------|------|---------|----------------|
-| `master` | next: O4d clean-VM operator | — | T70/T71 closed; EV/notarization still ops |
+| `master` | next: O4d clean-VM operator | — | T80–T83 closed; EV/notarization still ops |
 
 ## Pipeline capability (desktop)
 

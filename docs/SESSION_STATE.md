@@ -13,9 +13,14 @@
 
 - **1.0.0-beta.27** Latest — Win Setup + Mac arm64 (Twitch/upload honesty + React #185 + Client-ID)
 
+## Clean-install proxy (2026-08-04)
+
+Evidence: [`docs/evidence/clean-install-proxy-beta27.md`](evidence/clean-install-proxy-beta27.md)  
+Wipe+silent install beta.27 → upload done/1 + Twitch clip done/1 + tester VOD download started (Client-ID). **Not** a Hyper-V snapshot.
+
 ## Still operator-gated
 
-Clean-VM install→first-clip on beta.27 ☐ · EV / notarization ☐
+True clean-VM UI sign-off ☐ · EV / notarization ☐ · cohort numbers ☐
 
 ## Download
 
